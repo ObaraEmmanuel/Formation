@@ -1,0 +1,240 @@
+/* Write all styles here and access them from the style delegator using dot syntax */
+
+.spinbox, .rgb_spinbox, .percent_spinbox, .degree_spinbox {
+    background: #303030;
+    foreground: #f7f7f7;
+    buttonbackground: #303030;
+    buttonup: flat;
+    buttondownrelief: flat;
+    relief: flat;
+    highlightthickness: 1;
+    highlightcolor: #3d8aff;
+    highlightbackground: #a0a0a0;
+    font: consolas 11;
+    insertbackground: #f7f7f7;
+    insertwidth: 1;
+}
+
+.dark_canvas{
+    background: #303030;
+    highlightthickness: 0;
+}
+
+.dark_icon_large{
+    font: calibri 30;
+    foreground: #f7f7f7;
+    background: #303030;
+}
+
+.dark_icon_medium, .dark_icon_medium_accent_1{
+    font: calibri 20;
+    foreground: #f7f7f7;
+    background: #303030;
+}
+
+.dark_icon_medium_accent_1{
+    foreground: #3d8aff;
+}
+
+.dark_text_accent_1{
+    background: #303030;
+    foreground: #3d8aff;
+    font: calibri 12;
+}
+
+.dark_text_passive{
+    background: #303030;
+    foreground: #a0a0a0;
+    font: calibri;
+}
+
+.dark_button{
+    background: #303030;
+    foreground: #f7f7f7;
+    relief:flat;
+    font: calibri 11;
+    highlightthickness: 1;
+    highlightcolor: #3d8aff;
+    highlightbackground: #303030;
+    activebackground: #a0a0a0;
+    borderwidth:1;
+    cursor: hand2;
+    takefocus: 1;
+}
+
+.dark_checkbutton{
+    background: #303030;
+    foreground: #f7f7f7;
+    relief: flat;
+}
+
+.dark_on_hover{
+    background: #3d8aff;
+}
+
+.dark_on_hover_ended{
+    background: #303030;
+}
+
+.dark_highlight{
+    highlightthickness: 1;
+    highlightcolor: #3d8aff;
+    highlightbackground: #303030;
+    takefocus:1;
+}
+
+.dark_highlight_active, .dark_highlight_active_heavy{
+    highlightthickness: 1;
+    highlightbackground: #a0a0a0;
+    highlightcolor: #3d8aff;
+    takefocus:1;
+}
+
+.dark_highlight_active_heavy{
+    highlightthickness: 2;
+    highlightbackground: #3d8aff;
+}
+
+.dark_highlight_bright{
+    highlightthickness: 1;
+    highlightbackground: #3d8aff;
+}
+
+.dark_highlight_passive{
+    highlightthickness: 1;
+    highlightbackground: #a0a0a0;
+    highlightcolor: #303030;
+    takefocus:1;
+}
+
+.dark_highlight_dim{
+    highlightthickness: 1;
+    highlightbackground: #4a4a4a;
+    highlightcolor: #4a4a4a;
+}
+
+.no_highlight{
+    highlightthickness: 0;
+}
+
+.dark_border_highlight{
+    highlightthickness: 1;
+    highlightcolor: #a0a0a0;
+    highlightbackground: #a0a0a0;
+    takefocus:1;
+}
+
+.dark_input{
+    background: #303030;
+    foreground: #f7f7f7;
+    disabledbackground: #303030;
+    disabledforeground: #f7f7f7;
+    relief: flat;
+    insertbackground: #f7f7f7;
+    font: calibri 10;
+}
+
+.percent_spinbox{
+    from_: 0;
+    to: 100;
+    width: 4;
+}
+
+.degree_spinbox{
+    from_: 0;
+    to: 360;
+    width: 4;
+}
+
+.dark_text, .dark_text_medium{
+    background: #303030;
+    foreground: #f7f7f7;
+    font: calibri 10;
+}
+
+.dark_text_accent{
+    background: #303030;
+    foreground: #3d8aff;
+}
+
+.dark_text_medium{
+    font: calibri 12;
+}
+
+.dark_text_medium_accent{
+    font: calibri 13;
+    background: #303030;
+    foreground: #3d8aff;
+}
+
+.dark{
+    background: #303030;
+}
+
+.bright{
+    background: #4a4a4a;
+}
+
+.text_bright{
+    foreground: #f7f7f7;
+}
+
+.bright_text, .combobox{
+    foreground: #303030;
+    background: #f7f7f7;
+}
+
+.bright_highlight{
+    highlightthickness:1;
+    highlightbackground: #3d8aff;
+    highlightcolor: #3d8aff;
+}
+
+.rgb_spinbox{
+    from_: 0;
+    to: 255;
+    width: 4;
+}
+
+.rgb_label{
+    background: #303030;
+    foreground: #A0A0A0;
+    font: consolas 10;
+    width: 4;
+}
+
+.dark_context_menu{
+    background:#303030;
+    tearoff: 0;
+    foreground: #f7f7f7;
+    activebackground: #3a3a3a;
+    activeforeground: #f7f7f7;
+    borderwidth: 0;
+    relief: flat;
+    font: calibri 12;
+    disabledforeground: #6a6a6a;
+}
+
+.combobox{
+    selectbackground: #f7f7f7;
+    selectforeground: #303030;
+    font: calibri 12;
+}
+
+.bright_background{
+    background: #3d8aff;
+}
+
+.dark_pane_horizontal, .dark_pane_vertical, .dark_pane{
+    background: #303030;
+    showhandle: 0;
+    opaqueresize:0;
+}
+
+.dark_pane_horizontal{
+    orient: horizontal;
+}
+
+.dark_pane_vertical{
+    orient: vertical;
+}

@@ -1,0 +1,168 @@
+"""
+Widget tree for the studio
+"""
+
+# ======================================================================= #
+# Copyright (C) 2019 Hoverset Group.                                      #
+# ======================================================================= #
+
+from hoverset.ui.widgets import EventMask, TreeView, Label
+from hoverset.ui.icons import get_icon
+from hoverset.ui.windows import DragWindow
+from studio.highlight import EdgeIndicator
+
+
+class MalleableTree(TreeView):
+    """
+    Sub class of TreeView that allows rearrangement of Nodes which useful in repositioning widgets in the
+    designer view. It holds handles to the objects in the Designer view
+    """
+    drag_components = []  # All objects that were selected when dragging began
+    drag_active = False  # Flag showing whether we are currently dragging stuff
+    drag_popup = None  # The almost transparent window that shows what is being dragged
+    drag_highlight = None  # The widget that currently contains the rectangular highlight
+    drag_select = None  # The node where all events go when button is released ending drag
+    drag_display_limit = 3  # The maximum number of items the drag popup can display
+
+    class Node(TreeView.Node):
+        PADDING = 0
+
+        def __init__(self, master=None, **config):
+            # Master is always a TreeView object unless you tamper with the add_as_node method
+            super().__init__(master, **config)
+            # If set tp False the node accepts children and vice versa
+            self._is_terminal = config.get("terminal", True)
+            self.strip.bind_all("<Motion>", self.begin_drag)
+            self.strip.bind_all("<ButtonRelease-1>", self.end_drag)
+            self.strip.config(**self.style.dark_highlight)  # The highlight on a normal day
+
+        # noinspection PyProtectedMember
+        def begin_drag(self, event):
+            # If cursor is moved while holding the left button down for the first time we begin drag
+            if event.state & EventMask.MOUSE_BUTTON_1 and not MalleableTree.drag_active and \
+                    self.tree.selected_count():
+                MalleableTree.drag_popup = DragWindow(self.window).set_position(event.x_root, event.y_root + 20)
+                MalleableTree.drag_components = self.tree._selected
+                count = 0
+                for component in MalleableTree.drag_components:
+                    # Display all items upto the drag_display_limit
+                    if count == MalleableTree.drag_display_limit:
+                        overflow = len(MalleableTree.drag_components) - count
+                        # Display the overflow information
+                        Label(MalleableTree.drag_popup,
+                              text=f"and {overflow} other{'' if overflow == 1 else 's'}...", anchor='w',
+                              **self.style.dark_text).pack(side="top", fill="x")
+                        break
+                    Label(MalleableTree.drag_popup,
+                          text=component.name, anchor='w',
+                          **self.style.dark_text).pack(side="top", fill="x")
+                    count += 1
+                MalleableTree.drag_active = True
+            elif MalleableTree.drag_active:
+                widget = self.winfo_containing(event.x_root, event.y_root)
+                # The widget can be a child to Node and not necessarily a node but we need a node so
+                # Resolve the node that is immediately under the cursor position by iteratively getting widget's parent
+                # For the sake of performance not more than 4 iterations
+                limit = 4
+                while not isinstance(widget, self.__class__):
+                    if widget is None:
+                        # This happens when someone hovers outside the current top level window
+                        break
+                    widget = self.nametowidget(widget.winfo_parent())
+                    limit -= 1
+                    if not limit:
+                        break
+                if isinstance(widget, MalleableTree.Node):
+                    # We can only react if we have resolved the widget to a Node object
+                    widget.react(event)
+                    # Store the currently reacting widget so we can apply actions to it on ButtonRelease/ drag_end
+                    MalleableTree.drag_select = widget
+                else:
+                    # No viable node found on resolution so clear all highlights and indicators
+                    MalleableTree.drag_select = None
+                    self.clear_indicators()
+                MalleableTree.drag_popup.set_position(event.x_root, event.y_root + 20)
+
+        def end_drag(self, event):
+            # Dragging is complete so we make the necessary insertions and repositions
+            node: MalleableTree.Node = MalleableTree.drag_select
+            if MalleableTree.drag_active:
+                if MalleableTree.drag_select is not None:
+                    action = node.react(event)
+                    if action == 0:
+                        node.insert_before(*MalleableTree.drag_components)
+                    elif action == 1:
+                        node.insert(None, *MalleableTree.drag_components)
+                    elif action == 2:
+                        node.insert_after(*MalleableTree.drag_components)
+                    # else there is no viable action to take.
+                # Reset all drag related attributes
+                MalleableTree.drag_popup.destroy()  # remove the drag popup window
+                MalleableTree.drag_popup = None
+                MalleableTree.drag_active = False
+                MalleableTree.drag_components = []
+                self.clear_indicators()
+                MalleableTree.drag_highlight = None
+
+        def highlight(self):
+            MalleableTree.drag_highlight = self
+            self.strip.config(**self.style.bright_highlight)
+
+        def react(self, event) -> int:
+            # Checks, based on the cursor position whether we can insert before, into or after the node
+            # Returns 0, 1 or 2 respectively
+            # It is mostly with respect to the nodes head element known as the strip except for --- case * --- below
+            self.clear_indicators()
+            # The cursor is at the top edge of the node so we can attempt to insert before it
+            if event.y_root < self.strip.winfo_rooty() + 5:
+                self.tree.edge_indicator.indicate_before(self.strip)
+                return 0
+            # The cursor is at the center of the node so we can attempt a direct insert into the node
+            elif self.strip.winfo_rooty() + 5 < event.y_root < self.strip.winfo_rooty() + self.strip.height - 5:
+                if not self._is_terminal:
+                    # If node is terminal then id does not support children and consequently insertion
+                    self.highlight()
+                    return 1
+            # The cursor is at the bottom edge of the node so we attempt to insert immediately after the node
+            elif self._expanded:  # --- Case * ---
+                # If the node is expanded we would want to edge indicate at the very bottom after its last child
+                if event.y_root > self.winfo_rooty() + self.height - 5:
+                    self.tree.edge_indicator.indicate_after(self)
+                    return 2
+            else:
+                self.tree.edge_indicator.indicate_after(self.strip)
+                return 2
+
+        def clear_highlight(self):
+            # Remove the rectangular highlight around the node
+            self.strip.config(**self.style.dark_highlight)
+
+        def clear_indicators(self):
+            # Remove any remaining node highlights and edge indicators
+            if MalleableTree.drag_highlight is not None:
+                MalleableTree.drag_highlight.clear_highlight()
+            self.tree.edge_indicator.clear()
+
+        @property
+        def is_terminal(self):
+            return self._is_terminal
+
+        @is_terminal.setter
+        def is_terminal(self, value):
+            self.is_terminal = value
+
+    def __init__(self, master, **config):
+        super().__init__(master, **config)
+        self.edge_indicator = EdgeIndicator(self)  # A line that shows where an insertion can occur
+
+    def sample(self):
+        s = self.add_as_node(icon=get_icon("network"), name="Root node", terminal=False)
+        d = s.add_as_node(icon=get_icon("data"), name="node 1", terminal=False)
+        d.add_as_node(icon=get_icon("separate"), name="sub_node 1")
+        d.add_as_node(icon=get_icon("separate"), name="sub_node 2")
+        s.add_as_node(icon=get_icon("data"), name="node 2")
+        s.add_as_node(icon=get_icon("data"), name="node 3")
+        s.add_as_node(icon=get_icon("data"), name="node 4")
+        s.add_as_node(icon=get_icon("data"), name="node 5")
+        self.allow_multi_select(True)
+        self.on_select(lambda: print("selection changed to ", self.get()))
