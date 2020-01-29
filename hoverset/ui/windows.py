@@ -24,7 +24,8 @@ class DragWindow(tix.Toplevel):
         return self
 
     def set_position(self, x, y):
-        self.geometry(f"+{x}+{y}")
+        x_offset = self.winfo_width() // 2
+        self.geometry(f"+{x - x_offset}+{y}")
         return self
 
     def set_transparency(self, alpha):

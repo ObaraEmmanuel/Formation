@@ -9,16 +9,18 @@ All gui manifestation should strictly use hoverset widget set for easy maintenan
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
 
-import functools
 import dataclasses
+import functools
+import logging
 import tkinter as tk
 import tkinter.tix as tix
 import tkinter.ttk as ttk
 
-from tkinter import font
+from tkinter import font, IntVar, StringVar, BooleanVar
 from hoverset.ui.styles import StyleDelegator
 from hoverset.ui.animation import Animate, Easing
-from hoverset.ui.icons import get_icon
+from hoverset.ui.icons import get_icon, get_icon_image
+from hoverset.ui.windows import DragWindow
 
 
 class FontStyle(font.Font):
@@ -192,6 +194,48 @@ class EditableMixin:
 
 
 class ContextMenuMixin:
+    _on_context_menu = None
+
+    def make_menu(self, templates, parent=None, **cnf):
+        """
+        Create a menu object for the widget
+        :param templates: a tuple of tuples of the format (type, label, icon, command, additional_configuration={})
+        used to generate the menu. Repeat the same template format in the "menu" attribute in additional configurations
+        for cascade menus
+        :param parent: The parent of the menu. You will never need to set this attribute directly as it only exists
+        for the purposes of recursion
+        :param cnf:
+        :return:
+        """
+        # If no style is provided use the default
+        if not len(cnf):
+            cnf = self.style.dark_context_menu
+        parent = self if parent is None else parent
+        menu = tk.Menu(parent, **cnf)
+        # A holding array for for menu image items to hold out the garbage collector
+        menu.images = []
+        for template in templates:
+            if template[0] == "separator":
+                menu.add_separator()
+            elif template[0] == "cascade":
+                _type, label, icon, command, config = template
+                # Create cascade menu recursively
+                # create a new config copy to prevent messing with the template
+                config = dict(**config)
+                config["menu"] = self.make_menu(config.get("menu"), menu, **cnf)
+                # Be careful we dont end up changing values in global style delegator. Don't assign directly
+                conf = {**self.style.dark_context_menu_item}
+                conf.update(config)
+                menu.add_cascade(label=label, image=icon, command=command, compound='left', **conf)
+                menu.images.append(icon)
+            else:
+                _type, label, icon, command, config = template
+                conf = {**self.style.dark_context_menu_item}
+                conf.update(config)
+                menu.images.append(icon)
+                menu.add(_type, label=label, image=icon, command=command, compound='left', **conf)
+
+        return menu
 
     def set_up_context(self, templates, **cnf):
         """
@@ -201,24 +245,19 @@ class ContextMenuMixin:
         :param cnf:
         :return:
         """
-        # If no style is provided use the default
-        if not len(cnf):
-            cnf = self.style.dark_context_menu
-        self.context_menu = tk.Menu(self, **cnf)
-        for template in templates:
-            if template[0] == "separator":
-                self.context_menu.add_separator()
-            else:
-                _type, label, icon, command, config = template
-                self.context_menu.add(_type, label='   '.join([icon, label]), command=command, **config)
+        self.context_menu = self.make_menu(templates, **cnf)
+        self.bind_all("<Button-3>", lambda event: ContextMenuMixin.popup(event, self.context_menu), add='+')
 
-        self.bind_all("<Button-3>", self._popup)
-
-    def _popup(self, event):
+    @staticmethod
+    def popup(event, menu):
         try:
-            self.context_menu.tk_popup(event.x_root, event.y_root)
+            menu.tk_popup(event.x_root, event.y_root)
         finally:
-            self.context_menu.grab_release()
+            menu.grab_release()
+
+    @staticmethod
+    def add_context_menu(menu, widget):
+        widget.bind("<Button-3>", lambda event: ContextMenuMixin.popup(event, menu), add="+")
 
 
 class ScrollableInterface:
@@ -271,7 +310,8 @@ class Widget:
     def setup(self, master=None):
         """
         Cascades useful values such as styles and the main application window which need not be
-        initialized more than once. It performs the necessary dependency injection.
+        initialized more than once. It performs the necessary dependency injection and event bindings and
+        set up.
         :param master:
         :return:
         """
@@ -290,7 +330,61 @@ class Widget:
         else:
             # The style and window dependencies are totally missing and we cannot fix it!
             raise WidgetError("Could not obtain style and window dependency for widget. Ensure the widget has a parent")
-            pass
+
+        self._allow_drag = False
+        self._drag_setup = False
+
+    @property
+    def allow_drag(self):
+        return self._allow_drag
+
+    @allow_drag.setter
+    def allow_drag(self, flag: bool):
+        self._allow_drag = flag
+        if self._allow_drag and not self._drag_setup:
+            self.bind_all('<Motion>', self._drag_handler)
+            self.bind_all('<ButtonRelease-1>', self._drag_handler)
+            self._drag_setup = True
+
+    def _drag_handler(self, event):
+        if not self.allow_drag:
+            return
+        if event.type.value == "6":
+            # Event is of Motion type
+            if event.state & EventMask.MOUSE_BUTTON_1 and self.window.drag_window is None:
+                self.window.drag_context = self
+                self.window.drag_window = DragWindow(self.window)
+                self.render_drag(self.window.drag_window)
+                self.window.drag_window.set_position(event.x_root, event.y_root)
+                self.on_drag_start(event)
+            elif self.window.drag_window is not None:
+                self.window.drag_window.set_position(event.x_root, event.y_root)
+        elif event.type.value == "5":
+            # Event is of Button release type so end drag
+            if self.window.drag_window:
+                self.window.drag_window.destroy()
+                self.window.drag_window = None
+                # Get the first widget at release position that supports drag manager and pass the context to it
+                event_position = self.event_first(event, self, Widget)
+                if isinstance(event_position, Widget):
+                    event_position.accept_context(self.window.drag_context)
+                self.window.drag_context = None
+
+    def accept_context(self, context):
+        """
+        This method is called when a drag drop operation is completed to allow the dropped object to be handled
+        :param context:
+        :return:
+        """
+        logging.info(f"Accepted context {context}")
+
+    def render_drag(self, window):
+        """
+        Override this method to create and position widgets on the drag shadow window
+        :param window: The drag window provided by the drag manager that should be used as the widget master
+        :return: None
+        """
+        tk.Label(window, text="Item", bg="#f7f7f7").pack()  # Default render
 
     def config_all(self, cnf=None, **kwargs):
         """
@@ -367,8 +461,54 @@ class Widget:
         return (self.winfo_rootx(), self.winfo_rooty(),
                 self.winfo_rootx() + self.width, self.winfo_rooty() + self.height)
 
-    def relative_bounds(self):
+    def on_drag_start(self, *args):
         pass
+
+    @staticmethod
+    def clone_to(parent, widget):
+        """
+        Clone a tkinter widget to a different parent. Tkinter widget parents cannot be changed directly. This method
+        performs recursive cloning of widget hierarchies. For cloning of custom tkinter widgets it is advisable to
+        use clone method instead to specify your clone procedure
+        :param parent: The new parent for cloned widget
+        :param widget: The widget to be cloned
+        :return: cloned widget
+        """
+        try:
+            if isinstance(widget, Widget):
+                clone = widget.clone(parent)
+            else:
+                clone = widget.__class__(parent)
+                Widget.copy_config(widget, clone)
+                [Widget.clone_to(clone, i) for i in widget.winfo_children()]
+            return clone
+        except TypeError:
+            logging.debug(f"{widget.__class__} requires special clone handling")
+
+    def clone(self, parent):
+        """
+        Generates a clone of the current widget for the given parent. Override this method in a custom widget to
+        provide a custom implementation for cloning
+        :param parent: A tk widget which will be clones parent
+        :return: A clone of the current widget
+        """
+        return self.__class__(parent)
+
+    @staticmethod
+    def copy_config(from_, to):
+        """
+        Copy styles and configuration from one widget to another
+        :param from_: Widget whose configuration is to be copied
+        :param to: Widget receiving the copied configurations
+        :return: None
+        """
+        if not from_.configure():
+            return
+        for key in from_.configure():
+            try:
+                to.configure(**{key: from_[key]})
+            except tk.TclError:
+                logging.debug("readonly option {opt}".format(opt=key))
 
 
 class SpinBox(Widget, EditableMixin, tk.Spinbox):
@@ -433,6 +573,19 @@ class Label(Widget, ContextMenuMixin, tk.Label):
     def set_alignment(self, alignment):
         self.config(anchor=alignment)
 
+    def configure(self, cnf=None, **kw):
+        cnf = {} if cnf is None else cnf
+        cnf.update(kw)
+        if cnf.get("image"):
+            # If an image value is set, shield it from garbage collection by increasing its reference count
+            self.image = cnf.get("image")
+        return super().configure(cnf, **kw)
+
+    def __setitem__(self, key, value):
+        if key == "image":
+            self.image = value
+        super().__setitem__(key, value)
+
 
 class Message(Widget, ContextMenuMixin, tk.Message):
 
@@ -479,7 +632,7 @@ class Frame(Widget, ContextMenuMixin, tk.Frame):
             child.config(**cnf)
 
 
-class ScrolledFrame(Widget, ScrollableInterface, tk.Frame):
+class ScrolledFrame(Widget, ScrollableInterface, ContextMenuMixin, tk.Frame):
 
     def __init__(self, master=None, **cnf):
         self.setup(master)
@@ -487,51 +640,98 @@ class ScrolledFrame(Widget, ScrollableInterface, tk.Frame):
         self._canvas = tk.Canvas(self, highlightthickness=0)
         self._canvas.config(cnf)
         self._canvas.config(self.style.dark)
-        self._scroll_frame = tk.Frame(self, **self.style.dark, width=12)
-        self._scroll_frame.pack(side="right", fill="y")
-        self._scroll_frame.pack_propagate(0)
-        self._scroll_frame.lift()
-        self._scroll = ttk.Scrollbar(self._scroll_frame, orient='vertical', command=self._limiter)
-        self._canvas.pack(side="left", fill="both", expand=True)
-        self._canvas.config(yscrollcommand=self._scroll.set)
+        self._scroll_y = ttk.Scrollbar(self, orient='vertical', command=self._limit_y)  # use frame limiters
+        self._scroll_x = ttk.Scrollbar(self, orient='horizontal', command=self._limit_x)
+        self._canvas.grid(row=0, column=0, sticky='nswe')
+        self.columnconfigure(0, weight=1)  # Ensure the _canvas gets the rest of the left horizontal space
+        self.rowconfigure(0, weight=1)  # Ensure the _canvas gets the rest of the left vertical space
+        self._canvas.config(yscrollcommand=self._scroll_y.set, xscrollcommand=self._scroll_x.set)  # attach scrollbars
         self.body = Frame(self, **cnf)
         self.body.config(self.style.dark)
         self._window = self._canvas.create_window(0, 0, anchor='nw', window=self.body)
         self._detect_change()
         self._mousewheel_ref = None
-        self._scroll_configured = False
+        self._scroll_configured = [False, False]  # config data for x and y scrollbars
         self._scrollbar_flag = tk.Y  # Enable vertical scrollbar by default
         # self.after(200, self.on_configure)
-        self._limit_var = 0
+        self._limit_var = [0, 0]  # limit var for x and y
+        self._max_frame_skip = 3
+        self.fill_x = True  # Set to True to disable the x scrollbar and fit content to width
+        self.fill_y = False  # Set to True to disable the y scrollbar and fit content to height
+        self._prev_region = None
 
-    def _limiter(self, *scroll):
-        if self._limit_var == 3:
-            self._canvas.yview(*scroll)
-            self._limit_var = 0
+    def _show_y_scroll(self, flag):
+        if flag:
+            self._canvas.grid_forget()
+            self._scroll_y.grid(row=0, column=1, sticky='ns')
+            self._canvas.grid(row=0, column=0, sticky='nswe')
         else:
-            self._limit_var += 1
+            self._scroll_y.grid_forget()
+        self.update_idletasks()
+
+    def _show_x_scroll(self, flag):
+        if flag:
+            self._canvas.grid_forget()
+            self._scroll_x.grid(row=1, column=0, columnspan=2, sticky='ew')
+            self._canvas.grid(row=0, column=0, sticky='nswe')
+        else:
+            self._scroll_x.grid_forget()
+        self.update_idletasks()
+
+    def _limiter(self, callback, axis, *args):
+        # Frame limiting reduces lags while scrolling by skipping a number of scroll events to reduce the burden
+        # of performing expensive redrawing by tkinter
+        if self._limit_var[axis] == self._max_frame_skip:
+            callback(*args)
+            self._limit_var[axis] = 0
+        else:
+            self._limit_var[axis] += 1
         self._canvas.update_idletasks()
         self.body.update_idletasks()
         self.update_idletasks()
 
+    def _limit_y(self, *scroll):
+        self._limiter(self._canvas.yview, 1, *scroll)
+
+    def _limit_x(self, *scroll):
+        self._limiter(self._canvas.xview, 0, *scroll)
+
     def on_configure(self, _=None):
         # Sometimes this is called after frame has been destroyed so check first
         try:
-            scroll_region = self._canvas.bbox("all")
+            self._canvas.update_idletasks()
+            if self._prev_region != self._canvas.bbox("all"):
+                #  The sizing has changed somehow so allow reconfiguration of scrollbars
+                self._scroll_configured = [False, False]
+            self._prev_region = scroll_region = self._canvas.bbox("all")
         except tk.TclError:
             return
-        self._canvas.update_idletasks()
         self.body.update_idletasks()
-        if scroll_region[3] - scroll_region[1] > self._canvas.winfo_height():
-            if not self._scroll_configured:
-                self._scroll_configured = True
-                self._scroll.pack(side='right', fill='y')
-        elif self._scroll_configured:
-            self._scroll.pack_forget()
-            self._scroll_configured = False
+
+        # setup y scrollbar
+        if self.fill_y:
+            self._canvas.itemconfigure(self._window, height=self._canvas.winfo_height())
+        elif scroll_region[3] - scroll_region[1] > self._canvas.winfo_height():
+            if not self._scroll_configured[1]:
+                self._scroll_configured[1] = True
+                self._show_y_scroll(True)
+        elif self._scroll_configured[1]:
+            self._show_y_scroll(False)
+            self._scroll_configured[1] = False
+
+        # Setup x scrollbar
+        if self.fill_x:
+            self._canvas.itemconfigure(self._window, width=self._canvas.winfo_width())
+        elif scroll_region[2] - scroll_region[0] > self._canvas.winfo_width():
+            if not self._scroll_configured[0]:
+                self._scroll_configured[0] = True
+                self._show_x_scroll(True)
+        elif self._scroll_configured[0]:
+            self._show_x_scroll(False)
+            self._scroll_configured[0] = False
+            # self._canvas.itemconfigure(self._window, width=self._canvas.winfo_width())
 
         self._canvas.config(scrollregion=scroll_region)
-        self._canvas.itemconfigure(self._window, width=self._canvas.winfo_width())
 
     def clear_children(self):
         # Unmap all children from the frame
@@ -552,13 +752,13 @@ class ScrolledFrame(Widget, ScrollableInterface, tk.Frame):
         # Enable the scrollbar to be scrolled using mouse wheel
         # Occasionally throws unpredictable errors so we better wrap it up in a try block
         try:
-            if self._scroll.winfo_ismapped():
+            if self._scroll_y.winfo_ismapped():
                 self._canvas.yview_scroll(-1 * int(event.delta / 50), "units")
         except tk.TclError:
             pass
 
     def scroll_position(self):
-        return self._scroll.get()
+        return self._scroll_y.get()
 
     def set_scrollbars(self, flag):
         """
@@ -618,7 +818,7 @@ class _MouseWheelDispatcherMixin:
             check = check.nametowidget(check.winfo_parent())
 
 
-class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, tix.Tk):
+class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, ContextMenuMixin, tix.Tk):
     # We want to extend tix.Tk to broaden our widget scope because now we can use tix widgets!
     # This is inconsequential to other widgets as tix.Tk subclasses tkinter.tk which is the base class here
     # This class needs no dependency injection since its the source of the dependencies after all!
@@ -631,6 +831,8 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, tix.Tk)
         self.style = None
         self.enable_centering()
         self.bind_all("<MouseWheel>", self._on_mousewheel, '+')
+        self.drag_context = None
+        self.drag_window = None
 
     def load_styles(self, path):
         """
@@ -653,7 +855,7 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, tix.Tk)
                 pass
 
 
-class Window(CenterWindowMixin, _MouseWheelDispatcherMixin, tix.Toplevel):
+class Window(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, tix.Toplevel):
 
     def __init__(self, master=None, content=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -662,11 +864,67 @@ class Window(CenterWindowMixin, _MouseWheelDispatcherMixin, tix.Toplevel):
             self.style = master.window.style
         self.window = self
         self.content = content
-        self.enable_centering()
         self.bind_all("<MouseWheel>", self._on_mousewheel, '+')
+        self.bind("<FocusIn>", self._focus)
+        self.bind("<FocusOut>", self._focus_out)
+        self.drag_context = None
+        self.drag_window = None
+        self._on_close = None
+        self._on_focus_lost = None
+        self._on_focus = None
+        self.wm_protocol("WM_DELETE_WINDOW", self._close)
+
+    def _focus(self, *_):
+        if self._on_focus:
+            self._on_focus()
+
+    def _focus_out(self, *_):
+        if self._on_focus_lost:
+            self._on_focus_lost()
+
+    def on_close(self, callback, *args, **kwargs):
+        self._on_close = lambda: callback(*args, **kwargs)
+
+    def on_focus(self, callback, *args, **kwargs):
+        self._on_focus = lambda: callback(*args, **kwargs)
+
+    def on_focus_lost(self, callback, *args, **kwargs):
+        self._on_focus_lost = lambda: callback(*args, **kwargs)
+
+    def _close(self):
+        if self._on_close:
+            self._on_close()
+
+
+class ToolWindow(Window):
+
+    def __init__(self, master, **cnf):
+        super().__init__(master, **cnf)
+        self.wm_attributes('-alpha', 0.0)
+        self.transient(master.window)
+        self.wm_attributes('-toolwindow', True)
+
+    def set_geometry(self, rec):
+        logging.debug(f"placing window at {rec}")
+        self.geometry("{}x{}+{}+{}".format(*rec))
+        return self
+
+    def show(self):
+        """
+        The window is initialized as invisible to allow you to set it up first. Call this method to make it visible
+        :return:
+        """
+        self.wm_attributes('-alpha', 1.0)
 
 
 class Canvas(Widget, tk.Canvas):
+
+    def __init__(self, master=None, **kwargs):
+        self.setup(master)
+        super().__init__(master, **kwargs)
+
+
+class MenuButton(Widget, tk.Menubutton):
 
     def __init__(self, master=None, **kwargs):
         self.setup(master)
@@ -682,12 +940,15 @@ class Button(Frame):
     def __init__(self, master=None, **cnf):
         super().__init__(master)
         cnf = cnf if len(cnf) else self.style.dark_button
-        self._label = tk.Label(self)
+        # Use the hoverset Label which has additional automatic image caching capabilities
+        self._label = Label(self)
         self._label.pack(fill="both", expand=True)
         self.config(**cnf)
         self.pack_propagate(False)
 
     def on_click(self, callback, *args, **kwargs):
+        if callback is None:
+            return
         self.bind_all("<Button-1>", lambda e: callback(e, *args, **kwargs))
         self.bind_all("<Return>", lambda e: callback(e, *args, **kwargs))
 
@@ -1218,6 +1479,12 @@ class TreeView(ScrolledFrame):
         def name(self):
             return self.name_pad["text"]
 
+        def bind_all(self, sequence=None, func=None, add=None):
+            # The strip is pretty much the handle for the Node so better bind events here
+            self.strip.bind(sequence, func, add)
+            for child in self.strip.winfo_children():
+                child.bind(sequence, func, add)
+
         def _set_expander(self, text):
             if text:
                 self.expander.config(text=text)
@@ -1240,14 +1507,14 @@ class TreeView(ScrolledFrame):
         def select_next(self, event):
             self.tk_focusNext().select(event)
 
-        def select(self, event=None):
+        def select(self, event=None, silently=False):
             if event and event.state & EventMask.CONTROL:
                 self.tree.toggle_from_selection(self)
                 return
             elif event:
                 self.tree.select(self)
             else:
-                self.tree.add_to_selection(self)
+                self.tree.add_to_selection(self, silently)
 
             self.strip.config_all(**self.style.dark_on_hover)
             self._selected = True
@@ -1273,9 +1540,11 @@ class TreeView(ScrolledFrame):
             self.nodes.append(node)
             node.parent_node = self
             node.depth = self.depth + 1
+            node.lift(self.body)
             if self._expanded:
                 node.pack(in_=self.body, fill="x", side="top", padx=18, pady=self.PADDING)
-            self._set_expander(self.COLLAPSED_ICON)
+            else:
+                self._set_expander(self.COLLAPSED_ICON)
 
         def insert_after(self, *nodes):
             """
@@ -1311,6 +1580,7 @@ class TreeView(ScrolledFrame):
                 index += 1
                 node.parent_node = self
                 node.depth = self.depth + 1
+                node.lift(self.body)
             if self._expanded:
                 self.collapse()
                 self.expand()
@@ -1411,6 +1681,7 @@ class TreeView(ScrolledFrame):
         self._on_select = None
         self.depth = 0
         self._parent_node = None  # This value should never be changed
+        # self.fill_x = False
 
     @property
     def parent_node(self) -> None:
@@ -1418,16 +1689,18 @@ class TreeView(ScrolledFrame):
         # The parent node for a tree is always None
         return self._parent_node
 
-    def select(self, n):
+    def select(self, n, silently=False):
         """
         Select a node :param n and deselect all other selected nodes
+        :param silently: Flag set to true to prevent firing on change event and vice versa. Default is false
         :param n: Node
-        :return:
+        :return: None
         """
         for node in self._selected:
             node.deselect()
         self._selected = [n]
-        self.selection_changed()
+        if not silently:
+            self.selection_changed()
 
     def clear_selection(self):
         """
@@ -1453,14 +1726,15 @@ class TreeView(ScrolledFrame):
             else:
                 return None
 
-    def add_to_selection(self, node):
+    def add_to_selection(self, node, silently=False):
         if not self._multi_select:
             # We are not in multi select mode so select one node at a time
             self.select(node)
         else:
             # Append node without affecting the other selected nodes
             self._selected.append(node)
-            self.selection_changed()
+            if not silently:
+                self.selection_changed()
 
     def toggle_from_selection(self, node):
         if not self._multi_select:

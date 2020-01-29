@@ -21,13 +21,13 @@
 }
 
 .dark_icon_large{
-    font: calibri 30;
+    font: TkDefaultFont 30;
     foreground: #f7f7f7;
     background: #303030;
 }
 
 .dark_icon_medium, .dark_icon_medium_accent_1{
-    font: calibri 20;
+    font: TkDefaultFont 20;
     foreground: #f7f7f7;
     background: #303030;
 }
@@ -39,24 +39,25 @@
 .dark_text_accent_1{
     background: #303030;
     foreground: #3d8aff;
-    font: calibri 12;
+    font: TkDefaultFont 12;
 }
 
 .dark_text_passive{
     background: #303030;
     foreground: #a0a0a0;
-    font: calibri;
+    font: TkDefaultFont;
 }
 
 .dark_button{
     background: #303030;
     foreground: #f7f7f7;
     relief:flat;
-    font: calibri 11;
+    font: TkDefaultFont 11;
     highlightthickness: 1;
     highlightcolor: #3d8aff;
     highlightbackground: #303030;
-    activebackground: #a0a0a0;
+    activebackground: #303030;
+    activeforeground: #f7f7f7;
     borderwidth:1;
     cursor: hand2;
     takefocus: 1;
@@ -131,7 +132,7 @@
     disabledforeground: #f7f7f7;
     relief: flat;
     insertbackground: #f7f7f7;
-    font: calibri 10;
+    font: TkDefaultFont 10;
 }
 
 .percent_spinbox{
@@ -149,7 +150,7 @@
 .dark_text, .dark_text_medium{
     background: #303030;
     foreground: #f7f7f7;
-    font: calibri 10;
+    font: TkDefaultFont 10;
 }
 
 .dark_text_accent{
@@ -158,11 +159,11 @@
 }
 
 .dark_text_medium{
-    font: calibri 12;
+    font: TkDefaultFont 12;
 }
 
 .dark_text_medium_accent{
-    font: calibri 13;
+    font: TkDefaultFont 13;
     background: #303030;
     foreground: #3d8aff;
 }
@@ -211,14 +212,21 @@
     activeforeground: #f7f7f7;
     borderwidth: 0;
     relief: flat;
-    font: calibri 12;
+    font: TkDefaultFont 10;
     disabledforeground: #6a6a6a;
+}
+
+.dark_context_menu_item{
+    background:#303030;
+    foreground: #f7f7f7;
+    activebackground: #3a3a3a;
+    activeforeground: #f7f7f7;
 }
 
 .combobox{
     selectbackground: #f7f7f7;
     selectforeground: #303030;
-    font: calibri 12;
+    font: TkDefaultFont 12;
 }
 
 .bright_background{

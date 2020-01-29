@@ -2,7 +2,7 @@ from enum import Enum
 
 from hoverset.ui.icons import get_icon
 from studio.ui.tree import MalleableTree
-from studio.properties import get_properties
+from studio.lib.properties import get_properties
 
 
 class Groups(Enum):
@@ -20,7 +20,6 @@ class PseudoWidget:
 
     def setup_widget(self):
         self._properties = get_properties(self)
-        print(self._properties)
         self.set_name(self.id)
         self.node = None
 

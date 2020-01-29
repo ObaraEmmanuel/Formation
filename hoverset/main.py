@@ -7,7 +7,7 @@ import sys
 sys.path.append("..\\..\\Hoverset")
 
 import hoverset.ui.widgets as widgets
-from hoverset.ui.icons import get_icon
+from hoverset.ui.icons import get_icon, get_icon_image
 from hoverset.catalogue import app_catalogue
 from hoverset.ui.animation import Animate, Easing
 from hoverset.apps import BaseApp
@@ -36,8 +36,8 @@ class TaskBarIcon(widgets.Button):
         self.selected = False
 
         self.set_up_context((
-            ("command", "close", get_icon("close"), self.close, {}),
-            ("command", "open as window", get_icon("separate"), self.open_separate, {}),
+            ("command", "close", get_icon_image("close"), self.close, {}),
+            ("command", "open as window", get_icon_image("separate"), self.open_separate, {}),
         ))
 
     def close(self):
@@ -83,8 +83,8 @@ class AppItem(widgets.Frame):
         self.bind("<Leave>", lambda _: self.on_hover_ended())
         self.on_click(self.launch)
         self.set_up_context((
-            ("command", "open as window", get_icon("separate"), self.launch_separate, {}),
-            ("command", "About app", get_icon("info"), None, {}),
+            ("command", "open as window", get_icon_image("separate"), self.launch_separate, {}),
+            ("command", "About app", get_icon_image("info"), None, {}),
         ))
 
     def on_hover(self):

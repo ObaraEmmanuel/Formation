@@ -1,7 +1,7 @@
 """
 Common unicode icons used in Hoverset
 """
-
+from hoverset.data.images import get_tk_image
 # Not all resources may be rendered on the code editor but
 # they sure as hell will be rendered in the interface.
 # Trust the name!
@@ -52,24 +52,25 @@ _resources = {
     "triangle_down": "⏷",  # ==
     "triangle_right": "⏵",  # ==
     "triangle_left": "⏴",  # ==
-    "checkbutton": "",
-    "frame": "",
-    "labelframe": "",
-    "menu": "",
-    "menubutton": "",
-    "grid": "",
-    "text": "",
-    "combobox": "",
-    "listbox": "",
-    "radiobutton": "",
-    "button": "",
-    "multiline_text": "",
+    "checkbutton": "",  # ==
+    "frame": "",  # ==
+    "labelframe": "",  # ==
+    "menu": "",  # ==
+    "menubutton": "",  # ==
+    "grid": "",  #
+    "text": "",  #
+    "combobox": "",  #
+    "listbox": "",  #
+    "radiobutton": "",  #
+    "button": "",  #
+    "multiline_text": "",  #
     "sizegrip": "",
     "treeview": "",
     "notebook": "",
     "progressbar": '',
     "scale": "",
-    "entry": ""
+    "entry": "",
+    "fullscreen": "",
 
 }
 
@@ -78,3 +79,7 @@ def get_icon(identifier: str) -> str:
     # Fetch icons from the _resource database
     # return an empty string resource if not found
     return _resources.get(identifier, "")
+
+
+def get_icon_image(identifier: str, width=25, height=25):
+    return get_tk_image(identifier, width, height)

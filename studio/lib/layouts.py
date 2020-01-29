@@ -14,6 +14,19 @@ class FrameLayout(PseudoWidget, layouts.FrameLayout):
         self.id = id_
         self.setup_widget()
 
+
+class LinearLayout(PseudoWidget, layouts.LinearLayout):
+    icon = get_icon("frame")
+    display_name = "LinearLayout"
+    impl = layouts.LinearLayout
+    group = Groups.layout
+
+    def __init__(self, master, id_):
+        super().__init__(master)
+        self.id = id_
+        self.setup_widget()
+
+
 layouts = (
-    FrameLayout,
+    FrameLayout, LinearLayout
 )

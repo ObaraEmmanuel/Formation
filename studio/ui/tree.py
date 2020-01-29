@@ -7,9 +7,9 @@ Widget tree for the studio
 # ======================================================================= #
 
 from hoverset.ui.widgets import EventMask, TreeView, Label
-from hoverset.ui.icons import get_icon
 from hoverset.ui.windows import DragWindow
-from studio.highlight import EdgeIndicator
+
+from studio.ui.highlight import EdgeIndicator
 
 
 class MalleableTree(TreeView):
@@ -35,9 +35,20 @@ class MalleableTree(TreeView):
             self.strip.bind_all("<Motion>", self.begin_drag)
             self.strip.bind_all("<ButtonRelease-1>", self.end_drag)
             self.strip.config(**self.style.dark_highlight)  # The highlight on a normal day
+            self._on_structure_change = None
+            self.editable = False
+
+        def on_structure_change(self, callback, *args, **kwargs):
+            self._on_structure_change = lambda structure: callback(*args, **kwargs)
+
+        def _change_structure(self):
+            if self._on_structure_change:
+                self._on_structure_change()
 
         # noinspection PyProtectedMember
         def begin_drag(self, event):
+            if not self.editable:
+                return
             # If cursor is moved while holding the left button down for the first time we begin drag
             if event.state & EventMask.MOUSE_BUTTON_1 and not MalleableTree.drag_active and \
                     self.tree.selected_count():
@@ -115,7 +126,7 @@ class MalleableTree(TreeView):
             self.clear_indicators()
             # The cursor is at the top edge of the node so we can attempt to insert before it
             if event.y_root < self.strip.winfo_rooty() + 5:
-                self.tree.edge_indicator.indicate_before(self.strip)
+                self.tree.edge_indicator.top(self.strip)
                 return 0
             # The cursor is at the center of the node so we can attempt a direct insert into the node
             elif self.strip.winfo_rooty() + 5 < event.y_root < self.strip.winfo_rooty() + self.strip.height - 5:
@@ -127,10 +138,10 @@ class MalleableTree(TreeView):
             elif self._expanded:  # --- Case * ---
                 # If the node is expanded we would want to edge indicate at the very bottom after its last child
                 if event.y_root > self.winfo_rooty() + self.height - 5:
-                    self.tree.edge_indicator.indicate_after(self)
+                    self.tree.edge_indicator.bottom(self)
                     return 2
             else:
-                self.tree.edge_indicator.indicate_after(self.strip)
+                self.tree.edge_indicator.bottom(self.strip)
                 return 2
 
         def clear_highlight(self):
@@ -154,15 +165,3 @@ class MalleableTree(TreeView):
     def __init__(self, master, **config):
         super().__init__(master, **config)
         self.edge_indicator = EdgeIndicator(self)  # A line that shows where an insertion can occur
-
-    def sample(self):
-        s = self.add_as_node(icon=get_icon("network"), name="Root node", terminal=False)
-        d = s.add_as_node(icon=get_icon("data"), name="node 1", terminal=False)
-        d.add_as_node(icon=get_icon("separate"), name="sub_node 1")
-        d.add_as_node(icon=get_icon("separate"), name="sub_node 2")
-        s.add_as_node(icon=get_icon("data"), name="node 2")
-        s.add_as_node(icon=get_icon("data"), name="node 3")
-        s.add_as_node(icon=get_icon("data"), name="node 4")
-        s.add_as_node(icon=get_icon("data"), name="node 5")
-        self.allow_multi_select(True)
-        self.on_select(lambda: print("selection changed to ", self.get()))

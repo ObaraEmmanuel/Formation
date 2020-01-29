@@ -4,14 +4,15 @@ Contains all the widget representations used in the designer and specifies all t
 # ======================================================================= #
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
+import re
 
 from hoverset.ui.widgets import (CompoundList, Entry, SpinBox, Spinner, Frame, Application, set_ttk_style,
-                                 Label, system_fonts, ToggleButton, FontStyle)
+                                 Label, system_fonts, ToggleButton, FontStyle, Button)
 from hoverset.ui.pickers import ColorDialog
 from hoverset.util.validators import numeric_limit
 from hoverset.util.color import to_hex
-from studio.properties import all_supported_cursors, BUILTIN_BITMAPS
-from tkinter import IntVar, ttk
+from studio.lib.properties import all_supported_cursors, BUILTIN_BITMAPS
+from tkinter import IntVar, ttk, filedialog
 
 
 class Editor(Frame):
@@ -79,7 +80,6 @@ class Boolean(Editor):
         self._check.pack(fill="x")
 
     def check_change(self):
-        print(self._var.get())
         if self._var.get():
             self._check.config(text="True")
         else:
@@ -186,6 +186,7 @@ class Color(Editor):
         super().on_change(func, *args, **kwargs)
 
     def adjust(self, value):
+        self._entry.update_idletasks()
         self._entry.set(value)
         try:
             self._color_button.config(bg=value)
@@ -361,9 +362,99 @@ class Dimension(Number):
         self._entry.pack(side="left", fill="x")
 
 
+class Anchor(Editor):
+
+    def __init__(self, master, style_def):
+        super().__init__(master, style_def)
+        style_def = style_def if style_def else {}
+        # This flag determines whether multiple anchors are allowed at a time
+        self.multiple = style_def.get("multiple", True)
+        self.config(width=150, height=110)
+        self.n = ToggleButton(self, text="N", width=20, height=20)
+        self.n.grid(row=0, column=0, columnspan=3, sticky='ns')
+        self.w = ToggleButton(self, text='W', width=20, height=20)
+        self.w.grid(row=1, column=0, sticky='ew')
+        self.pad = Frame(self, width=60, height=60, **self.style.dark,  **self.style.dark_highlight_active)
+        self.pad.grid(row=1, column=1, padx=1, pady=1)
+        self.pad.grid_propagate(0)
+        self.pad.grid_columnconfigure(0, minsize=60)
+        self.pad.grid_rowconfigure(0, minsize=60)
+        self.floating = Frame(self.pad, **self.style.dark_on_hover, width=20, height=20)
+        self.floating.grid(row=0, column=0, pady=1, padx=1)
+        self.e = ToggleButton(self, text="E", width=20, height=20)
+        self.e.grid(row=1, column=2, sticky='ew')
+        self.s = ToggleButton(self, text='S', width=20, height=20)
+        self.s.grid(row=2, column=0, columnspan=3, sticky='ns')
+        self.anchors = {
+            "n": self.n, "w": self.w, "e": self.e, "s": self.s
+        }
+        self._order = ("n", "s", "e", "w")
+        self._selected = []
+        self._exclusive_pairs = ({"n", "s"}, {"e", "w"})
+        self._is_multiple = re.compile(r'(.*[ns].*[ns])|(.*[ew].*[ew])')
+        for anchor in self.anchors:
+            self.anchors[anchor].on_change(self._change, anchor)
+
+    def _is_exclusive_of(self, anchor1, anchor2):
+        return {anchor1, anchor2} in self._exclusive_pairs
+
+    def _change(self, _, anchor):
+        if not self.multiple:
+            self._sanitize(anchor)
+        self._adjust()
+        if self._on_change:
+            self._on_change(self.get())
+
+    def _sanitize(self, anchor):
+        ex_anchor = [i for i in self.get() if self._is_exclusive_of(i, anchor)]
+        if len(ex_anchor):
+            self.anchors.get(ex_anchor[0]).set(False)
+
+    def _adjust(self):
+        sticky = '' if self.get() == 'center' else self.get()
+        self.floating.grid(row=0, column=0, pady=1, padx=1, sticky=sticky)
+
+    def get(self):
+        anchor = ''.join([i for i in self._order if self.anchors[i].get()])
+        # No anchor means center
+        if anchor == '':
+            return 'center'
+        return anchor
+
+    def set(self, value):
+        # Ignore invalid values
+        if self._is_multiple.match(str(value)) and not self.multiple:
+            return
+        # Assume no anchor means center
+        value = '' if value == 'center' else value
+        for anchor in str(value):
+            self.anchors.get(anchor).set(False)
+            if self.anchors.get(anchor):
+                self.anchors.get(anchor).set(True)
+        self._adjust()
+
+
+class Image(Text):
+
+    def __init__(self, master, style_def=None):
+        super().__init__(master, style_def)
+        self._picker = Button(self, **self.style.dark_button, width=25, height=25, text="...")
+        self._entry.pack_forget()
+        self._picker.pack(side="right")
+        self._entry.pack(side="left", fill="x")
+        self._picker.on_click(self._pick)
+
+    def _pick(self, *_):
+        path = filedialog.askopenfilename(parent=self)
+        if path:
+            self._entry.set(path)
+            if self._on_change:
+                self._on_change(path)
+
+
 if __name__ == '__main__':
     root = Application()
-    root.load_styles("../hoverset/ui/themes/default.css")
+    root.load_styles("../../hoverset/ui/themes/default.css")
     boolean = Boolean(root)
     boolean.pack(side="top")
 
@@ -403,6 +494,11 @@ if __name__ == '__main__':
     duration.pack(side="top")
     duration.on_change(lambda x: print(x))
     duration.set(456)
+
+    anc = Anchor(root, {"units": "ms"})
+    anc.pack(side="top")
+    anc.on_change(lambda x: print(x))
+    anc.set('nswe')
 
     font = Font(root)
     font.pack(side="top")

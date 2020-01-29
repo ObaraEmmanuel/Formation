@@ -211,6 +211,9 @@ class ManageFavourites(BaseDialog):
     def get_favourites(self):
         return self.app.favourites_as_list()
 
+    def get_shelve(self):
+        return self.app.get_shelve()
+
     def _re_place(self):
         row, column, max_h = 0, 0, 6
         for grid in self.grids:

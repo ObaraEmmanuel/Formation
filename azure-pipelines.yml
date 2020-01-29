@@ -1,0 +1,11 @@
+steps:
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.7'
+
+- script: python -m pip install --upgrade pip setuptools wheel
+  displayName: 'Install tools'
+
+- script: pip install -r requirements.txt
+  displayName: 'Install requirements'
+
