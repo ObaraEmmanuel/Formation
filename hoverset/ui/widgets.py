@@ -15,11 +15,11 @@ import logging
 import tkinter as tk
 import tkinter.tix as tix
 import tkinter.ttk as ttk
+from tkinter import font
 
-from tkinter import font, IntVar, StringVar, BooleanVar
-from hoverset.ui.styles import StyleDelegator
 from hoverset.ui.animation import Animate, Easing
-from hoverset.ui.icons import get_icon, get_icon_image
+from hoverset.ui.icons import get_icon
+from hoverset.ui.styles import StyleDelegator
 from hoverset.ui.windows import DragWindow
 
 
@@ -541,8 +541,8 @@ class ComboBox(Widget, EditableMixin, ttk.Combobox):
         self.configure(textvariable=self._var)
 
     def config(self, **cnf):
-        super().config(cnf)
         set_ttk_style(self, **cnf)
+        return super().config(cnf)
 
     def config_style(self, **cnf):
         set_ttk_style(self, **cnf)
@@ -649,7 +649,6 @@ class ScrolledFrame(Widget, ScrollableInterface, ContextMenuMixin, tk.Frame):
         self.body = Frame(self, **cnf)
         self.body.config(self.style.dark)
         self._window = self._canvas.create_window(0, 0, anchor='nw', window=self.body)
-        self._detect_change()
         self._mousewheel_ref = None
         self._scroll_configured = [False, False]  # config data for x and y scrollbars
         self._scrollbar_flag = tk.Y  # Enable vertical scrollbar by default
@@ -659,21 +658,18 @@ class ScrolledFrame(Widget, ScrollableInterface, ContextMenuMixin, tk.Frame):
         self.fill_x = True  # Set to True to disable the x scrollbar and fit content to width
         self.fill_y = False  # Set to True to disable the y scrollbar and fit content to height
         self._prev_region = None
+        self._detect_change()
 
     def _show_y_scroll(self, flag):
         if flag:
-            self._canvas.grid_forget()
             self._scroll_y.grid(row=0, column=1, sticky='ns')
-            self._canvas.grid(row=0, column=0, sticky='nswe')
         else:
             self._scroll_y.grid_forget()
         self.update_idletasks()
 
     def _show_x_scroll(self, flag):
         if flag:
-            self._canvas.grid_forget()
             self._scroll_x.grid(row=1, column=0, columnspan=2, sticky='ew')
-            self._canvas.grid(row=0, column=0, sticky='nswe')
         else:
             self._scroll_x.grid_forget()
         self.update_idletasks()
@@ -1173,8 +1169,6 @@ class DrawOver(Frame):
             offset_t = y - win_bounds[1]
             offset_l = x + self.width - win_bounds[0]
             offset_r = win_bounds[2] - right
-            print(offset_t, offset_b, offset_r, offset_l)
-            print(self.width, self.height)
             x_pos = left if offset_l >= offset_r or offset_l > self.width else right
             y_pos = bottom if offset_b >= offset_t or offset_b > self.height else top
             self.set_geometry((x_pos, y_pos))
@@ -1345,7 +1339,7 @@ class Spinner(Frame):
         self.update_idletasks()
         self.window.update_idletasks()
         x = self.winfo_rootx()
-        y = self.winfo_rooty() + self.winfo_height()
+        y = self.winfo_rooty()
         rec = x, y, self.winfo_width(), 0
         popup = self._popup_window = Popup(self.window, rec)
 
@@ -1356,10 +1350,27 @@ class Spinner(Frame):
         options.pack()
         options.update_idletasks()
         initial_height = options.content_height()
+        # Sometimes there is no space for the drop-down so we need to check
+        # If the initial_height + the distance at the bottom left corner of spinner from the top of the screen
+        # is greater than the screen-height we animate upwards
+        if y + initial_height + self.winfo_height() >= self.winfo_screenheight():
+            direction = 'up'
+            rec = x, y, self.winfo_width(), 0
+        else:
+            # Since we are animating downwards, the top of the dropdown begins at the bottom of the spinner
+            y = y + self.winfo_height()
+            rec = x, y, self.winfo_width(), 0
+            direction = 'down'
         popup.set_geometry(rec)
 
         def update_popup(dx):
-            popup.set_geometry((x, y, rec[2], int(dx)))
+            if direction == 'up':
+                # No space down so animate upwards
+                popup.set_geometry((x, y - int(dx), rec[2], int(dx)))
+            else:
+                # Animate down by default
+                popup.set_geometry((x, y, rec[2], int(dx)))
+
             options.update_idletasks()
             popup.update_idletasks()
 
