@@ -1,8 +1,8 @@
+from hoverset.ui.icons import get_icon_image, get_icon
+from hoverset.ui.widgets import Button
+from studio.feature import BaseFeature
 from studio.lib.pseudo import PseudoWidget
 from studio.ui.tree import MalleableTree
-from studio.feature import BaseFeature
-from hoverset.ui.widgets import Button
-from hoverset.ui.icons import get_icon_image, get_icon
 
 
 class ComponentTreeView(MalleableTree):
@@ -94,12 +94,13 @@ class ComponentTree(BaseFeature):
         # Set up as follows
         # (type, label, icon, command/callback, additional_configuration={})
         # use also get_icon_image("image_key", width, height)
-        node.set_up_context(self.studio.menu_template)
+        node.set_up_context(self.studio.menu_template + widget.create_menu())
 
     def _trigger_select(self):
         if self._selected and self._selected.widget == self._tree.get().widget:
             return
         self.studio.select(self._tree.get().widget, self)
+        self._selected = self._tree.get()
 
     def select(self, widget):
         if widget:

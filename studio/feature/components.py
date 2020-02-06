@@ -2,12 +2,10 @@ from functools import partial
 
 from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Spinner, EventMask, BooleanVar
 from hoverset.ui.windows import DragWindow
-
-from studio.layouts import BaseLayout
-from studio.lib import legacy, native, layouts
-from studio.feature.design import Designer
-from studio.lib.pseudo import PseudoWidget
 from studio.feature import BaseFeature
+from studio.feature.design import Designer
+from studio.lib import legacy, native
+from studio.lib.pseudo import PseudoWidget, Container
 
 
 class Component(Frame):
@@ -52,8 +50,8 @@ class Component(Frame):
         self.drag_active = False
         self.drag_popup.destroy()
         self.drag_popup = None
-        widget = self.event_first(event, self, BaseLayout)
-        if isinstance(widget, BaseLayout):
+        widget = self.event_first(event, self, Container)
+        if isinstance(widget, Container):
             widget.add_new(self.component, event.x_root, event.y_root)
 
 
@@ -152,7 +150,7 @@ class ComponentPane(BaseFeature):
         self._widget_set.set(widget_set)
         self._select_pane.clear_children()
         self._pool = {}
-        components = self.CLASSES.get(widget_set)["widgets"] + layouts.layouts
+        components = self.CLASSES.get(widget_set)["widgets"]
         for component in components:
             group = component.group.name
             if group in self._pool:

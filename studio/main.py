@@ -2,8 +2,8 @@
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
 
-import sys
 import functools
+import sys
 
 # Add Studio and Hoverset to path so imports from hoverset can work.
 sys.path.append("..\\..\\Hoverset")
@@ -15,7 +15,7 @@ from studio.feature.components import ComponentPane
 from studio.feature import BaseFeature
 from studio.ui.widgets import SideBar
 
-from hoverset.ui.widgets import Application, Label, Spinner, SpinBox, Frame, PanedWindow, Button
+from hoverset.ui.widgets import Application, Frame, PanedWindow, Button
 from hoverset.ui.icons import get_icon_image
 from hoverset.util.execution import Action
 
@@ -81,7 +81,6 @@ class StudioApplication(Application):
 
         self.init_actions()
         self.selected = None
-        # self.design.add(GenericLinearLayout, 400, 350)
 
         # -------------------------------------------- menu definition ------------------------------------------------
 

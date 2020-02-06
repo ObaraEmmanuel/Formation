@@ -1,7 +1,8 @@
-import tkinter.ttk as ttk
 import tkinter as tk
+import tkinter.ttk as ttk
+
 from hoverset.ui.icons import get_icon
-from studio.lib.pseudo import PseudoWidget, Groups
+from studio.lib.pseudo import PseudoWidget, Groups, Container, LabelFrameCorrection
 
 
 class Button(PseudoWidget, ttk.Button):
@@ -68,7 +69,7 @@ class Entry(PseudoWidget, ttk.Entry):
         self._var.set(name)
 
 
-class Frame(PseudoWidget, ttk.Frame):
+class Frame(Container, ttk.Frame):
     display_name = 'Frame'
     group = Groups.container
     icon = get_icon("frame")
@@ -95,7 +96,7 @@ class Label(PseudoWidget, ttk.Label):
         self.config(text=name)
 
 
-class Labelframe(PseudoWidget, ttk.Labelframe):
+class Labelframe(LabelFrameCorrection, Container, ttk.Labelframe):
     display_name = 'Labelframe'
     group = Groups.container
     icon = get_icon("labelframe")

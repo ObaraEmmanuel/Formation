@@ -5,13 +5,11 @@ Layout classes uses in the studio
 # ======================================================================= #
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
-from hoverset.ui.widgets import Frame
-
+from hoverset.ui.icons import get_icon
 from studio.ui import geometry
-from studio.ui.highlight import WidgetHighlighter
 
 
-class BaseLayout(Frame):
+class BaseLayoutStrategy:
     VERTICAL = "vertical"
     HORIZONTAL = "horizontal"
     DEFINITION = {
@@ -28,66 +26,51 @@ class BaseLayout(Frame):
             "name": "height"
         },
     }
+    name = "Layout"  # A default name just in case
+    icon = "frame"
 
-    def __init__(self, master):
-        super().__init__(master)
-        self.parent = master
-        self._children = []
-        self._temporal_children = []
+    def __init__(self, container):
+        self.parent = container.parent
+        self.container = container
         self._restoration_data = {}  # Where we store information on removed widgets to allow restoration
-        self._level = 0
-        self._highlighter = WidgetHighlighter(self.parent)
 
     @property
     def level(self):
-        return self._level
+        return self.container.level
 
-    @level.setter
-    def level(self, value):
-        self._level = value
-        # We need to change the levels of of the layout's children
-        # Failure to do this results in nasty crashes since the layout may be passed to one of its child layouts
-        # which will try to position the layout (its parent!) within its self. A recursion hell!
-        for child in self._children:
-            child.level = self.level + 1
+    @property
+    def children(self):
+        return self.container._children
 
-    def highlight(self, *_):
-        self._highlighter.highlight(self)
-
-    def clear_highlight(self):
-        self._highlighter.clear()
-        self._temporal_children = []
+    @property
+    def temporal_children(self):
+        return self.container.temporal_children
 
     def bounds(self):
-        return geometry.bounds(self)
+        return geometry.bounds(self.container)
 
     def add_widget(self, widget, bounds):
         widget.level = self.level + 1
-        widget.layout = self
-
-    def lift(self, *_):
-        super().lift(*_)
-        for child in self._children:
-            child.lift(self)
+        widget.layout = self.container
 
     def widget_released(self, widget):
         pass
 
     def move_widget(self, widget, bounds):
-        if widget in self._children:
+        if widget in self.children:
             self.remove_widget(widget)
-        if widget not in self._temporal_children:
-            self._temporal_children.append(widget)
+        if widget not in self.temporal_children:
+            self.temporal_children.append(widget)
             widget.level = self.level + 1
-            widget.layout = self
+            widget.layout = self.container
             # Lift widget above the last child of layout if any otherwise lift above the layout
-            widget.lift((self._children[-1:] or [self])[0])
+            widget.lift((self.children[-1:] or [self.container])[0])
         self._move(widget, bounds)
 
     def _move(self, widget, bounds):
-        bounds = geometry.relative_bounds(bounds, self)  # Make the bounds relative to the layout for proper positioning
-        place_bounds = self.parse_bounds(bounds)
-        widget.place(in_=self, **place_bounds)
+        # Make the bounds relative to the layout for proper positioning
+        bounds = geometry.relative_bounds(bounds, self.container)
+        self.container.position(widget, bounds)
 
     def resize_widget(self, widget, bounds):
         self._move(widget, bounds)
@@ -99,21 +82,13 @@ class BaseLayout(Frame):
         raise NotImplementedError("Layout should provide restoration data")
 
     def remove_widget(self, widget):
-        if widget in self._children:
-            self._children.remove(widget)
-        if widget in self._temporal_children:
-            self._temporal_children.remove(widget)
-
-    def parse_bounds(self, bounds):
-        return {
-            "x": bounds[0],
-            "y": bounds[1],
-            "width": bounds[2] - bounds[0],
-            "height": bounds[3] - bounds[1]
-        }
+        if widget in self.children:
+            self.children.remove(widget)
+        if widget in self.temporal_children:
+            self.temporal_children.remove(widget)
 
     def add_new(self, widget, x, y):
-        self.parent.add(widget, x, y, layout=self)
+        self.parent.add(widget, x, y, layout=self.container)
 
     def apply(self, prop, value, widget):
         pass
@@ -125,10 +100,14 @@ class BaseLayout(Frame):
         definition["height"]["value"] = widget.winfo_height()
         return definition
 
+    def initialize(self):
+        for child in self.children:
+            self.add_widget(child, geometry.bounds(child))
 
-class FrameLayout(BaseLayout):
+
+class FrameLayoutStrategy(BaseLayoutStrategy):
     DEFINITION = {
-        **BaseLayout.DEFINITION,
+        **BaseLayoutStrategy.DEFINITION,
         "x": {
             "display_name": "x",
             "type": "dimension",
@@ -148,15 +127,14 @@ class FrameLayout(BaseLayout):
             "name": "bordermode"
         }
     }
-
-    def __init__(self, master):
-        super().__init__(master)
+    name = "FrameLayout"
+    icon = "frame"
 
     def add_widget(self, widget, bounds):
         super().add_widget(widget, bounds)
         super().remove_widget(widget)
         self.move_widget(widget, bounds)
-        self._children.append(widget)
+        self.children.append(widget)
 
     def remove_widget(self, widget):
         super().remove_widget(widget)
@@ -165,8 +143,8 @@ class FrameLayout(BaseLayout):
 
     def restore_widget(self, widget, data=None):
         data = self._restoration_data[widget] if data is None else data
-        self._children.append(widget)
-        widget.layout = self
+        self.children.append(widget)
+        widget.layout = self.container
         widget.level = self.level + 1
         widget.place(**data)
 
@@ -185,9 +163,9 @@ class FrameLayout(BaseLayout):
         return definition
 
 
-class LinearLayout(BaseLayout):
+class LinearLayoutStrategy(BaseLayoutStrategy):
     DEFINITION = {
-        **BaseLayout.DEFINITION,
+        **BaseLayoutStrategy.DEFINITION,
         "ipadx": {
             "display_name": "internal padding x",
             "type": "dimension",
@@ -236,9 +214,11 @@ class LinearLayout(BaseLayout):
             "name": "side"
         },
     }
+    name = "LinearLayout"
+    icon = "frame"
 
-    def __init__(self, master=None):
-        super().__init__(master)
+    def __init__(self, container):
+        super().__init__(container)
         self._orientation = self.HORIZONTAL
         self.temp_info = {}
 
@@ -249,13 +229,14 @@ class LinearLayout(BaseLayout):
             return
         super().add_widget(widget, bounds)
         if self._orientation == self.HORIZONTAL:
-            widget.pack(in_=self)
+            widget.pack(in_=self.container)
         elif self._orientation == self.VERTICAL:
-            widget.pack(in_=self, side="left")
-        self._children.append(widget)
+            widget.pack(in_=self.container, side="left")
+        self.children.append(widget)
 
     def redraw(self):
-        for widget in self._children:
+        print("packing...")
+        for widget in self.children:
             widget.pack(**self._pack_info(widget))
 
     def resize_widget(self, widget, bounds):
@@ -267,7 +248,7 @@ class LinearLayout(BaseLayout):
         try:
             return widget.pack_info()
         except Exception:
-            return self.temp_info or {"in_": self}
+            return self.temp_info or {"in_": self.container}
 
     def widget_released(self, widget):
         self.redraw()
@@ -281,28 +262,32 @@ class LinearLayout(BaseLayout):
     def restore_widget(self, widget, data=None):
         # We need to be able to return a removed widget back to its initial position once removed
         restoration_data = self._restoration_data.get(widget) if data is None else data
-        self._children.insert(restoration_data[1], widget)
+        self.children.insert(restoration_data[1], widget)
         widget.level = self.level + 1
-        widget.layout = self
+        widget.layout = self.container
         widget.pack(**restoration_data[0])
         self.redraw()
 
     def get_restore(self, widget):
         # Restoration is sensitive to the position of the widget in the packing order therefore store
         # the restoration data in the form of a tuple (pack_info, pack_index)
-        return widget.pack_info(), self._children.index(widget)
+        return widget.pack_info(), self.children.index(widget)
 
     def set_orientation(self, orient):
         if orient == self.VERTICAL:
             self.clear_children()
-            for child in self._children:
-                child.pack(in_=self, side="left", fill="y")
+            for child in self.children:
+                child.pack(in_=self.container, side="left", fill="y")
         elif orient == self.HORIZONTAL:
             self.clear_children()
-            for child in self._children:
-                child.pack(in_=self, side="top", fill="x")
+            for child in self.children:
+                child.pack(in_=self.container, side="top", fill="x")
         else:
-            raise ValueError("Value must be BaseLayout.HORIZONTAL or BaseLayout.VERTICAL")
+            raise ValueError("Value must be BaseLayoutStrategy.HORIZONTAL or BaseLayoutStrategy.VERTICAL")
+
+    def clear_children(self):
+        for child in self.children:
+            child.pack_forget()
 
     def apply(self, prop, value, widget):
         if prop in ("width", "height"):
@@ -321,22 +306,25 @@ class LinearLayout(BaseLayout):
         if "height" in widget.keys():
             definition["height"]["value"] = widget["height"]
         else:
-            del definition["height"]
+            definition.pop('height')
         return definition
 
 
-class GenericLinearLayout(BaseLayout):
+class GenericLinearLayoutStrategy(BaseLayoutStrategy):
 
     def __init__(self, master=None):
         super().__init__(master)
         self._orientation = self.HORIZONTAL
         self._children = []
 
+    def get_restore(self, widget):
+        pass
+
     def get_last(self):
         if len(self._children):
             last = self._children[-1]
             last.update_idletasks()
-            return last.winfo_y() - self.winfo_y() + last.winfo_height()
+            return last.winfo_y() - self.container.winfo_y() + last.winfo_height()
         else:
             return 0
 
@@ -344,7 +332,7 @@ class GenericLinearLayout(BaseLayout):
         if index >= 0:
             last = self._children[index]
             last.update_idletasks()
-            return last.winfo_y() - self.winfo_y() + last.winfo_height()
+            return last.winfo_y() - self.container.winfo_y() + last.winfo_height()
         else:
             return 0
 
@@ -352,11 +340,11 @@ class GenericLinearLayout(BaseLayout):
         super().add_widget(widget, bounds)
         width, height = geometry.dimensions(bounds)
         self.attach(widget, width, height)
-        self._children.append(widget)
+        self.children.append(widget)
 
     def attach(self, widget, width, height):
         y = self.get_last()
-        widget.place(in_=self, x=0, y=y, width=width, height=height, bordermode="outside")
+        widget.place(in_=self.container, x=0, y=y, width=width, height=height, bordermode="outside")
 
     def redraw(self, widget):
         from_ = self._children.index(widget)
@@ -387,18 +375,32 @@ class GenericLinearLayout(BaseLayout):
             self.attach(child, *dimensions[child])
             self._children.append(child)
 
+    def clear_children(self):
+        for child in self.children:
+            child.place_forget()
 
-class VerticalLinearLayout(LinearLayout):
+
+class VerticalLinearLayout(LinearLayoutStrategy):
 
     def __init__(self, master=None):
         super().__init__(master)
         self._orientation = self.VERTICAL
 
 
-class GridLayout(BaseLayout):
+class GridLayoutStrategy(BaseLayoutStrategy):
+    name = 'GridLayout'
+    icon = get_icon("grid")
 
     def __init__(self, master):
         super().__init__(master)
 
     def add_new(self, widget, x, y):
         pass
+
+    def get_restore(self, widget):
+        pass
+
+
+layouts = (
+    FrameLayoutStrategy, LinearLayoutStrategy
+)

@@ -5,13 +5,14 @@ Contains all the widget representations used in the designer and specifies all t
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
 
+import logging
+
 from PIL import Image, ImageTk
 
-from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Button
 from hoverset.ui.icons import get_icon, get_icon_image
-
-from studio.ui import editors
+from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Button
 from studio.feature import BaseFeature
+from studio.ui import editors
 
 
 def get_editor(parent, definition):
@@ -92,8 +93,8 @@ class StyleItem(Frame):
     def on_change(self, value):
         try:
             self.style_pane.apply(self.definition.get("name"), value)
-        except Exception:
-            pass
+        except Exception as e:
+            logging.error(e.with_traceback(None))
 
 
 class LayoutItem(StyleItem):
@@ -189,7 +190,7 @@ class StylePane(BaseFeature):
         if prop in self._special_handlers:
             self._special_handlers.get(prop)(value)
         else:
-            self._current.config(**{prop: value})
+            self._current.configure(**{prop: value})
 
     def apply_layout(self, prop, value):
         self._current.layout.apply(prop, value, self._current)

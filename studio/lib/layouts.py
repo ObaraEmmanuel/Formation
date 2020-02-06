@@ -3,10 +3,10 @@ from studio import layouts
 from studio.lib.pseudo import Groups, PseudoWidget
 
 
-class FrameLayout(PseudoWidget, layouts.FrameLayout):
+class FrameLayout(PseudoWidget, layouts.FrameLayoutStrategy):
     icon = get_icon("frame")
-    display_name = "FrameLayout"
-    impl = layouts.FrameLayout
+    display_name = "FrameLayoutStrategy"
+    impl = layouts.FrameLayoutStrategy
     group = Groups.layout
 
     def __init__(self, master, id_):
@@ -15,10 +15,10 @@ class FrameLayout(PseudoWidget, layouts.FrameLayout):
         self.setup_widget()
 
 
-class LinearLayout(PseudoWidget, layouts.LinearLayout):
+class LinearLayout(PseudoWidget, layouts.LinearLayoutStrategy):
     icon = get_icon("frame")
-    display_name = "LinearLayout"
-    impl = layouts.LinearLayout
+    display_name = "LinearLayoutStrategy"
+    impl = layouts.LinearLayoutStrategy
     group = Groups.layout
 
     def __init__(self, master, id_):

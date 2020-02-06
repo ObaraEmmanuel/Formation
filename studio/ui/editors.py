@@ -5,14 +5,15 @@ Contains all the widget representations used in the designer and specifies all t
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
 import re
+from tkinter import IntVar, ttk, filedialog
 
+from hoverset.ui.icons import get_icon
+from hoverset.ui.pickers import ColorDialog
 from hoverset.ui.widgets import (CompoundList, Entry, SpinBox, Spinner, Frame, Application, set_ttk_style,
                                  Label, system_fonts, ToggleButton, FontStyle, Button)
-from hoverset.ui.pickers import ColorDialog
-from hoverset.util.validators import numeric_limit
 from hoverset.util.color import to_hex
+from hoverset.util.validators import numeric_limit
 from studio.lib.properties import all_supported_cursors, BUILTIN_BITMAPS
-from tkinter import IntVar, ttk, filedialog
 
 
 class Editor(Frame):
@@ -47,13 +48,17 @@ class Choice(Editor):
         super().__init__(master, style_def)
         if style_def is None:
             style_def = {}
+        self.style_def = style_def
         self._spinner = Spinner(self, **self.style.dark_input)
         self._spinner.pack(fill="x")
         self._spinner.on_change(self.spinner_change)
         self.set_up()
         values = style_def.get("options", ())
         if values:
-            self._spinner.set_values(('', *values))
+            if not style_def.get('allow_empty', True):
+                self._spinner.set_values(('', *values))
+            else:
+                self._spinner.set_values(values)
 
     def set_up(self):
         self._spinner.set_item_class(Choice.ChoiceItem)
@@ -146,6 +151,18 @@ class Bitmap(Choice):
     def set_up(self):
         self._spinner.set_item_class(Bitmap.BitmapItem)
         self._spinner.set_values(('',) + BUILTIN_BITMAPS)
+
+
+class Layout(Choice):
+    class LayoutItem(Choice.ChoiceItem):
+
+        def render(self):
+            Label(self, **self.style.dark_text, anchor="w",
+                  text=f"{get_icon(self.value.icon)}  {self.value.name}").pack(fill="x")
+
+    def set_up(self):
+        self._spinner.set_item_class(Layout.LayoutItem)
+        self._spinner.set_values(self.style_def.get("options"))
 
 
 class Color(Editor):

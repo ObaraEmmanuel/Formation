@@ -8,15 +8,14 @@ Drag drop designer for the studio
 
 from hoverset.ui.widgets import Frame
 from hoverset.util.execution import Action
-
-from studio.ui.highlight import HighLight
-from studio.layouts import BaseLayout
-from studio.lib.layouts import FrameLayout
+from studio.layouts import FrameLayoutStrategy
+from studio.lib import legacy
+from studio.lib.pseudo import PseudoWidget, Container
 from studio.ui import geometry
-from studio.lib.pseudo import PseudoWidget
+from studio.ui.highlight import HighLight
 
 
-class Designer(Frame):
+class Designer(Frame, Container):
     MOVE = 0x2
     RESIZE = 0x3
     name = "Designer"
@@ -25,15 +24,19 @@ class Designer(Frame):
 
     def __init__(self, master, studio):
         super().__init__(master)
+        self.id = None
+        self.setup_widget()
+        self.parent = self
         self.studio = studio
         self.config(**self.style.bright)
         self.objects = []
+        self.layout_strategy = FrameLayoutStrategy(self)
         self.highlight = HighLight(self)
         self.highlight.on_resize(self._on_size_changed)
         self.highlight.on_move(self._on_move)
         self.highlight.on_release(self._on_release)
         self.current_obj = None
-        self.current_layout = None
+        self.current_container = None
         self.current_action = None
         self.bind("<Button-1>", lambda *_: self.select(None))
         self._padding = 30
@@ -42,7 +45,7 @@ class Designer(Frame):
 
     def _set_layout(self):
         self.update_idletasks()
-        self.add(FrameLayout, self._padding, self._padding, width=self.width - self._padding * 2,
+        self.add(legacy.Frame, self._padding, self._padding, width=self.width - self._padding * 2,
                  height=self.height - self._padding * 2)
 
     @property
@@ -68,20 +71,21 @@ class Designer(Frame):
             name = f"{obj_class.display_name}_{count}"
             count += 1
         obj = obj_class(self, name)
-        # Create the context menu associated with the object
-        menu = self.make_menu(self.studio.menu_template, obj)
+        # Create the context menu associated with the object including the widgets own custom menu
+        menu = self.make_menu(self.studio.menu_template + obj.create_menu(), obj)
+        # Select the widget before drawing the menu
+        obj.bind("<Button-3>", lambda _: self.select(obj), add='+')
         Frame.add_context_menu(menu, obj)
-        # Set the level and layout with respect to the designer. This may change when the object is finally
+        # Set the layout with respect to the designer. This may change when the object is finally
         # passed to its layout if any
-        setattr(obj, "level", 0)
-        setattr(obj, "layout", self)
+        obj.layout = self
         self.objects.append(obj)
         obj.bind("<Button-1>", lambda _: self.select(obj))
 
         layout = kwargs.get("layout")
         # If the object has a layout which actually the layout at the point of creation prepare and pass it
         # to the layout
-        if isinstance(layout, BaseLayout):
+        if isinstance(layout, Container):
             bounds = (x, y, x + width, y + height)
             bounds = geometry.resolve_bounds(bounds, self)
             layout.add_widget(obj, bounds)
@@ -105,11 +109,11 @@ class Designer(Frame):
         # a frame-layout
         return widget.place_info()
 
-    def select_layout(self, layout: BaseLayout):
+    def select_layout(self, layout: Container):
         pass
 
-    def restore(self, widget, restore_point, layout):
-        layout.restore_widget(widget, restore_point)
+    def restore(self, widget, restore_point, container):
+        container.restore_widget(widget, restore_point)
         self.studio.on_restore(widget)
 
     def delete(self, widget, silently=False):
@@ -128,24 +132,24 @@ class Designer(Frame):
         widget.place_forget()
 
     def react(self, event):
-        layout = self.event_first(event, self, BaseLayout)
-        if self.current_layout is not None:
-            self.current_layout.clear_highlight()
-            self.current_layout = None
-        if isinstance(layout, BaseLayout):
-            self.current_layout = layout
-            layout.highlight()
+        layout = self.event_first(event, self, Container)
+        if self.current_container is not None:
+            self.current_container.clear_highlight()
+            self.current_container = None
+        if isinstance(layout, Container):
+            self.current_container = layout
+            layout.show_highlight()
 
     def compute_overlap(self, bound1, bound2):
         return geometry.compute_overlap(bound1, bound2)
 
     def layout_at(self, bounds):
-        for layout in sorted(filter(lambda x: isinstance(x, BaseLayout) and x != self.current_obj, self.objects),
-                             key=lambda x: len(self.objects) - x.level):
-            if isinstance(self.current_obj, BaseLayout) and self.current_obj.level < layout.level:
+        for container in sorted(filter(lambda x: isinstance(x, Container) and x != self.current_obj, self.objects),
+                                key=lambda x: len(self.objects) - x.level):
+            if isinstance(self.current_obj, Container) and self.current_obj.level < container.level:
                 continue
-            if self.compute_overlap(layout.bounds(), bounds):
-                return layout
+            if self.compute_overlap(geometry.bounds(container), bounds):
+                return container
         return None
 
     def parse_bounds(self, bounds):
@@ -158,12 +162,12 @@ class Designer(Frame):
 
     def select(self, obj, explicit=False):
         if obj is None:
-            self.clear_highlight()
+            self.clear_obj_highlight()
             self.studio.select(None, self)
             return
         if self.current_obj == obj:
             return
-        self.clear_highlight()
+        self.clear_obj_highlight()
         self.current_obj = obj
         self.draw_highlight(obj)
         if not explicit:
@@ -173,27 +177,31 @@ class Designer(Frame):
     def draw_highlight(self, obj):
         self.highlight.surround(obj)
 
-    def clear_highlight(self):
+    def clear_obj_highlight(self):
         if self.highlight is not None:
             self.highlight.clear()
             self.current_obj = None
-            if self.current_layout is not None:
-                self.current_layout.clear_highlight()
-                self.current_layout = None
+            if self.current_container is not None:
+                self.current_container.clear_highlight()
+                self.current_container = None
 
     def _on_release(self, bound):
-        if self.current_layout is not None and self.current_obj is not None and self.current_layout != self.current_obj:
-            self.current_layout.clear_highlight()
+        if self.current_obj is None:
+            return
+        if self.current_container is not None and self.current_container != self.current_obj:
+            self.current_container.clear_highlight()
             if self.current_action == self.MOVE:
-                self.current_layout.add_widget(self.current_obj, bound)
-            self.current_obj.layout.widget_released(self.current_obj)
+                self.current_container.add_widget(self.current_obj, bound)
+            else:
+                self.current_obj.layout.widget_released(self.current_obj)
             self.adjust_highlight(self.current_obj)
             self.studio.widget_layout_changed(self.current_obj)
             self.current_action = None
-        elif self.current_action == self.RESIZE and self.current_obj is not None:
+        elif self.current_action == self.RESIZE:
             self.current_obj.layout.widget_released(self.current_obj)
             self.current_action = None
             self.adjust_highlight(self.current_obj)
+            # self.studio.widget_layout_changed(self.current_obj)
 
     def create_restore(self, widget):
         restore_point = widget.layout.get_restore()
@@ -202,27 +210,24 @@ class Designer(Frame):
             lambda: self.studio.delete(widget)
         ))
 
-    def widget_released(self, widget):
-        pass
-
     def adjust_highlight(self, widget):
         self.highlight.adjust_to(self.highlight.bounds_from_object(widget))
 
     def _on_move(self, new_bound):
         if self.current_obj is not None:
             self.current_action = self.MOVE
-            layout: BaseLayout = self.layout_at(new_bound)
-            if layout is not None and self.current_obj != layout:
-                if layout != self.current_layout:
-                    if self.current_layout is not None:
-                        self.current_layout.clear_highlight()
-                    layout.highlight()
-                    self.current_layout = layout
-                layout.move_widget(self.current_obj, new_bound)
+            container: Container = self.layout_at(new_bound)
+            if container is not None and self.current_obj != container:
+                if container != self.current_container:
+                    if self.current_container is not None:
+                        self.current_container.clear_highlight()
+                    container.show_highlight()
+                    self.current_container = container
+                container.move_widget(self.current_obj, new_bound)
             else:
-                if self.current_layout is not None:
-                    self.current_layout.clear_highlight()
-                    self.current_layout = None
+                if self.current_container is not None:
+                    self.current_container.clear_highlight()
+                    self.current_container = None
                 self.current_obj.level = 0
                 self.current_obj.layout = self
                 self.current_obj.place(in_=self, **self.parse_bounds(new_bound), bordermode="outside")
@@ -233,7 +238,7 @@ class Designer(Frame):
         if self.current_obj is None:
             return
         self.current_action = self.RESIZE
-        if isinstance(self.current_obj.layout, BaseLayout):
+        if isinstance(self.current_obj.layout, Container):
             self.current_obj.layout.resize_widget(self.current_obj, new_bound)
             # self.adjust_highlight(self.current_obj)
         else:
@@ -250,6 +255,3 @@ class Designer(Frame):
 
     def on_widget_add(self, widget, parent):
         pass
-
-    def definition_for(self, widget):
-        return FrameLayout.definition_for(widget)
