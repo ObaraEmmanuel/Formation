@@ -1,7 +1,7 @@
 import tkinter as tk
-from hoverset.ui.widgets import Frame
-from hoverset.platform import platform_is, WINDOWS
+
 import studio.ui.geometry as geometry
+from hoverset.platform import platform_is, WINDOWS
 
 
 def resize_cursor() -> tuple:
@@ -318,7 +318,7 @@ class WidgetHighlighter:
     OUTLINE = 2
 
     def __init__(self, master):
-        color = master.style.dark_on_hover.get("background", "#3d8aff")
+        color = master.winfo_toplevel().style.dark_on_hover.get("background", "#3d8aff")
         self.l = tk.Frame(master, bg=color, width=self.OUTLINE)
         self.r = tk.Frame(master, bg=color, width=self.OUTLINE)
         self.t = tk.Frame(master, bg=color, height=self.OUTLINE)
@@ -329,52 +329,53 @@ class WidgetHighlighter:
     def highlight(self, widget):
         x, y = widget.winfo_rootx() - self.master.winfo_rootx(), widget.winfo_rooty() - self.master.winfo_rooty()
         w, h = widget.winfo_width(), widget.winfo_height()
+        self._draw(x, y, w, h)
+
+    def _draw(self, x, y, w, h):
         self.l.place(x=x, y=y, height=h)
-        self.r.place(x=x + w, y=y, height=h)
+        self.r.place(x=x + w, y=y, height=h + self.OUTLINE)
         self.t.place(x=x, y=y, width=w)
-        self.b.place(x=x, y=y + h, width=w)
+        self.b.place(x=x, y=y + h, width=w + self.OUTLINE)
         for element in self.elements:
             element.lift()
+
+    def highlight_bounds(self, bounds):
+        x, y, w, h = bounds[0], bounds[1], bounds[2] - bounds[0], bounds[3] - bounds[1]
+        self._draw(x, y, w, h)
 
     def clear(self):
         for element in self.elements:
             element.place_forget()
 
 
-class EdgeIndicator(Frame):
+class EdgeIndicator(tk.Frame):
     """
     Generates a conspicuous line at the edges of a widget for various indication purposes
     """
 
     def __init__(self, master):
-        super().__init__(master.window)
-        self.config(**self.style.bright_background, height=1)
+        super().__init__(master)
+        style = self.winfo_toplevel().style
+        self.config(**style.bright_background, height=1)
 
-    def bottom(self, widget):
-        widget.update_idletasks()
-        x, y = (widget.winfo_rootx() - self.window.winfo_rootx(),
-                widget.winfo_rooty() - self.window.winfo_rooty() + widget.winfo_height())
+    def bottom(self, bounds):
+        x, y = bounds[0], bounds[3]
         self.lift()
-        self.place(in_=self.window, x=x, y=y, height=1.5, width=widget.winfo_width())
+        self.place(x=x, y=y, height=1.5, width=bounds[2] - bounds[0])
 
-    def top(self, widget):
-        widget.update_idletasks()
-        x, y = widget.winfo_rootx() - self.window.winfo_rootx(), widget.winfo_rooty() - self.window.winfo_rooty()
+    def top(self, bounds):
+        x, y = bounds[:2]
         self.lift()
-        self.place(in_=self.window, x=x, y=y, height=1.5, width=widget.winfo_width())
+        self.place(x=x, y=y, height=1.5, width=bounds[2] - bounds[0])
 
-    def right(self, widget):
-        widget.update_idletasks()
-        x, y = (widget.winfo_rootx() - self.window.winfo_rootx() + widget.winfo_width(),
-                widget.winfo_rooty() - self.window.winfo_rooty())
+    def right(self, bounds):
+        x, y = bounds[2], bounds[3]
         self.lift()
-        self.place(in_=self.window, x=x, y=y, height=widget.winfo_height(), width=1.5)
+        self.place(x=x, y=y, height=bounds[3] - bounds[1], width=1.5)
 
-    def left(self, widget):
-        widget.update_idletasks()
-        x, y = (widget.winfo_rootx() - self.window.winfo_rootx(), widget.winfo_rooty() - self.window.winfo_rooty())
-        self.lift()
-        self.place(in_=self.window, x=x, y=y, height=widget.winfo_height(), width=1.5)
+    def left(self, bounds):
+        x, y = bounds[:2]
+        self.place(x=x, y=y, height=bounds[3] - bounds[1], width=1.5)
 
     def clear(self):
         self.place_forget()

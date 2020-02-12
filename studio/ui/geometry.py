@@ -20,8 +20,8 @@ def absolute_position(widget):
 
 
 def absolute_bounds(widget):
-    x = widget.winfo_rootx() - widget.window.winfo_rootx()
-    y = widget.winfo_rooty() - widget.window.winfo_rooty()
+    x = widget.winfo_rootx()
+    y = widget.winfo_rooty()
     return x, y, x + widget.winfo_width(), y + widget.winfo_height()
 
 
@@ -48,6 +48,16 @@ def compute_overlap(bound1, bound2):
         return ox1, oy1, ox2, oy2
     else:
         return None
+
+
+def upscale_bounds(bound, widget):
+    ref = bounds(widget)
+    x_offset, y_offset = ref[0], ref[1]
+    return bound[0] + x_offset, bound[1] + y_offset, bound[2] + x_offset, bound[3] + y_offset
+
+
+def center(bound):
+    return (bound[2] - bound[0]) // 2, (bound[3] - bound[1]) // 2
 
 
 def is_within(bound1, bound2) -> bool:

@@ -3,7 +3,7 @@ import tkinter
 from enum import Enum
 
 from hoverset.ui.icons import get_icon, get_icon_image
-from studio import layouts
+from studio.lib import layouts
 from studio.lib.properties import get_properties
 from studio.ui.highlight import WidgetHighlighter
 from studio.ui.tree import MalleableTree
@@ -82,6 +82,9 @@ class PseudoWidget:
         """
         return ()
 
+    def winfo_parent(self):
+        return str(self.layout)
+
 
 class Container(PseudoWidget):
     LAYOUTS = layouts.layouts
@@ -95,6 +98,8 @@ class Container(PseudoWidget):
         if len(self.LAYOUTS) == 0:
             raise ValueError("No layouts have been defined")
         self.layout_strategy = layouts.FrameLayoutStrategy(self)
+        self.layout_var = tkinter.StringVar()
+        self.layout_var.set(self.layout_strategy.name)
         super().setup_widget()
 
     def show_highlight(self, *_):
@@ -157,6 +162,7 @@ class Container(PseudoWidget):
         if layout_class == self.layout_strategy.__class__:
             return
         self.layout_strategy = layout_class(self)
+        self.layout_var.set(self.layout_strategy.name)
         self.layout_strategy.initialize()
 
     def configure(self, cnf=None, **kwargs, ):
@@ -169,8 +175,9 @@ class Container(PseudoWidget):
 
     def _get_layouts_as_menu(self):
         return [
-            ("command", i.name, get_icon_image(i.icon, 14, 14),
-             functools.partial(self._switch_layout, i), {}
+            ("radiobutton", i.name, get_icon_image(i.icon, 14, 14),
+             functools.partial(self._switch_layout, i),
+             {"value": i.name, "variable": self.layout_var}
              ) for i in self.LAYOUTS
         ]
 
@@ -224,6 +231,10 @@ class Container(PseudoWidget):
 
     def definition_for(self, widget):
         return self.layout_strategy.__class__.definition_for(widget)
+
+    def react_to_pos(self, x, y):
+        # react to position
+        self.layout_strategy.react_to_pos(x, y)
 
 
 class LabelFrameCorrection:
