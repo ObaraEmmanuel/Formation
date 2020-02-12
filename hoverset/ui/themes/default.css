@@ -216,11 +216,15 @@
     disabledforeground: #6a6a6a;
 }
 
-.dark_context_menu_item{
+.dark_context_menu_item, .dark_context_menu_selectable {
     background:#303030;
     foreground: #f7f7f7;
     activebackground: #3a3a3a;
     activeforeground: #f7f7f7;
+}
+
+.dark_context_menu_selectable {
+    selectcolor: #f7f7f7
 }
 
 .combobox{
