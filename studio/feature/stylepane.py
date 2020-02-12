@@ -152,15 +152,6 @@ class StylePane(BaseFeature):
             ("command", "Collapse all", get_icon_image("chevron_up", 14, 14), self.collapse_all, {})
         )
 
-    def clone(self, parent):
-        new = StylePane(parent, self.studio)
-        new.styles_for(self._current)
-        if self._expanded:
-            new.expand_all()
-        else:
-            new.collapse_all()
-        return new
-
     def set_widget_image(self, path):
         if self._current is None:
             return

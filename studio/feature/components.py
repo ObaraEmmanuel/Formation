@@ -1,6 +1,7 @@
 from functools import partial
+from tkinter import BooleanVar
 
-from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Spinner, EventMask, BooleanVar
+from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Spinner, EventMask
 from hoverset.ui.windows import DragWindow
 from studio.feature import BaseFeature
 from studio.feature.design import Designer
@@ -35,14 +36,14 @@ class Component(Frame):
     def drag(self, event):
         # If cursor is moved while holding the left button down for the first time we begin drag
         if event.state & EventMask.MOUSE_BUTTON_1 and not self.drag_active:
-            self.drag_popup = DragWindow(self.window).set_position(event.x_root, event.y_root + 20)
+            self.drag_popup = DragWindow(self.window).set_position(event.x_root, event.y_root)
             Label(self.drag_popup, text=self.component.display_name).pack()
             self.drag_active = True
         elif self.drag_active:
             widget = self.event_first(event, self, Designer)
             if isinstance(widget, Designer):
                 widget.react(event)
-            self.drag_popup.set_position(event.x_root, event.y_root + 20)
+            self.drag_popup.set_position(event.x_root, event.y_root)
 
     def release(self, event):
         if not self.drag_active:
@@ -133,15 +134,6 @@ class ComponentPane(BaseFeature):
                 *self._widget_sets_as_menu(),
             )}),
         )
-
-    def clone(self, parent):
-        new = ComponentPane(parent, self.studio)
-        new._widget_set.set(self._widget_set.get())
-        new.collect_groups(self._widget_set.get())
-        for selector in new.selectors:
-            if selector == self._selected:
-                new.select(selector)
-        return new
 
     def collect_groups(self, widget_set):
         for other_set in [i for i in self.CLASSES if i != widget_set]:

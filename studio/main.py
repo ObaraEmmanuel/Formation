@@ -3,6 +3,7 @@
 # ======================================================================= #
 
 import functools
+import logging
 import sys
 
 # Add Studio and Hoverset to path so imports from hoverset can work.
@@ -119,6 +120,8 @@ class StudioApplication(Application):
                 ("command", "close all on the left", get_icon_image("blank", 14, 14),
                  self.close_all_on_side("left"), {}),
                 ("separator", ),
+                *self.get_features_as_menu(),
+                ("separator",),
                 ("command", "Save window positions", None, None, {})
             )}),
             ("cascade", "Tools", None, None, {"menu": ()}),
@@ -155,6 +158,7 @@ class StudioApplication(Application):
         action = self._undo_stack.pop()
         action.undo()
         self._redo_stack.append(action)
+        logging.debug("Event undone.")
 
     def redo(self):
         if not len(self._redo_stack):
@@ -162,6 +166,7 @@ class StudioApplication(Application):
         action = self._redo_stack.pop()
         action.redo()
         self._undo_stack.append(action)
+        logging.debug("Event re-done")
 
     def copy(self):
         if self.selected:
@@ -215,7 +220,7 @@ class StudioApplication(Application):
         # The command value is the self.maximize method which will reopen the feature
         return [("command",  # Type
                  f.name, get_icon_image(f.icon, 14, 14),  # Label, image
-                 functools.partial(self.maximize, f),  # Command built from feature
+                 functools.partial(f.toggle),  # Command built from feature
                  {}) for f in self.features]
 
     def _adjust_pane(self, pane):

@@ -8,8 +8,8 @@ Drag drop designer for the studio
 
 from hoverset.ui.widgets import Frame
 from hoverset.util.execution import Action
-from studio.layouts import FrameLayoutStrategy
 from studio.lib import legacy
+from studio.lib.layouts import FrameLayoutStrategy
 from studio.lib.pseudo import PseudoWidget, Container
 from studio.ui import geometry
 from studio.ui.highlight import HighLight
@@ -132,12 +132,13 @@ class Designer(Frame, Container):
         widget.place_forget()
 
     def react(self, event):
-        layout = self.event_first(event, self, Container)
+        layout = self.event_first(event, self, Container, ignore=self)
         if self.current_container is not None:
             self.current_container.clear_highlight()
             self.current_container = None
         if isinstance(layout, Container):
             self.current_container = layout
+            layout.react_to_pos(event.x_root, event.y_root)
             layout.show_highlight()
 
     def compute_overlap(self, bound1, bound2):
@@ -254,4 +255,7 @@ class Designer(Frame, Container):
         pass
 
     def on_widget_add(self, widget, parent):
+        pass
+
+    def show_highlight(self, *_):
         pass

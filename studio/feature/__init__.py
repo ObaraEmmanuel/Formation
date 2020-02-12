@@ -1,8 +1,8 @@
 import logging
+from tkinter import StringVar, BooleanVar
 
-from hoverset.ui.widgets import Frame, Button, Label, MenuButton, ToolWindow, BooleanVar
 from hoverset.ui.icons import get_icon, get_icon_image
-
+from hoverset.ui.widgets import Frame, Button, Label, MenuButton
 from studio.ui.geometry import absolute_position
 
 logging.basicConfig(level=logging.DEBUG)
@@ -14,16 +14,14 @@ class BaseFeature(Frame):
     pane = None
     bar = None
     icon = "blank"
-    is_window = None
-    is_docked = None
+    _view_mode = None
     _transparency_flag = None
     rec = (20, 20, 300, 300)  # Default window mode position
 
     def __init__(self, master, studio=None,  **cnf):
         super().__init__(master, **cnf)
-        if not self.__class__.is_window:
-            self.__class__.is_window = BooleanVar(None, False)
-            self.__class__.is_docked = BooleanVar(None, True)
+        if not self.__class__._view_mode:
+            self.__class__._view_mode = StringVar(None, "docked")
             self.__class__._transparency_flag = BooleanVar(None, False)
         self.studio = studio
         self._header = Frame(self, **self.style.dark, **self.style.dark_highlight_dim, height=30)
@@ -38,8 +36,8 @@ class BaseFeature(Frame):
         self._pref.pack(side="right")
         menu = self.make_menu((
             ("cascade", "View Mode", None, None, {"menu": (
-                ("checkbutton", "Docked", None, self.open_as_docked, {"variable": self.is_docked}),
-                ("checkbutton", "Window", None, self.open_as_window, {"variable": self.is_window}),
+                ("radiobutton", "Docked", None, self.open_as_docked, {"variable": self._view_mode, "value": "docked"}),
+                ("radiobutton", "Window", None, self.open_as_window, {"variable": self._view_mode, "value": "window"}),
             )}),
             ("cascade", "Position", None, None, {"menu": (
                 ("command", "Left", None, lambda: self.reposition("left"), {}),
@@ -56,6 +54,9 @@ class BaseFeature(Frame):
         self.is_visible = True
         self.indicator = None
         self.window_handle = None
+        self.on_focus(self._on_focus_get)
+        self.on_focus_lost(self._on_focus_release)
+        self.on_close(self.close_window)
 
     def on_select(self, widget):
         pass
@@ -78,13 +79,13 @@ class BaseFeature(Frame):
     def minimize(self, *_):
         if self.window_handle:
             self.close_window()
-        else:
-            self.studio.minimize(self)
+        self.studio.minimize(self)
         self.is_visible = False
 
     def maximize(self):
-        if self.is_window.get():
+        if self._view_mode.get() == "window":
             self.open_as_window()
+            self.bar.select(self)
         else:
             self.studio.maximize(self)
         self.is_visible = True
@@ -104,18 +105,6 @@ class BaseFeature(Frame):
         else:
             self.maximize()
 
-    def on_new_feature(self, new):
-        """
-        Perform any important transfers before the old feature is completely destroyed
-        :param new: The newly cloned feature
-        :return:
-        """
-        self.studio.on_feature_change(new, self)
-        self.bar.change_feature(new, self)
-        new.bar = self.bar
-        new.pane = self.pane
-        new.studio = self.studio
-
     def create_menu(self):
         """
         Override this method to provide additional menu options
@@ -124,68 +113,39 @@ class BaseFeature(Frame):
         # return an empty tuple as default
         return ()
 
-    def clone(self, parent):
-        """
-        All features must implement a cloning procedure for some BaseFeature functionality to work.
-        :param parent: The parent for the generated clone
-        :return: The cloned widget
-        """
-        raise NotImplementedError()
-
-    def _on_focus_lost(self):
-        print(self._transparency_flag.get())
-        if self._transparency_flag.get():
-            print(self.window_handle)
+    def _on_focus_release(self):
+        if self._transparency_flag.get() and self.window_handle:
             if self.window_handle:
                 self.window_handle.wm_attributes('-alpha', 0.3)
 
-    def _on_focus(self):
+    def _on_focus_get(self):
         if self.window_handle:
             self.window_handle.wm_attributes('-alpha', 1.0)
 
     def open_as_docked(self):
-        self.is_docked.set(True)
-        self.is_window.set(False)
+        self._view_mode.set("docked")
         if self.window_handle:
-            handle = self.window_handle
-            self.create_temp().maximize()
-            handle.destroy()
+            self.master.window.wm_forget(self)
+            self.window_handle = None
+            self.maximize()
 
     def open_as_window(self):
-        if not self.is_window.get():
-            self.open_as_docked()
-            return
-        if self.window_handle:
-            # There is already a window so no need to create one
-            return
-        window = ToolWindow(self.window)
-        new_feature = self.clone(window)
-        new_feature.pack(fill="both", expand=True)
-        new_feature.window_handle = window
+        self.master.window.wm_forget(self)
         rec = absolute_position(self) if self.winfo_ismapped() else self.__class__.rec
-        self.on_new_feature(new_feature)
-        window.set_geometry((rec[2], rec[3], rec[0], rec[1]))
-        window.update_idletasks()
-        window.show()
-        window.on_close(new_feature.close_window)
-        window.on_focus(new_feature._on_focus)
-        window.on_focus_lost(new_feature._on_focus_lost)
-        self.minimize()
-        self.destroy()
-        self.is_window.set(True)
-        self.is_docked.set(False)
-
-    def create_temp(self):
-        new_feature = self.clone(self.pane)
-        logging.debug(self.studio.features)
-        self.on_new_feature(new_feature)
-        self.window_handle = None
-        return new_feature
+        self.window.wm_manage(self)
+        # Allow us to create a hook in the close method of the window manager
+        self.bind_close()
+        self.wm_attributes('-toolwindow', True)
+        self.transient(self.master.window)
+        self.geometry('{}x{}+{}+{}'.format(rec[2], rec[3], rec[0], rec[1]))
+        self.update_idletasks()
+        self.window_handle = self
+        self._view_mode.set("window")
 
     def close_window(self):
         if self.window_handle:
             # Store the current position of our window handle to used when it is reopened
-            self.__class__.rec = absolute_position(self.window_handle)
-            handle = self.window_handle
-            self.create_temp()
-            handle.destroy()
+            self.__class__.rec = absolute_position(self)
+            self.master.window.wm_forget(self)
+            self.window_handle = None
+            self.is_visible = False

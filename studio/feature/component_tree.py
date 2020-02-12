@@ -21,15 +21,6 @@ class ComponentTreeView(MalleableTree):
             self.name_pad.config(text=self.widget.id)
             self.icon_pad.config(text=self.widget.icon)
 
-        def clone(self, parent):
-            new = self.__class__(parent, widget=self.widget)
-            for node in self.nodes:
-                new_node = node.clone(parent)
-                new.add(new_node)
-            if self._expanded:
-                new.expand()
-            return new
-
 
 class ComponentTree(BaseFeature):
     name = "Component Tree"
@@ -56,17 +47,6 @@ class ComponentTree(BaseFeature):
             ("command", "Expand all", get_icon_image("chevron_down", 14, 14), self._expand, {}),
             ("command", "Collapse all", get_icon_image("chevron_up", 14, 14), self._collapse, {})
         )
-
-    def clone(self, parent):
-        new = ComponentTree(parent, self.studio)
-        for node in self._tree.nodes:
-            new_node = node.clone(new._tree)
-            new._tree.add(new_node)
-        if self._expanded:
-            new._expand()
-        if self._selected:
-            new.select(self._selected.widget)
-        return new
 
     def _expand(self):
         self._tree.expand_all()
