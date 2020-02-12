@@ -88,24 +88,6 @@ def chain(func):
     return wrap
 
 
-def cascade_window(func):
-    """
-    Decorator function that cascades useful values such as styles and the main application window which need not be
-    initialized more than once. It performs the necessary dependency injection.
-    :param func:
-    :return:
-    """
-
-    @functools.wraps(func)
-    def wrapped_init(self, master=None, *args, **kwargs):
-        if master:
-            self.window = master.window
-            self.style = self.window.style
-        func(self, master, *args, **kwargs)
-
-    return wrapped_init
-
-
 def set_ttk_style(widget, cnf=None, **styles) -> None:
     """
     Allows you set styles for ttk widgets just like conventional tkinter widgets.
@@ -120,8 +102,10 @@ def set_ttk_style(widget, cnf=None, **styles) -> None:
         cnf = {}
     styles.update(cnf)
     ttk_style = ttk.Style()
-    class_name = '{}'.format(widget.winfo_class())
+    # Use hoverset class extension to avoid collision with actual native widgets in use
+    class_name = 'hover.{}'.format(widget.winfo_class())
     ttk_style.configure(class_name, **styles)
+    widget.configure(style=class_name)
 
 
 def clean_styles(widget, styles) -> dict:
@@ -230,7 +214,8 @@ class ContextMenuMixin:
                 menu.images.append(icon)
             else:
                 _type, label, icon, command, config = template
-                conf = {**self.style.dark_context_menu_item}
+                conf = {**self.style.dark_context_menu_selectable} if _type in ("radiobutton", "checkbutton") else \
+                    {**self.style.dark_context_menu_item}
                 conf.update(config)
                 menu.images.append(icon)
                 menu.add(_type, label=label, image=icon, command=command, compound='left', **conf)
@@ -307,30 +292,13 @@ class Widget:
     s_style = None  # Static style holder
     s_window = None  # Static window holder
 
-    def setup(self, master=None):
+    def setup(self, _=None):
         """
-        Cascades useful values such as styles and the main application window which need not be
-        initialized more than once. It performs the necessary dependency injection and event bindings and
+        It performs the necessary dependency injection and event bindings and
         set up.
-        :param master:
+        :param _:
         :return:
         """
-        if master:
-            self.window = master.window
-            self.style = self.window.style
-
-            # Pass universal dependency to static holders for use just in case.
-            Widget.s_style = self.style if Widget.s_style is None else Widget.s_style
-            Widget.s_window = self.style if Widget.s_window is None else Widget.s_window
-        elif Widget.s_style is not None:
-            # Means it is a desperate times since the widget lacks a parent from whence to obtain
-            # the necessary dependency injection but luckily our static holders have some juice.
-            self.window = Widget.s_window
-            self.style = Widget.s_style
-        else:
-            # The style and window dependencies are totally missing and we cannot fix it!
-            raise WidgetError("Could not obtain style and window dependency for widget. Ensure the widget has a parent")
-
         self._allow_drag = False
         self._drag_setup = False
 
@@ -448,10 +416,10 @@ class Widget:
         return False
 
     @staticmethod
-    def event_first(event, widget,  class_: type):
+    def event_first(event, widget, class_: type, ignore=None):
         check = widget.winfo_containing(event.x_root, event.y_root)
         while not isinstance(check, Application) and check is not None:
-            if isinstance(check, class_):
+            if isinstance(check, class_) and not check == ignore:
                 return check
             check = check.nametowidget(check.winfo_parent())
         return None
@@ -509,6 +477,83 @@ class Widget:
                 to.configure(**{key: from_[key]})
             except tk.TclError:
                 logging.debug("readonly option {opt}".format(opt=key))
+
+    @property
+    def window(self):
+        return self.winfo_toplevel()
+
+    @property
+    def style(self):
+        return self.window.style
+
+
+class _MouseWheelDispatcherMixin:
+    """
+    Dispatches mousewheel events to the right scrolledFrame. The mousewheel event is bound to the main window
+    then the event is processed by this mixin though widget resolution techniques to determine if there is any
+    scrolled frame at the scroll position
+    """
+
+    def _on_mousewheel(self, event):
+        # Resolve the widget under the cursor to determine if there is any scrollable widget (ScrollableInterface)
+        # If any pass the event to it
+        check = self.winfo_containing(event.x_root, event.y_root)
+        while not isinstance(check, Application) and check is not None:
+            if isinstance(check, ScrollableInterface):
+                if check.scroll_transfer() and check.scroll_position()[0] < 1:
+                    # Perform scroll transfer by ignoring this widget and checking the next
+                    continue
+                check.on_mousewheel(event)
+                break
+            check = check.nametowidget(check.winfo_parent())
+
+
+class WindowMixin(_MouseWheelDispatcherMixin):
+
+    def setup_window(self):
+        self._on_close = None
+        self._on_focus = None
+        self._on_focus_lost = None
+        self.drag_context = None
+        self.drag_window = None
+        # This normally fails for non-toplevel like frame and labelframe so lets wrap
+        # This can however be re-enacted by the bind_close method when the frame is ready
+        try:
+            self.wm_protocol("WM_DELETE_WINDOW", self._close)
+        except tk.TclError:
+            pass
+
+        self.bind("<FocusIn>", self._focus_)
+        self.bind("<FocusOut>", self._focus_out_)
+
+    def bind_close(self):
+        self.wm_protocol("WM_DELETE_WINDOW", self._close)
+
+    def set_up_mousewheel(self):
+        self.bind_all("<MouseWheel>", self._on_mousewheel, '+')
+
+    def on_close(self, callback, *args, **kwargs):
+        self._on_close = lambda: callback(*args, **kwargs)
+
+    def on_focus(self, callback, *args, **kwargs):
+        self._on_focus = lambda: callback(*args, **kwargs)
+
+    def on_focus_lost(self, callback, *args, **kwargs):
+        self._on_focus_lost = lambda: callback(*args, **kwargs)
+
+    def _close(self):
+        if self._on_close:
+            self._on_close()
+        else:
+            self.quit()
+
+    def _focus_(self, *_):
+        if self._on_focus:
+            self._on_focus()
+
+    def _focus_out_(self, *_):
+        if self._on_focus_lost:
+            self._on_focus_lost()
 
 
 class SpinBox(Widget, EditableMixin, tk.Spinbox):
@@ -597,13 +642,20 @@ class Message(Widget, ContextMenuMixin, tk.Message):
         self.config(anchor=alignment)
 
 
-class Frame(Widget, ContextMenuMixin, tk.Frame):
+class Frame(Widget, ContextMenuMixin, WindowMixin, tk.Frame, tk.Wm):
 
     def __init__(self, master=None, **kwargs):
         self.setup(master)
         super().__init__(master, **kwargs)
+        self.setup_window()
+        self._style = self.winfo_toplevel().style
         self._on_click = None
         self.body = self
+        # Since the frame may be a toplevel at some point we want the style variable to be from the initial parent
+
+    @property
+    def style(self):
+        return self._style
 
     def clear_children(self):
         for child in self.winfo_children():
@@ -632,11 +684,13 @@ class Frame(Widget, ContextMenuMixin, tk.Frame):
             child.config(**cnf)
 
 
-class ScrolledFrame(Widget, ScrollableInterface, ContextMenuMixin, tk.Frame):
+class ScrolledFrame(Widget, ScrollableInterface, ContextMenuMixin, WindowMixin, tk.Frame, tk.Wm):
 
     def __init__(self, master=None, **cnf):
         self.setup(master)
         super().__init__(master, **cnf)
+        self.setup_window()
+        self._style = self.winfo_toplevel().style
         self._canvas = tk.Canvas(self, highlightthickness=0)
         self._canvas.config(cnf)
         self._canvas.config(self.style.dark)
@@ -659,6 +713,10 @@ class ScrolledFrame(Widget, ScrollableInterface, ContextMenuMixin, tk.Frame):
         self.fill_y = False  # Set to True to disable the y scrollbar and fit content to height
         self._prev_region = None
         self._detect_change()
+
+    @property
+    def style(self):
+        return self._style
 
     def _show_y_scroll(self, flag):
         if flag:
@@ -793,38 +851,15 @@ class Screen:
         return self.window.winfo_screenheight()
 
 
-class _MouseWheelDispatcherMixin:
-    """
-    Dispatches mousewheel events to the right scrolledFrame. The mousewheel event is bound to the main window
-    then the event is processed by this mixin though widget resolution techniques to determine if there is any
-    scrolled frame at the scroll position
-    """
-
-    def _on_mousewheel(self, event):
-        # Resolve the widget under the cursor to determine if there is any scrollable widget (ScrollableInterface)
-        # If any pass the event to it
-        check = self.winfo_containing(event.x_root, event.y_root)
-        while not isinstance(check, Application) and check is not None:
-            if isinstance(check, ScrollableInterface):
-                if check.scroll_transfer() and check.scroll_position()[0] < 1:
-                    # Perform scroll transfer by ignoring this widget and checking the next
-                    continue
-                check.on_mousewheel(event)
-                break
-            check = check.nametowidget(check.winfo_parent())
-
-
 class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, ContextMenuMixin, tix.Tk):
     # We want to extend tix.Tk to broaden our widget scope because now we can use tix widgets!
     # This is inconsequential to other widgets as tix.Tk subclasses tkinter.tk which is the base class here
     # This class needs no dependency injection since its the source of the dependencies after all!
 
     def __init__(self, *args, **kwargs):
-        self.window = self
         Widget.s_window = self  # Window dependency set
         super().__init__(*args, **kwargs)
         self.position_ref = Screen(self)
-        self.style = None
         self.enable_centering()
         self.bind_all("<MouseWheel>", self._on_mousewheel, '+')
         self.drag_context = None
@@ -837,8 +872,11 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
         :param path:
         :return:
         """
-        self.style = StyleDelegator(path)
-        Widget.s_style = self.style
+        self._style = StyleDelegator(path)
+
+    @property
+    def style(self):
+        return self._style
 
     def bind_all(self, sequence=None, func=None, add="+"):
         return super(tix.Tk, self).bind_all(sequence, func, add)
@@ -851,45 +889,20 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
                 pass
 
 
-class Window(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, tix.Toplevel):
+class Window(Widget, CenterWindowMixin, WindowMixin, tix.Toplevel):
 
     def __init__(self, master=None, content=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.master = self.position_ref = master
         if master:
-            self.style = master.window.style
-        self.window = self
+            self._style = master.window.style
         self.content = content
-        self.bind_all("<MouseWheel>", self._on_mousewheel, '+')
-        self.bind("<FocusIn>", self._focus)
-        self.bind("<FocusOut>", self._focus_out)
-        self.drag_context = None
-        self.drag_window = None
-        self._on_close = None
-        self._on_focus_lost = None
-        self._on_focus = None
-        self.wm_protocol("WM_DELETE_WINDOW", self._close)
+        self.setup_window()
+        self.set_up_mousewheel()
 
-    def _focus(self, *_):
-        if self._on_focus:
-            self._on_focus()
-
-    def _focus_out(self, *_):
-        if self._on_focus_lost:
-            self._on_focus_lost()
-
-    def on_close(self, callback, *args, **kwargs):
-        self._on_close = lambda: callback(*args, **kwargs)
-
-    def on_focus(self, callback, *args, **kwargs):
-        self._on_focus = lambda: callback(*args, **kwargs)
-
-    def on_focus_lost(self, callback, *args, **kwargs):
-        self._on_focus_lost = lambda: callback(*args, **kwargs)
-
-    def _close(self):
-        if self._on_close:
-            self._on_close()
+    @property
+    def style(self):
+        return self._style
 
 
 class ToolWindow(Window):
