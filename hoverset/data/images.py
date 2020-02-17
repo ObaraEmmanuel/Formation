@@ -6,9 +6,11 @@ Provides functions for global image access and processing by hoverset apps
 # Copyright (C) 2020 Hoverset Group.                                      #
 # ======================================================================= #
 
-import shelve
 import functools
+import shelve
+
 from PIL import Image, ImageTk
+
 
 # We want to enable memoization to reduce the number of times we read the image database
 # An image can be accessed multiple times in the application lifetime hence a cache can improve performance greatly
@@ -42,3 +44,13 @@ def get_tk_image(identifier: str, width=25, height=25):
     :return: A tkinter compatible image
     """
     return ImageTk.PhotoImage(image=get_image(identifier, width, height))
+
+
+def load_tk_image(path):
+    """
+    Load image from file described by path and convert to a tkinter image
+    :param path: Image file path
+    :return: tkinter PhotoImage
+    """
+    image = Image.open(path)
+    return ImageTk.PhotoImage(image=image)
