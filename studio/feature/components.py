@@ -1,7 +1,8 @@
 from functools import partial
 from tkinter import BooleanVar
 
-from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Spinner, EventMask
+from hoverset.ui.icons import get_icon_image
+from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Spinner, EventMask, Button
 from hoverset.ui.windows import DragWindow
 from studio.feature import BaseFeature
 from studio.feature.design import Designer
@@ -100,6 +101,14 @@ class ComponentPane(BaseFeature):
         self._widget_set.on_change(self.collect_groups)
         self._select_pane = ScrolledFrame(f, width=150)
         self._select_pane.place(x=0, y=0, relwidth=0.4, relheight=1)
+
+        self._search_btn = Button(self._header, image=get_icon_image("search", 15, 15), width=25, height=25,
+                                  **self.style.dark_button)
+        self._search_btn.pack(side="right")
+        self._search_btn.on_click(self.start_search)
+        self._search_selector = Label(self._select_pane.body, **self.style.dark_text, text="search", anchor="w")
+        self._search_selector.configure(**self.style.dark_on_hover)
+
         self._widget_pane = ScrolledFrame(f, width=150, bg="orange")
         self._select_pane.body.config(**self.style.dark)
         self._widget_pane.place(relx=0.4, y=0, relwidth=0.6, relheight=1)
@@ -107,6 +116,7 @@ class ComponentPane(BaseFeature):
         self._pool = {}
         self._selectors = []
         self._selected = None
+        self._component_cache = None
         self.collect_groups(self._widget_set.get())
 
     def _init_var(self, master=None):
@@ -130,6 +140,7 @@ class ComponentPane(BaseFeature):
 
     def create_menu(self):
         return (
+            ("command", "Search", get_icon_image("search", 14, 14), self.start_search, {}),
             ("cascade", "Widget set", None, None, {"menu": (
                 *self._widget_sets_as_menu(),
             )}),
@@ -150,6 +161,16 @@ class ComponentPane(BaseFeature):
             else:
                 self._pool[group] = [Component(self._widget_pane.body, component)]
         self.render_groups()
+        # component pool has changed so invalidate the cache
+        self._component_cache = None
+
+    def get_components(self):
+        if self._component_cache:
+            return self._component_cache
+        else:
+            # flatten component pool and store to cache
+            self._component_cache = [j for i in self._pool.values() for j in i]
+            return self._component_cache
 
     def select(self, selector):
         if self._selected is not None:
@@ -171,3 +192,35 @@ class ComponentPane(BaseFeature):
         self._selectors.append(selector)
         selector.bind("<Button-1>", lambda *_: self.select(selector))
         selector.pack(side="top", pady=2, fill="x")
+
+    def hide_selectors(self):
+        for selector in self._selectors:
+            selector.pack_forget()
+
+    def show_selectors(self):
+        for selector in self._selectors:
+            selector.pack(side="top", pady=2, fill="x")
+
+    def start_search(self, *_):
+        super().start_search()
+        if self._selected is not None:
+            self._selected.deselect()
+        self.hide_selectors()
+        self._search_selector.pack(side="top", pady=2, fill="x")
+        self._widget_pane.clear_children()
+        # Display all components by running an empty query
+        self.on_search_query("")
+
+    def on_search_clear(self):
+        super().on_search_clear()
+        if len(self._selectors):
+            self.select(self._selectors[0])
+        self._search_selector.pack_forget()
+        self.show_selectors()
+
+    def on_search_query(self, query):
+        for component in self.get_components():
+            if query.lower() in component.component.display_name.lower():
+                component.pack(side="top", pady=2, fill="x")
+            else:
+                component.pack_forget()

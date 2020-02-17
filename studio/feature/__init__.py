@@ -4,6 +4,7 @@ from tkinter import StringVar, BooleanVar
 from hoverset.ui.icons import get_icon, get_icon_image
 from hoverset.ui.widgets import Frame, Button, Label, MenuButton
 from studio.ui.geometry import absolute_position
+from studio.ui.widgets import SearchBar
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -34,6 +35,9 @@ class BaseFeature(Frame):
         self._min.on_click(self.minimize)
         self._pref = MenuButton(self._header, text=get_icon("settings"), **self.style.dark_button)
         self._pref.pack(side="right")
+        self._search_bar = SearchBar(self._header, height=20)
+        self._search_bar.on_query_clear(self.on_search_clear)
+        self._search_bar.on_query_change(self.on_search_query)
         menu = self.make_menu((
             ("cascade", "View Mode", None, None, {"menu": (
                 ("radiobutton", "Docked", None, self.open_as_docked, {"variable": self._view_mode, "value": "docked"}),
@@ -57,6 +61,20 @@ class BaseFeature(Frame):
         self.on_focus(self._on_focus_get)
         self.on_focus_lost(self._on_focus_release)
         self.on_close(self.close_window)
+
+    def start_search(self, *_):
+        self._search_bar.place(relwidth=1, relheight=1)
+        self._search_bar.lift()
+
+    def quit_search(self, *_):
+        self._search_bar.place_forget()
+
+    def on_search_query(self, query):
+        pass
+
+    def on_search_clear(self):
+        self.quit_search()
+        pass
 
     def on_select(self, widget):
         pass

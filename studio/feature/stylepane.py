@@ -37,7 +37,12 @@ class CollapseFrame(Frame):
         self._collapse_btn.on_click(self.toggle)
         self.body = Frame(self, **self.style.dark)
         self.body.pack(side="top", fill="both", pady=2)
+        self.__ref = Frame(self.body, height=0, width=0, **self.style.dark)
+        self.__ref.pack(side="top")
         self._collapsed = False
+
+    def update_state(self):
+        self.__ref.pack(side="top")
 
     def collapse(self, *_):
         if not self._collapsed:
@@ -96,6 +101,13 @@ class StyleItem(Frame):
         except Exception as e:
             logging.error(e.with_traceback(None))
 
+    def hide(self):
+        self.grid_propagate(False)
+        self.configure(height=0, width=0)
+
+    def show(self):
+        self.grid_propagate(True)
+
 
 class LayoutItem(StyleItem):
 
@@ -123,6 +135,11 @@ class StylePane(BaseFeature):
         self._toggle_btn.pack(side="right")
         self._toggle_btn.on_click(self._toggle)
 
+        self._search_btn = Button(self._header, image=get_icon_image("search", 15, 15), width=25, height=25,
+                                  **self.style.dark_button)
+        self._search_btn.pack(side="right")
+        self._search_btn.on_click(self.start_search)
+
         self._id = CollapseFrame(self.body.body, **self.style.dark)
         self._id.pack(side="top", fill="x", pady=4)
         self._id.label = "Widget identity"
@@ -148,6 +165,7 @@ class StylePane(BaseFeature):
 
     def create_menu(self):
         return (
+            ("command", "Search", get_icon_image("search", 14, 14), self.start_search, {}),
             ("command", "Expand all", get_icon_image("chevron_down", 14, 14), self.expand_all, {}),
             ("command", "Collapse all", get_icon_image("chevron_up", 14, 14), self.collapse_all, {})
         )
@@ -173,7 +191,13 @@ class StylePane(BaseFeature):
 
     def add(self, style_item):
         self.items.append(style_item)
-        style_item.pack(fill="x", pady=1)
+        self._show(style_item)
+
+    def _show(self, item):
+        item.pack(fill="x", pady=1)
+
+    def _hide(self, item):
+        item.pack_forget()
 
     def apply(self, prop, value):
         if self._current is None:
@@ -261,3 +285,25 @@ class StylePane(BaseFeature):
             self.expand_all()
         else:
             self.collapse_all()
+
+    def __update_frames(self):
+        for frame in self.frames:
+            frame.update_state()
+
+    def start_search(self, *_):
+        if self._current:
+            super().start_search()
+
+    def on_search_query(self, query):
+        for item in self.items:
+            if query in item.definition.get("display_name"):
+                self._show(item)
+            else:
+                self._hide(item)
+        self.__update_frames()
+
+    def on_search_clear(self):
+        # The search bar is being closed and we need to bring everything back
+        # Calling search query with empty query ensures all items are displayed
+        self.on_search_query("")
+        super().on_search_clear()
