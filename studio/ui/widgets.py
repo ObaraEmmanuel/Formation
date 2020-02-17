@@ -1,4 +1,5 @@
-from hoverset.ui.widgets import Canvas, FontStyle, PanedWindow
+from hoverset.ui.icons import get_icon_image
+from hoverset.ui.widgets import Canvas, FontStyle, Frame, Entry, Button, Label
 
 
 class SideBar(Canvas):
@@ -50,3 +51,34 @@ class SideBar(Canvas):
 
     def toggle_feature(self, feature):
         feature.toggle()
+
+
+class SearchBar(Frame):
+
+    def __init__(self, master=None, **cnf):
+        super().__init__(master, **cnf)
+        self.config(**self.style.no_highlight, **self.style.dark)
+        self._entry = Entry(self, **self.style.dark_input)
+        self._clear_btn = Button(self, image=get_icon_image("close", 15, 15),
+                                 **self.style.dark_button, width=25, height=25)
+        self._clear_btn.pack(side="right", fill="y")
+        self._clear_btn.on_click(self._clear)
+        Label(self, **self.style.dark_text, image=get_icon_image("search", 15, 15)).pack(side="left")
+        self._entry.pack(side="left", fill="both", expand=True, padx=2)
+        self._entry.on_entry(self._change)
+        self._on_change = None
+        self._on_clear = None
+
+    def on_query_change(self, func, *args, **kwargs):
+        self._on_change = lambda val: func(val, *args, **kwargs)
+
+    def on_query_clear(self, func, *args, **kwargs):
+        self._on_clear = lambda: func(*args, **kwargs)
+
+    def _clear(self, *_):
+        if self._on_clear:
+            self._on_clear()
+
+    def _change(self, *_):
+        if self._on_change:
+            self._on_change(self._entry.get())
