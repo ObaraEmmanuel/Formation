@@ -613,7 +613,8 @@ class Label(Widget, ContextMenuMixin, tk.Label):
 
     def __init__(self, master=None, **kwargs):
         self.setup(master)
-        super().__init__(master, **kwargs)
+        super().__init__(master)
+        self.configure(**kwargs)
 
     def set_alignment(self, alignment):
         self.config(anchor=alignment)
@@ -964,8 +965,8 @@ class Button(Frame):
     def config(self, **cnf):
         if not cnf:
             return super().config()
-        super().config(clean_styles(self, cnf))
-        self._label.config(clean_styles(self._label, cnf))
+        super().configure(clean_styles(self, cnf))
+        self._label.configure(clean_styles(self._label, cnf))
 
 
 class ToggleButton(Button):
