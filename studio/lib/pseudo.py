@@ -3,7 +3,7 @@ import tkinter
 from enum import Enum
 
 from hoverset.ui.icons import get_icon, get_icon_image
-from studio.lib import layouts
+from studio.lib import layouts, legacy
 from studio.lib.properties import get_properties
 from studio.ui.highlight import WidgetHighlighter
 from studio.ui.tree import MalleableTree
@@ -174,19 +174,20 @@ class Container(PseudoWidget):
         return super().configure(cnf, **kwargs)
 
     def _get_layouts_as_menu(self):
-        return [
+        layout_templates = [
             ("radiobutton", i.name, get_icon_image(i.icon, 14, 14),
              functools.partial(self._switch_layout, i),
              {"value": i.name, "variable": self.layout_var}
              ) for i in self.LAYOUTS
         ]
+        return (("cascade", "Change layout", get_icon_image("grid", 14, 14), None, {"menu": (
+            layout_templates
+        )}),)
 
     def create_menu(self):
         return (
             ("separator",),
-            ("cascade", "Change layout", get_icon_image("grid", 14, 14), None, {"menu": (
-                self._get_layouts_as_menu()
-            )})
+            *self._get_layouts_as_menu()
         )
 
     def parse_bounds(self, bounds):
@@ -230,11 +231,40 @@ class Container(PseudoWidget):
         self.layout_strategy.apply(prop, value, widget)
 
     def definition_for(self, widget):
-        return self.layout_strategy.__class__.definition_for(widget)
+        return self.layout_strategy.definition_for(widget)
 
     def react_to_pos(self, x, y):
         # react to position
         self.layout_strategy.react_to_pos(x, y)
+
+
+class TabContainer(Container):
+
+    def setup_widget(self):
+        super().setup_widget()
+        self.layout_strategy = layouts.TabLayoutStrategy(self)
+
+    def _get_layouts_as_menu(self):
+        # Prevent changing of layout from tab layout
+        return ()
+
+    def create_menu(self):
+        return super().create_menu() + (
+            ("command", "Add tab", get_icon_image("add", 14, 14), self._add_tab, {}),
+        )
+
+    def _add_tab(self):
+        # add a legacy frame as a child
+        self.add_new(legacy.Frame, 0, 0)
+
+    @property
+    def properties(self):
+        prop = super().properties
+        prop.pop("layout")
+        return prop
+
+    def _switch_layout(self, layout_class):
+        raise RuntimeError(f"Attempted to alter layout of notebook from TabLayout to {layout_class}")
 
 
 class LabelFrameCorrection:

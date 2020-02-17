@@ -5,6 +5,7 @@ Layout classes uses in the studio
 # ======================================================================= #
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
+from hoverset.data.images import load_tk_image
 from studio.ui import geometry
 from studio.ui.highlight import WidgetHighlighter, EdgeIndicator
 
@@ -121,16 +122,17 @@ class BaseLayoutStrategy:
     def apply(self, prop, value, widget):
         pass
 
-    @classmethod
-    def definition_for(cls, widget):
-        definition = {**cls.DEFINITION}
+    def definition_for(self, widget):
+        definition = {**self.DEFINITION}
         definition["width"]["value"] = widget.winfo_width()
         definition["height"]["value"] = widget.winfo_height()
         return definition
 
     def initialize(self):
-        for child in self.children:
-            self.add_widget(child, geometry.bounds(child))
+        # create a list of children and their bounds which won't change during iteration
+        bounding_map = [(child, geometry.bounds(child)) for child in self.children]
+        for child, bounds in bounding_map:
+            self.add_widget(child, bounds)
 
     def react_to_pos(self, x, y):
         pass
@@ -185,8 +187,7 @@ class FrameLayoutStrategy(BaseLayoutStrategy):
     def apply(self, prop, value, widget):
         widget.place_configure(**{prop: value})
 
-    @classmethod
-    def definition_for(cls, widget):
+    def definition_for(self, widget):
         definition = super().definition_for(widget)
         bounds = geometry.relative_bounds(geometry.bounds(widget), widget.layout)
         definition["x"]["value"] = bounds[0]
@@ -302,8 +303,7 @@ class LinearLayoutStrategy(BaseLayoutStrategy):
         else:
             widget.pack_configure(**{prop: value})
 
-    @classmethod
-    def definition_for(cls, widget):
+    def definition_for(self, widget):
         definition = super().definition_for(widget)
         info = widget.pack_info()
         for prop in ("anchor", "padx", "pady", "ipady", "ipadx", "expand", "fill"):
@@ -577,8 +577,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
     def react_to_pos(self, x, y):
         self._location_analysis((*geometry.resolve_position((x, y), self.container.parent), 0, 0))
 
-    @classmethod
-    def definition_for(cls, widget):
+    def definition_for(self, widget):
         definition = super().definition_for(widget)
         info = widget.grid_info()
         for prop in ("sticky", "padx", "pady", "ipady", "ipadx", "row", "column", "columnspan", "rowspan"):
@@ -592,6 +591,88 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         return definition
 
 
+class TabLayoutStrategy(BaseLayoutStrategy):
+    name = "TabLayout"
+    icon = "notebook"
+    DEFINITION = {
+        "text": {
+            "display_name": "tab text",
+            "type": "text",
+            "name": "text"
+        },
+        "image": {
+            "display_name": "tab image",
+            "type": "image",
+            "name": "image"
+        },
+        "underline": {
+            "display_name": "tab underline",
+            "type": "number",
+            "name": "underline"
+        },
+        "compound": {
+            "display_name": "compound",
+            "type": "choice",
+            "options": ("top", "bottom", "left", "right"),
+            "name": "compound"
+        },
+        "sticky": {
+            "display_name": "sticky",
+            "type": "anchor",
+            "multiple": True,
+            "name": "sticky"
+        },
+        "padding": {
+            "display_name": "padding",
+            "type": "dimension",
+            "units": "pixels",
+            "name": "padding"
+        },
+    }
+
+    def __init__(self, master):
+        super().__init__(master)
+        self._current_tab = None
+        self.container.bind("<<NotebookTabChanged>>", self._tab_switched)
+
+    def get_restore(self, widget):
+        pass
+
+    def add_widget(self, widget, bounds):
+        super().remove_widget(widget)
+        super().add_widget(widget, bounds)
+        self.container.add(widget, text=widget.id)
+        self.children.append(widget)
+
+    def remove_widget(self, widget):
+        super().remove_widget(widget)
+        self.container.forget(widget)
+
+    def definition_for(self, widget):
+        definition = {**self.DEFINITION}
+        info = self.container.tab(widget)
+        for prop in self.DEFINITION.keys():
+            definition[prop]["value"] = info.get(prop)
+
+        return definition
+
+    def apply(self, prop, value, widget):
+        if prop == "image":
+            value = load_tk_image(value)
+            # shield image from garbage collection
+            widget.tab_image = value
+        self.container.tab(widget, **{prop: value})
+
+    def _tab_switched(self, *_):
+        if self._current_tab:
+            # Take its level down by one
+            self._current_tab.level = self.level + 1
+        self._current_tab = self.container.nametowidget(self.container.select())
+        # Take its level one place above other tabs
+        self._current_tab.level = self.level + 2
+
+
+# Do not include tab layout since it requires special widgets like notebooks to function
 layouts = (
     FrameLayoutStrategy, LinearLayoutStrategy, GridLayoutStrategy
 )

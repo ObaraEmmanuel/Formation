@@ -2,7 +2,7 @@ import tkinter as tk
 import tkinter.ttk as ttk
 
 from hoverset.ui.icons import get_icon
-from studio.lib.pseudo import PseudoWidget, Groups, Container, LabelFrameCorrection
+from studio.lib.pseudo import PseudoWidget, Groups, Container, LabelFrameCorrection, TabContainer
 
 
 class Button(PseudoWidget, ttk.Button):
@@ -139,7 +139,7 @@ class Menubutton(PseudoWidget, ttk.Menubutton):
         self.config(text=name)
 
 
-class Notebook(PseudoWidget, ttk.Notebook):
+class Notebook(TabContainer, ttk.Notebook):
     display_name = 'Notebook'
     group = Groups.container
     icon = get_icon("notebook")
