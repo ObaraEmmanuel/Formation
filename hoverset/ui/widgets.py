@@ -712,7 +712,8 @@ class ScrolledFrame(Widget, ScrollableInterface, ContextMenuMixin, WindowMixin, 
         self._max_frame_skip = 3
         self.fill_x = True  # Set to True to disable the x scrollbar and fit content to width
         self.fill_y = False  # Set to True to disable the y scrollbar and fit content to height
-        self._prev_region = None
+        self._prev_region = (0, 0, 0, 0)
+        self._prev_dimension = (0, 0)
         self._detect_change()
 
     @property
@@ -720,16 +721,16 @@ class ScrolledFrame(Widget, ScrollableInterface, ContextMenuMixin, WindowMixin, 
         return self._style
 
     def _show_y_scroll(self, flag):
-        if flag:
+        if flag and not self._scroll_y.winfo_ismapped():
             self._scroll_y.grid(row=0, column=1, sticky='ns')
-        else:
+        elif not flag:
             self._scroll_y.grid_forget()
         self.update_idletasks()
 
     def _show_x_scroll(self, flag):
-        if flag:
+        if flag and not self._scroll_x.winfo_ismapped():
             self._scroll_x.grid(row=1, column=0, columnspan=2, sticky='ew')
-        else:
+        elif not flag:
             self._scroll_x.grid_forget()
         self.update_idletasks()
 
@@ -751,41 +752,47 @@ class ScrolledFrame(Widget, ScrollableInterface, ContextMenuMixin, WindowMixin, 
     def _limit_x(self, *scroll):
         self._limiter(self._canvas.xview, 0, *scroll)
 
-    def on_configure(self, _=None):
-        # Sometimes this is called after frame has been destroyed so check first
+    def on_configure(self, *_):
         try:
             self._canvas.update_idletasks()
-            if self._prev_region != self._canvas.bbox("all"):
-                #  The sizing has changed somehow so allow reconfiguration of scrollbars
-                self._scroll_configured = [False, False]
-            self._prev_region = scroll_region = self._canvas.bbox("all")
+            scroll_region = self._canvas.bbox("all")
         except tk.TclError:
             return
+
+        if self.fill_y:
+            # No vertical scrollbars needed
+            self._canvas.itemconfigure(self._window, height=self._canvas.winfo_height())
+
+        if self.fill_x:
+            # No horizontal scrollbars needed
+            self._canvas.itemconfigure(self._window, width=self._canvas.winfo_width())
+        dimension = (self._canvas.winfo_width(), self._canvas.winfo_height())
+        if scroll_region == self._prev_region and dimension == self._prev_dimension:
+            # Size has not necessarily changed so changes needed, break execution
+            return
+        self._prev_dimension = dimension
+        self._prev_region = scroll_region
         self.body.update_idletasks()
 
-        # setup y scrollbar
         if self.fill_y:
-            self._canvas.itemconfigure(self._window, height=self._canvas.winfo_height())
+            pass
         elif scroll_region[3] - scroll_region[1] > self._canvas.winfo_height():
-            if not self._scroll_configured[1]:
-                self._scroll_configured[1] = True
-                self._show_y_scroll(True)
-        elif self._scroll_configured[1]:
+            # Canvas content occupies more height than body's height so vertical scrollbars are needed
+            self._show_y_scroll(True)
+        else:
+            # vertical scrollbars not needed, remove them
             self._show_y_scroll(False)
-            self._scroll_configured[1] = False
 
-        # Setup x scrollbar
         if self.fill_x:
-            self._canvas.itemconfigure(self._window, width=self._canvas.winfo_width())
+            pass
         elif scroll_region[2] - scroll_region[0] > self._canvas.winfo_width():
-            if not self._scroll_configured[0]:
-                self._scroll_configured[0] = True
-                self._show_x_scroll(True)
-        elif self._scroll_configured[0]:
+            # Canvas content occupies more width than body's height so horizontal scrollbars are needed
+            self._show_x_scroll(True)
+        else:
+            # Horizontal scrollbars not needed, remove them
             self._show_x_scroll(False)
-            self._scroll_configured[0] = False
-            # self._canvas.itemconfigure(self._window, width=self._canvas.winfo_width())
 
+        # adjust scroll-region of the canvas to cover the contents
         self._canvas.config(scrollregion=scroll_region)
 
     def clear_children(self):
