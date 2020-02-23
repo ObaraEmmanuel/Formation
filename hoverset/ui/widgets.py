@@ -291,6 +291,7 @@ class Widget:
     """
     s_style = None  # Static style holder
     s_window = None  # Static window holder
+    __readonly_options = {"class", "container"}
 
     def setup(self, _=None):
         """
@@ -473,10 +474,12 @@ class Widget:
         if not from_.configure():
             return
         for key in from_.configure():
+            if key in Widget.__readonly_options:
+                continue
             try:
                 to.configure(**{key: from_[key]})
             except tk.TclError:
-                logging.debug("readonly option {opt}".format(opt=key))
+                logging.debug("Attempted to set readonly option {opt}".format(opt=key))
 
     @property
     def window(self):
@@ -701,11 +704,10 @@ class ScrolledFrame(Widget, ScrollableInterface, ContextMenuMixin, WindowMixin, 
         self.columnconfigure(0, weight=1)  # Ensure the _canvas gets the rest of the left horizontal space
         self.rowconfigure(0, weight=1)  # Ensure the _canvas gets the rest of the left vertical space
         self._canvas.config(yscrollcommand=self._scroll_y.set, xscrollcommand=self._scroll_x.set)  # attach scrollbars
-        self.body = Frame(self, **cnf)
+        self.body = Frame(self._canvas, **cnf)
         self.body.config(self.style.dark)
         self._window = self._canvas.create_window(0, 0, anchor='nw', window=self.body)
-        self._mousewheel_ref = None
-        self._scroll_configured = [False, False]  # config data for x and y scrollbars
+        # TODO Handle scrollbar flag behaviour
         self._scrollbar_flag = tk.Y  # Enable vertical scrollbar by default
         # self.after(200, self.on_configure)
         self._limit_var = [0, 0]  # limit var for x and y
@@ -755,27 +757,21 @@ class ScrolledFrame(Widget, ScrollableInterface, ContextMenuMixin, WindowMixin, 
     def on_configure(self, *_):
         try:
             self._canvas.update_idletasks()
+            self.body.update_idletasks()
             scroll_region = self._canvas.bbox("all")
         except tk.TclError:
             return
 
-        if self.fill_y:
-            # No vertical scrollbars needed
-            self._canvas.itemconfigure(self._window, height=self._canvas.winfo_height())
-
-        if self.fill_x:
-            # No horizontal scrollbars needed
-            self._canvas.itemconfigure(self._window, width=self._canvas.winfo_width())
         dimension = (self._canvas.winfo_width(), self._canvas.winfo_height())
         if scroll_region == self._prev_region and dimension == self._prev_dimension:
             # Size has not necessarily changed so changes needed, break execution
             return
         self._prev_dimension = dimension
         self._prev_region = scroll_region
-        self.body.update_idletasks()
 
         if self.fill_y:
-            pass
+            # No vertical scrollbars needed
+            self._canvas.itemconfigure(self._window, height=self._canvas.winfo_height())
         elif scroll_region[3] - scroll_region[1] > self._canvas.winfo_height():
             # Canvas content occupies more height than body's height so vertical scrollbars are needed
             self._show_y_scroll(True)
@@ -784,7 +780,8 @@ class ScrolledFrame(Widget, ScrollableInterface, ContextMenuMixin, WindowMixin, 
             self._show_y_scroll(False)
 
         if self.fill_x:
-            pass
+            # No horizontal scrollbars needed
+            self._canvas.itemconfigure(self._window, width=self._canvas.winfo_width())
         elif scroll_region[2] - scroll_region[0] > self._canvas.winfo_width():
             # Canvas content occupies more width than body's height so horizontal scrollbars are needed
             self._show_x_scroll(True)
