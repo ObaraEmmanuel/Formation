@@ -95,7 +95,7 @@ class ComponentTree(BaseFeature):
     def on_select(self, widget):
         self.select(widget)
 
-    def on_widget_delete(self, widget):
+    def on_widget_delete(self, widget, silently=False):
         widget.node.remove()
 
     def on_widget_restore(self, widget):

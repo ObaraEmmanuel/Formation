@@ -137,6 +137,12 @@ class BaseLayoutStrategy:
     def react_to_pos(self, x, y):
         pass
 
+    def copy_layout(self, widget, from_):
+        pass
+
+    def clear_indicators(self):
+        pass
+
 
 class FrameLayoutStrategy(BaseLayoutStrategy):
     DEFINITION = {
@@ -193,6 +199,13 @@ class FrameLayoutStrategy(BaseLayoutStrategy):
         definition["x"]["value"] = bounds[0]
         definition["y"]["value"] = bounds[1]
         return definition
+
+    def copy_layout(self, widget, from_):
+        info = from_.place_info()
+        info["in_"] = self.container
+        widget.place(**info)
+        self.children.append(widget)
+        super().add_widget(widget, (0, 0, 0, 0))
 
 
 class LinearLayoutStrategy(BaseLayoutStrategy):
@@ -316,6 +329,13 @@ class LinearLayoutStrategy(BaseLayoutStrategy):
         else:
             definition.pop('height')
         return definition
+
+    def copy_layout(self, widget, from_):
+        info = from_.pack_info()
+        info["in_"] = self.container
+        widget.pack(**info)
+        self.children.append(widget)
+        super().add_widget(widget, (0, 0, 0, 0))
 
 
 class GenericLinearLayoutStrategy(BaseLayoutStrategy):
@@ -590,6 +610,13 @@ class GridLayoutStrategy(BaseLayoutStrategy):
             definition.pop('height')
         return definition
 
+    def copy_layout(self, widget, from_):
+        info = from_.grid_info()
+        info["in_"] = self.container
+        widget.grid(**info)
+        self.children.append(widget)
+        super().add_widget(widget, (0, 0, 0, 0))
+
 
 class TabLayoutStrategy(BaseLayoutStrategy):
     name = "TabLayout"
@@ -670,6 +697,11 @@ class TabLayoutStrategy(BaseLayoutStrategy):
         self._current_tab = self.container.nametowidget(self.container.select())
         # Take its level one place above other tabs
         self._current_tab.level = self.level + 2
+
+    def copy_layout(self, widget, from_):
+        info = from_.layout.tab(from_)
+        self.add_widget(widget, (0, 0, 0, 0))
+        self.container.tab(widget, **info)
 
 
 # Do not include tab layout since it requires special widgets like notebooks to function

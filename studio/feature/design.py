@@ -52,33 +52,50 @@ class Designer(Frame, Container):
     def _ids(self):
         return [i.id for i in self.objects]
 
-    def paste(self, widget):
-        # Set a window attribute to widget so that geometry.absolute_bounds can work
-        # The widget is not necessarily a hoverset based widget hence might lack this attribute
-        widget.window = self.window
-        bounds = geometry.absolute_bounds(widget)
-        width, height = bounds[2] - bounds[0], bounds[3] - bounds[1]
-        obj = self.add(widget.__class__, bounds[0] + 8, bounds[1] + 8, width=width, height=height, template=widget,
-                       layout=widget.layout)
+    def paste(self, widget: PseudoWidget, deep_skip=False):
+        if not self.current_obj:
+            return
+        layout = self.current_obj if isinstance(self.current_obj, Container) else self.current_obj.layout
+        width, height = widget.winfo_width(), widget.winfo_height()
+        x, y = self.current_obj.last_menu_position
+        obj = self.add(widget.__class__, x, y, width=width, height=height, template=widget,
+                       layout=layout)
         Frame.copy_config(widget, obj)
+        if isinstance(widget, Container):
+            obj._switch_layout(widget.layout_strategy.__class__)
+            for child in widget._children:
+                # Prevent an endless paste loop if we are pasting the object into itself
+                if child != obj:
+                    self._deep_paste(child, obj)
+        return obj
+
+    def _deep_paste(self, widget: PseudoWidget, layout: Container):
+        widget_copy = self.add(widget.__class__, 0, 0, width=0, height=0, silently=True, intended_layout=layout)
+        Frame.copy_config(widget, widget_copy)
+        self.studio.add(widget_copy, layout)
+        layout.copy_layout(widget_copy, widget)
+        if isinstance(widget, Container):
+            widget_copy._switch_layout(widget.layout_strategy.__class__)
+            for child in widget._children:
+                self._deep_paste(child, widget_copy)
+        return widget_copy
 
     def add(self, obj_class: PseudoWidget.__class__, x, y, **kwargs):
         width = kwargs.get("width", 55)
         height = kwargs.get("height", 30)
+        silent = kwargs.get("silently", False)
         count = 1
         name = f"{obj_class.display_name}_{count}"
         while name in self._ids:
             name = f"{obj_class.display_name}_{count}"
             count += 1
         obj = obj_class(self, name)
+        obj.layout = kwargs.get("intended_layout", None)
         # Create the context menu associated with the object including the widgets own custom menu
         menu = self.make_menu(self.studio.menu_template + obj.create_menu(), obj)
         # Select the widget before drawing the menu
         obj.bind("<Button-3>", lambda _: self.select(obj), add='+')
         Frame.add_context_menu(menu, obj)
-        # Set the layout with respect to the designer. This may change when the object is finally
-        # passed to its layout if any
-        obj.layout = self
         self.objects.append(obj)
         obj.bind("<Button-1>", lambda _: self.select(obj))
 
@@ -91,14 +108,17 @@ class Designer(Frame, Container):
             layout.add_widget(obj, bounds)
             self.studio.add(obj, layout)
             restore_point = layout.get_restore(obj)
-            # Create an undo redo point
-            self.studio.new_action(Action(
-                lambda: self.delete(obj, True),  # Delete silently to prevent adding the event to the undo/redo stack
-                lambda: self.restore(obj, restore_point, obj.layout)
-            ))
-        else:
+            # Create an undo redo point if add is not silent
+            if not silent:
+                self.studio.new_action(Action(
+                    # Delete silently to prevent adding the event to the undo/redo stack
+                    lambda: self.delete(obj, True),
+                    lambda: self.restore(obj, restore_point, obj.layout)
+                ))
+        elif obj.layout is None:
             # This only happens when adding the main layout. We dont need to add this action to the undo/redo stack
             # This main layout is attached directly to the designer
+            obj.layout = self
             obj.place(in_=self, x=x, y=y, width=width, height=height, bordermode="outside")
             self.studio.add(obj, None)
 
@@ -115,6 +135,7 @@ class Designer(Frame, Container):
     def restore(self, widget, restore_point, container):
         container.restore_widget(widget, restore_point)
         self.studio.on_restore(widget)
+        self.objects.append(widget)
 
     def delete(self, widget, silently=False):
         if not silently:
@@ -126,6 +147,7 @@ class Designer(Frame, Container):
         else:
             self.studio.delete(widget, self)
         widget.layout.remove_widget(widget)
+        self.objects.remove(widget)
 
     def remove_widget(self, widget):
         self.objects.remove(widget)

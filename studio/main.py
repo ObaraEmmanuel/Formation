@@ -7,6 +7,7 @@ import logging
 import sys
 
 # Add Studio and Hoverset to path so imports from hoverset can work.
+
 sys.path.append("..\\..\\Hoverset")
 
 from studio.feature.design import Designer
@@ -137,7 +138,7 @@ class StudioApplication(Application):
         self.menu_template = (
             ("command", "copy", get_icon_image("copy", 14, 14), self.copy, {"accelerator": "Ctrl+C"}),
             ("command", "paste", get_icon_image("clipboard", 14, 14), self.paste, {"accelerator": "Ctrl+V"}),
-            ("command", "cut", get_icon_image("cut", 14, 14), None, {"accelerator": "Ctrl+X"}),
+            ("command", "cut", get_icon_image("cut", 14, 14), self.cut, {"accelerator": "Ctrl+X"}),
             ("separator",),
             ("command", "delete", get_icon_image("delete", 14, 14), self.delete, {}),
         )
@@ -272,6 +273,16 @@ class StudioApplication(Application):
             self.designer.delete(widget)
         for feature in self.features:
             feature.on_widget_delete(widget)
+
+    def cut(self, widget=None, source=None):
+        widget = self.selected if widget is None else widget
+        if self.selected == widget:
+            self.select(None)
+        self._clipboard = widget
+        if source != self.designer:
+            self.designer.delete(widget, True)
+        for feature in self.features:
+            feature.on_widget_delete(widget, True)
 
     def on_restore(self, widget):
         for feature in self.features:

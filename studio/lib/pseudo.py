@@ -28,6 +28,9 @@ class PseudoWidget:
         self._properties = get_properties(self)
         self.set_name(self.id)
         self.node = None
+        self.__on_context = None
+        self.last_menu_position = (0, 0)
+        self.bind("<Button-3>", self.__handle_context_menu, add='+')
 
     def set_name(self, name):
         pass
@@ -85,6 +88,14 @@ class PseudoWidget:
     def winfo_parent(self):
         return str(self.layout)
 
+    def on_context_menu(self, callback, *args, **kwargs):
+        self.__on_context = lambda e: callback(e, *args, **kwargs)
+
+    def __handle_context_menu(self, event):
+        self.last_menu_position = event.x_root, event.y_root
+        if self.__on_context:
+            self.__on_context(event)
+
 
 class Container(PseudoWidget):
     LAYOUTS = layouts.layouts
@@ -108,6 +119,7 @@ class Container(PseudoWidget):
     def clear_highlight(self):
         self._highlighter.clear()
         self._temporal_children = []
+        self.layout_strategy.clear_indicators()
 
     @property
     def level(self):
@@ -149,7 +161,7 @@ class Container(PseudoWidget):
         }
         return prop
 
-    def _get_layout_by_name(self, name):
+    def get_layout_by_name(self, name):
         layout = list(filter(lambda l: l.name == name, self.LAYOUTS))
         if len(layout) == 1:
             return layout[0]
@@ -203,8 +215,8 @@ class Container(PseudoWidget):
 
     #  =========================================== Rerouting methods ==================================================
 
-    def restore_widget(self, widget):
-        self.layout_strategy.restore_widget(widget)
+    def restore_widget(self, widget, restore_point):
+        self.layout_strategy.restore_widget(widget, restore_point)
 
     def add_widget(self, widget, bounds):
         self.layout_strategy.add_widget(widget, bounds)
@@ -237,6 +249,9 @@ class Container(PseudoWidget):
         # react to position
         self.layout_strategy.react_to_pos(x, y)
 
+    def copy_layout(self, widget, from_):
+        self.layout_strategy.copy_layout(widget, from_)
+
 
 class TabContainer(Container):
 
@@ -264,7 +279,8 @@ class TabContainer(Container):
         return prop
 
     def _switch_layout(self, layout_class):
-        raise RuntimeError(f"Attempted to alter layout of notebook from TabLayout to {layout_class}")
+        if layout_class != self.layout_strategy.__class__:
+            raise RuntimeError(f"Attempted to alter layout of notebook from TabLayout to {layout_class}")
 
 
 class LabelFrameCorrection:

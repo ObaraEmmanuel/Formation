@@ -151,7 +151,7 @@ PROPERTY_TABLE = {
         "display_name": "confine",
         "type": "boolean",
     },
-    "container": {
+    "_container": {
         "display_name": "container",
         "type": "boolean",
     },

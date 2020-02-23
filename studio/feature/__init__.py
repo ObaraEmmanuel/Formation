@@ -47,7 +47,9 @@ class BaseFeature(Frame):
                 ("command", "Left", None, lambda: self.reposition("left"), {}),
                 ("command", "Right", None, lambda: self.reposition("right"), {}),
             )}),
-            ("checkbutton", "Transparent when inactive", None, None, {"variable": self._transparency_flag}),
+            ("cascade", "Window options", None, None, {"menu": (
+                ("checkbutton", "Transparent when inactive", None, None, {"variable": self._transparency_flag}),
+            )}),
             ("command", "Close", get_icon_image("close", 14, 14), self.minimize, {}),
             ("separator",),
             *self.create_menu()
@@ -88,7 +90,7 @@ class BaseFeature(Frame):
     def on_widget_add(self, widget, parent):
         pass
 
-    def on_widget_delete(self, widget):
+    def on_widget_delete(self, widget, silently=False):
         pass
 
     def on_widget_restore(self, widget):
