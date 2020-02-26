@@ -7,10 +7,13 @@ Provides functions for global image access and processing by hoverset apps
 # ======================================================================= #
 
 import functools
+import os
 import shelve
 
 from PIL import Image, ImageTk
 
+_module_directory = os.path.dirname(os.path.abspath(__file__))
+_image_locations = os.path.join(_module_directory, "files", "image")
 
 # We want to enable memoization to reduce the number of times we read the image database
 # An image can be accessed multiple times in the application lifetime hence a cache can improve performance greatly
@@ -25,7 +28,7 @@ def get_image(identifier: str, width=25, height=25):
     :return: PIL image
     """
     image: Image
-    with shelve.open("../hoverset/data/files/image") as image_base:
+    with shelve.open(_image_locations) as image_base:
         if image_base.get(identifier):
             image = image_base.get(identifier)
         else:
