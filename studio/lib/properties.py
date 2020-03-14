@@ -162,7 +162,7 @@ PROPERTY_TABLE = {
     "direction": {
         "display_name": "direction",
         "type": "choice",
-        "options": ("top", "bottom", "left", "right")
+        "options": ("above", "below", "flush", "left", "right")
     },
     "disabledbackground": {
         "display_name": "disabled background",
@@ -466,7 +466,7 @@ PROPERTY_TABLE = {
     },
     "tearoff": {
         "display_name": "tearoff",
-        "type": "color",
+        "type": "boolean",
     },
     "tearoffcommand": {
         "display_name": "tear-off command",
@@ -655,7 +655,7 @@ def get_properties(widget):
         obtained = PROPERTY_TABLE.get(resolved_name, PROPERTY_TABLE.get(prop, {}))
         if not obtained:
             continue
-        resolved_properties[prop] = obtained
+        resolved_properties[prop] = dict(**obtained)
         resolved_properties[prop]["value"] = widget[prop]
         resolved_properties[prop]["name"] = prop
 
