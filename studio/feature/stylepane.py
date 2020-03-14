@@ -12,111 +12,7 @@ from PIL import Image, ImageTk
 from hoverset.ui.icons import get_icon, get_icon_image
 from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Button
 from studio.feature import BaseFeature
-from studio.ui import editors
-
-
-def get_editor(parent, definition):
-    type_ = definition.get("type").capitalize()
-    editor = getattr(editors, type_, editors.Text)
-    return editor(parent, definition)
-
-
-class CollapseFrame(Frame):
-
-    def __init__(self, master, **cnf):
-        super().__init__(master, **cnf)
-        self.config(**self.style.dark)
-        self._label_frame = Frame(self, **self.style.bright, height=20)
-        self._label_frame.pack(side="top", fill="x", padx=2)
-        self._label_frame.pack_propagate(0)
-        self._label = Label(self._label_frame, **self.style.bright, **self.style.text_bright)
-        self._label.pack(side="left")
-        self._collapse_btn = Button(self._label_frame, width=20, **self.style.bright, **self.style.text_bright)
-        self._collapse_btn.config(text=get_icon("triangle_up"))
-        self._collapse_btn.pack(side="right", fill="y")
-        self._collapse_btn.on_click(self.toggle)
-        self.body = Frame(self, **self.style.dark)
-        self.body.pack(side="top", fill="both", pady=2)
-        self.__ref = Frame(self.body, height=0, width=0, **self.style.dark)
-        self.__ref.pack(side="top")
-        self._collapsed = False
-
-    def update_state(self):
-        self.__ref.pack(side="top")
-
-    def collapse(self, *_):
-        if not self._collapsed:
-            self.body.pack_forget()
-            self._collapse_btn.config(text=get_icon("triangle_down"))
-            self.pack_propagate(0)
-            self.config(height=20)
-            self._collapsed = True
-
-    def clear_children(self):
-        self.body.clear_children()
-
-    def expand(self, *_):
-        if self._collapsed:
-            self.body.pack(side="top", fill="both")
-            self.pack_propagate(1)
-            self._collapse_btn.config(text=get_icon("triangle_up"))
-            self._collapsed = False
-
-    def toggle(self, *_):
-        if self._collapsed:
-            self.expand()
-        else:
-            self.collapse()
-
-    @property
-    def label(self):
-        return self._label["text"]
-
-    @label.setter
-    def label(self, value):
-        self._label.config(text=value)
-
-
-class StyleItem(Frame):
-
-    def __init__(self, parent, style_definition, style_pane):
-        super().__init__(parent.body)
-        self.definition = style_definition
-        self.style_pane = style_pane
-        self.config(**self.style.dark)
-        self._label = Label(self, **parent.style.dark_text_passive, text=style_definition.get("display_name"),
-                            anchor="w")
-        self._label.grid(row=0, column=0, sticky='ew')
-        # self._label.config(**parent.style.dark_highlight_active)
-        self._editor = get_editor(self, style_definition)
-        self._editor.grid(row=0, column=1, sticky='ew')
-        self.grid_columnconfigure(1, weight=1, uniform=1)
-        self.grid_columnconfigure(0, weight=1, uniform=1)
-        self._editor.set(style_definition.get("value"))
-        self._editor.on_change(self.on_change)
-
-    def on_change(self, value):
-        try:
-            self.style_pane.apply(self.definition.get("name"), value)
-        except Exception as e:
-            logging.error(e.with_traceback(None))
-
-    def hide(self):
-        self.grid_propagate(False)
-        self.configure(height=0, width=0)
-
-    def show(self):
-        self.grid_propagate(True)
-
-
-class LayoutItem(StyleItem):
-
-    def on_change(self, value):
-        try:
-            self.style_pane.apply_layout(self.definition.get("name"), value)
-        except Exception as e:
-            print(f"error setting layout: \n{e}")
-            pass
+from studio.ui.widgets import CollapseFrame, StyleItem
 
 
 class StylePane(BaseFeature):
@@ -202,14 +98,20 @@ class StylePane(BaseFeature):
     def apply(self, prop, value):
         if self._current is None:
             return
-        if prop in self._special_handlers:
-            self._special_handlers.get(prop)(value)
-        else:
-            self._current.configure(**{prop: value})
+        try:
+            if prop in self._special_handlers:
+                self._special_handlers.get(prop)(value)
+            else:
+                self._current.configure(**{prop: value})
+        except Exception:
+            logging.log(logging.ERROR, f"Could not set style {prop} as {value}", )
 
     def apply_layout(self, prop, value):
-        self._current.layout.apply(prop, value, self._current)
-        self.studio.designer.adjust_highlight(self._current)
+        try:
+            self._current.layout.apply(prop, value, self._current)
+            self.studio.designer.adjust_highlight(self._current)
+        except Exception:
+            logging.log(logging.ERROR, f"Could not set layout {prop} as {value}", )
 
     def show_empty(self):
         self.remove_empty()
@@ -240,10 +142,10 @@ class StylePane(BaseFeature):
         identities = widget.identity
         frame = self._id
         add = self.add
-        list(map(lambda identity: add(StyleItem(frame, identities[identity], self), ), identities))
+        list(map(lambda identity: add(StyleItem(frame, identities[identity], self.apply), ), identities))
         prop = widget.properties
         frame = self._all
-        list(map(lambda definition: add(StyleItem(frame, prop[definition], self), ), prop))
+        list(map(lambda definition: add(StyleItem(frame, prop[definition], self.apply), ), prop))
         self.layout_for(widget)
         self.remove_empty()
 
@@ -252,7 +154,7 @@ class StylePane(BaseFeature):
         frame.clear_children()
         layout_def = widget.layout.definition_for(widget)
         for definition in layout_def:
-            self.add(LayoutItem(frame, layout_def[definition], self), )
+            self.add(StyleItem(frame, layout_def[definition], self.apply_layout))
         self.body.update_idletasks()
 
     def on_select(self, widget):
