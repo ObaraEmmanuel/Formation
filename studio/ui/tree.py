@@ -8,7 +8,7 @@ Widget tree for the studio
 
 from hoverset.ui.widgets import EventMask, TreeView, Label
 from hoverset.ui.windows import DragWindow
-
+from studio.ui.geometry import bounds, upscale_bounds
 from studio.ui.highlight import EdgeIndicator
 
 
@@ -39,11 +39,12 @@ class MalleableTree(TreeView):
             self.editable = False
 
         def on_structure_change(self, callback, *args, **kwargs):
-            self._on_structure_change = lambda structure: callback(*args, **kwargs)
+            self._on_structure_change = lambda: callback(*args, **kwargs)
 
         def _change_structure(self):
             if self._on_structure_change:
                 self._on_structure_change()
+            self.tree._structure_changed()
 
         # noinspection PyProtectedMember
         def begin_drag(self, event):
@@ -107,6 +108,9 @@ class MalleableTree(TreeView):
                     elif action == 2:
                         node.insert_after(*MalleableTree.drag_components)
                     # else there is no viable action to take.
+                    if action in (0, 1, 2):
+                        # These actions means tree structure changed
+                        self._change_structure()
                 # Reset all drag related attributes
                 MalleableTree.drag_popup.destroy()  # remove the drag popup window
                 MalleableTree.drag_popup = None
@@ -126,7 +130,7 @@ class MalleableTree(TreeView):
             self.clear_indicators()
             # The cursor is at the top edge of the node so we can attempt to insert before it
             if event.y_root < self.strip.winfo_rooty() + 5:
-                self.tree.edge_indicator.top(self.strip)
+                self.tree.edge_indicator.top(upscale_bounds(bounds(self.strip), self))
                 return 0
             # The cursor is at the center of the node so we can attempt a direct insert into the node
             elif self.strip.winfo_rooty() + 5 < event.y_root < self.strip.winfo_rooty() + self.strip.height - 5:
@@ -138,10 +142,10 @@ class MalleableTree(TreeView):
             elif self._expanded:  # --- Case * ---
                 # If the node is expanded we would want to edge indicate at the very bottom after its last child
                 if event.y_root > self.winfo_rooty() + self.height - 5:
-                    self.tree.edge_indicator.bottom(self)
+                    self.tree.edge_indicator.bottom(bounds(self))
                     return 2
             else:
-                self.tree.edge_indicator.bottom(self.strip)
+                self.tree.edge_indicator.bottom(upscale_bounds(bounds(self.strip), self))
                 return 2
 
         def clear_highlight(self):
@@ -160,8 +164,16 @@ class MalleableTree(TreeView):
 
         @is_terminal.setter
         def is_terminal(self, value):
-            self.is_terminal = value
+            self._is_terminal = value
 
     def __init__(self, master, **config):
         super().__init__(master, **config)
+        self._on_structure_change = None
         self.edge_indicator = EdgeIndicator(self)  # A line that shows where an insertion can occur
+
+    def on_structure_change(self, callback, *args, **kwargs):
+        self._on_structure_change = lambda: callback(*args, **kwargs)
+
+    def _structure_changed(self):
+        if self._on_structure_change:
+            self._on_structure_change()
