@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import *
 
 from hoverset.ui.icons import get_icon
+from studio.lib.menus import menu_options
 from studio.lib.pseudo import PseudoWidget, Groups, Container, LabelFrameCorrection
 
 
@@ -146,6 +147,9 @@ class Menubutton(PseudoWidget, tk.Menubutton):
 
     def set_name(self, name):
         self.config(text=name)
+
+    def create_menu(self):
+        return super().create_menu() + menu_options(self)
 
 
 class Message(PseudoWidget, tk.Message):
