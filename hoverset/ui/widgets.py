@@ -283,6 +283,10 @@ class CenterWindowMixin:
         self.centered = False
         self.center()
 
+    def force_center(self):
+        self.centered = False
+        self.center()
+
 
 # noinspection PyTypeChecker
 class Widget:
@@ -490,6 +494,27 @@ class Widget:
         return self.window.style
 
 
+class ImageCacheMixin:
+    """
+    Performs automatic handling of images in tkinter widgets that use
+    images by overriding configure methods and adding references to
+    the images to shield them from garbage collection.
+    """
+
+    def configure(self, cnf=None, **kw):
+        cnf = {} if cnf is None else cnf
+        cnf.update(kw)
+        if cnf.get("image"):
+            # If an image value is set, shield it from garbage collection by increasing its reference count
+            self.image = cnf.get("image")
+        return super().configure(cnf, **kw)
+
+    def __setitem__(self, key, value):
+        if key == "image":
+            self.image = value
+        super().__setitem__(key, value)
+
+
 class _MouseWheelDispatcherMixin:
     """
     Dispatches mousewheel events to the right scrolledFrame. The mousewheel event is bound to the main window
@@ -548,7 +573,7 @@ class WindowMixin(_MouseWheelDispatcherMixin):
         if self._on_close:
             self._on_close()
         else:
-            self.quit()
+            self.destroy()
 
     def _focus_(self, *_):
         if self._on_focus:
@@ -612,7 +637,7 @@ class Entry(Widget, EditableMixin, tk.Entry):
         self.update_idletasks()
 
 
-class Label(Widget, ContextMenuMixin, tk.Label):
+class Label(Widget, ContextMenuMixin, ImageCacheMixin, tk.Label):
 
     def __init__(self, master=None, **kwargs):
         self.setup(master)
@@ -622,21 +647,8 @@ class Label(Widget, ContextMenuMixin, tk.Label):
     def set_alignment(self, alignment):
         self.config(anchor=alignment)
 
-    def configure(self, cnf=None, **kw):
-        cnf = {} if cnf is None else cnf
-        cnf.update(kw)
-        if cnf.get("image"):
-            # If an image value is set, shield it from garbage collection by increasing its reference count
-            self.image = cnf.get("image")
-        return super().configure(cnf, **kw)
 
-    def __setitem__(self, key, value):
-        if key == "image":
-            self.image = value
-        super().__setitem__(key, value)
-
-
-class Message(Widget, ContextMenuMixin, tk.Message):
+class Message(Widget, ContextMenuMixin, ImageCacheMixin, tk.Message):
 
     def __init__(self, master=None, **kwargs):
         self.setup(master)
@@ -938,7 +950,7 @@ class Canvas(Widget, tk.Canvas):
         super().__init__(master, **kwargs)
 
 
-class MenuButton(Widget, tk.Menubutton):
+class MenuButton(Widget, ImageCacheMixin, tk.Menubutton):
 
     def __init__(self, master=None, **kwargs):
         self.setup(master)
@@ -960,11 +972,18 @@ class Button(Frame):
         self.config(**cnf)
         self.pack_propagate(False)
 
+    def auto_width(self):
+        self.pack_propagate(True)
+
+    def measure_text(self, text):
+        return FontStyle(family=self._label["font"]).measure(text)
+
     def on_click(self, callback, *args, **kwargs):
         if callback is None:
             return
         self.bind_all("<Button-1>", lambda e: callback(e, *args, **kwargs))
         self.bind_all("<Return>", lambda e: callback(e, *args, **kwargs))
+        self.bind_all("<space>", lambda e: callback(e, *args, **kwargs))
 
     def config(self, **cnf):
         if not cnf:
