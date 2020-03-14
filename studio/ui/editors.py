@@ -5,6 +5,7 @@ Contains all the widget representations used in the designer and specifies all t
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
 import re
+import sys
 from tkinter import IntVar, ttk, filedialog
 
 from hoverset.ui.icons import get_icon
@@ -350,6 +351,8 @@ class Font(Editor):
             self._on_change(self.get())
 
     def set(self, value):
+        if not value:
+            return
         try:
             font_obj = FontStyle(self, value)
         except Exception:
@@ -467,6 +470,12 @@ class Image(Text):
             self._entry.set(path)
             if self._on_change:
                 self._on_change(path)
+
+
+def get_editor(parent, definition):
+    type_ = definition.get("type").capitalize()
+    editor = getattr(sys.modules[__name__], type_, Text)
+    return editor(parent, definition)
 
 
 if __name__ == '__main__':
