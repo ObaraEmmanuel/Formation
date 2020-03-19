@@ -96,6 +96,12 @@ class PseudoWidget:
         if self.__on_context:
             self.__on_context(event)
 
+    def get_altered_options(self):
+        options = self.configure()
+        # Get options whose values are different from their default values
+        # i.e the last two values as returned by the tk configure method are different
+        altered = {opt: self[opt] for opt in options if options[opt][-2] != options[opt][-1]}
+
 
 class Container(PseudoWidget):
     LAYOUTS = layouts.layouts
@@ -173,9 +179,10 @@ class Container(PseudoWidget):
     def _switch_layout(self, layout_class):
         if layout_class == self.layout_strategy.__class__:
             return
+        former = self.layout_strategy
         self.layout_strategy = layout_class(self)
         self.layout_var.set(self.layout_strategy.name)
-        self.layout_strategy.initialize()
+        self.layout_strategy.initialize(former)
 
     def configure(self, cnf=None, **kwargs, ):
         if cnf is None:

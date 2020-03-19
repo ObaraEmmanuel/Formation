@@ -5,6 +5,8 @@ Layout classes uses in the studio
 # ======================================================================= #
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
+from collections import defaultdict
+
 from hoverset.data.images import load_tk_image
 from studio.ui import geometry
 from studio.ui.highlight import WidgetHighlighter, EdgeIndicator
@@ -14,13 +16,13 @@ COMMON_PROPERTIES = {
         "display_name": "internal padding x",
         "type": "dimension",
         "units": "pixels",
-        "name": "ipadx"
+        "name": "ipadx",
     },
     "ipady": {
         "display_name": "internal padding y",
         "type": "dimension",
         "units": "pixels",
-        "name": "ipady"
+        "name": "ipady",
     },
     "padx": {
         "display_name": "padding x",
@@ -45,17 +47,20 @@ class BaseLayoutStrategy:
             "display_name": "width",
             "type": "dimension",
             "units": "pixels",
-            "name": "width"
+            "name": "width",
+            "default": None,
         },
         "height": {
             "display_name": "height",
             "type": "dimension",
             "units": "pixels",
-            "name": "height"
+            "name": "height",
+            "default": None
         },
     }
     name = "Layout"  # A default name just in case
     icon = "frame"
+    manager = "place"  # Default layout manager in use
 
     def __init__(self, container):
         self.parent = container.parent
@@ -128,9 +133,11 @@ class BaseLayoutStrategy:
         definition["height"]["value"] = widget.winfo_height()
         return definition
 
-    def initialize(self):
+    def initialize(self, former_strategy=None):
         # create a list of children and their bounds which won't change during iteration
         bounding_map = [(child, geometry.bounds(child)) for child in self.children]
+        if former_strategy:
+            former_strategy.clear_all()
         for child, bounds in bounding_map:
             self.add_widget(child, bounds)
 
@@ -143,6 +150,21 @@ class BaseLayoutStrategy:
     def clear_indicators(self):
         pass
 
+    def get_altered_options(self, widget):
+        options = defaultdict(dict)
+        definitions = self.definition_for(widget)
+        for definition in definitions.values():
+            if definition["value"] != definition.get("default", 0):
+                options[self.manager][definition["name"]] = definition["value"]
+        return options
+
+    def clear_all(self):
+        # Unmap all children from a container
+        # Layouts must provide an implementation as it may differ from layout to layout
+        # This method is important in removing all child widgets before we switch layouts
+        # (especially from grid to pack and vice versa) which may raise errors when used simultaneously
+        raise NotImplementedError("Clear all procedure required")
+
 
 class FrameLayoutStrategy(BaseLayoutStrategy):
     DEFINITION = {
@@ -151,23 +173,31 @@ class FrameLayoutStrategy(BaseLayoutStrategy):
             "display_name": "x",
             "type": "dimension",
             "units": "pixels",
-            "name": "x"
+            "name": "x",
+            "default": None
         },
         "y": {
             "display_name": "y",
             "type": "dimension",
             "units": "pixels",
-            "name": "y"
+            "name": "y",
+            "default": None
         },
         "bordermode": {
             "display_name": "border mode",
             "type": "choice",
             "options": ("outside", "inside"),
-            "name": "bordermode"
+            "name": "bordermode",
+            "default": "inside",
         }
     }
     name = "FrameLayout"
     icon = "frame"
+    manager = "place"
+
+    def clear_all(self):
+        for child in self.children:
+            child.place_forget()
 
     def add_widget(self, widget, bounds):
         super().add_widget(widget, bounds)
@@ -216,28 +246,33 @@ class LinearLayoutStrategy(BaseLayoutStrategy):
             "display_name": "anchor",
             "type": "anchor",
             "multiple": False,
-            "name": "anchor"
+            "name": "anchor",
+            "default": "center"
         },
         "expand": {
             "display_name": "expand",
             "type": "boolean",
-            "name": "expand"
+            "name": "expand",
+            "default": False
         },
         "fill": {
             "display_name": "fill",
             "type": "choice",
             "options": ("x", "y", "none", "both"),
-            "name": "fill"
+            "name": "fill",
+            "default": "none"
         },
         "side": {
             "display_name": "side",
             "type": "choice",
             "options": ("top", "bottom", "right", "left"),
-            "name": "side"
+            "name": "side",
+            "default": "top"
         },
     }
     name = "LinearLayout"
     icon = "frame"
+    manager = "pack"
 
     def __init__(self, container):
         super().__init__(container)
@@ -315,17 +350,20 @@ class LinearLayoutStrategy(BaseLayoutStrategy):
             widget.configure(**{prop: value})
         else:
             widget.pack_configure(**{prop: value})
+        print(self.get_altered_options(widget))
 
     def definition_for(self, widget):
         definition = super().definition_for(widget)
         info = widget.pack_info()
-        for prop in ("anchor", "padx", "pady", "ipady", "ipadx", "expand", "fill"):
+        for prop in ("anchor", "padx", "pady", "ipady", "ipadx", "expand", "fill", "side"):
             definition[prop]["value"] = info.get(prop)
 
         if "width" in widget.keys():
             definition["width"]["value"] = widget["width"]
+            definition["width"]["default"] = ''
         if "height" in widget.keys():
             definition["height"]["value"] = widget["height"]
+            definition["height"]["default"] = ''
         else:
             definition.pop('height')
         return definition
@@ -337,6 +375,10 @@ class LinearLayoutStrategy(BaseLayoutStrategy):
         self.children.append(widget)
         super().add_widget(widget, (0, 0, 0, 0))
 
+    def clear_all(self):
+        for child in self.children:
+            child.pack_forget()
+
 
 class GenericLinearLayoutStrategy(BaseLayoutStrategy):
 
@@ -344,6 +386,9 @@ class GenericLinearLayoutStrategy(BaseLayoutStrategy):
         super().__init__(master)
         self._orientation = self.HORIZONTAL
         self._children = []
+
+    def clear_all(self):
+        pass
 
     def get_restore(self, widget):
         pass
@@ -418,6 +463,7 @@ class VerticalLinearLayout(LinearLayoutStrategy):
 class GridLayoutStrategy(BaseLayoutStrategy):
     name = 'GridLayout'
     icon = "grid"
+    manager = "grid"
     EXPAND = 0x1
     CONTRACT = 0X2
 
@@ -428,27 +474,32 @@ class GridLayoutStrategy(BaseLayoutStrategy):
             "display_name": "sticky",
             "type": "anchor",
             "multiple": True,
-            "name": "sticky"
+            "name": "sticky",
+            "default": ''
         },
         "row": {
             "display_name": "row",
             "type": "number",
-            "name": "row"
+            "name": "row",
+            "default": None,
         },
         "column": {
             "display_name": "column",
             "type": "number",
-            "name": "column"
+            "name": "column",
+            "default": None,
         },
         "columnspan": {
             "display_name": "column span",
             "type": "number",
-            "name": "columnspan"
+            "name": "columnspan",
+            "default": 1
         },
         "rowspan": {
             "display_name": "row span",
             "type": "number",
-            "name": "rowspan"
+            "name": "rowspan",
+            "default": 1
         },
     }
 
@@ -593,6 +644,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
             widget.configure(**{prop: value})
         else:
             widget.grid_configure(**{prop: value})
+        print(self.get_altered_options(widget))
 
     def react_to_pos(self, x, y):
         self._location_analysis((*geometry.resolve_position((x, y), self.container.parent), 0, 0))
@@ -604,8 +656,10 @@ class GridLayoutStrategy(BaseLayoutStrategy):
             definition[prop]["value"] = info.get(prop)
         if "width" in widget.keys():
             definition["width"]["value"] = widget["width"]
+            definition["width"]["default"] = ''
         if "height" in widget.keys():
             definition["height"]["value"] = widget["height"]
+            definition["height"]["default"] = ''
         else:
             definition.pop('height')
         return definition
@@ -617,44 +671,64 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         self.children.append(widget)
         super().add_widget(widget, (0, 0, 0, 0))
 
+    def clear_all(self):
+        # remove the children but still maintain them in the children list
+        for child in self.children:
+            child.grid_forget()
+
 
 class TabLayoutStrategy(BaseLayoutStrategy):
+    # TODO Extend support for side specific padding
     name = "TabLayout"
     icon = "notebook"
+    manager = "tab"
     DEFINITION = {
         "text": {
             "display_name": "tab text",
             "type": "text",
-            "name": "text"
+            "name": "text",
+            "default": None
         },
         "image": {
             "display_name": "tab image",
             "type": "image",
-            "name": "image"
+            "name": "image",
+            "default": ''
         },
         "underline": {
             "display_name": "tab underline",
             "type": "number",
-            "name": "underline"
+            "name": "underline",
+            "default": -1
         },
         "compound": {
             "display_name": "compound",
             "type": "choice",
-            "options": ("top", "bottom", "left", "right"),
-            "name": "compound"
+            "options": ("top", "bottom", "left", "right", 'none'),
+            "name": "compound",
+            "default": "none"
         },
         "sticky": {
             "display_name": "sticky",
             "type": "anchor",
             "multiple": True,
-            "name": "sticky"
+            "name": "sticky",
+            "default": "nsew",
         },
         "padding": {
             "display_name": "padding",
             "type": "dimension",
             "units": "pixels",
-            "name": "padding"
+            "name": "padding",
+            "default": 0,
         },
+        "state": {
+            "display_name": "state",
+            "name": "state",
+            "type": "choice",
+            "options": ("normal", "disabled", "hidden"),
+            "default": 'normal'
+        }
     }
 
     def __init__(self, master):
@@ -680,6 +754,7 @@ class TabLayoutStrategy(BaseLayoutStrategy):
         info = self.container.tab(widget)
         for prop in self.DEFINITION.keys():
             definition[prop]["value"] = info.get(prop)
+        definition["padding"]["value"] = definition["padding"]["value"][0]
 
         return definition
 
@@ -689,6 +764,7 @@ class TabLayoutStrategy(BaseLayoutStrategy):
             # shield image from garbage collection
             widget.tab_image = value
         self.container.tab(widget, **{prop: value})
+        print(self.get_altered_options(widget))
 
     def _tab_switched(self, *_):
         if self._current_tab:
@@ -702,6 +778,10 @@ class TabLayoutStrategy(BaseLayoutStrategy):
         info = from_.layout.tab(from_)
         self.add_widget(widget, (0, 0, 0, 0))
         self.container.tab(widget, **info)
+
+    def clear_all(self):
+        # No implementation needed as the tab layout strategy never needs to change
+        pass
 
 
 # Do not include tab layout since it requires special widgets like notebooks to function
