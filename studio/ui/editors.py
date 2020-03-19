@@ -69,7 +69,8 @@ class Choice(Editor):
             self._on_change(value)
 
     def set(self, value):
-        self._spinner.set(value)
+        # Convert to string as values of type _tkinter.Tcl_Obj are common in ttk and may cause unpredictable behaviour
+        self._spinner.set(str(value))
 
     def get(self):
         return self._spinner.get()
@@ -164,6 +165,10 @@ class Layout(Choice):
     def set_up(self):
         self._spinner.set_item_class(Layout.LayoutItem)
         self._spinner.set_values(self.style_def.get("options"))
+
+    def set(self, value):
+        # Override default conversion of value to string by Choice class
+        self._spinner.set(value)
 
 
 class Color(Editor):
@@ -388,7 +393,7 @@ class Anchor(Editor):
         super().__init__(master, style_def)
         style_def = style_def if style_def else {}
         # This flag determines whether multiple anchors are allowed at a time
-        self.multiple = style_def.get("multiple", True)
+        self.multiple = style_def.get("multiple", True)  # set to True to obtain a sticky property editor
         self.config(width=150, height=110)
         self.n = ToggleButton(self, text="N", width=20, height=20)
         self.n.grid(row=0, column=0, columnspan=3, sticky='ns')
@@ -436,9 +441,11 @@ class Anchor(Editor):
 
     def get(self):
         anchor = ''.join([i for i in self._order if self.anchors[i].get()])
-        # No anchor means center
+        # No anchor means center but only when we are acting as an anchor editor
+        # if self.multiple is True then we are a stickiness editor and an empty string will suffice
         if anchor == '':
-            return 'center'
+            if not self.multiple:
+                return 'center'
         return anchor
 
     def set(self, value):
