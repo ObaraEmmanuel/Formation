@@ -13,9 +13,21 @@ from studio.lib.layouts import FrameLayoutStrategy
 from studio.lib.pseudo import PseudoWidget, Container
 from studio.ui import geometry
 from studio.ui.highlight import HighLight
+from studio.ui.widgets import DesignPad
 
 
-class Designer(Frame, Container):
+class DesignLayoutStrategy(FrameLayoutStrategy):
+
+    def add_new(self, widget, x, y):
+        pass
+
+    def apply(self, prop, value, widget):
+        if value == '':
+            return
+        self.container.config_child(widget, **{prop: value})
+
+
+class Designer(DesignPad, Container):
     MOVE = 0x2
     RESIZE = 0x3
     name = "Designer"
@@ -30,7 +42,7 @@ class Designer(Frame, Container):
         self.studio = studio
         self.config(**self.style.bright)
         self.objects = []
-        self.layout_strategy = FrameLayoutStrategy(self)
+        self.layout_strategy = DesignLayoutStrategy(self)
         self.highlight = HighLight(self)
         self.highlight.on_resize(self._on_size_changed)
         self.highlight.on_move(self._on_move)
@@ -42,6 +54,7 @@ class Designer(Frame, Container):
         self._padding = 30
         # Initialize the first layout some time after the designer has been initialized
         self.after(300, self._set_layout)
+        self.bind('<Configure>', lambda _: self.adjust_highlight(self.current_obj), add='+')
 
     def _set_layout(self):
         self.update_idletasks()
@@ -52,7 +65,7 @@ class Designer(Frame, Container):
     def _ids(self):
         return [i.id for i in self.objects]
 
-    def paste(self, widget: PseudoWidget, deep_skip=False):
+    def paste(self, widget: PseudoWidget):
         if not self.current_obj:
             return
         layout = self.current_obj if isinstance(self.current_obj, Container) else self.current_obj.layout
@@ -119,7 +132,7 @@ class Designer(Frame, Container):
             # This only happens when adding the main layout. We dont need to add this action to the undo/redo stack
             # This main layout is attached directly to the designer
             obj.layout = self
-            obj.place(in_=self, x=x, y=y, width=width, height=height, bordermode="outside")
+            self.place_child(obj, x=x, y=y, width=width, height=height)
             self.studio.add(obj, None)
 
         return obj
@@ -151,7 +164,7 @@ class Designer(Frame, Container):
 
     def remove_widget(self, widget):
         self.objects.remove(widget)
-        widget.place_forget()
+        self.forget_child(widget)
 
     def react(self, event):
         layout = self.event_first(event, self, Container, ignore=self)
@@ -224,7 +237,6 @@ class Designer(Frame, Container):
             self.current_obj.layout.widget_released(self.current_obj)
             self.current_action = None
             self.adjust_highlight(self.current_obj)
-            # self.studio.widget_layout_changed(self.current_obj)
 
     def create_restore(self, widget):
         restore_point = widget.layout.get_restore()
@@ -234,12 +246,28 @@ class Designer(Frame, Container):
         ))
 
     def adjust_highlight(self, widget):
+        if not widget:
+            return
         self.highlight.adjust_to(self.highlight.bounds_from_object(widget))
+
+    def _y_scroll(self, *args):
+        super()._y_scroll(*args)
+        self.adjust_highlight(self.current_obj)
+
+    def _x_scroll(self, *args):
+        super()._x_scroll(*args)
+        self.adjust_highlight(self.current_obj)
+
+    def on_mousewheel(self, event):
+        super().on_mousewheel(event)
+        self.adjust_highlight(self.current_obj)
 
     def _on_move(self, new_bound):
         if self.current_obj is not None:
             self.current_action = self.MOVE
             container: Container = self.layout_at(new_bound)
+            if container == self:
+                breakpoint()
             if container is not None and self.current_obj != container:
                 if container != self.current_container:
                     if self.current_container is not None:
@@ -253,7 +281,7 @@ class Designer(Frame, Container):
                     self.current_container = None
                 self.current_obj.level = 0
                 self.current_obj.layout = self
-                self.current_obj.place(in_=self, **self.parse_bounds(new_bound), bordermode="outside")
+                self.place_child(self.current_obj, **self.parse_bounds(new_bound))
             self.current_obj.update_idletasks()
             self.update_idletasks()
 
@@ -261,12 +289,11 @@ class Designer(Frame, Container):
         if self.current_obj is None:
             return
         self.current_action = self.RESIZE
-        if isinstance(self.current_obj.layout, Container):
+        if isinstance(self.current_obj.layout, Container) and self.current_obj.layout != self:
             self.current_obj.layout.resize_widget(self.current_obj, new_bound)
-            # self.adjust_highlight(self.current_obj)
         else:
             self.current_obj.level = 0
-            self.current_obj.place(in_=self, **self.parse_bounds(new_bound), bordermode="outside")
+            self.place_child(self.current_obj, **self.parse_bounds(new_bound))
         self.current_obj.update_idletasks()
         self.update_idletasks()
 

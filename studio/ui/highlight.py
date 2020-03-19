@@ -1,6 +1,5 @@
 import tkinter as tk
 
-import studio.ui.geometry as geometry
 from hoverset.platform import platform_is, WINDOWS
 
 
@@ -153,7 +152,7 @@ class HighLight:
         self._resize_func = func
         self.pos_on_click = self.pos_cache = self._stabilised_event(event)
         self._update_bbox()
-        self.bounds = (0, 0, self.parent.width, self.parent.height)
+        self.bounds = (0, 0, float("INF"), float("INF"))
 
     def _update_bbox(self):
         # Update the bounding box based on the current position of the highlight
@@ -163,7 +162,7 @@ class HighLight:
         y1 = self.t.winfo_y()
         x2 = self.r.winfo_x()
         y2 = self.b.winfo_y()
-        self._bbox_on_click = geometry.relative_bounds((x1, y1, x2, y2), self.parent)
+        self._bbox_on_click = (x1, y1, x2, y2)
 
     def _shrink(self, bounds):
         # return bounds[0] + self.OUTLINE, bounds[1] + self.OUTLINE, bounds[2], bounds[3]
@@ -300,7 +299,7 @@ class HighLight:
         # We will use the small change approach. We detect the small change in cursor position then map this
         # difference to the highlight box.
         # Update the position cache with the new position so that we can calculate the subsequent small change
-        bounds = (0, 0, self.parent.width, self.parent.height)
+        bounds = (0, 0, float('INF'), float('INF'))
         if self.pos_cache is not None:
             delta_x, delta_y = event.x - self.pos_cache.x, event.y - self.pos_cache.y
             x1, y1, x2, y2 = self.bbox_on_click

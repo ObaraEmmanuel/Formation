@@ -1,5 +1,7 @@
+from tkinter import ttk, TclError
+
 from hoverset.ui.icons import get_icon_image, get_icon
-from hoverset.ui.widgets import Canvas, FontStyle, Frame, Entry, Button, Label
+from hoverset.ui.widgets import Canvas, FontStyle, Frame, Entry, Button, Label, ScrollableInterface, EventMask
 from studio.ui.editors import get_editor
 
 
@@ -176,3 +178,108 @@ class StyleItem(Frame):
 
     def set(self, value):
         self._editor.set(value)
+
+
+class DesignPad(ScrollableInterface, Frame):
+    PADDING = 10
+
+    def __init__(self, master=None, **kwargs):
+        super().__init__(master, **kwargs)
+        self._frame = Canvas(self, **kwargs, **self.style.no_highlight, **self.style.dark)
+        self._frame.grid(row=0, column=0, sticky='nswe')
+        self._scroll_y = ttk.Scrollbar(master, orient='vertical', command=self._y_scroll)
+        self._scroll_x = ttk.Scrollbar(master, orient='horizontal', command=self._x_scroll)
+        self._frame.configure(yscrollcommand=self._scroll_y.set, xscrollcommand=self._scroll_x.set)
+        self.columnconfigure(0, weight=1)  # Ensure the design_pad gets the rest of the left horizontal space
+        self.rowconfigure(0, weight=1)
+        self._frame.bind('<Configure>', self.on_configure)
+        self.bind('<Configure>', self.on_configure)
+        self._child_map = {}
+        self._on_scroll = None
+        self._frame.create_line(0, 0, 0, 0)  # Ensure scroll_region always begins at 0, 0
+        super().configure(bg="green")
+
+    def on_mousewheel(self, event):
+        try:
+            if event.state & EventMask.CONTROL and self._scroll_x.winfo_ismapped():
+                self._frame.xview_scroll(-1 * int(event.delta / 50), "units")
+            elif self._scroll_y.winfo_ismapped():
+                self._frame.yview_scroll(-1 * int(event.delta / 50), "units")
+        except TclError:
+            pass
+
+    def scroll_position(self):
+        return self._scroll_y.get()
+
+    def on_scroll(self, callback, *args, **kwargs):
+        self._on_scroll = lambda: callback(*args, **kwargs)
+
+    def _y_scroll(self, *args):
+        self._frame.yview(*args)
+        if self._on_scroll:
+            self._on_scroll()
+
+    def _x_scroll(self, *args):
+        self._frame.xview(*args)
+        if self._on_scroll:
+            self._on_scroll()
+
+    def _show_y_scroll(self, flag):
+        if flag and not self._scroll_y.winfo_ismapped():
+            self._scroll_y.grid(in_=self, row=0, column=1, sticky='ns')
+        elif not flag:
+            self._scroll_y.grid_forget()
+        self.update_idletasks()
+
+    def _show_x_scroll(self, flag):
+        if flag and not self._scroll_x.winfo_ismapped():
+            self._scroll_x.grid(in_=self, row=1, column=0, columnspan=2, sticky='ew')
+        elif not flag:
+            self._scroll_x.grid_forget()
+        self.update_idletasks()
+
+    def on_configure(self, *_):
+        try:
+            self.update_idletasks()
+            scroll_region = self._frame.bbox('all')
+        except TclError:
+            return
+        if not scroll_region:
+            print("failed to acquire scroll region")
+            return
+        scroll_w = scroll_region[2] - scroll_region[0]
+        scroll_h = scroll_region[3] - scroll_region[1]
+
+        self._show_y_scroll(scroll_h > self.winfo_height())
+        self._show_x_scroll(scroll_w > self.winfo_width())
+
+        self._frame.config(scrollregion=scroll_region)
+
+    def place_child(self, child, **kw):
+        x = kw.get("x", 0)
+        y = kw.get("y", 0)
+        w = kw.get("width", 1)
+        h = kw.get("height", 1)
+        self.forget_child(child)
+        window = self._frame.create_window(x, y, window=child, width=w, height=h, anchor='nw')
+        self._child_map[child] = window
+        self.on_configure()
+
+    def config_child(self, child, **kw):
+        x = kw.get("x", child.winfo_x())
+        y = kw.get("y", child.winfo_y())
+        w = kw.get("width", child.winfo_width())
+        h = kw.get("height", child.winfo_height())
+        self._frame.coords(self._child_map[child], x, y)
+        self._frame.itemconfigure(self._child_map[child], width=w, height=h)
+        self.on_configure()
+
+    def forget_child(self, child):
+        if self._child_map.get(child) is not None:
+            self._frame.delete(self._child_map[child])
+
+    def configure(self, cnf=None, **kw):
+        self._frame.configure(cnf, **kw)
+        return super().configure(cnf, **kw)
+
+    config = configure
