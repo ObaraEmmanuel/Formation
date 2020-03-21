@@ -11,8 +11,9 @@ import tkinter as tk
 from hoverset.ui.icons import get_icon_image, get_icon
 from hoverset.ui.widgets import Window, PanedWindow, Frame, MenuButton, Button, ScrolledFrame, Label
 from studio.lib.properties import PROPERTY_TABLE, get_properties
+from studio.ui.editors import StyleItem
 from studio.ui.tree import MalleableTree
-from studio.ui.widgets import CollapseFrame, StyleItem
+from studio.ui.widgets import CollapseFrame
 
 _MENU_SPECIFIC_DEFINITION = {
     "hidemargin": {
