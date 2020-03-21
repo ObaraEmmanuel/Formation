@@ -845,6 +845,11 @@ class ScrolledFrame(Widget, ScrollableInterface, ContextMenuMixin, WindowMixin, 
         bbox = self._canvas.bbox('all')
         return bbox[3] - bbox[1] + 3
 
+    def scroll_to_start(self):
+        print("scrolling to start")
+        self._canvas.yview_moveto(0.0)
+        self._canvas.xview_moveto(0.0)
+
 
 class Screen:
     """
@@ -943,7 +948,7 @@ class ToolWindow(Window):
         self.wm_attributes('-alpha', 1.0)
 
 
-class Canvas(Widget, tk.Canvas):
+class Canvas(Widget, ContextMenuMixin, tk.Canvas):
 
     def __init__(self, master=None, **kwargs):
         self.setup(master)
@@ -1366,6 +1371,7 @@ class Spinner(Frame):
         self._values = []
         self._value_item = None
         self._item_cls = CompoundList.BaseItem
+        self.dropdown_height = 150
 
     def _popup(self, event=None):
         if self._popup_window is not None:
@@ -1386,7 +1392,7 @@ class Spinner(Frame):
         options.on_change(self._make_selection)
         options.pack()
         options.update_idletasks()
-        initial_height = options.content_height()
+        initial_height = min(options.content_height(), self.dropdown_height)
         # Sometimes there is no space for the drop-down so we need to check
         # If the initial_height + the distance at the bottom left corner of spinner from the top of the screen
         # is greater than the screen-height we animate upwards
@@ -1411,7 +1417,7 @@ class Spinner(Frame):
             options.update_idletasks()
             popup.update_idletasks()
 
-        Animate(popup, 0, min(150, initial_height), update_popup,
+        Animate(popup, 0, initial_height, update_popup,
                 easing=Easing.SLING_SHOT, dur=0.2)
         self._button.config(text=get_icon("triangle_up"))
         popup.on_close(self._close_popup)
@@ -1437,9 +1443,15 @@ class Spinner(Frame):
         self._on_change = lambda val: func(val, *args, **kwargs)
 
     def set_values(self, values):
-        self._values = values
+        self._values = tuple(values)
         if len(values):
             self.set(values[0])
+
+    def add_values(self, *values):
+        self._values += values
+
+    def remove_value(self, value):
+        self._values.remove(value)
 
     def set(self, value):
         if value in self._values:
