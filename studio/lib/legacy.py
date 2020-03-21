@@ -249,7 +249,7 @@ class Text(PseudoWidget, tk.Text):
         self.setup_widget()
 
     def set_name(self, name):
-        self.insert(tk.FIRST, name)
+        self.insert(tk.END, name)
 
 
 class Toplevel(PseudoWidget, tk.Toplevel):
@@ -268,6 +268,6 @@ class Toplevel(PseudoWidget, tk.Toplevel):
 
 
 widgets = (
-    Button, Canvas, Checkbutton, Entry, Frame, Label, LabelFrame, Listbox, Menu, Menubutton, Message, PanedWindow,
+    Button, Canvas, Checkbutton, Entry, Frame, Label, LabelFrame, Listbox, Menubutton, Message, PanedWindow,
     Radiobutton, Scale, Scrollbar, Spinbox, Text, Toplevel
 )
