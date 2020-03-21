@@ -1,6 +1,6 @@
 from hoverset.ui.icons import get_icon_image, get_icon
 from hoverset.ui.widgets import Button
-from studio.feature import BaseFeature
+from studio.feature._base import BaseFeature
 from studio.lib.pseudo import PseudoWidget
 from studio.ui.tree import MalleableTree
 

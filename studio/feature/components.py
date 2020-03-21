@@ -4,7 +4,7 @@ from tkinter import BooleanVar
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Spinner, EventMask, Button
 from hoverset.ui.windows import DragWindow
-from studio.feature import BaseFeature
+from studio.feature._base import BaseFeature
 from studio.feature.design import Designer
 from studio.lib import legacy, native
 from studio.lib.pseudo import PseudoWidget, Container
@@ -203,6 +203,7 @@ class ComponentPane(BaseFeature):
 
     def start_search(self, *_):
         super().start_search()
+        self._widget_pane.scroll_to_start()
         if self._selected is not None:
             self._selected.deselect()
         self.hide_selectors()

@@ -11,8 +11,9 @@ from PIL import Image, ImageTk
 
 from hoverset.ui.icons import get_icon, get_icon_image
 from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Button
-from studio.feature import BaseFeature
-from studio.ui.widgets import CollapseFrame, StyleItem
+from studio.feature._base import BaseFeature
+from studio.ui.editors import StyleItem
+from studio.ui.widgets import CollapseFrame
 
 
 class StylePane(BaseFeature):
@@ -110,7 +111,8 @@ class StylePane(BaseFeature):
         try:
             self._current.layout.apply(prop, value, self._current)
             self.studio.designer.adjust_highlight(self._current)
-        except Exception:
+        except Exception as e:
+            print(e)
             logging.log(logging.ERROR, f"Could not set layout {prop} as {value}", )
 
     def show_empty(self):
@@ -195,6 +197,7 @@ class StylePane(BaseFeature):
     def start_search(self, *_):
         if self._current:
             super().start_search()
+            self.body.scroll_to_start()
 
     def on_search_query(self, query):
         for item in self.items:
