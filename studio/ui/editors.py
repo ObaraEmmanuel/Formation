@@ -6,7 +6,7 @@ Contains all the widget representations used in the designer and specifies all t
 # ======================================================================= #
 import re
 import sys
-from tkinter import IntVar, ttk, filedialog
+from tkinter import IntVar, ttk, filedialog, StringVar
 
 from hoverset.ui.icons import get_icon
 from hoverset.ui.pickers import ColorDialog
@@ -14,6 +14,7 @@ from hoverset.ui.widgets import (CompoundList, Entry, SpinBox, Spinner, Frame, A
                                  Label, system_fonts, ToggleButton, FontStyle, Button)
 from hoverset.util.color import to_hex
 from hoverset.util.validators import numeric_limit
+from studio.feature.variable_manager import VariablePane, VariableItem
 from studio.lib.properties import all_supported_cursors, BUILTIN_BITMAPS
 
 
@@ -479,10 +480,100 @@ class Image(Text):
                 self._on_change(path)
 
 
+class Variable(Choice):
+    class VariableChoiceItem(Choice.ChoiceItem):
+
+        def render(self):
+            if self.value:
+                item = VariableItem(self, self.value)
+                item.pack(fill="both")
+                item.pack_propagate(0)
+            else:
+                Label(self, text="", **self.style.dark_text).pack(fill="x")
+
+    def set_up(self):
+        var_manager: VariablePane = VariablePane.get_instance()
+        var_manager.register_editor(self)
+        values = [i.var for i in var_manager.variables]
+        self._spinner.set_item_class(Variable.VariableChoiceItem)
+        self._spinner.set_values((
+            '', *values,
+        ))
+
+    def set(self, value):
+        # Override default conversion of value to string by Choice class
+        var_manager: VariablePane = VariablePane.get_instance()
+        var = list(filter(lambda x: x.var._name == value, var_manager.variables))
+        if len(var):
+            value = var[0].var
+        self._spinner.set(value)
+
+    def on_var_add(self, var):
+        self._spinner.add_values(var)
+
+    def on_var_delete(self, var):
+        self._spinner.remove_value(var)
+
+    def destroy(self):
+        VariablePane.get_instance().unregister_editor(self)
+        super().destroy()
+
+
+class Stringvariable(Variable):
+    # TODO Check for any instances where class is needed otherwise delete
+
+    def set_up(self):
+        var_manager: VariablePane = VariablePane.get_instance()
+        # filter to obtain only string variables
+        var_manager.register_editor(self)
+        values = [i.var for i in var_manager.variables if i.var.__class__ == StringVar]
+        self._spinner.set_item_class(Variable.VariableChoiceItem)
+        self._spinner.set_values((
+            '', *values,
+        ))
+
+
 def get_editor(parent, definition):
     type_ = definition.get("type").capitalize()
     editor = getattr(sys.modules[__name__], type_, Text)
     return editor(parent, definition)
+
+
+class StyleItem(Frame):
+
+    def __init__(self, parent, style_definition, on_change=None):
+        super().__init__(parent.body)
+        self.definition = style_definition
+        self.name = style_definition.get("name")
+        self.config(**self.style.dark)
+        self._label = Label(self, **parent.style.dark_text_passive, text=style_definition.get("display_name"),
+                            anchor="w")
+        self._label.grid(row=0, column=0, sticky='ew')
+        # self._label.config(**parent.style.dark_highlight_active)
+        self._editor = get_editor(self, style_definition)
+        self._editor.grid(row=0, column=1, sticky='ew')
+        self.grid_columnconfigure(1, weight=1, uniform=1)
+        self.grid_columnconfigure(0, weight=1, uniform=1)
+        self._on_change = on_change
+        self._editor.set(style_definition.get("value"))
+        self._editor.on_change(self._change)
+
+    def _change(self, value):
+        if self._on_change:
+            self._on_change(self.name, value)
+
+    def on_change(self, callback, *args, **kwargs):
+        self._on_change = lambda name, val: callback(name, val, *args, **kwargs)
+
+    def hide(self):
+        self.grid_propagate(False)
+        self.configure(height=0, width=0)
+
+    def show(self):
+        self.grid_propagate(True)
+
+    def set(self, value):
+        self._editor.set(value)
 
 
 if __name__ == '__main__':

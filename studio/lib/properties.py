@@ -289,6 +289,10 @@ PROPERTY_TABLE = {
         "type": "dimension",
         "units": "pixels",
     },
+    "listvariable": {
+        "display_name": "listvariable",
+        "type": "stringvariable",
+    },
     "maxundo": {
         "display_name": "maxundo",
         "type": "number",
@@ -476,6 +480,10 @@ PROPERTY_TABLE = {
         "display_name": "text",
         "type": "text",
     },
+    "textvariable": {
+        "display_name": "textvariable",
+        "type": "variable",
+    },
     "tickinterval": {
         "display_name": "tick interval",
         "type": "duration",
@@ -518,6 +526,10 @@ PROPERTY_TABLE = {
         "display_name": "validate command",
         "type": "callback",
     },
+    "variable": {
+        "display_name": "variable",
+        "type": "variable",
+    },
     "vcmd": {
         "display_name": "vcmd",
         "type": "color",
@@ -551,10 +563,6 @@ _unimplemented = {
         "display_name": "label widget",
         "type": "color",
     },
-    "_listvariable": {
-        "display_name": "listvariable",
-        "type": "color",
-    },
     "_menu": {
         "display_name": "menu",
         "type": "color",
@@ -580,10 +588,6 @@ _unimplemented = {
         "display_name": "startline",
         "type": "color",
     },
-    "_textvariable": {
-        "display_name": "textvariable",
-        "type": "color",
-    },
     "_tabs": {
         "display_name": "tabs",
         "type": "color",
@@ -602,10 +606,6 @@ _unimplemented = {
     },
     "_values": {
         "display_name": "values",
-        "type": "color",
-    },
-    "_variable": {
-        "display_name": "variable",
         "type": "color",
     },
     "_visual": {

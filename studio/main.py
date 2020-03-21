@@ -4,17 +4,19 @@
 
 import functools
 import logging
+import os
 import sys
 
 # Add Studio and Hoverset to path so imports from hoverset can work.
 
-sys.path.append("..\\..\\Hoverset")
+sys.path.append(os.path.join('..', '..', 'Hoverset'))
 
 from studio.feature.design import Designer
 from studio.feature.component_tree import ComponentTree
 from studio.feature.stylepane import StylePane
 from studio.feature.components import ComponentPane
-from studio.feature import BaseFeature
+from studio.feature.variable_manager import VariablePane
+from studio.feature._base import BaseFeature
 from studio.ui.widgets import SideBar
 
 from hoverset.ui.widgets import Application, Frame, PanedWindow, Button
@@ -74,6 +76,7 @@ class StudioApplication(Application):
         self.install(ComponentPane)
         self.install(ComponentTree)
         self.install(StylePane)
+        self.install(VariablePane)
 
         self.actions = (
             ("Undo", get_icon_image("undo", 20, 20), lambda e: self.undo()),
@@ -213,8 +216,19 @@ class StudioApplication(Application):
         self.features.append(obj)
         if bar is not None:
             bar.add_feature(obj)
-        pane.add(obj, minsize=100, height=300, sticky='nswe')
+        if obj.start_minimized:
+            bar.deselect(obj)
+            self._adjust_pane(pane)
+        else:
+            bar.select(obj)
+            pane.add(obj, minsize=100, height=300, sticky='nswe')
         return obj
+
+    def get_feature(self, feature_class) -> BaseFeature:
+        for feature in self.features:
+            if feature.__class__ == feature_class:
+                return feature
+        # returns None by if feature is not found
 
     def get_features_as_menu(self):
         # For each feature we create a menu template

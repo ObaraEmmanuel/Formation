@@ -2,7 +2,6 @@ from tkinter import ttk, TclError
 
 from hoverset.ui.icons import get_icon_image, get_icon
 from hoverset.ui.widgets import Canvas, FontStyle, Frame, Entry, Button, Label, ScrollableInterface, EventMask
-from studio.ui.editors import get_editor
 
 
 class CollapseFrame(Frame):
@@ -128,6 +127,10 @@ class SearchBar(Frame):
         self._on_change = None
         self._on_clear = None
 
+    def focus_set(self):
+        super().focus_set()
+        self._entry.focus_set()
+
     def on_query_change(self, func, *args, **kwargs):
         self._on_change = lambda val: func(val, *args, **kwargs)
 
@@ -141,43 +144,6 @@ class SearchBar(Frame):
     def _change(self, *_):
         if self._on_change:
             self._on_change(self._entry.get())
-
-
-class StyleItem(Frame):
-
-    def __init__(self, parent, style_definition, on_change=None):
-        super().__init__(parent.body)
-        self.definition = style_definition
-        self.name = style_definition.get("name")
-        self.config(**self.style.dark)
-        self._label = Label(self, **parent.style.dark_text_passive, text=style_definition.get("display_name"),
-                            anchor="w")
-        self._label.grid(row=0, column=0, sticky='ew')
-        # self._label.config(**parent.style.dark_highlight_active)
-        self._editor = get_editor(self, style_definition)
-        self._editor.grid(row=0, column=1, sticky='ew')
-        self.grid_columnconfigure(1, weight=1, uniform=1)
-        self.grid_columnconfigure(0, weight=1, uniform=1)
-        self._on_change = on_change
-        self._editor.set(style_definition.get("value"))
-        self._editor.on_change(self._change)
-
-    def _change(self, value):
-        if self._on_change:
-            self._on_change(self.name, value)
-
-    def on_change(self, callback, *args, **kwargs):
-        self._on_change = lambda name, val: callback(name, val, *args, **kwargs)
-
-    def hide(self):
-        self.grid_propagate(False)
-        self.configure(height=0, width=0)
-
-    def show(self):
-        self.grid_propagate(True)
-
-    def set(self, value):
-        self._editor.set(value)
 
 
 class DesignPad(ScrollableInterface, Frame):
