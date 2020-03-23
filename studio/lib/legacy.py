@@ -3,7 +3,7 @@ from tkinter import *
 
 from hoverset.ui.icons import get_icon
 from studio.lib.menus import menu_options
-from studio.lib.pseudo import PseudoWidget, Groups, Container, LabelFrameCorrection
+from studio.lib.pseudo import PseudoWidget, Groups, Container, LabelFrameCorrection, PanedContainer
 
 
 class Button(PseudoWidget, tk.Button):
@@ -167,7 +167,7 @@ class Message(PseudoWidget, tk.Message):
         self.config(text=name)
 
 
-class PanedWindow(PseudoWidget, tk.PanedWindow):
+class PanedWindow(PanedContainer, tk.PanedWindow):
     display_name = 'PanedWindow'
     group = Groups.container
     icon = get_icon("flip_horizontal")

@@ -2,8 +2,9 @@ import tkinter as tk
 import tkinter.ttk as ttk
 
 from hoverset.ui.icons import get_icon
+from studio.lib.layouts import NPanedLayoutStrategy
 from studio.lib.menus import menu_options
-from studio.lib.pseudo import PseudoWidget, Groups, Container, LabelFrameCorrection, TabContainer
+from studio.lib.pseudo import PseudoWidget, Groups, Container, LabelFrameCorrection, TabContainer, PanedContainer
 
 
 class Button(PseudoWidget, ttk.Button):
@@ -155,16 +156,44 @@ class Notebook(TabContainer, ttk.Notebook):
         self.setup_widget()
 
 
-class PanedWindow(PseudoWidget, ttk.PanedWindow):
-    display_name = 'PanedWindow'
+class VerticalPanedWindow(PanedContainer, ttk.PanedWindow):
+    display_name = 'VerticalPanedWindow'
+    group = Groups.container
+    icon = get_icon("flip_vertical")
+    impl = ttk.PanedWindow
+
+    def __init__(self, master, id_):
+        super().__init__(master, orient=tk.VERTICAL)
+        self.id = id_
+        self.setup_widget()
+        # Needs a modified PanedLayoutStrategy to work
+        self.layout_strategy = NPanedLayoutStrategy(self)
+
+    @property
+    def properties(self):
+        properties = dict(**super().properties)
+        properties.pop("orient")
+        return properties
+
+
+class HorizontalPanedWindow(PanedContainer, ttk.PanedWindow):
+    display_name = 'HorizontalPanedWindow'
     group = Groups.container
     icon = get_icon("flip_horizontal")
     impl = ttk.PanedWindow
 
     def __init__(self, master, id_):
-        super().__init__(master)
+        super().__init__(master, orient=tk.HORIZONTAL)
         self.id = id_
         self.setup_widget()
+        # Needs a modified PanedLayoutStrategy to work
+        self.layout_strategy = NPanedLayoutStrategy(self)
+
+    @property
+    def properties(self):
+        properties = dict(**super().properties)
+        properties.pop("orient")
+        return properties
 
 
 class Progressbar(PseudoWidget, ttk.Progressbar):
@@ -278,6 +307,6 @@ class Treeview(PseudoWidget, ttk.Treeview):
 
 
 widgets = (
-    Button, Checkbutton, Combobox, Entry, Frame, Label, LabeledScale, Labelframe, Menubutton, Notebook, PanedWindow,
-    Progressbar, Radiobutton, Scale, Scrollbar, Separator, Sizegrip, Spinbox, Treeview
+    Button, Checkbutton, Combobox, Entry, Frame, HorizontalPanedWindow, Label, LabeledScale, Labelframe, Menubutton,
+    Notebook, Progressbar, Radiobutton, Scale, Scrollbar, Separator, Sizegrip, Spinbox, Treeview, VerticalPanedWindow
 )

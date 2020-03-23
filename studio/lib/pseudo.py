@@ -290,6 +290,21 @@ class TabContainer(Container):
             raise RuntimeError(f"Attempted to alter layout of notebook from TabLayout to {layout_class}")
 
 
+class PanedContainer(TabContainer):
+    def setup_widget(self):
+        super(TabContainer, self).setup_widget()
+        self.layout_strategy = layouts.PanedLayoutStrategy(self)
+
+    def create_menu(self):
+        return super(TabContainer, self).create_menu() + (
+            ("command", "Add pane", get_icon_image("add", 14, 14), self._add_pane, {}),
+        )
+
+    def _add_pane(self):
+        # add a legacy frame as a child
+        self.add_new(legacy.Frame, 0, 0)
+
+
 class LabelFrameCorrection:
 
     def _set_correction(self):

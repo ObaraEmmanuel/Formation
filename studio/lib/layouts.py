@@ -11,7 +11,7 @@ from hoverset.data.images import load_tk_image
 from studio.ui import geometry
 from studio.ui.highlight import WidgetHighlighter, EdgeIndicator
 
-COMMON_PROPERTIES = {
+COMMON_DEFINITION = {
     "ipadx": {
         "display_name": "internal padding x",
         "type": "dimension",
@@ -241,7 +241,7 @@ class FrameLayoutStrategy(BaseLayoutStrategy):
 class LinearLayoutStrategy(BaseLayoutStrategy):
     DEFINITION = {
         **BaseLayoutStrategy.DEFINITION,
-        **COMMON_PROPERTIES,
+        **COMMON_DEFINITION,
         "anchor": {
             "display_name": "anchor",
             "type": "anchor",
@@ -469,7 +469,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
 
     DEFINITION = {
         **BaseLayoutStrategy.DEFINITION,
-        **COMMON_PROPERTIES,
+        **COMMON_DEFINITION,
         "sticky": {
             "display_name": "sticky",
             "type": "anchor",
@@ -739,6 +739,9 @@ class TabLayoutStrategy(BaseLayoutStrategy):
     def get_restore(self, widget):
         pass
 
+    def resize_widget(self, widget, bounds):
+        pass
+
     def add_widget(self, widget, bounds):
         super().remove_widget(widget)
         super().add_widget(widget, bounds)
@@ -782,6 +785,115 @@ class TabLayoutStrategy(BaseLayoutStrategy):
     def clear_all(self):
         # No implementation needed as the tab layout strategy never needs to change
         pass
+
+
+class PanedLayoutStrategy(BaseLayoutStrategy):
+    name = "PanedLayout"
+    icon = "flip_horizontal"
+    manager = "pane"
+    DEFINITION = {
+        **BaseLayoutStrategy.DEFINITION,  # width and height definition
+        "padx": COMMON_DEFINITION.get("padx"),
+        "pady": COMMON_DEFINITION.get("pady"),
+        "sticky": {
+            "display_name": "sticky",
+            "type": "anchor",
+            "multiple": True,
+            "name": "sticky",
+            "default": "nsew",
+        },
+        "hide": {
+            "display_name": "hide",
+            "type": "boolean",
+            "name": "hide",
+            "default": False
+        },
+        "stretch": {
+            "display_name": "stretch",
+            "type": "choice",
+            "options": ["always", "first", "last", "middle", "never"],
+            "default": "last",
+            "name": "strecth"
+        },
+        "minsize": {
+            "display_name": "minsize",
+            "type": "dimension",
+            "units": "pixels",
+            "default": 0,
+            "name": "minsize",
+        }
+    }
+
+    def get_restore(self, widget):
+        pass
+
+    def clear_all(self):
+        pass
+
+    def resize_widget(self, widget, bounds):
+        pass
+
+    def add_widget(self, widget, bounds):
+        super().remove_widget(widget)
+        super().add_widget(widget, bounds)
+        self.container.add(widget)
+        self.children.append(widget)
+
+    def definition_for(self, widget):
+        definition = {**self.DEFINITION}
+        info = self.container.paneconfig(widget)
+        for prop in self.DEFINITION.keys():
+            definition[prop]["value"] = info.get(prop)[-1]  # Last item is the value
+        # Give a hint on what the minsize attribute will affect
+        # if panedwindow is in horizontal orient minsize affects min-width of children otherwise it affects height
+        side = "width" if self.container["orient"] == "horizontal" else "height"
+        definition["minsize"]["display_name"] = f"minsize ({side})"
+        return definition
+
+    def apply(self, prop, value, widget):
+        self.container.paneconfig(widget, **{prop: value})
+        print(self.get_altered_options(widget))
+
+    def remove_widget(self, widget):
+        super().remove_widget(widget)
+        self.container.forget(widget)
+
+    def copy_layout(self, widget, from_):
+        info = from_.layout.paneconfig(from_)
+        info = {i: info[i][-1] for i in info}  # The value is usually the last item in the tuple
+        self.add_widget(widget, (0, 0, 0, 0))
+        self.container.paneconfig(widget, **info)
+
+
+class NPanedLayoutStrategy(PanedLayoutStrategy):
+    """
+    Native paned window layout. Paned window behaviour is different in ttk
+    """
+    DEFINITION = {
+        "weight": {
+            "name": "weight",
+            "display_name": "weight",
+            "type": "number",
+            "default": 0,
+        }
+    }
+
+    def apply(self, prop, value, widget):
+        self.container.pane(widget, **{prop: value})
+        print(self.get_altered_options(widget))
+
+    def copy_layout(self, widget, from_):
+        info = from_.layout.pane(from_)
+        info = {i: info[i][-1] for i in info}  # The value is usually the last item in the tuple
+        self.add_widget(widget, (0, 0, 0, 0))
+        self.container.pane(widget, **info)
+
+    def definition_for(self, widget):
+        definition = {**self.DEFINITION}
+        info = self.container.pane(widget)
+        for prop in self.DEFINITION.keys():
+            definition[prop]["value"] = info.get(prop)
+        return definition
 
 
 # Do not include tab layout since it requires special widgets like notebooks to function
