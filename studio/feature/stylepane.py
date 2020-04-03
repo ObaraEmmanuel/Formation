@@ -155,6 +155,7 @@ class StylePane(BaseFeature):
         frame = self._layout
         frame.clear_children()
         layout_def = widget.layout.definition_for(widget)
+        frame.label = f"Layout ({widget.layout.layout_strategy.name})"
         for definition in layout_def:
             self.add(StyleItem(frame, layout_def[definition], self.apply_layout))
         self.body.update_idletasks()
