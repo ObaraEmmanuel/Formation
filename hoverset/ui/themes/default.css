@@ -1,5 +1,12 @@
 /* Write all styles here and access them from the style delegator using dot syntax */
+.colors {
+    primarydark: #303030;
+    primarydarkaccent: #a0a0a0;
+    primary: #f7f7f7;
+    primaryaccent: #4a4a4a;
+    accent: #3d8aff;
 
+}
 .spinbox, .rgb_spinbox, .percent_spinbox, .degree_spinbox {
     background: #303030;
     foreground: #f7f7f7;
@@ -52,7 +59,7 @@
     background: #303030;
     foreground: #f7f7f7;
     relief:flat;
-    font: TkDefaultFont 11;
+    font: TkDefaultFont 10;
     highlightthickness: 1;
     highlightcolor: #3d8aff;
     highlightbackground: #303030;
@@ -86,7 +93,7 @@
 
 .dark_highlight_active, .dark_highlight_active_heavy{
     highlightthickness: 1;
-    highlightbackground: #a0a0a0;
+    highlightbackground: #6a6a6a;
     highlightcolor: #3d8aff;
     takefocus:1;
 }
