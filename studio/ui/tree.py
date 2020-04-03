@@ -33,7 +33,8 @@ class MalleableTree(TreeView):
             # If set tp False the node accepts children and vice versa
             self._is_terminal = config.get("terminal", True)
             self.strip.bind_all("<Motion>", self.begin_drag)
-            self.strip.bind_all("<ButtonRelease-1>", self.end_drag)
+            # use add='+' to avoid overriding the default event which selects nodes
+            self.strip.bind_all("<ButtonRelease-1>", self.end_drag, add='+')
             self.strip.config(**self.style.dark_highlight)  # The highlight on a normal day
             self._on_structure_change = None
             self.editable = False

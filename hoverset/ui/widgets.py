@@ -1525,8 +1525,8 @@ class TreeView(ScrolledFrame):
             self.icon_pad.pack(side="left")
             self.name_pad = Label(f, **self.style.dark_text, text=self._name)
             self.name_pad.pack(side="left", fill="x")
-            self.name_pad.bind("<Button-1>", self.select)
-            self.strip.bind("<Button-1>", self.select)
+            self.name_pad.bind("<ButtonRelease-1>", self.select)
+            self.strip.bind("<ButtonRelease-1>", self.select)
             self.body = Frame(self, **self.style.dark)
             self.body.pack(side="top", fill="x")
             self._expanded = False
@@ -1901,6 +1901,93 @@ class PanedWindow(Widget, tk.PanedWindow):
         self.setup(master)
         super().__init__(master, **cnf)
         self.config(**self.style.dark_pane)
+
+
+class ProgressBar(Widget, tk.Canvas):
+    """
+    Custom progress bar for use by hoverset applications
+    """
+    DETERMINATE = 'determinate'
+    INDETERMINATE = 'indeterminate'
+
+    def __init__(self, master, **kw):
+        super().__init__(master, **kw)
+        self.configure(highlightthickness=1)
+        self._bar_color = self.style.colors.get("accent")
+        self._progress = 0
+        self._bar = self.create_rectangle(0, 0, 0, 0)
+        self._indeterminate = False
+        self._step_var = 0
+        self._direction = 1
+        self._interval = 20
+        self._draw()
+        self.bind("<Configure>", self._draw)
+
+    def _draw(self, event=None):
+        self.update_idletasks()
+        if self._indeterminate:
+            width = (0.3 + self._step_var / self.winfo_width() * 0.8) * self.winfo_width()
+            self.coords(self._bar, self._step_var, 0, self._step_var + width, self.winfo_height())
+            self._step_var += self._direction
+            if self._step_var + width >= self.winfo_width():
+                self._direction = -3
+            elif self._step_var <= 0:
+                self._direction = 3
+            if event is None:
+                self._after_id = self.after(self._interval, self._draw)
+        else:
+            self.coords(self._bar, 0, 0, self._progress * self.winfo_width(), self.winfo_height())
+        self.itemconfigure(self._bar, fill=self._bar_color, width=0)
+
+    def mode(self, value):
+        """
+        Set the mode of the progressbar to determinate or indeterminate
+        :param value: constant value either ProgressBar.DETERMINATE or ProgressBar.INDETERMINATE
+        :return: None
+        """
+        self._indeterminate = value == ProgressBar.INDETERMINATE
+        self._draw()
+
+    def interval(self, milliseconds):
+        """
+        Controls the speed of the indeterminate mode of the progressbar
+        :param milliseconds: the update time in milliseconds, the smaller the faster
+        :return: None
+        """
+        self._interval = milliseconds
+
+    def set(self, value: float):
+        """
+        Sets the progress to a fraction value
+        :param value: A floating point value between 0 and 1 inclusive which determines the progress
+        :return: None
+        """
+        self._progress = value
+        self._draw()
+
+    def get(self):
+        """
+        Fetch the current progress of the bar if in determinate mode otherwise None is returned
+        :return:
+        """
+        if self._indeterminate:
+            return None
+        return self._progress
+
+    def color(self, color):
+        """
+        Set the progress bar color
+        :param color: A named color or hex defined color
+        :return: None
+        """
+        prev_color = self._bar_color
+        self._bar_color = color
+        try:
+            self._draw()
+        except tk.TclError:
+            self._bar_color = prev_color
+            self._draw()
+            raise ValueError(f"{color} is not a valid tk color")
 
 
 if __name__ == "__main__":
