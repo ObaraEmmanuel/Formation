@@ -17,7 +17,7 @@ class Component(Frame):
     def __init__(self, master, component: PseudoWidget.__class__):
         super().__init__(master)
         self.config(**self.style.dark)
-        self._icon = Label(self, **self.style.dark_text_accent, text=component.icon)
+        self._icon = Label(self, **self.style.dark_text_accent, image=get_icon_image(component.icon, 15, 15))
         self._icon.pack(side="left")
         self._text = Label(self, **self.style.dark_text, anchor="w", text=component.display_name)
         self._text.pack(side="left", fill="x")

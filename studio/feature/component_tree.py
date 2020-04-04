@@ -13,13 +13,13 @@ class ComponentTreeView(MalleableTree):
             super().__init__(master, **config)
             self.widget: PseudoWidget = config.get("widget")
             self.widget.node = self
-            self.name_pad.config(text=self.widget.id)
-            self.icon_pad.config(text=self.widget.icon)
+            self.name_pad.configure(text=self.widget.id)
+            self.icon_pad.configure(image=get_icon_image(self.widget.icon, 15, 15))
 
         def widget_modified(self, widget):
             self.widget = widget
-            self.name_pad.config(text=self.widget.id)
-            self.icon_pad.config(text=self.widget.icon)
+            self.name_pad.configure(text=self.widget.id)
+            self.icon_pad.configure(image=get_icon_image(self.widget.icon, 15, 15))
 
 
 class ComponentTree(BaseFeature):
@@ -33,7 +33,8 @@ class ComponentTree(BaseFeature):
         self._tree.pack(side="top", fill="both", expand=True, pady=4)
         # self._tree.sample()
         self._tree.on_select(self._trigger_select)
-        self._toggle_btn = Button(self._header, text=get_icon("chevron_down"), **self.style.dark_button, width=25,
+        self._toggle_btn = Button(self._header, image=get_icon_image("chevron_down", 15, 15), **self.style.dark_button,
+                                  width=25,
                                   height=25)
         self._toggle_btn.pack(side="right")
         self._toggle_btn.on_click(self._toggle)

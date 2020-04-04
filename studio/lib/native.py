@@ -1,7 +1,6 @@
 import tkinter as tk
 import tkinter.ttk as ttk
 
-from hoverset.ui.icons import get_icon
 from studio.lib.layouts import NPanedLayoutStrategy
 from studio.lib.menus import menu_options
 from studio.lib.pseudo import PseudoWidget, Groups, Container, LabelFrameCorrection, TabContainer, PanedContainer
@@ -10,7 +9,7 @@ from studio.lib.pseudo import PseudoWidget, Groups, Container, LabelFrameCorrect
 class Button(PseudoWidget, ttk.Button):
     display_name = 'Button'
     group = Groups.widget
-    icon = get_icon("button")
+    icon = "button"
     impl = ttk.Button
 
     def __init__(self, master, id_):
@@ -25,7 +24,7 @@ class Button(PseudoWidget, ttk.Button):
 class Checkbutton(PseudoWidget, ttk.Checkbutton):
     display_name = 'Checkbutton'
     group = Groups.widget
-    icon = get_icon("checkbutton")
+    icon = "checkbutton"
     impl = ttk.Checkbutton
 
     def __init__(self, master, id_):
@@ -40,7 +39,7 @@ class Checkbutton(PseudoWidget, ttk.Checkbutton):
 class Combobox(PseudoWidget, ttk.Combobox):
     display_name = 'Combobox'
     group = Groups.input
-    icon = get_icon("combobox")
+    icon = "combobox"
     impl = ttk.Combobox
 
     def __init__(self, master, id_):
@@ -56,7 +55,7 @@ class Combobox(PseudoWidget, ttk.Combobox):
 class Entry(PseudoWidget, ttk.Entry):
     display_name = 'Entry'
     group = Groups.input
-    icon = get_icon("entry")
+    icon = "entry"
     impl = ttk.Entry
 
     def __init__(self, master, id_):
@@ -74,7 +73,7 @@ class Entry(PseudoWidget, ttk.Entry):
 class Frame(Container, ttk.Frame):
     display_name = 'Frame'
     group = Groups.container
-    icon = get_icon("frame")
+    icon = "frame"
     impl = ttk.Frame
 
     def __init__(self, master, id_):
@@ -86,7 +85,7 @@ class Frame(Container, ttk.Frame):
 class Label(PseudoWidget, ttk.Label):
     display_name = 'Label'
     group = Groups.widget
-    icon = get_icon("text")
+    icon = "text"
     impl = ttk.Label
 
     def __init__(self, master, id_):
@@ -101,7 +100,7 @@ class Label(PseudoWidget, ttk.Label):
 class Labelframe(LabelFrameCorrection, Container, ttk.Labelframe):
     display_name = 'Labelframe'
     group = Groups.container
-    icon = get_icon("labelframe")
+    icon = "labelframe"
     impl = ttk.Labelframe
 
     def __init__(self, master, id_):
@@ -116,7 +115,7 @@ class Labelframe(LabelFrameCorrection, Container, ttk.Labelframe):
 class LabeledScale(PseudoWidget, ttk.LabeledScale):
     display_name = 'LabeledScale'
     group = Groups.input
-    icon = get_icon("scale")
+    icon = "scale"
     impl = ttk.LabeledScale
 
     def __init__(self, master, id_):
@@ -129,7 +128,7 @@ class LabeledScale(PseudoWidget, ttk.LabeledScale):
 class Menubutton(PseudoWidget, ttk.Menubutton):
     display_name = 'Menubutton'
     group = Groups.widget
-    icon = get_icon("menubutton")
+    icon = "menubutton"
     impl = ttk.Menubutton
 
     def __init__(self, master, id_):
@@ -147,7 +146,7 @@ class Menubutton(PseudoWidget, ttk.Menubutton):
 class Notebook(TabContainer, ttk.Notebook):
     display_name = 'Notebook'
     group = Groups.container
-    icon = get_icon("notebook")
+    icon = "notebook"
     impl = ttk.Notebook
 
     def __init__(self, master, id_):
@@ -159,7 +158,7 @@ class Notebook(TabContainer, ttk.Notebook):
 class VerticalPanedWindow(PanedContainer, ttk.PanedWindow):
     display_name = 'VerticalPanedWindow'
     group = Groups.container
-    icon = get_icon("flip_vertical")
+    icon = "flip_vertical"
     impl = ttk.PanedWindow
 
     def __init__(self, master, id_):
@@ -179,7 +178,7 @@ class VerticalPanedWindow(PanedContainer, ttk.PanedWindow):
 class HorizontalPanedWindow(PanedContainer, ttk.PanedWindow):
     display_name = 'HorizontalPanedWindow'
     group = Groups.container
-    icon = get_icon("flip_horizontal")
+    icon = "flip_horizontal"
     impl = ttk.PanedWindow
 
     def __init__(self, master, id_):
@@ -199,7 +198,7 @@ class HorizontalPanedWindow(PanedContainer, ttk.PanedWindow):
 class Progressbar(PseudoWidget, ttk.Progressbar):
     display_name = 'Progressbar'
     group = Groups.widget
-    icon = get_icon("progressbar")
+    icon = "progressbar"
     impl = ttk.Progressbar
 
     def __init__(self, master, id_):
@@ -214,7 +213,7 @@ class Progressbar(PseudoWidget, ttk.Progressbar):
 class Radiobutton(PseudoWidget, ttk.Radiobutton):
     display_name = 'Radiobutton'
     group = Groups.input
-    icon = get_icon("radiobutton")
+    icon = "radiobutton"
     impl = ttk.Radiobutton
 
     def __init__(self, master, id_):
@@ -230,7 +229,7 @@ class Radiobutton(PseudoWidget, ttk.Radiobutton):
 class Scale(PseudoWidget, ttk.Scale):
     display_name = 'Scale'
     group = Groups.input
-    icon = get_icon("scale")
+    icon = "scale"
     impl = ttk.Scale
 
     def __init__(self, master, id_):
@@ -244,7 +243,7 @@ class Scale(PseudoWidget, ttk.Scale):
 class Scrollbar(PseudoWidget, ttk.Scrollbar):
     display_name = 'Scrollbar'
     group = Groups.widget
-    icon = get_icon("play")
+    icon = "play"
     impl = ttk.Scrollbar
 
     def __init__(self, master, id_):
@@ -257,7 +256,7 @@ class Scrollbar(PseudoWidget, ttk.Scrollbar):
 class Separator(PseudoWidget, ttk.Separator):
     display_name = 'Separator'
     group = Groups.widget
-    icon = get_icon("play")
+    icon = "play"
     impl = ttk.Separator
 
     def __init__(self, master, id_):
@@ -269,7 +268,7 @@ class Separator(PseudoWidget, ttk.Separator):
 class Sizegrip(PseudoWidget, ttk.Sizegrip):
     display_name = 'Sizegrip'
     group = Groups.container
-    icon = get_icon("sizegrip")
+    icon = "sizegrip"
     impl = ttk.Sizegrip
 
     def __init__(self, master, id_):
@@ -281,7 +280,7 @@ class Sizegrip(PseudoWidget, ttk.Sizegrip):
 class Spinbox(PseudoWidget, ttk.Spinbox):
     display_name = 'Spinbox'
     group = Groups.input
-    icon = get_icon("play")
+    icon = "play"
     impl = ttk.Spinbox
 
     def __init__(self, master, id_):
@@ -297,7 +296,7 @@ class Spinbox(PseudoWidget, ttk.Spinbox):
 class Treeview(PseudoWidget, ttk.Treeview):
     display_name = 'Treeview'
     group = Groups.container
-    icon = get_icon("treeview")
+    icon = "treeview"
     impl = ttk.Treeview
 
     def __init__(self, master, id_):

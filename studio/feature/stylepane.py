@@ -27,7 +27,8 @@ class StylePane(BaseFeature):
         self.body = ScrolledFrame(self, **self.style.dark)
         self.body.pack(side="top", fill="both", expand=True)
 
-        self._toggle_btn = Button(self._header, text=get_icon("chevron_down"), **self.style.dark_button, width=25,
+        self._toggle_btn = Button(self._header, image=get_icon_image("chevron_down", 15, 15), **self.style.dark_button,
+                                  width=25,
                                   height=25)
         self._toggle_btn.pack(side="right")
         self._toggle_btn.on_click(self._toggle)

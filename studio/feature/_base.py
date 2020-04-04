@@ -1,6 +1,6 @@
 from tkinter import StringVar, BooleanVar
 
-from hoverset.ui.icons import get_icon, get_icon_image
+from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import Frame, Label, Button, MenuButton
 from studio.ui.geometry import absolute_position
 from studio.ui.widgets import SearchBar
@@ -30,10 +30,12 @@ class BaseFeature(Frame):
         self._header.pack_propagate(0)
         self._header.allow_drag = True
         Label(self._header, **self.style.dark_text_passive, text=self.name).pack(side="left")
-        self._min = Button(self._header, text=get_icon("close"), **self.style.dark_button, width=25, height=25)
+        self._min = Button(self._header, image=get_icon_image("close", 15, 15), **self.style.dark_button, width=25,
+                           height=25)
         self._min.pack(side="right")
         self._min.on_click(self.minimize)
-        self._pref = MenuButton(self._header, text=get_icon("settings"), **self.style.dark_button)
+        self._pref = MenuButton(self._header, **self.style.dark_button)
+        self._pref.configure(image=get_icon_image("settings", 15, 15))
         self._pref.pack(side="right")
         self._search_bar = SearchBar(self._header, height=20)
         self._search_bar.on_query_clear(self.on_search_clear)

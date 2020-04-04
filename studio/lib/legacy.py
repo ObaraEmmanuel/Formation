@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import *
 
-from hoverset.ui.icons import get_icon
 from studio.lib.menus import menu_options
 from studio.lib.pseudo import PseudoWidget, Groups, Container, LabelFrameCorrection, PanedContainer
 
@@ -9,7 +8,7 @@ from studio.lib.pseudo import PseudoWidget, Groups, Container, LabelFrameCorrect
 class Button(PseudoWidget, tk.Button):
     display_name = 'Button'
     group = Groups.widget
-    icon = get_icon("button")
+    icon = "button"
     impl = tk.Button
 
     def __init__(self, master, id_):
@@ -24,7 +23,7 @@ class Button(PseudoWidget, tk.Button):
 class Canvas(PseudoWidget, tk.Canvas):
     display_name = 'Canvas'
     group = Groups.container
-    icon = get_icon("paint")
+    icon = "paint"
     impl = tk.Canvas
 
     def __init__(self, master, id_):
@@ -39,7 +38,7 @@ class Canvas(PseudoWidget, tk.Canvas):
 class Checkbutton(PseudoWidget, tk.Checkbutton):
     display_name = 'Checkbutton'
     group = Groups.widget
-    icon = get_icon("checkbutton")
+    icon = "checkbutton"
     impl = tk.Checkbutton
 
     def __init__(self, master, id_):
@@ -54,7 +53,7 @@ class Checkbutton(PseudoWidget, tk.Checkbutton):
 class Entry(PseudoWidget, tk.Entry):
     display_name = 'Entry'
     group = Groups.input
-    icon = get_icon("entry")
+    icon = "entry"
     impl = tk.Entry
 
     def __init__(self, master, id_):
@@ -71,7 +70,7 @@ class Entry(PseudoWidget, tk.Entry):
 class Frame(Container, tk.Frame):
     display_name = 'Frame'
     group = Groups.container
-    icon = get_icon("frame")
+    icon = "frame"
     impl = tk.Frame
 
     def __init__(self, master, id_):
@@ -83,7 +82,7 @@ class Frame(Container, tk.Frame):
 class Label(PseudoWidget, tk.Label):
     display_name = 'Label'
     group = Groups.input
-    icon = get_icon("text")
+    icon = "text"
     impl = tk.Label
 
     def __init__(self, master, id_):
@@ -98,7 +97,7 @@ class Label(PseudoWidget, tk.Label):
 class LabelFrame(LabelFrameCorrection, Container, tk.LabelFrame):
     display_name = 'LabelFrame'
     group = Groups.container
-    icon = get_icon("labelframe")
+    icon = "labelframe"
     impl = tk.LabelFrame
 
     def __init__(self, master, id_):
@@ -113,7 +112,7 @@ class LabelFrame(LabelFrameCorrection, Container, tk.LabelFrame):
 class Listbox(PseudoWidget, tk.Listbox):
     display_name = 'Listbox'
     group = Groups.container
-    icon = get_icon("listbox")
+    icon = "listbox"
     impl = tk.Listbox
 
     def __init__(self, master, id_):
@@ -125,7 +124,7 @@ class Listbox(PseudoWidget, tk.Listbox):
 class Menu(PseudoWidget, tk.Menu):
     display_name = 'Menu'
     group = Groups.container
-    icon = get_icon("menu")
+    icon = "menu"
     impl = tk.Menu
 
     def __init__(self, master, id_):
@@ -137,7 +136,7 @@ class Menu(PseudoWidget, tk.Menu):
 class Menubutton(PseudoWidget, tk.Menubutton):
     display_name = 'Menubutton'
     group = Groups.widget
-    icon = get_icon("menubutton")
+    icon = "menubutton"
     impl = tk.Menubutton
 
     def __init__(self, master, id_):
@@ -155,7 +154,7 @@ class Menubutton(PseudoWidget, tk.Menubutton):
 class Message(PseudoWidget, tk.Message):
     display_name = 'Message'
     group = Groups.input
-    icon = get_icon("multiline_text")
+    icon = "multiline_text"
     impl = tk.Message
 
     def __init__(self, master, id_):
@@ -170,7 +169,7 @@ class Message(PseudoWidget, tk.Message):
 class PanedWindow(PanedContainer, tk.PanedWindow):
     display_name = 'PanedWindow'
     group = Groups.container
-    icon = get_icon("flip_horizontal")
+    icon = "flip_horizontal"
     impl = tk.PanedWindow
 
     def __init__(self, master, id_):
@@ -182,7 +181,7 @@ class PanedWindow(PanedContainer, tk.PanedWindow):
 class Radiobutton(PseudoWidget, tk.Radiobutton):
     display_name = 'Radiobutton'
     group = Groups.widget
-    icon = get_icon("radiobutton")
+    icon = "radiobutton"
     impl = tk.Radiobutton
 
     def __init__(self, master, id_):
@@ -197,7 +196,7 @@ class Radiobutton(PseudoWidget, tk.Radiobutton):
 class Scale(PseudoWidget, tk.Scale):
     display_name = 'Scale'
     group = Groups.input
-    icon = get_icon("scale")
+    icon = "scale"
     impl = tk.Scale
 
     def __init__(self, master, id_):
@@ -211,7 +210,7 @@ class Scale(PseudoWidget, tk.Scale):
 class Scrollbar(PseudoWidget, tk.Scrollbar):
     display_name = 'Scrollbar'
     group = Groups.widget
-    icon = get_icon("play")
+    icon = "play"
     impl = tk.Scrollbar
 
     def __init__(self, master, id_):
@@ -223,7 +222,7 @@ class Scrollbar(PseudoWidget, tk.Scrollbar):
 class Spinbox(PseudoWidget, tk.Spinbox):
     display_name = 'Spinbox'
     group = Groups.input
-    icon = get_icon("entry")
+    icon = "entry"
     impl = tk.Spinbox
 
     def __init__(self, master, id_):
@@ -240,7 +239,7 @@ class Spinbox(PseudoWidget, tk.Spinbox):
 class Text(PseudoWidget, tk.Text):
     display_name = 'Text'
     group = Groups.input
-    icon = get_icon("text")
+    icon = "text"
     impl = tk.Text
 
     def __init__(self, master, id_):
@@ -255,7 +254,7 @@ class Text(PseudoWidget, tk.Text):
 class Toplevel(PseudoWidget, tk.Toplevel):
     display_name = 'Toplevel'
     group = Groups.container
-    icon = get_icon("labelframe")
+    icon = "labelframe"
     impl = tk.Toplevel
 
     def __init__(self, master, id_):
