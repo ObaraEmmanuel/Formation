@@ -9,7 +9,7 @@ import logging
 
 from PIL import Image, ImageTk
 
-from hoverset.ui.icons import get_icon, get_icon_image
+from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Button
 from studio.feature._base import BaseFeature
 from studio.ui.editors import StyleItem
@@ -174,7 +174,7 @@ class StylePane(BaseFeature):
         for frame in self.frames:
             frame.expand()
         self._expanded = True
-        self._toggle_btn.config(text=get_icon("chevron_up"))
+        self._toggle_btn.config(image=get_icon_image("chevron_up", 15, 15))
 
     def clear_all(self):
         for frame in self.frames:
@@ -184,7 +184,7 @@ class StylePane(BaseFeature):
         for frame in self.frames:
             frame.collapse()
         self._expanded = False
-        self._toggle_btn.config(text=get_icon("chevron_down"))
+        self._toggle_btn.config(image=get_icon_image("chevron_down", 15, 15))
 
     def _toggle(self, *_):
         if not self._expanded:

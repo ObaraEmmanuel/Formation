@@ -1,4 +1,4 @@
-from hoverset.ui.icons import get_icon_image, get_icon
+from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import Button
 from studio.feature._base import BaseFeature
 from studio.lib.pseudo import PseudoWidget
@@ -51,12 +51,12 @@ class ComponentTree(BaseFeature):
 
     def _expand(self):
         self._tree.expand_all()
-        self._toggle_btn.config(text=get_icon("chevron_up"))
+        self._toggle_btn.config(image=get_icon_image("chevron_up", 15, 15))
         self._expanded = True
 
     def _collapse(self):
         self._tree.collapse_all()
-        self._toggle_btn.config(text=get_icon("chevron_down"))
+        self._toggle_btn.config(image=get_icon_image("chevron_down", 15, 15))
         self._expanded = False
 
     def _toggle(self, *_):
