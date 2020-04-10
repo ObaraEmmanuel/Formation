@@ -118,17 +118,31 @@ class MenuTree(MalleableTree):
             self._menu.entryconfigure(self.get_index(), menu=menu)
 
         def insert(self, index=None, *nodes):
-            properties = {node: node.get_altered_options() for node in nodes}
-            super().insert(index, *nodes)
+            properties = [node.get_altered_options() for node in nodes]
+            # get the nodes that have actually been inserted whether cloned or otherwise
+            nodes = super().insert(index, *nodes)
             index = len(self.nodes) if index is None else index
-            for node in nodes:
+            for i, node in enumerate(nodes):
                 node._menu = self.sub_menu
                 try:
-                    self.sub_menu.insert(index, node.type, **properties[node])
+                    self.sub_menu.insert(index, node.type, **properties[i])
                 except tk.TclError:
                     breakpoint()
                 finally:
                     index += 1
+
+        def clone(self, parent):
+            self.configuration['index'] = self.get_index()  # Index config should be updated first
+            self.configuration['menu'] = self._menu
+            self.configuration['sub_menu'] = self.sub_menu
+            node = self.__class__(parent, **self.configuration)
+            node.parent_node = self.parent_node
+            node.label = self.label
+            node._sub_menu = self.sub_menu
+            for sub_node in self.nodes:
+                sub_node_clone = sub_node.clone(parent)
+                node.add(sub_node_clone)
+            return node
 
     def __init__(self, master, widget, menu):
         super().__init__(master)
@@ -140,16 +154,17 @@ class MenuTree(MalleableTree):
         return self.add_as_node(menu=self._menu, **kw)
 
     def remove(self, node):
-        node._menu.delete(node.get_index())
-        super().remove(node)
+        if node in self.nodes:
+            node._menu.delete(node.get_index())
+            super().remove(node)
 
     def insert(self, index=None, *nodes):
-        properties = {node: node.get_altered_options() for node in nodes}
-        super().insert(index, *nodes)
+        properties = [node.get_altered_options() for node in nodes]
+        nodes = super().insert(index, *nodes)
         index = len(self.nodes) if index is None else index
-        for node in nodes:
+        for i, node in enumerate(nodes):
             node._menu = self._menu
-            self._menu.insert(index, node.type, **properties[node])
+            self._menu.insert(index, node.type, **properties[i])
             index += 1
 
 

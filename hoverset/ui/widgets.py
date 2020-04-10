@@ -1515,6 +1515,8 @@ class TreeView(ScrolledFrame):
             self._name = config.get("name", "unknown")
             self.strip = f = TreeView.Strip(self, **self.style.dark, takefocus=True)
             f.pack(side="top", fill="x")
+            self._spacer = Frame(f, **self.style.dark, width=0)
+            self._spacer.pack(side="left")
             self.expander = Label(f, **self.style.dark_text, text=" " * 4)
             self.expander.pack(side="left")
             self.expander.bind("<Button-1>", self.toggle)
@@ -1531,9 +1533,21 @@ class TreeView(ScrolledFrame):
             self.body.pack(side="top", fill="x")
             self._expanded = False
             self._selected = False
-            self.depth = 0  # Will be set on addition to a node or tree so this value is just placeholder
+            self._depth = 0  # Will be set on addition to a node or tree so this value is just placeholder
             self.parent_node = None
             self.nodes = []
+
+        @property
+        def depth(self):
+            return self._depth
+
+        @depth.setter
+        def depth(self, value):
+            self._depth = value
+            self._spacer["width"] = 14 * (value - 1) + 1  # width cannot be set to completely 0 so add 1 just in case
+            # Update depth even for the children
+            for node in self.nodes:
+                node.depth = self._depth + 1
 
         @property
         def name(self):
@@ -1568,7 +1582,12 @@ class TreeView(ScrolledFrame):
             self.tk_focusNext().select(event)
 
         def select(self, event=None, silently=False):
-            if event and event.state & EventMask.CONTROL:
+            if event and event.state == '??':
+                # when the event is as a result of focus change using the tab key the event.state attribute
+                # is a string equal to '??'. We therefore perform a basic selection
+                self.tree.select(self)
+                return
+            elif event and event.state & EventMask.CONTROL:
                 self.tree.toggle_from_selection(self)
                 return
             elif event:
@@ -1602,7 +1621,7 @@ class TreeView(ScrolledFrame):
             node.depth = self.depth + 1
             node.lift(self.body)
             if self._expanded:
-                node.pack(in_=self.body, fill="x", side="top", padx=18, pady=self.PADDING)
+                node.pack(in_=self.body, fill="x", side="top", pady=self.PADDING)
             else:
                 self._set_expander(self.COLLAPSED_ICON)
 
@@ -1692,7 +1711,7 @@ class TreeView(ScrolledFrame):
                 return
             self.pack_propagate(True)
             for node in self.nodes:
-                node.pack(in_=self.body, fill="x", side="top", padx=18, pady=self.PADDING)
+                node.pack(in_=self.body, fill="x", side="top", pady=self.PADDING)
             self._set_expander(self.EXPANDED_ICON)
             self._expanded = True
 
@@ -1844,8 +1863,9 @@ class TreeView(ScrolledFrame):
         self._multi_select = flag
 
     def remove(self, node):
-        self.nodes.remove(node)
-        node.pack_forget()
+        if node in self.nodes:
+            self.nodes.remove(node)
+            node.pack_forget()
 
     def redraw(self):
         for node in self.nodes:

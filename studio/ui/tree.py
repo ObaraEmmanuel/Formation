@@ -23,6 +23,7 @@ class MalleableTree(TreeView):
     drag_highlight = None  # The widget that currently contains the rectangular highlight
     drag_select = None  # The node where all events go when button is released ending drag
     drag_display_limit = 3  # The maximum number of items the drag popup can display
+    drag_instance = None  # The current tree that is performing a drag
 
     class Node(TreeView.Node):
         PADDING = 0
@@ -38,6 +39,7 @@ class MalleableTree(TreeView):
             self.strip.config(**self.style.dark_highlight)  # The highlight on a normal day
             self._on_structure_change = None
             self.editable = False
+            self.configuration = config
 
         def on_structure_change(self, callback, *args, **kwargs):
             self._on_structure_change = lambda: callback(*args, **kwargs)
@@ -56,6 +58,7 @@ class MalleableTree(TreeView):
                     self.tree.selected_count():
                 MalleableTree.drag_popup = DragWindow(self.window).set_position(event.x_root, event.y_root + 20)
                 MalleableTree.drag_components = self.tree._selected
+                MalleableTree.drag_instance = self.tree
                 count = 0
                 for component in MalleableTree.drag_components:
                     # Display all items upto the drag_display_limit
@@ -73,7 +76,7 @@ class MalleableTree(TreeView):
                 MalleableTree.drag_active = True
             elif MalleableTree.drag_active:
                 widget = self.winfo_containing(event.x_root, event.y_root)
-                # The widget can be a child to Node and not necessarily a node but we need a node so
+                # The widget can be a child to Node but not necessarily a node but we need a node so
                 # Resolve the node that is immediately under the cursor position by iteratively getting widget's parent
                 # For the sake of performance not more than 4 iterations
                 limit = 4
@@ -85,11 +88,16 @@ class MalleableTree(TreeView):
                     limit -= 1
                     if not limit:
                         break
+                tree = self.event_first(event, self, MalleableTree)
+
                 if isinstance(widget, MalleableTree.Node):
                     # We can only react if we have resolved the widget to a Node object
                     widget.react(event)
                     # Store the currently reacting widget so we can apply actions to it on ButtonRelease/ drag_end
                     MalleableTree.drag_select = widget
+                elif isinstance(tree, MalleableTree):
+                    tree.react()
+                    MalleableTree.drag_select = tree
                 else:
                     # No viable node found on resolution so clear all highlights and indicators
                     MalleableTree.drag_select = None
@@ -98,7 +106,7 @@ class MalleableTree(TreeView):
 
         def end_drag(self, event):
             # Dragging is complete so we make the necessary insertions and repositions
-            node: MalleableTree.Node = MalleableTree.drag_select
+            node = MalleableTree.drag_select
             if MalleableTree.drag_active:
                 if MalleableTree.drag_select is not None:
                     action = node.react(event)
@@ -117,6 +125,7 @@ class MalleableTree(TreeView):
                 MalleableTree.drag_popup = None
                 MalleableTree.drag_active = False
                 MalleableTree.drag_components = []
+                MalleableTree.drag_instance = None
                 self.clear_indicators()
                 MalleableTree.drag_highlight = None
 
@@ -151,7 +160,7 @@ class MalleableTree(TreeView):
 
         def clear_highlight(self):
             # Remove the rectangular highlight around the node
-            self.strip.config(**self.style.dark_highlight)
+            self.strip.configure(**self.style.dark_highlight)
 
         def clear_indicators(self):
             # Remove any remaining node highlights and edge indicators
@@ -167,9 +176,30 @@ class MalleableTree(TreeView):
         def is_terminal(self, value):
             self._is_terminal = value
 
+        def insert(self, index=None, *nodes):
+            # if dragging to new tree copy to new location
+            if MalleableTree.drag_instance != self.tree:
+                # clone to new parent tree
+                # the node will still be retained in the former tree
+                nodes = [node.clone(self.tree) for node in nodes]
+                self.tree.edge_indicator.clear()
+            super().insert(index, *nodes)
+            return nodes
+
+        def clone(self, parent):
+            #  Generic cloning that replicates node using config provided on creation
+            #  Override to define attributes that may have changed
+            node = self.__class__(parent, **self.configuration)
+            node.parent_node = self.parent_node
+            for sub_node in self.nodes:
+                sub_node_clone = sub_node.clone(parent)
+                node.insert(None, sub_node_clone)
+            return node
+
     def __init__(self, master, **config):
         super().__init__(master, **config)
         self._on_structure_change = None
+        self.is_terminal = False
         self.edge_indicator = EdgeIndicator(self)  # A line that shows where an insertion can occur
 
     def on_structure_change(self, callback, *args, **kwargs):
@@ -178,3 +208,27 @@ class MalleableTree(TreeView):
     def _structure_changed(self):
         if self._on_structure_change:
             self._on_structure_change()
+
+    def insert(self, index=None, *nodes):
+        # if dragging to new tree clone nodes to new location
+        if MalleableTree.drag_instance != self:
+            # clone to new parent tree
+            # the node will still be retained in the former tree
+            nodes = [node.clone(self) for node in nodes]
+            self.edge_indicator.clear()
+        super().insert(index, *nodes)
+        # Return the nodes just in case they have been cloned and new references are required
+        return nodes
+
+    def react(self, *_):
+        self.highlight()
+        # always perform a direct insert hence return 1
+        return 1
+
+    def highlight(self):
+        MalleableTree.drag_highlight = self
+        self._canvas.config(**self.style.bright_highlight)
+
+    def clear_highlight(self):
+        # Remove the rectangular highlight around the node
+        self._canvas.configure(**self.style.dark_highlight)
