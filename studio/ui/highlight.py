@@ -24,9 +24,10 @@ class HighLight:
     """
     OUTLINE = 2
     SIZER_LENGTH = 6
+    MIN_SIZE = 2
 
     def __init__(self, parent):
-        self.parent = parent
+        self.parent = self.designer = parent
         self._resize_func = None
         self.bounds = (0, 0, parent.width, parent.height)
         self.pos_on_click = None
@@ -180,7 +181,8 @@ class HighLight:
         :return:
         """
         for elem in self._elements:
-            elem.place_forget()
+            # elem.place_forget()
+            self.designer.forget_child(elem)
 
     def redraw(self, bound, radius=None):
         # Redraw the highlight in the new bounding box
@@ -206,60 +208,60 @@ class HighLight:
     def ne_resize(self, event=None):
         # perform resize in the north east direction
         x1, *_, y2 = self.bbox_on_click
-        x2 = max(min(self.bounds[2], event.x), x1 + 20)
-        y1 = min(max(self.bounds[1], event.y), y2 - 20)
+        x2 = max(min(self.bounds[2], event.x), x1 + self.MIN_SIZE)
+        y1 = min(max(self.bounds[1], event.y), y2 - self.MIN_SIZE)
         self.redraw((x1, y1, x2, y2))
         self._on_resize(self._shrink((x1, y1, x2, y2)))
 
     def n_resize(self, event=None):
         # perform resize in the north direction
         x1, _, x2, y2 = self.bbox_on_click
-        y1 = min(max(self.bounds[1], event.y), y2 - 20)
+        y1 = min(max(self.bounds[1], event.y), y2 - self.MIN_SIZE)
         self.redraw((x1, y1, x2, y2))
         self._on_resize(self._shrink((x1, y1, x2, y2)))
 
     def e_resize(self, event=None):
         # perform resize in the east direction
         x1, y1, _, y2 = self.bbox_on_click
-        x2 = max(min(self.bounds[2], event.x), x1 + 20)
+        x2 = max(min(self.bounds[2], event.x), x1 + self.MIN_SIZE)
         self.redraw((x1, y1, x2, y2))
         self._on_resize(self._shrink((x1, y1, x2, y2)))
 
     def nw_resize(self, event=None):
         # perform resize in the north west direction
         *_, x2, y2 = self.bbox_on_click
-        x1 = min(max(self.bounds[0], event.x), x2 - 20)
-        y1 = min(max(self.bounds[1], event.y), y2 - 20)
+        x1 = min(max(self.bounds[0], event.x), x2 - self.MIN_SIZE)
+        y1 = min(max(self.bounds[1], event.y), y2 - self.MIN_SIZE)
         self.redraw((x1, y1, x2, y2))
         self._on_resize(self._shrink((x1, y1, x2, y2)))
 
     def sw_resize(self, event=None):
         # perform resize in the south west direction
         _, y1, x2, _ = self.bbox_on_click
-        x1 = min(max(self.bounds[0], event.x), x2 - 20)
-        y2 = max(min(self.bounds[3], event.y), y1 + 20)
+        x1 = min(max(self.bounds[0], event.x), x2 - self.MIN_SIZE)
+        y2 = max(min(self.bounds[3], event.y), y1 + self.MIN_SIZE)
         self.redraw((x1, y1, x2, y2))
         self._on_resize(self._shrink((x1, y1, x2, y2)))
 
     def s_resize(self, event=None):
         # perform resize in the south direction
         x1, y1, x2, _ = self.bbox_on_click
-        y2 = max(min(self.bounds[3], event.y), y1 + 20)
+        y2 = max(min(self.bounds[3], event.y), y1 + self.MIN_SIZE)
         self.redraw((x1, y1, x2, y2))
         self._on_resize(self._shrink((x1, y1, x2, y2)))
 
     def w_resize(self, event=None):
         # perform resize in the west direction
         _, y1, x2, y2 = self.bbox_on_click
-        x1 = min(max(self.bounds[0], event.x), x2 - 20)
+        x1 = min(max(self.bounds[0], event.x), x2 - self.MIN_SIZE)
         self.redraw((x1, y1, x2, y2))
         self._on_resize(self._shrink((x1, y1, x2, y2)))
 
     def se_resize(self, event=None):
         # perform resize in the south east direction
         x1, y1, *_ = self.bbox_on_click
-        x2 = max(min(self.bounds[2], event.x), x1 + 20)
-        y2 = max(min(self.bounds[3], event.y), y1 + 20)
+        x2 = max(min(self.bounds[2], event.x), x1 + self.MIN_SIZE)
+        y2 = max(min(self.bounds[3], event.y), y1 + self.MIN_SIZE)
         self.redraw((x1, y1, x2, y2))
         self._on_resize(self._shrink((x1, y1, x2, y2)))
 
