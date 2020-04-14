@@ -118,12 +118,14 @@ class MenuTree(MalleableTree):
             self._menu.entryconfigure(self.get_index(), menu=menu)
 
         def insert(self, index=None, *nodes):
+            # create a backup of node properties in case cloning takes place
             properties = [node.get_altered_options() for node in nodes]
             # get the nodes that have actually been inserted whether cloned or otherwise
             nodes = super().insert(index, *nodes)
             index = len(self.nodes) if index is None else index
             for i, node in enumerate(nodes):
                 node._menu = self.sub_menu
+                # apply node properties from backup
                 try:
                     self.sub_menu.insert(index, node.type, **properties[i])
                 except tk.TclError:
@@ -132,14 +134,17 @@ class MenuTree(MalleableTree):
                     index += 1
 
         def clone(self, parent):
+            # This values may have changed so update them
             self.configuration['index'] = self.get_index()  # Index config should be updated first
             self.configuration['menu'] = self._menu
             self.configuration['sub_menu'] = self.sub_menu
+            # clone using updated config
             node = self.__class__(parent, **self.configuration)
             node.parent_node = self.parent_node
             node.label = self.label
             node._sub_menu = self.sub_menu
             for sub_node in self.nodes:
+                # if node is a parent, clone sub-nodes recursively
                 sub_node_clone = sub_node.clone(parent)
                 node.add(sub_node_clone)
             return node
@@ -174,9 +179,13 @@ class MenuEditor(Window):
     # TODO Extend menu editor to other menu widgets
     # TODO Handle widget change from the studio main control
     _MESSAGE_EDITOR_EMPTY = "No item selected"
+    _active_editors = {}
 
     def __init__(self, master, widget, menu=None):
         super().__init__(master)
+        self._widget = widget
+        MenuEditor._active_editors[widget] = self
+        self.on_close(self.release)
         self.transient(master)
         self.title(f'Edit menu for {widget.id}')
         if not menu:
@@ -185,7 +194,6 @@ class MenuEditor(Window):
         else:
             menu = self.nametowidget(menu)
         self._base_menu = menu
-        self._widget = widget
         self.config(**self.style.dark)
         self._tool_bar = Frame(self, **self.style.dark, **self.style.dark_highlight_dim, height=30)
         self._tool_bar.pack(side="top", fill="x")
@@ -243,7 +251,35 @@ class MenuEditor(Window):
         self.focus_set()
         self._load_all_properties()
 
+    @classmethod
+    def acquire(cls, master, widget, menu=None):
+        """
+        To avoid opening multiple editors for the same widget use this
+        constructor. It will either create an editor for the widget if none exists or bring
+        an existing editor to focus.
+        :param master: tk toplevel window
+        :param widget: menu supporting widget
+        :param menu: the widgets menu
+        :return: a MenuEditor instance
+        """
+        if widget in cls._active_editors:
+            cls._active_editors[widget].lift()
+            cls._active_editors[widget].focus_set()
+            return cls._active_editors[widget]
+        return cls(master, widget, menu)
+
+    def release(self):
+        """
+        Release an existing MenuEditor. This is called when destroying the
+        MenuEditor to remove it from the active editors map allowing a new one to
+        be spawned next time
+        :return: None
+        """
+        MenuEditor._active_editors.pop(self._widget)
+        self.destroy()
+
     def _show_editor_message(self, message):
+        # Show an overlay message
         self._editor_pane_cover.config(text=message)
         self._editor_pane_cover.place(x=0, y=0, relwidth=1, relheight=1)
 
@@ -257,14 +293,18 @@ class MenuEditor(Window):
         item.pack_forget()
 
     def _add_item(self, item):
+        # add a menu item style editor
         self._style_item_ref[item.name] = item
         self._show(item)
 
     def _add_menu_item(self, item):
+        # add a parent menu style editor
         self._menu_style_ref[item.name] = item
         self._show(item)
 
     def _load_all_properties(self):
+        # Generate all style editors that may be needed by any of the types of menu items
+        # This needs to be called only once
         ref = dict(**PROPERTY_TABLE, **_MENU_SPECIFIC_DEFINITION)
         for prop in _ALL_PROPERTIES:
             if not ref.get(prop):
@@ -278,8 +318,10 @@ class MenuEditor(Window):
             self._add_menu_item(StyleItem(self._menu_styles, definition, self._on_menu_item_change))
 
     def _on_item_change(self, prop, value):
+        # Called when the style of a menu item changes
         for node in self._tree.get():
             node._menu.entryconfigure(node.get_index(), **{prop: value})
+            # For changes in label we need to change the label on the node as well node
             node.label = node._menu.entrycget(node.get_index(), 'label')
 
     def _on_menu_item_change(self, prop, value):
@@ -289,16 +331,24 @@ class MenuEditor(Window):
             menu[prop] = value
 
     def _refresh_styles(self):
-        nodes = self._tree.get()
+        # TODO Fix false value change when releasing ctrl key during multi-selecting
+        # called when structure or selection changes
+        nodes = self._tree.get()  # get current selection
         if not nodes:
+            # if no nodes are currently selected display message
             self._show_editor_message(self._MESSAGE_EDITOR_EMPTY)
             return
-        self._clear_editor_message()
+        self._clear_editor_message()  # remove any messages
+        # get intersection of styles for currently selected nodes
+        # these will be the styles common to all the nodes selected, use sets for easy analysis
         styles = set(nodes[0].get_options().keys())
         for node in nodes:
             styles &= set(node.get_options().keys())
+        # populate editors with values of the last item
+        # TODO this is not the best approach, no value should be set for an option if it is not the same for all nodes
         node = nodes[-1]
         for style_item in self._style_item_ref.values():
+            # styles for menu items
             if style_item.name in styles:
                 self._show(style_item)
                 style_item.set(node.get_option(style_item.name))
@@ -306,13 +356,14 @@ class MenuEditor(Window):
                 self._hide(style_item)
 
         for style_item in self._menu_style_ref.values():
+            # styles for the menu
             style_item.set(node._menu.cget(style_item.name))
 
     def _preview(self, *_):
         self._widget.event_generate("<Button-1>")
 
     def _delete(self, *_):
-        # create a copy since the array may change during iteration
+        # create a copy since the list may change during iteration
         selected = list(self._tree.get())
         for node in selected:
             self._tree.deselect(node)
@@ -334,25 +385,37 @@ class MenuEditor(Window):
         node.add_menu_item(type=_type, label=label, index=tk.END)
 
     def load_menu(self, menu, node):
+        # if the widget has a menu we need to populate the tree when the editor is created
+        # we do this recursively to be able to capture even cascades
+        # we cannot directly access all items in a menu or its size
+        # but we can get the index of the last item and use that to get size and hence viable indexes
         size = menu.index(tk.END)
         if size is None:
+            # menu is empty
             return
         for i in range(size + 1):
             if menu.type(i) == tk.CASCADE:
                 label = menu.entrycget(i, "label")
+                # get the cascades sub-menu and load it recursively
                 sub = self.nametowidget(menu.entrycget(i, "menu"))
                 item_node = node.add_menu_item(type=menu.type(i), label=label, index=i, sub_menu=sub)
                 self.load_menu(item_node._sub_menu, item_node)
             elif menu.type(i) == tk.SEPARATOR:
-                # Does not need a label
-                node.add_menu_item(type=menu.type(i), index=i)
+                # Does not need a label, set it to the default 'separator'
+                node.add_menu_item(type=menu.type(i), index=i, label='separator')
             elif menu.type(i) != 'tearoff':
-                # skip any tear_off item since they cannot be manipulated
+                # skip any tear_off item since they cannot be directly manipulated
                 label = menu.entrycget(i, "label")
                 node.add_menu_item(type=menu.type(i), label=label, index=i)
 
 
 def menu_options(widget):
+    """
+    Get the menu option for accessing the editor for a widget
+    :param widget: widget with menu editor option
+    :return: Hoverset menu notation
+    """
     return (
-        ("command", "Edit menu", None, lambda: MenuEditor(widget.winfo_toplevel(), widget, widget.cget("menu")), {}),
+        ("command", "Edit menu", None,
+         lambda: MenuEditor.acquire(widget.winfo_toplevel(), widget, widget.cget("menu")), {}),
     )
