@@ -288,6 +288,45 @@ class CenterWindowMixin:
         self.center()
 
 
+class _Tooltip(tix.Toplevel):
+    """
+    Tooltip window class. It is not meant to be used directly; use the tooltip methods instead
+    to create tooltips
+    """
+    Y_CLEARANCE = 10
+
+    def __init__(self, style: StyleDelegator, xy: tuple, render, master=None):
+        """
+        Create a tooltip window
+        :param style: A style delegator object to allow use of hoverset widgets inside the window
+        :param xy: a tuple representing the current cursor position
+        :param render: A function taking accepting one argument (the tooltip window)
+        which draws content into the tooltip window
+        :param master: The parent window for the tooltip
+        """
+        super().__init__(master)
+        self.style = style
+        self.overrideredirect(True)
+        self.lift(master)
+        render(self)
+        self.config(**style.bright_highlight)
+        self._position(xy)  # Determine the best position for the window given cursor coordinates xy
+
+    def _position(self, xy):
+        self.update_idletasks()  # refresh to get the updated position values
+        # un-box position values
+        w, h = self.winfo_width(), self.winfo_height()
+        x, y = xy
+        # center the window horizontally about the x, y position
+        x -= w // 2
+        # display the tooltip above or below the x, y position depending on which side has enough space
+        y = y - self.Y_CLEARANCE - h if y - self.Y_CLEARANCE - h > 0 else y + self.Y_CLEARANCE
+        # adjust the horizontal window position to fit within screen width
+        x -= max(0, (x + w) - self.winfo_screenwidth())
+        x = max(0, x)
+        self.geometry('+{}+{}'.format(x, y))
+
+
 # noinspection PyTypeChecker
 class Widget:
     """
@@ -306,6 +345,11 @@ class Widget:
         """
         self._allow_drag = False
         self._drag_setup = False
+        self._tooltip_text = None
+        self._tooltip_ev = None
+        self._tooltip_win = None
+        self._tooltip_bound = False
+        self._tooltip_delay = 1500
 
     @property
     def allow_drag(self):
@@ -484,6 +528,55 @@ class Widget:
                 to.configure(**{key: from_[key]})
             except tk.TclError:
                 logging.debug("Attempted to set readonly option {opt}".format(opt=key))
+
+    def tooltip(self, text, delay=1500):
+        """
+        Set the tooltip text for a widget
+        :param text: Tooltip text to be displayed
+        :param delay: Amount of time in milliseconds it takes for the tooltip to appear
+        :return: None
+        """
+        if not self._tooltip_bound:
+            # if tooltip events for this window have not been bound, setup the events
+            self._setup_tooltip()
+        self._tooltip_delay = delay
+        self._tooltip_text = text
+
+    def _setup_tooltip(self):
+        # bind enter and exit events to trigger tooltip schedules
+        # set add='+' to avoid possible overwriting of existing similar sequences
+        self.bind('<Enter>', self._schedule_tooltip, add='+')
+        self.bind('<Leave>', self._cancel_tooltip, add='+')
+        self._tooltip_bound = True
+
+    def _schedule_tooltip(self, *_):
+        # cancel any previous scheduling
+        self._cancel_tooltip()
+        self._tooltip_ev = self.after(1500, self._show_tooltip)
+
+    def _cancel_tooltip(self, *_):
+        if self._tooltip_ev is not None:
+            # there is a tooltip schedule active so cancel it
+            self.after_cancel(self._tooltip_ev)
+            self._tooltip_ev = None
+        if self._tooltip_win:
+            # if the cursor exits the widget of interest we need not display the tooltip anymore
+            # if there exist a tooltip window on display close it
+            self._tooltip_win.destroy()
+            self._tooltip_win = None
+
+    def _show_tooltip(self):
+        # display tooltip window and maintain a reference for the purposes of termination
+        self._tooltip_win = _Tooltip(self.style, self.winfo_pointerxy(), self.render_tooltip, self.window)
+
+    def render_tooltip(self, window):
+        """
+        Create a custom tooltip body by overriding this method. The default rendering displays
+        a simple Label with the tooltip text
+        :param window: The tooltip window instance to be used as parent for the custom elements
+        :return: None
+        """
+        tk.Label(window, **self.style.dark_text, text=self._tooltip_text).pack()
 
     @property
     def window(self):
