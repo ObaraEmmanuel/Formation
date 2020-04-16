@@ -1,4 +1,5 @@
 import functools
+import logging
 import tkinter
 from enum import Enum
 
@@ -97,10 +98,16 @@ class PseudoWidget:
             self.__on_context(event)
 
     def get_altered_options(self):
-        options = self.configure()
+        # second last item denotes the default value
+        try:
+            defaults = self.configure()
+            defaults = {x: defaults[x][-2] for x in defaults}
+        except TypeError:
+            logging.error("options failed for", self)
+            return {}
+        options = self.properties
         # Get options whose values are different from their default values
-        # i.e the last two values as returned by the tk configure method are different
-        altered = {opt: self[opt] for opt in options if options[opt][-2] != options[opt][-1]}
+        return {opt: self.get_prop(opt) for opt in options if str(defaults.get(opt)) != str(self.get_prop(opt))}
 
 
 class Container(PseudoWidget):
@@ -184,13 +191,11 @@ class Container(PseudoWidget):
         self.layout_var.set(self.layout_strategy.name)
         self.layout_strategy.initialize(former)
 
-    def configure(self, cnf=None, **kwargs, ):
-        if cnf is None:
-            cnf = {}
+    def configure(self, **kwargs):
         if 'layout' in kwargs:
             self._switch_layout(kwargs['layout'])
             kwargs.pop('layout')
-        return super().configure(cnf, **kwargs)
+        return super().configure(**kwargs)
 
     def _get_layouts_as_menu(self):
         layout_templates = [
@@ -258,6 +263,9 @@ class Container(PseudoWidget):
 
     def copy_layout(self, widget, from_):
         self.layout_strategy.copy_layout(widget, from_)
+
+    def get_altered_options_for(self, widget):
+        return self.layout_strategy.get_altered_options(widget)
 
 
 class TabContainer(Container):

@@ -154,8 +154,8 @@ class BaseLayoutStrategy:
         options = defaultdict(dict)
         definitions = self.definition_for(widget)
         for definition in definitions.values():
-            if definition["value"] != definition.get("default", 0):
-                options[self.manager][definition["name"]] = definition["value"]
+            if definition.get("value") != definition.get("default", 0):
+                options[definition["name"]] = definition["value"]
         return options
 
     def clear_all(self):
@@ -228,6 +228,7 @@ class FrameLayoutStrategy(BaseLayoutStrategy):
         bounds = geometry.relative_bounds(geometry.bounds(widget), widget.layout)
         definition["x"]["value"] = bounds[0]
         definition["y"]["value"] = bounds[1]
+        definition["bordermode"]["value"] = widget.place_info().get("bordermode")
         return definition
 
     def copy_layout(self, widget, from_):
@@ -877,6 +878,7 @@ class NPanedLayoutStrategy(PanedLayoutStrategy):
             "default": 0,
         }
     }
+    name = "NativePanedLayout"
 
     def apply(self, prop, value, widget):
         self.container.pane(widget, **{prop: value})
