@@ -1,4 +1,4 @@
-![Formation logo](./resources/formation.png)
+![Formation logo](./resources/logo.png)
 
 ## Introduction
 
@@ -7,16 +7,16 @@ by providing an intuitive drag drop interface. It allows designers to employ all
 to flexibly achieve various design goals. For ease of implementation the designer itself is written in what we like to
 call contemporary tkinter provided by the [hoverset library](../hoverset). The supported widgets have been organised into families of 
 widgets referred to here as _widget sets_ and include:
-* [Tkinter](https://docs.python.org/3/library/tkinter.html) default (Legacy)
-* [Tkinter ttk](https://docs.python.org/3/library/tkinter.ttk.html) extension (Native implementations of tkinter widgets)
-* [Tix extension](https://docs.python.org/3/library/tkinter.tix.html) set (Incomplete)
-* Hoverset widget set (Incomplete)
+   * [Tkinter](https://docs.python.org/3/library/tkinter.html) default (Legacy)
+   * [Tkinter ttk](https://docs.python.org/3/library/tkinter.ttk.html) extension (Native implementations of tkinter widgets)
+   * [Tix extension](https://docs.python.org/3/library/tkinter.tix.html) set (Incomplete)
+   * Hoverset widget set (Incomplete)
 
 ### Features
 
 * **Drag drop designer**: Formation provides an easy to use drag drop designer. The designer can be expanded to full 
 screen display to allow focus on design. The designer allows widgets to be moved from parent to parent as needed to 
-simplify the design process. The designer supports manipulation of the following layout strategies:
+simplify the design process. The designer supports manipulation using the following layout strategies:
    - LinearLayout (Pack)
    - GridLayout (Grid)
    - FrameLayout (Place)
@@ -35,7 +35,7 @@ pane. Access the context menu of the widget from the component tree which is bas
 widget. 
 
 * **Style pane**
-Access the style and layout attributes of selected widgets. The layout attributes automatically switch to mathc the 
+Access the style and layout attributes of selected widgets. The layout attributes automatically switch to match the 
 layout manager currently handling the widget. Easily manage a wide range of properties using intuitive editors such as:
    - Color: Modify color in RGB, HSL and HSV and hex notation as well as pick colors from anywhere on your computer 
    screen even outside formation itself
@@ -50,8 +50,8 @@ Create and edit menus using easy to use drag and drop gestures. Access all attri
 of menu items and preview the modified menu with the click of a button.
 
 * **Variable manager**
-Create tkinter control variables, access and assign them to widgets in the design. Modify the values of the variables 
-on the fly from the manager window. Control variables added from the manager immediately reflect in the style pane 
+Create tkinter control variables, access and assign them to widgets in the designer. Modify the values of the variables 
+on the fly from the manager window. Any control variables added from the manager immediately reflect in the style pane 
 allowing the designer to assign them to as many widgets as they desire. Control variables provide an elegant way to
 set values to connected widgets which rely on the same value.
 
@@ -70,8 +70,8 @@ All feature windows in formation studio can be opened in window mode allowing on
     - [style pane](./feature/stylepane.py)
     - [Variable manager](./feature/stylepane.py)
  These components all implement `BaseFeature` defined in [_base](./feature/_base.py) which abstracts all Feature behaviour
- and manipulations which can then be built upon if special behaviour is needed. It contains methods that
- are to be overridden so as to handle events broadcast by the main application such change in widget
+ and manipulation which can then be built upon if special behaviour is needed. It contains methods that
+ are to be overridden so as to handle events broadcast by the main application such as change in widget
  selection or deletion of a widget among others.
  
  * [**Lib**](./lib) :  Contains implementation of widget sets, complete definitions of their properties, behaviour. It also
