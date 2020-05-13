@@ -1,6 +1,7 @@
 """
 Contains all the widget representations used in the designer and specifies all the styles that can be applied to them
 """
+import os
 # ======================================================================= #
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
@@ -8,13 +9,13 @@ import re
 import sys
 from tkinter import IntVar, ttk, filedialog, StringVar
 
-from hoverset.ui.icons import get_icon
+import studio.feature.variable_manager as var_manager
+from hoverset.ui.icons import get_icon_image
 from hoverset.ui.pickers import ColorDialog
 from hoverset.ui.widgets import (CompoundList, Entry, SpinBox, Spinner, Frame, Application, set_ttk_style,
                                  Label, system_fonts, ToggleButton, FontStyle, Button)
 from hoverset.util.color import to_hex
 from hoverset.util.validators import numeric_limit
-from studio.feature.variable_manager import VariablePane, VariableItem
 from studio.lib.properties import all_supported_cursors, BUILTIN_BITMAPS
 
 
@@ -160,8 +161,8 @@ class Layout(Choice):
     class LayoutItem(Choice.ChoiceItem):
 
         def render(self):
-            Label(self, **self.style.dark_text, anchor="w",
-                  text=f"{get_icon(self.value.icon)}  {self.value.name}").pack(fill="x")
+            Label(self, **self.style.dark_text, anchor="w", image=get_icon_image(self.value.icon, 14, 14),
+                  text=" " + self.value.name, compound='left').pack(fill="x")
 
     def set_up(self):
         self._spinner.set_item_class(Layout.LayoutItem)
@@ -178,10 +179,10 @@ class Color(Editor):
         super().__init__(master, style_def)
         self.config(**self.style.dark_highlight_active)
         self._entry = Entry(self, **self.style.dark_input)
-        self._color_button = Frame(self, **self.style.dark_highlight_active, width=15, height=15)
-        self._color_button.on_click(self._chooser)
-        self._color_button.pack(side="left", padx=2)
-        self._entry.pack(side="left", fill="x")
+        self._color_button = Label(self, relief='groove', bd=1)
+        self._color_button.bind('<ButtonRelease-1>', self._chooser)
+        self._color_button.place(x=2, y=2, width=20, height=20)
+        self._entry.place(x=22, y=0, relheight=1, relwidth=1, width=-22)
         self._entry.on_change(self._change)
 
     def _change(self, value=None):
@@ -343,14 +344,17 @@ class Font(Editor):
         self._strike.on_change(self._change)
 
     def get(self):
-        font_obj = FontStyle(
-            family=self._font.get(), size=self._size.get(),
-            weight="bold" if self._bold.get() else "normal",
-            slant="italic" if self._italic.get() else "roman",
-            overstrike=int(self._strike.get()),
-            underline=int(self._underline.get()),
-        )
-        return font_obj
+        extra = []
+        if self._bold.get():
+            extra.append('bold')
+        if self._italic.get():
+            extra.append('italic')
+        if self._strike.get():
+            extra.append('overstrike')
+        if self._underline.get():
+            extra.append('underline')
+        extra = ' '.join(extra)
+        return f"{{{self._font.get()}}} {abs(self._size.get() or 0)} {{{extra}}}"
 
     def _change(self, *_):
         if self._on_change:
@@ -362,6 +366,7 @@ class Font(Editor):
         try:
             font_obj = FontStyle(self, value)
         except Exception:
+            print("Font exception")
             return
         self._font.set(font_obj.cget("family"))
         self._size.set(font_obj.cget("size"))
@@ -472,6 +477,13 @@ class Image(Text):
         self._entry.pack(side="left", fill="x")
         self._picker.on_click(self._pick)
 
+    def _change(self, *_):
+        # Do not broadcast changes for invalid paths
+        # TODO Add indicator for invalid paths
+        if not os.path.exists(self.get()):
+            return
+        super()._change()
+
     def _pick(self, *_):
         path = filedialog.askopenfilename(parent=self)
         if path:
@@ -485,16 +497,16 @@ class Variable(Choice):
 
         def render(self):
             if self.value:
-                item = VariableItem(self, self.value)
+                item = var_manager.VariableItem(self, self.value)
                 item.pack(fill="both")
                 item.pack_propagate(0)
             else:
                 Label(self, text="", **self.style.dark_text).pack(fill="x")
 
     def set_up(self):
-        var_manager: VariablePane = VariablePane.get_instance()
-        var_manager.register_editor(self)
-        values = [i.var for i in var_manager.variables]
+        var_pane: var_manager.VariablePane = var_manager.VariablePane.get_instance()
+        var_pane.register_editor(self)
+        values = [i.var for i in var_pane.variables]
         self._spinner.set_item_class(Variable.VariableChoiceItem)
         self._spinner.set_values((
             '', *values,
@@ -502,8 +514,8 @@ class Variable(Choice):
 
     def set(self, value):
         # Override default conversion of value to string by Choice class
-        var_manager: VariablePane = VariablePane.get_instance()
-        var = list(filter(lambda x: x.var._name == value, var_manager.variables))
+        var_pane = var_manager.VariablePane.get_instance()
+        var = list(filter(lambda x: x.name == value, var_pane.variables))
         if len(var):
             value = var[0].var
         self._spinner.set(value)
@@ -515,7 +527,7 @@ class Variable(Choice):
         self._spinner.remove_value(var)
 
     def destroy(self):
-        VariablePane.get_instance().unregister_editor(self)
+        var_manager.VariablePane.get_instance().unregister_editor(self)
         super().destroy()
 
 
@@ -523,10 +535,10 @@ class Stringvariable(Variable):
     # TODO Check for any instances where class is needed otherwise delete
 
     def set_up(self):
-        var_manager: VariablePane = VariablePane.get_instance()
+        var_pane: var_manager.VariablePane = var_manager.VariablePane.get_instance()
         # filter to obtain only string variables
-        var_manager.register_editor(self)
-        values = [i.var for i in var_manager.variables if i.var.__class__ == StringVar]
+        var_pane.register_editor(self)
+        values = [i.var for i in var_pane.variables if i.var.__class__ == StringVar]
         self._spinner.set_item_class(Variable.VariableChoiceItem)
         self._spinner.set_values((
             '', *values,
@@ -626,6 +638,6 @@ if __name__ == '__main__':
 
     font = Font(root)
     font.pack(side="top")
-    font.on_change(lambda x: print(x.configure()))
+    font.on_change(lambda x: print(x))
     font.set("TkDefaultFont")
     root.mainloop()
