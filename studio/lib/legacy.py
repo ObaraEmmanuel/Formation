@@ -1,5 +1,4 @@
 import tkinter as tk
-from tkinter import *
 
 from studio.lib.menus import menu_options
 from studio.lib.pseudo import PseudoWidget, Groups, Container, LabelFrameCorrection, PanedContainer
@@ -59,12 +58,10 @@ class Entry(PseudoWidget, tk.Entry):
     def __init__(self, master, id_):
         super().__init__(master)
         self.id = id_
-        self._var = tk.StringVar()
-        self.config(textvariable=self._var, state="disabled")
         self.setup_widget()
 
     def set_name(self, name):
-        self._var.set(name)
+        self.insert(0, str(name))
 
 
 class Frame(Container, tk.Frame):
@@ -81,7 +78,7 @@ class Frame(Container, tk.Frame):
 
 class Label(PseudoWidget, tk.Label):
     display_name = 'Label'
-    group = Groups.input
+    group = Groups.widget
     icon = "text"
     impl = tk.Label
 
@@ -127,8 +124,10 @@ class Menu(PseudoWidget, tk.Menu):
     icon = "menu"
     impl = tk.Menu
 
-    def __init__(self, master, id_):
-        super().__init__(master)
+    def __init__(self, master, id_=None, **kw):
+        super().__init__(master, **kw)
+        if id_ is None:
+            id_ = 'menu' + str(self.winfo_id())
         self.id = id_
         self.setup_widget()
 
@@ -180,7 +179,7 @@ class PanedWindow(PanedContainer, tk.PanedWindow):
 
 class Radiobutton(PseudoWidget, tk.Radiobutton):
     display_name = 'Radiobutton'
-    group = Groups.widget
+    group = Groups.input
     icon = "radiobutton"
     impl = tk.Radiobutton
 
@@ -228,12 +227,10 @@ class Spinbox(PseudoWidget, tk.Spinbox):
     def __init__(self, master, id_):
         super().__init__(master)
         self.id = id_
-        self._var = StringVar()
-        self.config(textvariable=self._var)
         self.setup_widget()
 
     def set_name(self, name):
-        self._var.set(name)
+        self.insert(0, str(name))
 
 
 class Text(PseudoWidget, tk.Text):

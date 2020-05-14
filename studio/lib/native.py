@@ -46,7 +46,6 @@ class Combobox(PseudoWidget, ttk.Combobox):
         super().__init__(master)
         self.id = id_
         self.setup_widget()
-        self.state(['readonly'])
 
     def set_name(self, name):
         self.set(name)
@@ -61,13 +60,10 @@ class Entry(PseudoWidget, ttk.Entry):
     def __init__(self, master, id_):
         super().__init__(master)
         self.id = id_
-        self._var = tk.StringVar()
-        self.state(['disabled'])
-        self.config(textvariable=self._var)
         self.setup_widget()
 
     def set_name(self, name):
-        self._var.set(name)
+        self.insert(0, str(name))
 
 
 class Frame(Container, ttk.Frame):
