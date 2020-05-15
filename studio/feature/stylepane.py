@@ -7,8 +7,6 @@ Contains all the widget representations used in the designer and specifies all t
 
 import logging
 
-from PIL import Image, ImageTk
-
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Button
 from studio.feature._base import BaseFeature
@@ -56,36 +54,12 @@ class StylePane(BaseFeature):
         self._current = None
         self._expanded = False
 
-        self._special_handlers = {
-            "id": self.change_widget_id,
-            "image": self.set_widget_image
-        }
-
     def create_menu(self):
         return (
             ("command", "Search", get_icon_image("search", 14, 14), self.start_search, {}),
             ("command", "Expand all", get_icon_image("chevron_down", 14, 14), self.expand_all, {}),
             ("command", "Collapse all", get_icon_image("chevron_up", 14, 14), self.collapse_all, {})
         )
-
-    def set_widget_image(self, path):
-        if self._current is None:
-            return
-        try:
-            image = Image.open(path)
-        except Exception as e:
-            print(e)
-            return
-        image = ImageTk.PhotoImage(image=image)
-        self._current.config(image=image)
-        # Protect image from garbage collection
-        self._current.image = image
-
-    def change_widget_id(self, id_):
-        if self._current is None:
-            return
-        self._current.id = id_
-        self.studio.widget_modified(self._current, self)
 
     def add(self, style_item):
         self.items.append(style_item)
@@ -101,12 +75,10 @@ class StylePane(BaseFeature):
         if self._current is None:
             return
         try:
-            if prop in self._special_handlers:
-                self._special_handlers.get(prop)(value)
-            else:
-                self._current.configure(**{prop: value})
-        except Exception:
-            logging.log(logging.ERROR, f"Could not set style {prop} as {value}", )
+            self._current.configure(**{prop: value})
+        except Exception as e:
+            logging.error(e)
+            logging.error(f"Could not set style {prop} as {value}", )
 
     def apply_layout(self, prop, value):
         try:

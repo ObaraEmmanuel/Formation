@@ -3,6 +3,7 @@ import logging
 import tkinter
 from enum import Enum
 
+from hoverset.data.images import load_tk_image
 from hoverset.ui.icons import get_icon, get_icon_image
 from studio.lib import layouts, legacy
 from studio.lib.properties import get_properties
@@ -17,11 +18,79 @@ class Groups(Enum):
     layout = 'Layout'
 
 
+class _ImageIntercept:
+    __slots__ = []
+
+    @staticmethod
+    def set(widget, value, prop='image'):
+        try:
+            image = load_tk_image(value)
+        except Exception as e:
+            logging.error(e)
+            logging.error("could not open image at {}".format(value))
+            return
+        widget.config(**{prop: image})
+        widget.image = image
+        setattr(widget, f'{prop}_path', value)
+        widget.image_path = value
+
+    @staticmethod
+    def get(widget, prop='image'):
+        return getattr(widget, f'{prop}_path', widget[prop])
+
+
+class _IdIntercept:
+    __slots__ = []
+
+    @staticmethod
+    def set(widget, value, _):
+        widget.id = value
+
+    @staticmethod
+    def get(widget, _):
+        return widget.id
+
+
+class _VariableIntercept:
+    __slots__ = []
+
+    @staticmethod
+    def set(widget, value, prop):
+        if hasattr(value, 'handle'):
+            setattr(widget, f"__{prop}", value.handle.name)
+        else:
+            setattr(widget, f"__{prop}", value)
+        if isinstance(value, str):
+            import studio.feature.variable_manager as variable_manager
+            var_manager = variable_manager.VariablePane.get_instance()
+            var = list(filter(lambda x: x.name == value, var_manager.variables))
+            if len(var):
+                value = var[0].var
+        widget.config(**{prop: value})
+
+    @staticmethod
+    def get(widget, prop):
+        if hasattr(widget, f"__{prop}"):
+            return getattr(widget, f"__{prop}")
+        return widget[prop]
+
+
 class PseudoWidget:
     display_name = 'Widget'
     group = Groups.widget
     icon = get_icon("play")
     impl = None
+    # special handlers (intercepts) for attributes that need additional processing
+    # to interface with the studio easily
+    _intercepts = {
+        "image": _ImageIntercept,
+        "selectimage": _ImageIntercept,
+        "tristateimage": _ImageIntercept,
+        "id": _IdIntercept,
+        "textvariable": _VariableIntercept,
+        "variable": _VariableIntercept,
+        "listvariable": _VariableIntercept
+    }
 
     def setup_widget(self):
         self.level = 0
@@ -35,6 +104,11 @@ class PseudoWidget:
 
     def set_name(self, name):
         pass
+
+    def get_image_path(self):
+        if hasattr(self, "image_path"):
+            return self.image_path
+        return self['image']
 
     def set_tree_reference(self, node: MalleableTree.Node):
         self.node = node
@@ -70,7 +144,18 @@ class PseudoWidget:
         }
 
     def get_prop(self, prop):
+        intercept = self._intercepts.get(prop)
+        if intercept:
+            return intercept.get(self, prop)
         return self[prop]
+
+    def configure(self, options=None, **kw):
+        for opt in list(kw.keys()):
+            intercept = self._intercepts.get(opt)
+            if intercept:
+                intercept.set(self, kw[opt], opt)
+                kw.pop(opt)
+        return super().configure(**kw)
 
     @property
     def properties(self):
@@ -184,6 +269,8 @@ class Container(PseudoWidget):
             raise ValueError(f"Multiple implementations of layout {name} found")
 
     def _switch_layout(self, layout_class):
+        if isinstance(layout_class, str):
+            layout_class = self.get_layout_by_name(layout_class)
         if layout_class == self.layout_strategy.__class__:
             return
         former = self.layout_strategy
@@ -230,8 +317,8 @@ class Container(PseudoWidget):
     def restore_widget(self, widget, restore_point):
         self.layout_strategy.restore_widget(widget, restore_point)
 
-    def add_widget(self, widget, bounds):
-        self.layout_strategy.add_widget(widget, bounds)
+    def add_widget(self, widget, bounds=None, **kwargs):
+        self.layout_strategy.add_widget(widget, bounds, **kwargs)
 
     def widget_released(self, widget):
         self.layout_strategy.widget_released(widget)
@@ -292,6 +379,20 @@ class TabContainer(Container):
         prop = super().properties
         prop.pop("layout")
         return prop
+
+    def tab(self, widget, **kw):
+        if not kw:
+            # Intercept the return value and change image to the image path
+            config = super().tab(widget)
+            config['image'] = getattr(widget, '_tab_image_path', config['image'])
+            return config
+        elif 'image' in kw:
+            # load image at path before passing the image value
+            widget._tab_image_path = kw['image']
+            image = load_tk_image(kw['image'])
+            widget._tab_image = image  # shield from garbage collection
+            kw['image'] = image  # update value with actual image
+        return super().tab(widget, **kw)
 
     def _switch_layout(self, layout_class):
         if layout_class != self.layout_strategy.__class__:
