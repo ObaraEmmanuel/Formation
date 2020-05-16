@@ -5,7 +5,7 @@ from enum import Enum
 
 from hoverset.data.images import load_tk_image
 from hoverset.ui.icons import get_icon, get_icon_image
-from studio.lib import layouts, legacy
+from studio.lib import layouts
 from studio.lib.properties import get_properties
 from studio.ui.highlight import WidgetHighlighter
 from studio.ui.tree import MalleableTree
@@ -371,7 +371,7 @@ class TabContainer(Container):
         )
 
     def _add_tab(self):
-        # add a legacy frame as a child
+        from studio.lib import legacy
         self.add_new(legacy.Frame, 0, 0)
 
     @property
@@ -411,6 +411,7 @@ class PanedContainer(TabContainer):
 
     def _add_pane(self):
         # add a legacy frame as a child
+        from studio.lib import legacy
         self.add_new(legacy.Frame, 0, 0)
 
 
