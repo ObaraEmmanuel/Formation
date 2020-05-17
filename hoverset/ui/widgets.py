@@ -1536,7 +1536,7 @@ class Spinner(Frame):
         self._on_change = lambda val: func(val, *args, **kwargs)
 
     def set_values(self, values):
-        self._values = tuple(values)
+        self._values = list(values)
         if len(values):
             self.set(values[0])
 
@@ -1544,7 +1544,8 @@ class Spinner(Frame):
         self._values += values
 
     def remove_value(self, value):
-        self._values.remove(value)
+        if value in self._values:
+            self._values.remove(value)
 
     def set(self, value):
         if value in self._values:
