@@ -170,6 +170,11 @@ class VerticalPanedWindow(PanedContainer, ttk.PanedWindow):
         properties.pop("orient")
         return properties
 
+    def get_altered_options(self):
+        options = super().get_altered_options()
+        options['orient'] = str(self['orient'])
+        return options
+
 
 class HorizontalPanedWindow(PanedContainer, ttk.PanedWindow):
     display_name = 'HorizontalPanedWindow'
@@ -189,6 +194,11 @@ class HorizontalPanedWindow(PanedContainer, ttk.PanedWindow):
         properties = dict(**super().properties)
         properties.pop("orient")
         return properties
+
+    def get_altered_options(self):
+        options = super().get_altered_options()
+        options['orient'] = str(self['orient'])
+        return options
 
 
 class Progressbar(PseudoWidget, ttk.Progressbar):

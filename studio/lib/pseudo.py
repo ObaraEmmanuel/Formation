@@ -188,7 +188,7 @@ class PseudoWidget:
             defaults = self.configure()
             defaults = {x: defaults[x][-2] for x in defaults}
         except TypeError:
-            logging.error("options failed for", self)
+            logging.error("options failed for" + str(self.id))
             return {}
         options = self.properties
         # Get options whose values are different from their default values

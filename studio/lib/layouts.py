@@ -297,7 +297,7 @@ class LinearLayoutStrategy(BaseLayoutStrategy):
             widget.pack(in_=self.container)
         elif self._orientation == self.VERTICAL:
             widget.pack(in_=self.container, side="left")
-        widget.pack_configure(**kwargs)
+        self.config_widget(widget, **kwargs)
         self.children.append(widget)
 
     def redraw(self):
@@ -360,6 +360,15 @@ class LinearLayoutStrategy(BaseLayoutStrategy):
         else:
             widget.pack_configure(**{prop: value})
 
+    def config_widget(self, widget, **kw):
+        if 'width' in kw:
+            widget.configure(width=kw['width'])
+            kw.pop('width')
+        if 'height' in kw:
+            widget.configure(width=kw['height'])
+            kw.pop('height')
+        widget.pack_configure(**kw)
+
     def definition_for(self, widget):
         definition = super().definition_for(widget)
         info = widget.pack_info()
@@ -369,6 +378,8 @@ class LinearLayoutStrategy(BaseLayoutStrategy):
         if "width" in widget.keys():
             definition["width"]["value"] = widget["width"]
             definition["width"]["default"] = ''
+        else:
+            definition.pop('width')
         if "height" in widget.keys():
             definition["height"]["value"] = widget["height"]
             definition["height"]["default"] = ''
@@ -582,6 +593,15 @@ class GridLayoutStrategy(BaseLayoutStrategy):
             info.update({"in_": self.container})
             return info
 
+    def config_widget(self, widget, **kw):
+        if 'width' in kw:
+            widget.configure(width=kw['width'])
+            kw.pop('width')
+        if 'height' in kw:
+            widget.configure(width=kw['height'])
+            kw.pop('height')
+        widget.grid_configure(**kw)
+
     def widget_released(self, widget):
         self._redraw_widget(widget)
         self._temp = None
@@ -605,7 +625,8 @@ class GridLayoutStrategy(BaseLayoutStrategy):
             kwargs.update({'in_': self.container, 'row': max(0, row), 'column': max(0, col)})
             widget.grid(**kwargs)
         else:
-            widget.grid(in_=self.container, **kwargs)
+            widget.grid(in_=self.container)
+            self.config_widget(widget, **kwargs)
         self.children.append(widget)
         self.clear_indicators()
 
@@ -668,6 +689,8 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         if "width" in widget.keys():
             definition["width"]["value"] = widget["width"]
             definition["width"]["default"] = ''
+        else:
+            definition.pop('width')
         if "height" in widget.keys():
             definition["height"]["value"] = widget["height"]
             definition["height"]["default"] = ''

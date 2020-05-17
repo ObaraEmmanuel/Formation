@@ -51,7 +51,8 @@ class BaseConverter:
         return _var_rgx.match(tag)
 
     @classmethod
-    def _get_class(cls, tag):
+    def _get_class(cls, node):
+        tag = node.tag
         match = _tag_rgx.search(tag)
         if match:
             module, impl = match.groups()
@@ -63,6 +64,13 @@ class BaseConverter:
             raise ModuleNotFoundError("module {} not implemented by designer".format(module))
         if hasattr(module, impl):
             return getattr(module, impl)
+        elif impl == 'Panedwindow' and module == native:
+            orient = cls.attrib(node).get("attr", {}).get("orient")
+            cls.drop_attr(node, 'orient', 'attr')
+            if orient == tk.HORIZONTAL:
+                return native.HorizontalPanedWindow
+            else:
+                return native.VerticalPanedWindow
         raise NotImplementedError("class {} does not have a designer implementation variant in {}".format(impl, module))
 
     @staticmethod
@@ -97,8 +105,11 @@ class BaseConverter:
     @classmethod
     def from_xml(cls, node, designer, parent):
         cls.group_attr(node)
-        obj_class = cls._get_class(node.tag)
+        obj_class = cls._get_class(node)
         styles = cls.attrib(node).get("attr", {})
+        if obj_class in (native.VerticalPanedWindow, native.HorizontalPanedWindow):
+            if 'orient' in styles:
+                styles.pop('orient')
         layout = cls.attrib(node).get("layout", {})
         obj = designer.load(obj_class, node.attrib.get("name"), parent, styles, layout)
         return obj
@@ -175,7 +186,7 @@ class MenuConverter(BaseConverter):
             if sub_node.tag in MenuConverter._types and menu is not None:
                 menu.add(sub_node.tag)
                 MenuTree.menu_config(menu, menu.index(tk.END), **attrib.get("menu"))
-            elif (obj_class := cls._get_class(sub_node.tag)) == legacy.Menu:
+            elif (obj_class := cls._get_class(sub_node)) == legacy.Menu:
                 menu_obj = obj_class(widget, **attrib.get("attr"))
                 if widget:
                     widget.configure(menu=menu_obj)
@@ -251,7 +262,7 @@ class XMLForm:
             VariableConverter.from_xml(var)
 
     def _load_widgets(self, node, designer, parent):
-        converter = self.get_converter(BaseConverter._get_class(node.tag))
+        converter = self.get_converter(BaseConverter._get_class(node))
         widget = converter.from_xml(node, designer, parent)
         if not isinstance(widget, Container):
             # We dont need to load child tags of non-container widgets
