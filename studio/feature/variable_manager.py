@@ -38,6 +38,7 @@ class VariableItem(Label):
             "type": "number",
         }
     }
+    supported_types = {".".join([i.__module__, i.__name__]): i for i in _types}
 
     def __init__(self, master, var, name=None):
         super().__init__(master)
@@ -112,12 +113,18 @@ class VariableItem(Label):
             self.var_handle._slave_items.remove(self)
         super().destroy()
 
+    def __repr__(self):
+        return self._name
+
+    def __str__(self):
+        return self._name
+
 
 class VariablePane(BaseFeature):
     name = "Variable manager"
     icon = "text"
     side = "right"
-    start_minimized = False
+    start_minimized = True
 
     _definitions = {
         "name": {
@@ -145,6 +152,10 @@ class VariablePane(BaseFeature):
         self._add = MenuButton(self._header, **self.style.dark_button)
         self._add.configure(image=get_icon_image("add", 15, 15))
         self._add.pack(side="right")
+        self._delete_btn = Button(self._header, image=get_icon_image("delete", 15, 15), width=25, height=25,
+                                  **self.style.dark_button)
+        self._delete_btn.pack(side="right")
+        self._delete_btn.on_click(self._delete)
         self._var_types_menu = self.make_menu(
             self._get_add_menu(),
             self._add)
@@ -193,6 +204,7 @@ class VariablePane(BaseFeature):
     def create_menu(self):
         return (
             ("cascade", "Add", get_icon_image("add", 14, 14), None, {"menu": self._get_add_menu()}),
+            ("command", "Delete", get_icon_image("delete", 14, 14), self._delete, {}),
             ("command", "Search", get_icon_image("search", 14, 14), self.start_search, {}),
         )
 
@@ -208,18 +220,39 @@ class VariablePane(BaseFeature):
         else:
             self._overlay.place_forget()
 
-    def add_var(self, var_type):
+    def add_var(self, var_type, **kw):
         var = var_type(self.studio)
         item_count = len(list(filter(lambda x: x.var_type == var_type, self._variables))) + 1
-        item = VariableItem(self._variable_pane.body, var, f"{var_type.__name__}_{item_count}")
+        name = kw.get('name', f"{var_type.__name__}_{item_count}")
+        value = kw.get('value')
+        item = VariableItem(self._variable_pane.body, var, name)
         item.bind("<Button-1>", lambda e: self.select(item))
+        if value is not None:
+            item.set(value)
         self._variables.append(item)
         self._show(item)
         self._show_overlay(False)
         self._broadcast("on_var_add", var)
+        self.select(item)
 
     def delete_var(self, var):
         self._broadcast("on_var_delete", var)
+        self._hide(var)
+        if var in self._variables:
+            self._variables.remove(var)
+
+    def _delete(self, *_):
+        if self._selected:
+            self.delete_var(self._selected)
+        if len(self._variables):
+            self.select(self._variables[0])
+        else:
+            self._show_overlay(True)
+
+    def clear_variables(self):
+        for var in self._variables:
+            self.delete_var(var)
+        self._show_overlay(True)
 
     @property
     def variables(self):
@@ -264,3 +297,13 @@ class VariablePane(BaseFeature):
         value.set(variable.value)
         value.pack(side="top", fill="x")
         value.on_change(variable.set)
+
+    def lookup(self, name) -> VariableItem:
+        name = str(name)  # Sometimes name is a TclObj and we need it as a string for this to work
+        search = list(filter(lambda x: x.var._name == name, self._variables))
+        if len(search):
+            return search[0]
+        search = list(filter(lambda x: x.name == name, self._variables))
+        if len(search):
+            return search[0]
+        return ''

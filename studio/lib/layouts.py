@@ -82,7 +82,7 @@ class BaseLayoutStrategy:
     def bounds(self):
         return geometry.bounds(self.container)
 
-    def add_widget(self, widget, bounds):
+    def add_widget(self, widget, bounds=None, **kwargs):
         widget.level = self.level + 1
         widget.layout = self.container
         self.container.clear_highlight()
@@ -98,7 +98,10 @@ class BaseLayoutStrategy:
             widget.level = self.level + 1
             widget.layout = self.container
             # Lift widget above the last child of layout if any otherwise lift above the layout
-            widget.lift((self.children[-1:] or [self.container])[0])
+            try:
+                widget.lift((self.children[-1:] or [self.container])[0])
+            except Exception:
+                pass
         self._move(widget, bounds)
 
     def _move(self, widget, bounds):
@@ -167,6 +170,7 @@ class BaseLayoutStrategy:
 
 
 class FrameLayoutStrategy(BaseLayoutStrategy):
+    # TODO Add support for anchor
     DEFINITION = {
         **BaseLayoutStrategy.DEFINITION,
         "x": {
@@ -186,7 +190,7 @@ class FrameLayoutStrategy(BaseLayoutStrategy):
         "bordermode": {
             "display_name": "border mode",
             "type": "choice",
-            "options": ("outside", "inside"),
+            "options": ("outside", "inside", "ignore"),
             "name": "bordermode",
             "default": "inside",
         }
@@ -199,10 +203,13 @@ class FrameLayoutStrategy(BaseLayoutStrategy):
         for child in self.children:
             child.place_forget()
 
-    def add_widget(self, widget, bounds):
+    def add_widget(self, widget, bounds=None, **kwargs):
         super().add_widget(widget, bounds)
         super().remove_widget(widget)
-        self.move_widget(widget, bounds)
+        if bounds:
+            self.move_widget(widget, bounds)
+        kwargs['in'] = self.container
+        widget.place_configure(**kwargs)
         self.children.append(widget)
 
     def remove_widget(self, widget):
@@ -280,16 +287,17 @@ class LinearLayoutStrategy(BaseLayoutStrategy):
         self._orientation = self.HORIZONTAL
         self.temp_info = {}
 
-    def add_widget(self, widget, bounds):
+    def add_widget(self, widget, bounds=None, **kwargs):
         super().remove_widget(widget)
         if widget in self._restoration_data:
             self.restore_widget(widget)
             return
-        super().add_widget(widget, bounds)
+        super().add_widget(widget, bounds, **kwargs)
         if self._orientation == self.HORIZONTAL:
             widget.pack(in_=self.container)
         elif self._orientation == self.VERTICAL:
             widget.pack(in_=self.container, side="left")
+        widget.pack_configure(**kwargs)
         self.children.append(widget)
 
     def redraw(self):
@@ -351,7 +359,6 @@ class LinearLayoutStrategy(BaseLayoutStrategy):
             widget.configure(**{prop: value})
         else:
             widget.pack_configure(**{prop: value})
-        print(self.get_altered_options(widget))
 
     def definition_for(self, widget):
         definition = super().definition_for(widget)
@@ -410,8 +417,8 @@ class GenericLinearLayoutStrategy(BaseLayoutStrategy):
         else:
             return 0
 
-    def add_widget(self, widget, bounds):
-        super().add_widget(widget, bounds)
+    def add_widget(self, widget, bounds=None, **kwargs):
+        super().add_widget(widget, bounds, **kwargs)
         width, height = geometry.dimensions(bounds)
         self.attach(widget, width, height)
         self.children.append(widget)
@@ -589,12 +596,16 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         super()._move(widget, bounds)
         self._location_analysis(bounds)
 
-    def add_widget(self, widget, bounds):
+    def add_widget(self, widget, bounds=None, **kwargs):
         super().remove_widget(widget)
-        super().add_widget(widget, bounds)
-        row, col, row_shift, column_shift = self._location_analysis(bounds)
-        self._redraw(max(0, row), max(0, col), row_shift, column_shift)
-        widget.grid(in_=self.container, row=max(0, row), column=max(0, col))
+        super().add_widget(widget, bounds, **kwargs)
+        if bounds is not None:
+            row, col, row_shift, column_shift = self._location_analysis(bounds)
+            self._redraw(max(0, row), max(0, col), row_shift, column_shift)
+            kwargs.update({'in_': self.container, 'row': max(0, row), 'column': max(0, col)})
+            widget.grid(**kwargs)
+        else:
+            widget.grid(in_=self.container, **kwargs)
         self.children.append(widget)
         self.clear_indicators()
 
@@ -645,7 +656,6 @@ class GridLayoutStrategy(BaseLayoutStrategy):
             widget.configure(**{prop: value})
         else:
             widget.grid_configure(**{prop: value})
-        print(self.get_altered_options(widget))
 
     def react_to_pos(self, x, y):
         self._location_analysis((*geometry.resolve_position((x, y), self.container.parent), 0, 0))
@@ -743,10 +753,11 @@ class TabLayoutStrategy(BaseLayoutStrategy):
     def resize_widget(self, widget, bounds):
         pass
 
-    def add_widget(self, widget, bounds):
+    def add_widget(self, widget, bounds=None, **kwargs):
         super().remove_widget(widget)
-        super().add_widget(widget, bounds)
+        super().add_widget(widget, bounds, **kwargs)
         self.container.add(widget, text=widget.id)
+        self.container.tab(widget, **kwargs)
         self.children.append(widget)
 
     def remove_widget(self, widget):
@@ -763,12 +774,7 @@ class TabLayoutStrategy(BaseLayoutStrategy):
         return definition
 
     def apply(self, prop, value, widget):
-        if prop == "image":
-            value = load_tk_image(value)
-            # shield image from garbage collection
-            widget.tab_image = value
         self.container.tab(widget, **{prop: value})
-        print(self.get_altered_options(widget))
 
     def _tab_switched(self, *_):
         if self._current_tab:
@@ -780,8 +786,7 @@ class TabLayoutStrategy(BaseLayoutStrategy):
 
     def copy_layout(self, widget, from_):
         info = from_.layout.tab(from_)
-        self.add_widget(widget, (0, 0, 0, 0))
-        self.container.tab(widget, **info)
+        self.add_widget(widget, (0, 0, 0, 0), **info)
 
     def clear_all(self):
         # No implementation needed as the tab layout strategy never needs to change
@@ -834,15 +839,21 @@ class PanedLayoutStrategy(BaseLayoutStrategy):
     def resize_widget(self, widget, bounds):
         pass
 
-    def add_widget(self, widget, bounds):
+    def add_widget(self, widget, bounds=None, **kwargs):
         super().remove_widget(widget)
-        super().add_widget(widget, bounds)
+        super().add_widget(widget, bounds, **kwargs)
         self.container.add(widget)
+        self._config(widget, **kwargs)
         self.children.append(widget)
+
+    def _config(self, widget, **kwargs):
+        if not kwargs:
+            return self.container.paneconfig(widget)
+        self.container.paneconfig(widget, **kwargs)
 
     def definition_for(self, widget):
         definition = {**self.DEFINITION}
-        info = self.container.paneconfig(widget)
+        info = self._config(widget)
         for prop in self.DEFINITION.keys():
             definition[prop]["value"] = info.get(prop)[-1]  # Last item is the value
         # Give a hint on what the minsize attribute will affect
@@ -853,7 +864,6 @@ class PanedLayoutStrategy(BaseLayoutStrategy):
 
     def apply(self, prop, value, widget):
         self.container.paneconfig(widget, **{prop: value})
-        print(self.get_altered_options(widget))
 
     def remove_widget(self, widget):
         super().remove_widget(widget)
@@ -862,8 +872,7 @@ class PanedLayoutStrategy(BaseLayoutStrategy):
     def copy_layout(self, widget, from_):
         info = from_.layout.paneconfig(from_)
         info = {i: info[i][-1] for i in info}  # The value is usually the last item in the tuple
-        self.add_widget(widget, (0, 0, 0, 0))
-        self.container.paneconfig(widget, **info)
+        self.add_widget(widget, (0, 0, 0, 0), **info)
 
 
 class NPanedLayoutStrategy(PanedLayoutStrategy):
@@ -882,17 +891,19 @@ class NPanedLayoutStrategy(PanedLayoutStrategy):
 
     def apply(self, prop, value, widget):
         self.container.pane(widget, **{prop: value})
-        print(self.get_altered_options(widget))
+
+    def _config(self, widget, **kwargs):
+        if not kwargs:
+            return self.container.pane(widget)
+        self.container.pane(widget, **kwargs)
 
     def copy_layout(self, widget, from_):
         info = from_.layout.pane(from_)
-        info = {i: info[i][-1] for i in info}  # The value is usually the last item in the tuple
-        self.add_widget(widget, (0, 0, 0, 0))
-        self.container.pane(widget, **info)
+        self.add_widget(widget, (0, 0, 0, 0), **info)
 
     def definition_for(self, widget):
         definition = {**self.DEFINITION}
-        info = self.container.pane(widget)
+        info = self._config(widget)
         for prop in self.DEFINITION.keys():
             definition[prop]["value"] = info.get(prop)
         return definition

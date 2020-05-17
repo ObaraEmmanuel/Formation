@@ -5,12 +5,16 @@ Drag drop designer for the studio
 # ======================================================================= #
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
+from hashlib import md5
+from tkinter import filedialog
 
 from hoverset.ui.widgets import Frame
 from hoverset.util.execution import Action
-from studio.lib import legacy
+from hoverset.ui.dialogs import MessageDialog
+
 from studio.lib.layouts import FrameLayoutStrategy
 from studio.lib.pseudo import PseudoWidget, Container
+from studio.parsers.xml import XMLForm
 from studio.ui import geometry
 from studio.ui.highlight import HighLight
 from studio.ui.widgets import DesignPad
@@ -21,10 +25,26 @@ class DesignLayoutStrategy(FrameLayoutStrategy):
     def add_new(self, widget, x, y):
         pass
 
+    def add_widget(self, widget, bounds=None, **kwargs):
+        super().add_widget(widget, bounds=None, **kwargs)
+        if bounds is None:
+            x1, y1, x2, y2 = geometry.relative_bounds(geometry.bounds(widget), self.container)
+            self.container.place_child(widget, x=x1, y=y1, width=x2 - x1, height=y2 - y1)
+
     def apply(self, prop, value, widget):
         if value == '':
             return
         self.container.config_child(widget, **{prop: value})
+
+    def definition_for(self, widget):
+        definition = super().definition_for(widget)
+        # bordermode is not supported in design pad so simply set value to the default 'inside'
+        definition["bordermode"]["value"] = 'inside'
+        return definition
+
+    def remove_widget(self, widget):
+        super().remove_widget(widget)
+        self.container.forget_child(widget)
 
 
 class Designer(DesignPad, Container):
@@ -42,6 +62,7 @@ class Designer(DesignPad, Container):
         self.studio = studio
         self.config(**self.style.bright)
         self.objects = []
+        self.root_obj = None
         self.layout_strategy = DesignLayoutStrategy(self)
         self.highlight = HighLight(self)
         self.highlight.on_resize(self._on_size_changed)
@@ -52,18 +73,88 @@ class Designer(DesignPad, Container):
         self.current_action = None
         self.bind("<Button-1>", lambda *_: self.select(None))
         self._padding = 30
+        self.design_path = None
+        self.xml = None
+        self.file_hash = None
         # Initialize the first layout some time after the designer has been initialized
-        self.after(300, self._set_layout)
         self.bind('<Configure>', lambda _: self.adjust_highlight(self.current_obj), add='+')
 
-    def _set_layout(self):
+    def _open_default(self):
         self.update_idletasks()
-        self.add(legacy.Frame, self._padding, self._padding, width=self.width - self._padding * 2,
-                 height=self.height - self._padding * 2)
+        self.xml = XMLForm(self)
+        from studio.lib import legacy
+        self.root_obj = self.add(legacy.Frame, self._padding, self._padding, width=self.width - self._padding * 2,
+                                 height=self.height - self._padding * 2)
+        self.xml.generate()
+        self.file_hash = md5(self.xml.to_xml_bytes()).hexdigest()
 
     @property
     def _ids(self):
         return [i.id for i in self.objects]
+
+    def has_changed(self):
+        if self.root_obj:
+            xml = XMLForm(self)
+            xml.generate()
+            _hash = md5(xml.to_xml_bytes()).hexdigest()
+        else:
+            _hash = None
+        return _hash != self.file_hash
+
+    def open_new(self):
+        self.open_xml(None)
+
+    def open_xml(self, path=None):
+        if self.has_changed():
+            save = MessageDialog.builder(
+                {"text": "Save", "value": True, "focus": True},
+                {"text": "Don't save", "value": False},
+                {"text": "Cancel", "value": None},
+                wait=True,
+                title="Save design",
+                message="This design has unsaved changes. Do you want to save them?",
+                parent=self.studio,
+                icon=MessageDialog.ICON_WARNING
+            )
+            if save:
+                self.save()
+            elif save is None:
+                return
+
+        if self.root_obj:
+            self.studio.select(None)
+            self.delete(self.root_obj, silently=True)
+            self.objects = []
+            from studio.feature.variable_manager import VariablePane
+            VariablePane.get_instance().clear_variables()
+        if path:
+            self.xml = XMLForm(self)
+            with open(path, 'rb') as dump:
+                self.root_obj = self.xml.load_xml(dump, self)
+                self.file_hash = md5(self.xml.to_xml_bytes()).hexdigest()
+            self.design_path = path
+        else:
+            self._open_default()
+
+    def save(self, new_path=False):
+        self.xml = XMLForm(self)
+        self.xml.generate()
+        if not self.design_path or new_path:
+            path = filedialog.asksaveasfilename(parent=self, filetypes=[("XML", "*.xml")],
+                                                defaultextension='.xml')
+            if not path:
+                return
+            self.design_path = path
+        with open(self.design_path, 'w') as dump:
+            dump.write(self.xml.to_xml())
+        self.file_hash = md5(self.xml.to_xml_bytes()).hexdigest()
+        return self.design_path
+
+    def to_xml(self):
+        xml = XMLForm(self)
+        xml.generate()
+        with open('dump.xml', 'w') as dump:
+            dump.write(xml.to_xml())
 
     def paste(self, widget: PseudoWidget):
         if not self.current_obj:
@@ -93,17 +184,19 @@ class Designer(DesignPad, Container):
                 self._deep_paste(child, widget_copy)
         return widget_copy
 
-    def add(self, obj_class: PseudoWidget.__class__, x, y, **kwargs):
-        width = kwargs.get("width", 55)
-        height = kwargs.get("height", 30)
-        silent = kwargs.get("silently", False)
+    def _get_unique(self, obj_class):
+        """
+        Generate a unique id for widget belonging to a given class
+        """
+        # start from 1 and check if name exists, if it exists keep incrementing
         count = 1
         name = f"{obj_class.display_name}_{count}"
         while name in self._ids:
             name = f"{obj_class.display_name}_{count}"
             count += 1
-        obj = obj_class(self, name)
-        obj.layout = kwargs.get("intended_layout", None)
+        return name
+
+    def _attach(self, obj):
         # Create the context menu associated with the object including the widgets own custom menu
         menu = self.make_menu(self.studio.menu_template + obj.create_menu(), obj)
         # Select the widget before drawing the menu
@@ -112,6 +205,24 @@ class Designer(DesignPad, Container):
         self.objects.append(obj)
         obj.bind("<Button-1>", lambda _: self.select(obj))
 
+    def load(self, obj_class, name, container, attributes, layout):
+        obj = obj_class(self, name)
+        obj.configure(**attributes)
+        self._attach(obj)
+        container.add_widget(obj, **layout)
+        if container == self:
+            container = None
+        self.studio.add(obj, container)
+        return obj
+
+    def add(self, obj_class: PseudoWidget.__class__, x, y, **kwargs):
+        width = kwargs.get("width", 55)
+        height = kwargs.get("height", 30)
+        silent = kwargs.get("silently", False)
+        name = self._get_unique(obj_class)
+        obj = obj_class(self, name)
+        obj.layout = kwargs.get("intended_layout", None)
+        self._attach(obj)  # apply extra bindings required
         layout = kwargs.get("layout")
         # If the object has a layout which actually the layout at the point of creation prepare and pass it
         # to the layout
@@ -148,7 +259,14 @@ class Designer(DesignPad, Container):
     def restore(self, widget, restore_point, container):
         container.restore_widget(widget, restore_point)
         self.studio.on_restore(widget)
+        self._replace_all(widget)
+
+    def _replace_all(self, widget):
+        # Recursively add widget and all its children to objects
         self.objects.append(widget)
+        if isinstance(widget, Container):
+            for child in widget._children:
+                self._replace_all(child)
 
     def delete(self, widget, silently=False):
         if not silently:
@@ -160,11 +278,15 @@ class Designer(DesignPad, Container):
         else:
             self.studio.delete(widget, self)
         widget.layout.remove_widget(widget)
-        self.objects.remove(widget)
+        self._uproot_widget(widget)
 
-    def remove_widget(self, widget):
-        self.objects.remove(widget)
-        self.forget_child(widget)
+    def _uproot_widget(self, widget):
+        # Recursively remove widgets and all its children
+        if widget in self.objects:
+            self.objects.remove(widget)
+        if isinstance(widget, Container):
+            for child in widget._children:
+                self._uproot_widget(child)
 
     def react(self, event):
         layout = self.event_first(event, self, Container, ignore=self)
@@ -195,6 +317,9 @@ class Designer(DesignPad, Container):
             "width": bounds[2] - bounds[0],
             "height": bounds[3] - bounds[1]
         }
+
+    def position(self, widget, bounds):
+        self.place_child(widget, **self.parse_bounds(bounds))
 
     def select(self, obj, explicit=False):
         if obj is None:
@@ -227,7 +352,7 @@ class Designer(DesignPad, Container):
         if self.current_container is not None and self.current_container != self.current_obj:
             self.current_container.clear_highlight()
             if self.current_action == self.MOVE:
-                self.current_container.add_widget(self.current_obj, bound)
+                self.current_container.add_widget(self.current_obj, bound, )
             else:
                 self.current_obj.layout.widget_released(self.current_obj)
             self.adjust_highlight(self.current_obj)

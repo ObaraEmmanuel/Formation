@@ -4,12 +4,12 @@
 
 import functools
 import logging
-import os
 import sys
 
 # Add Studio and Hoverset to path so imports from hoverset can work.
+from tkinter import filedialog
 
-sys.path.append(os.path.join('..', '..', 'Hoverset'))
+sys.path.append('..')
 
 from studio.feature.design import Designer
 from studio.feature.component_tree import ComponentTree
@@ -22,6 +22,7 @@ from studio.ui.widgets import SideBar
 from hoverset.ui.widgets import Application, Frame, PanedWindow, Button
 from hoverset.ui.icons import get_icon_image
 from hoverset.util.execution import Action
+from hoverset.ui.dialogs import MessageDialog
 
 
 class StudioApplication(Application):
@@ -29,10 +30,11 @@ class StudioApplication(Application):
     designer: Designer = None
     style_pane: StylePane = None
     widget_set: ComponentPane = None
+    STYLES_PATH = "../hoverset/ui/themes/default.css"
 
     def __init__(self, master=None, **cnf):
         super().__init__(master, **cnf)
-        self.load_styles("../hoverset/ui/themes/default.css")
+        self.load_styles(self.STYLES_PATH)
         self.geometry("1100x650")
         self.state('zoomed')
         self.title('Tkinter Studio')
@@ -91,11 +93,11 @@ class StudioApplication(Application):
 
         self.menu_bar = self.make_menu((
             ("cascade", "File", None, None, {"menu": (
-                ("command", "New", None, None, {"accelerator": "Ctrl+N"}),
-                ("command", "Open", None, None, {"accelerator": "Ctrl+O"}),
+                ("command", "New", None, self.open_new, {"accelerator": "Ctrl+N"}),
+                ("command", "Open", None, self.open_file, {"accelerator": "Ctrl+O"}),
                 ("separator",),
-                ("command", "Save", None, None, {"accelerator": "Ctrl+S"}),
-                ("command", "Save As", None, None, {}),
+                ("command", "Save", None, self.save, {"accelerator": "Ctrl+S"}),
+                ("command", "Save As", None, self.save_as, {}),
                 ("separator",),
                 ("command", "Exit", None, self.destroy, {}),
             )}),
@@ -104,29 +106,28 @@ class StudioApplication(Application):
                 ("command", "redo", get_icon_image("redo", 14, 14), self.redo, {"accelerator": "Ctrl+Y"}),
                 ("separator",),
                 ("command", "copy", get_icon_image("copy", 14, 14), self.copy, {"accelerator": "Ctrl+C"}),
-                ("command", "paste", get_icon_image("clipboard", 14, 14), self.paste, {"accelerator": "Ctrl+V"}),
-                ("command", "cut", get_icon_image("cut", 14, 14), None, {"accelerator": "Ctrl+X"}),
+                ("command", "cut", get_icon_image("cut", 14, 14), self.cut, {"accelerator": "Ctrl+X"}),
                 ("separator",),
                 ("command", "delete", get_icon_image("delete", 14, 14), self.delete, {}),
             )}),
-            ("cascade", "Code", None, None, {"menu": (
-                ("cascade", "Generate", None, None, {"menu": (
-                    ("command", "Python", None, None, {}),
-                    ("command", "xml", None, None, {}),
-                    ("command", "tcl", None, None, {})
-                )}),
-                ("command", "View", None, None, {})
-            )}),
+            # ("cascade", "Code", None, None, {"menu": (
+            #     ("cascade", "Generate", None, None, {"menu": (
+            #         ("command", "Python", None, None, {}),
+            #         ("command", "xml", None, self.print_xml, {}),
+            #         ("command", "tcl", None, None, {})
+            #     )}),
+            #     ("command", "View", None, None, {})
+            # )}),
             ("cascade", "Window", None, None, {"menu": (
                 ("command", "close all", get_icon_image("close", 14, 14), self.close_all, {}),
                 ("command", "close all on the right", get_icon_image("blank", 14, 14),
-                 self.close_all_on_side("right"), {}),
+                 lambda: self.close_all_on_side("right"), {}),
                 ("command", "close all on the left", get_icon_image("blank", 14, 14),
-                 self.close_all_on_side("left"), {}),
-                ("separator", ),
-                *self.get_features_as_menu(),
+                 lambda: self.close_all_on_side("left"), {}),
                 ("separator",),
-                ("command", "Save window positions", None, None, {})
+                *self.get_features_as_menu(),
+                # ("separator",),
+                # ("command", "Save window positions", None, None, {})
             )}),
             ("cascade", "Tools", None, None, {"menu": ()}),
             ("cascade", "Help", None, None, {"menu": (
@@ -145,6 +146,10 @@ class StudioApplication(Application):
             ("separator",),
             ("command", "delete", get_icon_image("delete", 14, 14), self.delete, {}),
         )
+        self.open_new()
+
+    def print_xml(self):
+        self.designer.to_xml()
 
     def new_action(self, action: Action):
         """
@@ -185,7 +190,7 @@ class StudioApplication(Application):
 
     def close_all_on_side(self, side):
         for feature in self.features:
-            if feature.pane == side:
+            if feature.side == side:
                 self.minimize(feature)
         # To avoid errors when side is not a valid pane identifier we default to the right pane
         self._panes.get(side, (self._right, self._right_bar))[1].close_all()
@@ -208,9 +213,24 @@ class StudioApplication(Application):
         feature.pane.forget(feature)
         self._adjust_pane(feature.pane)
 
+    def get_pane_bar(self, side):
+        if side in self._panes:
+            return self._panes.get(side, (self._left, self._left_bar))
+
+    def reposition(self, feature: BaseFeature, side):
+        if self.get_pane_bar(side):
+            pane, bar = self.get_pane_bar(side)
+            feature.bar.remove(feature)
+            feature.pane.forget(feature)
+            self._adjust_pane(feature.pane)
+            feature.bar = bar,
+            feature.pane = pane,
+            bar.add_feature(feature)
+            pane.add(feature, minsize=100, height=300, sticky='nswe')
+
     def install(self, feature) -> BaseFeature:
         pane, bar = self._panes.get(feature.side, (self._left, self._left_bar))
-        obj = feature(pane, self)
+        obj = feature(self, self)
         obj.pane = pane
         obj.bar = bar
         self.features.append(obj)
@@ -223,6 +243,28 @@ class StudioApplication(Application):
             bar.select(obj)
             pane.add(obj, minsize=100, height=300, sticky='nswe')
         return obj
+
+    def set_path(self, path):
+        if path:
+            self.title("Tkinter studio" + " - " + path)
+
+    def open_file(self):
+        path = filedialog.askopenfilename(parent=self, filetypes=[('XML', '*.xml')])
+        if path:
+            self.designer.open_xml(path)
+        self.set_path(path)
+
+    def open_new(self):
+        self.designer.open_new()
+        self.set_path('untitled')
+
+    def save(self):
+        path = self.designer.save()
+        self.set_path(path)
+
+    def save_as(self):
+        path = self.designer.save(new_path=True)
+        self.set_path(path)
 
     def get_feature(self, feature_class) -> BaseFeature:
         for feature in self.features:
@@ -290,6 +332,8 @@ class StudioApplication(Application):
 
     def cut(self, widget=None, source=None):
         widget = self.selected if widget is None else widget
+        if not widget:
+            return
         if self.selected == widget:
             self.select(None)
         self._clipboard = widget
@@ -312,5 +356,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # apps.unicode_viewer.App().mainloop()
     main()
