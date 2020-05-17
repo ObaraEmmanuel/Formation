@@ -181,8 +181,7 @@ class HighLight:
         :return:
         """
         for elem in self._elements:
-            # elem.place_forget()
-            self.designer.forget_child(elem)
+            elem.place_forget()
 
     def redraw(self, bound, radius=None):
         # Redraw the highlight in the new bounding box
