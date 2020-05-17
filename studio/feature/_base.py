@@ -37,6 +37,7 @@ class BaseFeature(Frame):
         self._pref = MenuButton(self._header, **self.style.dark_button)
         self._pref.configure(image=get_icon_image("settings", 15, 15))
         self._pref.pack(side="right")
+        self._pref.tooltip("Options")
         self._search_bar = SearchBar(self._header, height=20)
         self._search_bar.on_query_clear(self.on_search_clear)
         self._search_bar.on_query_change(self.on_search_query)
@@ -46,8 +47,8 @@ class BaseFeature(Frame):
                 ("radiobutton", "Window", None, self.open_as_window, {"variable": self._view_mode, "value": "window"}),
             )}),
             ("cascade", "Position", None, None, {"menu": (
-                ("command", "Left", None, lambda: self.reposition("left"), {}),
-                ("command", "Right", None, lambda: self.reposition("right"), {}),
+                ("command", "Left", None, lambda: self.studio.reposition(self, "left"), {}),
+                ("command", "Right", None, lambda: self.studio.reposition(self, "right"), {}),
             )}),
             ("cascade", "Window options", None, None, {"menu": (
                 ("checkbutton", "Transparent when inactive", None, None, {"variable": self._transparency_flag}),
@@ -116,15 +117,6 @@ class BaseFeature(Frame):
         else:
             self.studio.maximize(self)
         self.is_visible = True
-
-    def reposition(self, side):
-        if self.window_handle:
-            return
-        if side == self.side:
-            return
-        self.__class__.side = side
-        self.studio.uninstall(self)
-        self.studio.install(self.__class__)
 
     def toggle(self):
         if self.is_visible:
