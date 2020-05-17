@@ -2023,17 +2023,18 @@ class ProgressBar(Widget, tk.Canvas):
     """
     DETERMINATE = 'determinate'
     INDETERMINATE = 'indeterminate'
+    DEFAULT_INTERVAL = 20
 
     def __init__(self, master, **kw):
         super().__init__(master, **kw)
-        self.configure(highlightthickness=1)
+        self.configure(**self.style.dark_highlight_dim, height=3, **self.style.dark)
         self._bar_color = self.style.colors.get("accent")
         self._progress = 0
         self._bar = self.create_rectangle(0, 0, 0, 0)
         self._indeterminate = False
         self._step_var = 0
         self._direction = 1
-        self._interval = 20
+        self._interval = self.DEFAULT_INTERVAL
         self._draw()
         self.bind("<Configure>", self._draw)
 

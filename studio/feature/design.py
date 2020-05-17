@@ -129,10 +129,20 @@ class Designer(DesignPad, Container):
             VariablePane.get_instance().clear_variables()
         if path:
             self.xml = XMLForm(self)
-            with open(path, 'rb') as dump:
-                self.root_obj = self.xml.load_xml(dump, self)
-                self.file_hash = md5(self.xml.to_xml_bytes()).hexdigest()
-            self.design_path = path
+            progress = MessageDialog.show_progress(
+                mode=MessageDialog.INDETERMINATE,
+                message='Loading design file to studio...',
+                parent=self.studio
+            )
+            try:
+                with open(path, 'rb') as dump:
+                    self.root_obj = self.xml.load_xml(dump, self)
+                    self.file_hash = md5(self.xml.to_xml_bytes()).hexdigest()
+                    self.design_path = path
+            except Exception as e:
+                progress.destroy()
+                MessageDialog.show_error(title='Error loading design', message=e, parent=self.studio)
+            progress.destroy()
         else:
             self._open_default()
 

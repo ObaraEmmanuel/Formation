@@ -5,7 +5,7 @@ Common dialogs customised for hoverset platform
 # Copyright (C) 2020 Hoverset Group.                                      #
 # ======================================================================= #
 
-from hoverset.ui.widgets import Frame, Label, Window, Button, Application
+from hoverset.ui.widgets import Frame, Label, Window, Button, Application, ProgressBar
 from hoverset.ui.icons import get_icon_image
 
 
@@ -25,7 +25,11 @@ class MessageDialog(Window):
     SHOW_ERROR = "SHOW_ERROR"
     SHOW_WARNING = "SHOW_WARNING"
     SHOW_INFO = "SHOW_INFO"
+    SHOW_PROGRESS = "SHOW_PROGRESS"
     BUILDER = "BUILDER"
+
+    INDETERMINATE = ProgressBar.INDETERMINATE
+    DETERMINATE = ProgressBar.DETERMINATE
 
     _MIN_BUTTON_WIDTH = 60
 
@@ -45,6 +49,7 @@ class MessageDialog(Window):
             "SHOW_ERROR": self._show_error,
             "SHOW_WARNING": self._show_warning,
             "SHOW_INFO": self._show_info,
+            "SHOW_PROGRESS": self._show_progress,
             "BUILDER": self._builder  # Allows building custom dialogs
         }
         if render_routine in routines:
@@ -116,6 +121,22 @@ class MessageDialog(Window):
         self._message(kw.get("message"), kw.get("icon", self.ICON_INFO))
         self._add_button(text="Ok", focus=True, command=lambda _: self.destroy())
 
+    def _show_progress(self, **kw):
+        self.title(kw.get("title", self.title()))
+        text = kw.get('message', 'progress')
+        icon = None
+        if kw.get('icon'):
+            icon = get_icon_image(icon, 50, 50)
+        Label(self, **self.style.dark_text,
+              text=text, anchor="w", compound="left", wrap=600, justify="left",
+              pady=5, padx=15, image=icon
+              ).pack(side="top", fill="x")
+        self.progress = ProgressBar(self)
+        self.progress.pack(side='top', fill='x', padx=20, pady=20)
+        self.progress.mode(kw.get('mode', ProgressBar.DETERMINATE))
+        self.progress.color(kw.get('colors', self.style.colors.get('accent', 'white')))
+        self.progress.interval(kw.get('interval', ProgressBar.DEFAULT_INTERVAL))
+
     def _terminate_with_val(self, value):
         self.value = value
         self.destroy()
@@ -170,6 +191,12 @@ class MessageDialog(Window):
     def show_info(cls, **kw):
         parent = kw.get("parent")
         cls(parent, MessageDialog.SHOW_INFO, **kw)
+
+    @classmethod
+    def show_progress(cls, **kw):
+        parent = kw.get("parent")
+        dialog = cls(parent, MessageDialog.SHOW_PROGRESS, **kw)
+        return dialog
 
     @classmethod
     def builder(cls, *buttons, **kw):
