@@ -66,7 +66,6 @@ class BaseConverter:
             return getattr(module, impl)
         elif impl == 'Panedwindow' and module == native:
             orient = cls.attrib(node).get("attr", {}).get("orient")
-            cls.drop_attr(node, 'orient', 'attr')
             if orient == tk.HORIZONTAL:
                 return native.HorizontalPanedWindow
             else:
@@ -185,14 +184,14 @@ class MenuConverter(BaseConverter):
             attrib = cls.attrib(sub_node)
             if sub_node.tag in MenuConverter._types and menu is not None:
                 menu.add(sub_node.tag)
-                MenuTree.menu_config(menu, menu.index(tk.END), **attrib.get("menu"))
+                MenuTree.menu_config(menu, menu.index(tk.END), **attrib.get("menu", {}))
             elif (obj_class := cls._get_class(sub_node)) == legacy.Menu:
-                menu_obj = obj_class(widget, **attrib.get("attr"))
+                menu_obj = obj_class(widget, **attrib.get("attr", {}))
                 if widget:
                     widget.configure(menu=menu_obj)
                 elif menu:
                     menu.add(tk.CASCADE, menu=menu_obj)
-                    MenuTree.menu_config(menu, menu.index(tk.END), **attrib.get("menu"))
+                    MenuTree.menu_config(menu, menu.index(tk.END), **attrib.get("menu", {}))
                 cls._menu_from_xml(sub_node, menu_obj)
 
     @classmethod
@@ -229,7 +228,7 @@ class VariableConverter(BaseConverter):
     def from_xml(cls, node, _=None, __=None):
         # we do not need the designer and parent attributes hence the _ and __
         var_manager: VariablePane = VariablePane.get_instance()
-        attributes = cls.attrib(node).get("attr")
+        attributes = cls.attrib(node).get("attr", {})
         var_manager.add_var(VariableItem.supported_types.get(node.tag, tk.StringVar), **attributes)
 
 
@@ -258,7 +257,6 @@ class XMLForm:
 
     def _load_variables(self, node):
         for var in node.iter(*VariableItem.supported_types):
-            print(var.tag or "empty")
             VariableConverter.from_xml(var)
 
     def _load_widgets(self, node, designer, parent):

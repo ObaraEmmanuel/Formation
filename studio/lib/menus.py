@@ -265,8 +265,7 @@ class MenuEditor(Window):
         self.title(f'Edit menu for {widget.id}')
         if not isinstance(menu, tk.Menu):
             menu = tk.Menu(widget, tearoff=False)
-            widget["menu"] = menu
-        print(menu.__class__)
+            widget.configure(menu=menu)
         self._base_menu = menu
         self.config(**self.style.dark)
         self._tool_bar = Frame(self, **self.style.dark, **self.style.dark_highlight_dim, height=30)
