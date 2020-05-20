@@ -9,7 +9,7 @@ from hashlib import md5
 from tkinter import filedialog
 
 from hoverset.ui.widgets import Frame
-from hoverset.util.execution import Action
+from hoverset.util.execution import Action, as_thread
 from hoverset.ui.dialogs import MessageDialog
 
 from studio.lib.layouts import FrameLayoutStrategy
@@ -93,6 +93,7 @@ class Designer(DesignPad, Container):
         return [i.id for i in self.objects]
 
     def has_changed(self):
+        # check if design has changed since last save or loading so we can prompt user to save changes
         if self.root_obj:
             xml = XMLForm(self)
             xml.generate()
@@ -102,6 +103,7 @@ class Designer(DesignPad, Container):
         return _hash != self.file_hash
 
     def open_new(self):
+        # open a blank design
         self.open_xml(None)
 
     def open_xml(self, path=None):
@@ -117,34 +119,48 @@ class Designer(DesignPad, Container):
                 icon=MessageDialog.ICON_WARNING
             )
             if save:
+                # user opted to save
                 self.save()
             elif save is None:
+                # user made no choice or basically selected cancel
                 return
 
         if self.root_obj:
+            # remove the current root objects and its descendants
             self.studio.select(None)
             self.delete(self.root_obj, silently=True)
             self.objects = []
+            # remove all current variables so we can load fresh ones from the xml design
             from studio.feature.variable_manager import VariablePane
             VariablePane.get_instance().clear_variables()
         if path:
             self.xml = XMLForm(self)
-            progress = MessageDialog.show_progress(
-                mode=MessageDialog.INDETERMINATE,
-                message='Loading design file to studio...',
-                parent=self.studio
-            )
-            try:
-                with open(path, 'rb') as dump:
-                    self.root_obj = self.xml.load_xml(dump, self)
-                    self.file_hash = md5(self.xml.to_xml_bytes()).hexdigest()
-                    self.design_path = path
-            except Exception as e:
-                progress.destroy()
-                MessageDialog.show_error(title='Error loading design', message=e, parent=self.studio)
-            progress.destroy()
+            self._load_design(path)
         else:
+            # if no path is supplied the default behaviour is to open a blank design
             self._open_default()
+
+    @as_thread
+    def _load_design(self, path):
+        # Loading designs is elaborate so better do it on its own thread
+        progress = MessageDialog.show_progress(
+            mode=MessageDialog.INDETERMINATE,
+            message='Loading design file to studio...',
+            parent=self.studio
+        )
+        # Capture any errors that occur while loading
+        # This helps the user single out syntax errors and other value errors
+        try:
+            with open(path, 'rb') as dump:
+                self.root_obj = self.xml.load_xml(dump, self)
+                # store the file hash so we can check for changes later
+                self.file_hash = md5(self.xml.to_xml_bytes()).hexdigest()
+                self.design_path = path
+        except Exception as e:
+            progress.destroy()
+            MessageDialog.show_error(parent=self.studio, title='Error loading design', message=str(e))
+        else:
+            progress.destroy()
 
     def save(self, new_path=False):
         self.xml = XMLForm(self)
@@ -161,6 +177,7 @@ class Designer(DesignPad, Container):
         return self.design_path
 
     def to_xml(self):
+        # TODO remove this method; was meant for testing
         xml = XMLForm(self)
         xml.generate()
         with open('dump.xml', 'w') as dump:
