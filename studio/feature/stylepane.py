@@ -6,12 +6,54 @@ Contains all the widget representations used in the designer and specifies all t
 # ======================================================================= #
 
 import logging
+from collections import defaultdict
 
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Button
 from studio.feature._base import BaseFeature
 from studio.ui.editors import StyleItem
 from studio.ui.widgets import CollapseFrame
+
+
+class ReusableStyleItem(StyleItem):
+    _pool = defaultdict(dict)
+
+    def __init__(self, parent, style_definition, on_change=None):
+        super().__init__(parent, style_definition, on_change)
+        self.parent = parent
+        self.is_available = True
+        # add self to reusable pool
+        ReusableStyleItem._pool[parent][style_definition.get("name")] = self
+        # Mark item as available/not available for reuse based on whether it's visible
+        self.bind("<Unmap>", lambda e: self._make_available(True))
+        self.bind("<Map>", lambda e: self._make_available(False))
+
+    def _re_purposed(self, style_definition, on_change=None):
+        self._on_change = on_change
+        self.name = style_definition.get("name")
+        self._editor.set(style_definition.get("value"))
+        self._editor.on_change(self._change)
+        self._label.configure(text=style_definition.get("display_name"))
+        return self
+
+    def _make_available(self, flag: bool):
+        self.is_available = flag
+
+    def destroy(self):
+        pool = self._pool[self.parent]
+        if self in pool:
+            pool.pop(self)
+        super().destroy()
+
+    @classmethod
+    def acquire(cls, parent, style_definition, on_change=None):
+        pool = cls._pool.get(parent)
+        if pool:
+            item = pool.get(style_definition.get("name"))
+            if item and item.is_available:
+                return item._re_purposed(style_definition, on_change)
+        item = ReusableStyleItem(parent, style_definition, on_change)
+        return item
 
 
 class StylePane(BaseFeature):
@@ -117,10 +159,12 @@ class StylePane(BaseFeature):
         identities = widget.identity
         frame = self._id
         add = self.add
-        list(map(lambda identity: add(StyleItem(frame, identities[identity], self.apply), ), identities))
+        list(map(
+            lambda identity: add(ReusableStyleItem.acquire(frame, identities[identity], self.apply), ), identities
+        ))
         prop = widget.properties
         frame = self._all
-        list(map(lambda definition: add(StyleItem(frame, prop[definition], self.apply), ), prop))
+        list(map(lambda definition: add(ReusableStyleItem.acquire(frame, prop[definition], self.apply), ), prop))
         self.layout_for(widget)
         self.remove_empty()
 
@@ -130,7 +174,7 @@ class StylePane(BaseFeature):
         layout_def = widget.layout.definition_for(widget)
         frame.label = f"Layout ({widget.layout.layout_strategy.name})"
         for definition in layout_def:
-            self.add(StyleItem(frame, layout_def[definition], self.apply_layout))
+            self.add(ReusableStyleItem.acquire(frame, layout_def[definition], self.apply_layout))
         self.body.update_idletasks()
 
     def on_select(self, widget):
