@@ -228,9 +228,12 @@ class Designer(DesignPad, Container):
         menu = self.make_menu(self.studio.menu_template + obj.create_menu(), obj)
         # Select the widget before drawing the menu
         obj.bind("<Button-3>", lambda _: self.select(obj), add='+')
+        obj.bind('<ButtonPress-1>', lambda e: self.highlight.set_function(self.highlight.move, e), add='+')
+        obj.bind('<Motion>', self.highlight.resize, '+')
+        obj.bind('<ButtonRelease>', self.highlight.clear_resize, '+')
         Frame.add_context_menu(menu, obj)
         self.objects.append(obj)
-        obj.bind("<Button-1>", lambda _: self.select(obj))
+        obj.bind("<Button-1>", lambda _: self.select(obj), add='+')
 
     def load(self, obj_class, name, container, attributes, layout):
         obj = obj_class(self, name)
