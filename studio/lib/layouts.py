@@ -61,6 +61,7 @@ class BaseLayoutStrategy:
     name = "Layout"  # A default name just in case
     icon = "frame"
     manager = "place"  # Default layout manager in use
+    realtime_support = False  # dictates whether strategy supports realtime updates to its values, most do not
 
     def __init__(self, container):
         self.parent = container.parent
@@ -198,6 +199,7 @@ class FrameLayoutStrategy(BaseLayoutStrategy):
     name = "FrameLayout"
     icon = "frame"
     manager = "place"
+    realtime_support = True
 
     def clear_all(self):
         for child in self.children:

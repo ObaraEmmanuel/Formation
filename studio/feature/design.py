@@ -401,7 +401,7 @@ class Designer(DesignPad, Container):
         ))
 
     def adjust_highlight(self, widget):
-        if not widget:
+        if self.highlight.is_active or not widget:
             return
         self.highlight.adjust_to(self.highlight.bounds_from_object(widget))
 
@@ -437,6 +437,8 @@ class Designer(DesignPad, Container):
                 self.current_obj.level = 0
                 self.current_obj.layout = self
                 self.place_child(self.current_obj, **self.parse_bounds(new_bound))
+            if self.current_obj.layout.layout_strategy.realtime_support:
+                self.studio.widget_layout_changed(self.current_obj)
             self.current_obj.update_idletasks()
             self.update_idletasks()
 
@@ -449,6 +451,8 @@ class Designer(DesignPad, Container):
         else:
             self.current_obj.level = 0
             self.place_child(self.current_obj, **self.parse_bounds(new_bound))
+        if self.current_obj.layout.layout_strategy.realtime_support:
+            self.studio.widget_layout_changed(self.current_obj)
         self.current_obj.update_idletasks()
         self.update_idletasks()
 

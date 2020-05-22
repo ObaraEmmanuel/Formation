@@ -29,11 +29,17 @@ class ReusableStyleItem(StyleItem):
         self.bind("<Map>", lambda e: self._make_available(False))
 
     def _re_purposed(self, style_definition, on_change=None):
-        self._on_change = on_change
+        if on_change is None:
+            self._on_change = on_change
+        # block changes temporarily by setting on_change to None
+        # this prevents glitching while resizing or unexpected race conditions
+        temp = self._on_change
+        self._on_change = None
         self.name = style_definition.get("name")
         self._editor.set(style_definition.get("value"))
         self._editor.on_change(self._change)
         self._label.configure(text=style_definition.get("display_name"))
+        self._on_change = temp
         return self
 
     def _make_available(self, flag: bool):
@@ -64,6 +70,8 @@ class StylePane(BaseFeature):
     def __init__(self, master, studio, **cnf):
         super().__init__(master, studio, **cnf)
         self.items = []
+        self._layout_items = {}
+        self._current_layout = None
         self.body = ScrolledFrame(self, **self.style.dark)
         self.body.pack(side="top", fill="both", expand=True)
 
@@ -118,6 +126,7 @@ class StylePane(BaseFeature):
             return
         try:
             self._current.configure(**{prop: value})
+            # self.studio.designer.adjust_highlight(self._current)
         except Exception as e:
             logging.error(e)
             logging.error(f"Could not set style {prop} as {value}", )
@@ -149,7 +158,8 @@ class StylePane(BaseFeature):
     def styles_for(self, widget):
         self.show_loading()
         self._current = widget
-        self.clear_all()
+        self._id.clear_children()
+        self._all.clear_children()
         self.items = []
         if widget is None:
             self.collapse_all()
@@ -170,11 +180,19 @@ class StylePane(BaseFeature):
 
     def layout_for(self, widget):
         frame = self._layout
-        frame.clear_children()
         layout_def = widget.layout.definition_for(widget)
+        if widget.layout.layout_strategy.__class__ == self._current_layout:
+            for definition in layout_def:
+                self._layout_items.get(layout_def[definition].get("name"))._re_purposed(layout_def[definition])
+            return
+        self._current_layout = widget.layout.layout_strategy.__class__
+        self._layout_items = {}
+        frame.clear_children()
         frame.label = f"Layout ({widget.layout.layout_strategy.name})"
         for definition in layout_def:
-            self.add(ReusableStyleItem.acquire(frame, layout_def[definition], self.apply_layout))
+            item = ReusableStyleItem.acquire(frame, layout_def[definition], self.apply_layout)
+            self.add(item)
+            self._layout_items[item.name] = item
         self.body.update_idletasks()
 
     def on_select(self, widget):

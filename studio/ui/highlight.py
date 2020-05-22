@@ -144,6 +144,11 @@ class HighLight:
         self._bbox_on_click = None
 
     @property
+    def is_active(self) -> bool:
+        # currently resizing or moving widget
+        return bool(self._resize_func)
+
+    @property
     def bbox_on_click(self):
         # Return the bounding box of the highlight
         return self._bbox_on_click
