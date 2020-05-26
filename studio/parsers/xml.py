@@ -103,7 +103,6 @@ class BaseConverter:
 
     @classmethod
     def from_xml(cls, node, designer, parent):
-        cls.group_attr(node)
         obj_class = cls._get_class(node)
         styles = cls.attrib(node).get("attr", {})
         if obj_class in (native.VerticalPanedWindow, native.HorizontalPanedWindow):
@@ -131,15 +130,6 @@ class BaseConverter:
         attr = cls.get_attr_name(namespace, attr)
         if attr in node.attrib:
             node.attrib.pop(attr)
-
-    @classmethod
-    def group_attr(cls, node):
-        grouped = defaultdict(dict)
-        for attr in node.attrib:
-            match = _attr_rgx.search(attr)
-            if match:
-                group = _reversed_namespaces.get(match.group("namespace"))
-                grouped[group][match.group("attr")] = node.attrib.get(attr)
 
     @classmethod
     @functools.lru_cache(maxsize=4)
