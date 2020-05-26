@@ -295,13 +295,3 @@ class Builder:
                 continue
             self._load_widgets(sub_node, builder, widget)
         return widget
-
-
-if __name__ == '__main__':
-    root = tk.Tk()
-    root.geometry('700x600')
-    body = Builder(root, "sample.xml")
-    body._root.pack(fill="both", expand=True)
-    body.Button_1.bind("<Button-1>", lambda e: print("clicked"))
-    body.Button_2.bind("<Button-1>", lambda e: print("tapped"))
-    root.mainloop()
