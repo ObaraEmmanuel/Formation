@@ -258,15 +258,21 @@ class VariableConverter(BaseConverter):
 
 
 class Builder:
+    _conversion_map = {
+        tk.Menubutton: MenuConverter,
+        ttk.Menubutton: MenuConverter,
+        # Add custom converters here
+    }
 
     def __init__(self, parent, path):
+        """
+        Load xml design into a GUI with all components accessible as attributes
+        To access a widget use its name as set in the designer
+        :param parent: The parent window where the design widgets are to be loaded
+        :param path: The path to the xml file containing the design
+        """
         self._parent = parent
-        self._conversion_map = {
-            tk.Menubutton: MenuConverter,
-            ttk.Menubutton: MenuConverter,
-            # Add custom converters here
-        }
-        self._image_cache = []
+        self._image_cache = []  # Cache for images to shield them from garbage collection
         self._root = self._load_xml(path)
 
     def _get_converter(self, widget_class):
@@ -275,9 +281,10 @@ class Builder:
     def _load_xml(self, path):
         with open(path, 'rb') as stream:
             tree = etree.parse(stream)
-            self.root = tree.getroot()
-            self._load_variables(self.root, self)
-            return self._load_widgets(self.root, self, self._parent)
+            root_node = tree.getroot()
+            # load variables first
+            self._load_variables(root_node, self)
+            return self._load_widgets(root_node, self, self._parent)
 
     def _load_variables(self, node, builder):
         for var in node.iter(*_variable_types):
@@ -295,3 +302,36 @@ class Builder:
                 continue
             self._load_widgets(sub_node, builder, widget)
         return widget
+
+
+class AppBuilder(Builder):
+    """
+    Subclass of builder that allow opening of xml designs without
+    toplevel root widget. It automatically creates a toplevel window
+    and adapts its size to fit the design perfectly
+    """
+
+    def __init__(self, path, screenName=None, baseName=None, className: str = 'Tk', useTk=1, sync=0, use=None):
+        self._parent = self._app = tk.Tk(screenName, baseName, className, useTk, sync, use)
+        super().__init__(self._app, path)
+        self._root.pack(fill="both", expand=True)
+        # set the xml file name as default
+        self._app.title(path.split(".")[0])
+
+    def _load_xml(self, path):
+        with open(path, 'rb') as stream:
+            tree = etree.parse(stream)
+            root_node = tree.getroot()
+            layout = BaseConverter.attrib(root_node).get("layout", {})
+            # Adjust toplevel window size to that of the root widget
+            self._app.geometry('{}x{}'.format(layout.get("width", 200), layout.get("height", 200)))
+            self._load_variables(root_node, self)
+            return self._load_widgets(root_node, self, self._parent)
+
+    def mainloop(self, n: int = 0):
+        """
+        Start the mainloop for the underlying toplevel window
+        :param n:
+        :return:
+        """
+        self._app.mainloop(n)
