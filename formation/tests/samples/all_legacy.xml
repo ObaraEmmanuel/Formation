@@ -1,0 +1,33 @@
+<tkinter.Frame xmlns:attr="http://www.hoversetformationstudio.com/styles/"
+               xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="Frame_1" attr:layout="FrameLayout"
+               layout:width="616" layout:height="571" layout:x="31" layout:y="31">
+  <tkinter.Canvas name="Canvas_1" attr:background="#c2c2c2" layout:width="76" layout:height="45" layout:x="15"
+                  layout:y="23"/>
+  <tkinter.Frame name="Frame_2" attr:background="#e3e3e3" attr:layout="FrameLayout" layout:width="262"
+                 layout:height="145" layout:x="125" layout:y="23"/>
+  <tkinter.LabelFrame name="LabelFrame_1" attr:text="LabelFrame_1" attr:layout="FrameLayout" layout:width="191"
+                      layout:height="124" layout:x="411" layout:y="24"/>
+  <tkinter.Listbox name="Listbox_1" layout:width="88" layout:height="80" layout:x="16" layout:y="81"/>
+  <tkinter.PanedWindow name="PanedWindow_1" layout:width="360" layout:height="163" layout:x="18" layout:y="191">
+    <tkinter.Frame name="Frame_3" attr:layout="FrameLayout" layout:width="" layout:height="" layout:sticky="nesw">
+      <tkinter.Message name="Message_1" attr:text="Message_1" layout:width="55" layout:height="30" layout:x="181"
+                       layout:y="25"/>
+      <tkinter.Radiobutton name="Radiobutton_1" attr:text="Radiobutton_1" layout:width="106" layout:height="30"
+                           layout:x="87" layout:y="99"/>
+      <tkinter.Scale name="Scale_1" attr:from="0.0" attr:resolution="1.0" attr:tickinterval="0.0" attr:to="100.0"
+                     layout:width="55" layout:height="30" layout:x="213" layout:y="88"/>
+      <tkinter.Entry name="Entry_1" attr:vcmd="" layout:width="55" layout:height="30" layout:x="39" layout:y="14"/>
+      <tkinter.Text name="Text_1" layout:width="55" layout:height="30" layout:x="130" layout:y="73"/>
+    </tkinter.Frame>
+  </tkinter.PanedWindow>
+  <tkinter.Button name="Button_1" attr:text="Button_1" layout:width="55" layout:height="30" layout:x="108"
+                  layout:y="409"/>
+  <tkinter.Checkbutton name="Checkbutton_1" attr:text="Checkbutton_1" attr:variable="!checkbutton" layout:width="112"
+                       layout:height="30" layout:x="331" layout:y="411"/>
+  <tkinter.Label name="Label_1" attr:text="Label_1" layout:width="55" layout:height="30" layout:x="247" layout:y="441"/>
+  <tkinter.Scrollbar name="Scrollbar_1" layout:width="55" layout:height="30" layout:x="493" layout:y="219"/>
+  <tkinter.Spinbox name="Spinbox_1" attr:from="0.0" attr:increment="1.0" attr:to="0.0" attr:vcmd="" layout:width="78"
+                   layout:height="30" layout:x="484" layout:y="446"/>
+  <tkinter.Menubutton name="Menubutton_1" attr:padx="5" attr:pady="4" attr:text="Menubutton_1" layout:width="80"
+                      layout:height="30" layout:x="477" layout:y="323"/>
+</tkinter.Frame>
