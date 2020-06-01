@@ -265,5 +265,5 @@ class Toplevel(PseudoWidget, tk.Toplevel):
 
 widgets = (
     Button, Canvas, Checkbutton, Entry, Frame, Label, LabelFrame, Listbox, Menubutton, Message, PanedWindow,
-    Radiobutton, Scale, Scrollbar, Spinbox, Text, Toplevel
+    Radiobutton, Scale, Scrollbar, Spinbox, Text
 )
