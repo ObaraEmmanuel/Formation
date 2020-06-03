@@ -44,6 +44,8 @@ class BaseConverter:
     _designer_alternates = {
         'tkinter': legacy,
         'tkinter.ttk': native,
+        'Tkinter': legacy,
+        'ttk': native
     }
 
     @staticmethod
