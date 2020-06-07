@@ -278,13 +278,19 @@ class Builder:
     def _get_converter(self, widget_class):
         return self._conversion_map.get(widget_class, BaseConverter)
 
+    def _get_root_node(self, path):
+        if isinstance(path, etree._Element):
+            return path
+        else:
+            with open(path, 'rb') as stream:
+                tree = etree.parse(stream)
+                return tree.getroot()
+
     def _load_xml(self, path):
-        with open(path, 'rb') as stream:
-            tree = etree.parse(stream)
-            root_node = tree.getroot()
-            # load variables first
-            self._load_variables(root_node, self)
-            return self._load_widgets(root_node, self, self._parent)
+        root_node = self._get_root_node(path)
+        # load variables first
+        self._load_variables(root_node, self)
+        return self._load_widgets(root_node, self, self._parent)
 
     def _load_variables(self, node, builder):
         for var in node.iter(*_variable_types):
@@ -311,22 +317,27 @@ class AppBuilder(Builder):
     and adapts its size to fit the design perfectly
     """
 
-    def __init__(self, path, screenName=None, baseName=None, className: str = 'Tk', useTk=1, sync=0, use=None):
-        self._parent = self._app = tk.Tk(screenName, baseName, className, useTk, sync, use)
+    def __init__(self, path, app=None, screenName=None, baseName=None, className: str = 'Tk', useTk=1, sync=0,
+                 use=None):
+        if app is None:
+            self._parent = self._app = tk.Tk(screenName, baseName, className, useTk, sync, use)
+        else:
+            self._parent = self._app = app
+
         super().__init__(self._app, path)
         self._root.pack(fill="both", expand=True)
         # set the xml file name as default
-        self._app.title(path.split(".")[0])
+        # but only if the path is a actual string path and not an xml node
+        if isinstance(path, str):
+            self._app.title(path.split(".")[0])
 
     def _load_xml(self, path):
-        with open(path, 'rb') as stream:
-            tree = etree.parse(stream)
-            root_node = tree.getroot()
-            layout = BaseConverter.attrib(root_node).get("layout", {})
-            # Adjust toplevel window size to that of the root widget
-            self._app.geometry('{}x{}'.format(layout.get("width", 200), layout.get("height", 200)))
-            self._load_variables(root_node, self)
-            return self._load_widgets(root_node, self, self._parent)
+        root_node = self._get_root_node(path)
+        layout = BaseConverter.attrib(root_node).get("layout", {})
+        # Adjust toplevel window size to that of the root widget
+        self._app.geometry('{}x{}'.format(layout.get("width", 200), layout.get("height", 200)))
+        self._load_variables(root_node, self)
+        return self._load_widgets(root_node, self, self._parent)
 
     def mainloop(self, n: int = 0):
         """

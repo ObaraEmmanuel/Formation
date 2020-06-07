@@ -90,6 +90,7 @@ class Designer(DesignPad, Container):
                                  height=self.height - self._padding * 2)
         self.xml.generate()
         self.file_hash = md5(self.xml.to_xml_bytes()).hexdigest()
+        self.design_path = None
 
     @property
     def _ids(self):
@@ -183,8 +184,7 @@ class Designer(DesignPad, Container):
         # TODO remove this method; was meant for testing
         xml = XMLForm(self)
         xml.generate()
-        with open('dump.xml', 'w') as dump:
-            dump.write(xml.to_xml())
+        return xml.root
 
     def paste(self, widget: PseudoWidget):
         if not self.current_obj:

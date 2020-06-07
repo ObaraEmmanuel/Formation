@@ -5,9 +5,10 @@
 import functools
 import logging
 import sys
+import os
 
 # Add Studio and Hoverset to path so imports from hoverset can work.
-from tkinter import filedialog
+from tkinter import filedialog, Toplevel
 
 sys.path.append('..')
 
@@ -23,6 +24,8 @@ from hoverset.ui.widgets import Application, Frame, PanedWindow, Button
 from hoverset.ui.icons import get_icon_image
 from hoverset.util.execution import Action
 from hoverset.ui.dialogs import MessageDialog
+
+from formation import AppBuilder
 
 
 class StudioApplication(Application):
@@ -81,9 +84,10 @@ class StudioApplication(Application):
         self.install(VariablePane)
 
         self.actions = (
-            ("Undo", get_icon_image("undo", 20, 20), lambda e: self.undo()),
-            ("Redo", get_icon_image("redo", 20, 20), lambda e: self.redo()),
-            ("Fullscreen", get_icon_image("image_editor", 20, 20), self.close_all)
+            ("Undo", get_icon_image("undo", 20, 20), lambda e: self.undo(), "Undo action"),
+            ("Redo", get_icon_image("redo", 20, 20), lambda e: self.redo(), "Redo action"),
+            ("Fullscreen", get_icon_image("image_editor", 20, 20), self.close_all, "Design mode"),
+            ("Preview", get_icon_image("play", 20, 20), lambda e: self.preview(), "Preview design")
         )
 
         self.init_actions()
@@ -147,6 +151,7 @@ class StudioApplication(Application):
             ("command", "delete", get_icon_image("delete", 14, 14), self.delete, {}),
         )
         self.open_new()
+        self.current_preview = None
 
     def print_xml(self):
         self.designer.to_xml()
@@ -205,6 +210,7 @@ class StudioApplication(Application):
         for action in self.actions:
             btn = Button(self._toolbar, image=action[1], **self.style.dark_button, width=25, height=25)
             btn.pack(side="left")
+            btn.tooltip(action[3])
             btn.on_click(action[2])
 
     def uninstall(self, feature):
@@ -349,6 +355,15 @@ class StudioApplication(Application):
     def on_feature_change(self, new, old):
         self.features.insert(self.features.index(old), new)
         self.features.remove(old)
+
+    def preview(self):
+        if self.current_preview:
+            self.current_preview.destroy()
+        window = self.current_preview = Toplevel(self)
+        window.wm_transient(self)
+        build = AppBuilder(self.designer.to_xml(), window)
+        name = self.designer.design_path if self.designer.design_path is not None else "Untitled"
+        build._app.title(os.path.basename(name))
 
 
 def main():
