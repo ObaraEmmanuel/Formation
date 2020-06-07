@@ -29,7 +29,7 @@ class ReusableStyleItem(StyleItem):
         self.bind("<Map>", lambda e: self._make_available(False))
 
     def _re_purposed(self, style_definition, on_change=None):
-        if on_change is None:
+        if on_change is not None:
             self._on_change = on_change
         # block changes temporarily by setting on_change to None
         # this prevents glitching while resizing or unexpected race conditions
