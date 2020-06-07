@@ -39,6 +39,9 @@ class DesignLayoutStrategy(FrameLayoutStrategy):
     def definition_for(self, widget):
         definition = super().definition_for(widget)
         # bordermode is not supported in design pad so simply set value to the default 'inside'
+        bounds = geometry.relative_bounds(geometry.bounds(widget), widget.layout)
+        definition["x"]["value"] = bounds[0]
+        definition["y"]["value"] = bounds[1]
         definition["bordermode"]["value"] = 'inside'
         return definition
 

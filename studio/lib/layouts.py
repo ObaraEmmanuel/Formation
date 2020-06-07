@@ -234,10 +234,10 @@ class FrameLayoutStrategy(BaseLayoutStrategy):
 
     def definition_for(self, widget):
         definition = super().definition_for(widget)
-        bounds = geometry.relative_bounds(geometry.bounds(widget), widget.layout)
-        definition["x"]["value"] = bounds[0]
-        definition["y"]["value"] = bounds[1]
-        definition["bordermode"]["value"] = widget.place_info().get("bordermode")
+        info = widget.place_info()
+        definition["x"]["value"] = info.get("x", 0)
+        definition["y"]["value"] = info.get("y", 0)
+        definition["bordermode"]["value"] = info.get("bordermode")
         return definition
 
     def copy_layout(self, widget, from_):
