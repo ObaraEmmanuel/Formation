@@ -296,6 +296,53 @@ class CenterWindowMixin:
         self.center()
 
 
+class PositionMixin:
+    """
+    Automatic positioning of popup windows, it positions windows such that
+    the are visible from any point of the screen by prividing a post method
+    """
+
+    def post(self, widget, **kwargs):
+        """
+        :param widget: A tk widget to be used as an anchor point
+        :param kwargs:
+            -side: a string value "nw", "ne", "sw", "se", "auto" representing where the
+            dialog is to be position relative the anchor widget
+            -padding: an integer indicating how much space to allow between the popup and the
+            anchor widget
+        :return: None
+        """
+        self.re_calibrate()
+        side = kwargs.get("side", "auto")
+        padding = kwargs.get("padding", 2)
+        widget.update_idletasks()
+        self.update_idletasks()
+        x, y, width, height = widget.winfo_rootx(), widget.winfo_rooty(), widget.width, widget.height
+        right = x
+        left = x - self.width + width
+        top = y - self.height - padding
+        bottom = y + height + padding
+        if side == "nw":
+            self.set_geometry((left, top))
+        elif side == "ne":
+            self.set_geometry((right, top))
+        elif side == "sw":
+            self.set_geometry((left, bottom))
+        elif side == "se":
+            self.set_geometry((right, bottom))
+        else:
+            # i.e. side == "auto"
+            # set the screen size as the boundary
+            win_bounds = 0, 0, self.winfo_screenwidth(), self.winfo_screenheight()
+            offset_b = win_bounds[3] - bottom
+            offset_t = y - win_bounds[1]
+            offset_l = x - win_bounds[0]
+            offset_r = win_bounds[2] - right
+            x_pos = left if offset_l >= offset_r or offset_l > self.width else right
+            y_pos = bottom if offset_b >= offset_t or offset_b > self.height else top
+            self.set_geometry((x_pos, y_pos))
+
+
 class _Tooltip(tix.Toplevel):
     """
     Tooltip window class. It is not meant to be used directly; use the tooltip methods instead
@@ -1182,15 +1229,12 @@ class HorizontalScale(Widget, tk.Frame):
         self.scale.config(cnf, **kwargs)
 
 
-class Popup(tix.Toplevel):
+class Popup(PositionMixin, Window):
 
     def __init__(self, master, pos=None, **cnf):
         super().__init__(master, **cnf)
-        if master:
-            self.style = master.window.style
         if pos is not None:
             self.set_geometry(pos)
-        self.window = self
         self._close_func = None
         self.config(**self.style.dark_highlight_active, **self.style.dark)
         self.overrideredirect(True)
@@ -1207,9 +1251,12 @@ class Popup(tix.Toplevel):
 
     @chain
     def set_geometry(self, rec):
-        rec = rec[2], rec[3], rec[0], rec[1]
+        x, y, width, height = rec if len(rec) == 4 else rec + (None, None)
         try:
-            self.geometry("{}x{}+{}+{}".format(*rec))
+            if width is None:
+                self.geometry("+{}+{}".format(x, y))
+            else:
+                self.geometry("{}x{}+{}+{}".format(width, height, x, y))
         except tk.TclError:
             pass
 
@@ -1234,7 +1281,7 @@ class Popup(tix.Toplevel):
         self._close_func = lambda: func(*args, **kwargs)
 
 
-class DrawOver(Frame):
+class DrawOver(PositionMixin, Frame):
 
     def __init__(self, master, **cnf):
         super().__init__(master, **cnf)
@@ -1285,36 +1332,6 @@ class DrawOver(Frame):
 
     def on_close(self, func, *args, **kwargs):
         self._close_func = lambda: func(*args, **kwargs)
-
-    def post(self, widget, **kwargs):
-        self.re_calibrate()
-        side = kwargs.get("side", "auto")
-        padding = kwargs.get("padding", 2)
-        widget.update_idletasks()
-        self.update_idletasks()
-        x, y, width, height = widget.winfo_rootx(), widget.winfo_rooty(), widget.width, widget.height
-        right = x
-        left = x - self.width + width
-        top = y - self.height - padding
-        bottom = y + height + padding
-        if side == "nw":
-            self.set_geometry((left, top))
-        elif side == "ne":
-            self.set_geometry((right, top))
-        elif side == "sw":
-            self.set_geometry((left, bottom))
-        elif side == "se":
-            self.set_geometry((right, bottom))
-        else:
-            # i.e. side == "auto"
-            win_bounds = self.window.absolute_bounds()
-            offset_b = win_bounds[3] - bottom
-            offset_t = y - win_bounds[1]
-            offset_l = x + self.width - win_bounds[0]
-            offset_r = win_bounds[2] - right
-            x_pos = left if offset_l >= offset_r or offset_l > self.width else right
-            y_pos = bottom if offset_b >= offset_t or offset_b > self.height else top
-            self.set_geometry((x_pos, y_pos))
 
 
 class CompoundList(ScrolledFrame):
@@ -1456,7 +1473,7 @@ class CompoundList(ScrolledFrame):
 
 class Spinner(Frame):
 
-    def __init__(self, master=None, **cnf):
+    def __init__(self, master=None, **_):
         super().__init__(master)
         self._button = Button(self, **self.style.dark_button, text=get_icon("triangle_down"), width=20, anchor="center")
         self._button.pack(side="right", fill="y")
@@ -1474,7 +1491,7 @@ class Spinner(Frame):
         self._item_cls = CompoundList.BaseItem
         self.dropdown_height = 150
 
-    def _popup(self, event=None):
+    def _popup(self, _=None):
         if self._popup_window is not None:
             self._popup_window.destroy()
             self._button.config(text=get_icon("triangle_down"))

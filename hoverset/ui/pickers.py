@@ -178,11 +178,11 @@ class ColorChooser(Frame):
         self._on_change = lambda val: listener(val, *args, **kwargs)
 
 
-class ColorDialog(DrawOver):
+class ColorDialog(Popup):
 
     def __init__(self, master, **cnf):
         super().__init__(master, **cnf)
-        self.chooser = ColorChooser(self.body, **self.style.dark)
+        self.chooser = ColorChooser(self, **self.style.dark)
         self.chooser.pack()
 
     def set(self, value):
