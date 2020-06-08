@@ -80,17 +80,13 @@ def set_pane(widget, parent, **options):
     parent.add(widget, **options)
 
 
-def set_native_pane(widget, parent, **options):
-    parent.pane(widget, **options)
-
-
 _layout_handlers = {
     "FrameLayout": set_place,
     "LinearLayout": set_pack,
     "GridLayout": set_grid,
     "TabLayout": set_tab,
     "PanedLayout": set_pane,
-    "NativePanedLayout": set_native_pane
+    "NativePanedLayout": set_pane
 }
 
 _register_namespaces()
@@ -133,7 +129,7 @@ class BaseConverter:
         elif widget.__class__ == tk.PanedWindow:
             return set_pane
         elif widget.__class__ == ttk.PanedWindow:
-            return set_native_pane
+            return set_pane
 
     @staticmethod
     def get_altered_options(widget):
