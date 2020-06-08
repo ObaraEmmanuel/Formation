@@ -23,7 +23,6 @@ from studio.ui.widgets import SideBar
 from hoverset.ui.widgets import Application, Frame, PanedWindow, Button
 from hoverset.ui.icons import get_icon_image
 from hoverset.util.execution import Action
-from hoverset.ui.dialogs import MessageDialog
 
 from formation import AppBuilder
 
@@ -84,13 +83,23 @@ class StudioApplication(Application):
         self.install(VariablePane)
 
         self.actions = (
+            ("Delete", get_icon_image("delete", 20, 20), lambda e: self.delete(), "Delete selected widget"),
             ("Undo", get_icon_image("undo", 20, 20), lambda e: self.undo(), "Undo action"),
             ("Redo", get_icon_image("redo", 20, 20), lambda e: self.redo(), "Redo action"),
-            ("Fullscreen", get_icon_image("image_editor", 20, 20), self.close_all, "Design mode"),
-            ("Preview", get_icon_image("play", 20, 20), lambda e: self.preview(), "Preview design")
+            ("Cut", get_icon_image("cut", 20, 20), lambda e: self.cut(), "Cut selected widget"),
+            ("separator",),
+            ("Fullscreen", get_icon_image("image_editor", 20, 20), lambda e: self.close_all(), "Design mode"),
+            ("Separate", get_icon_image("separate", 20, 20), lambda e: self.features_as_windows(),
+             "Open features in window mode"),
+            ("Dock", get_icon_image("flip_horizontal", 15, 15), lambda e: self.features_as_docked(),
+             "Dock all features"),
+            ("separator",),
+            ("New", get_icon_image("add", 20, 20), lambda e: self.open_new(), "New design"),
+            ("Save", get_icon_image("save", 20, 20), lambda e: self.save(), "Save design"),
+            ("Preview", get_icon_image("play", 20, 20), lambda e: self.preview(), "Preview design"),
         )
 
-        self.init_actions()
+        self.init_toolbar()
         self.selected = None
 
         # -------------------------------------------- menu definition ------------------------------------------------
@@ -206,10 +215,14 @@ class StudioApplication(Application):
         self._right_bar.close_all()
         self._left_bar.close_all()
 
-    def init_actions(self):
+    def init_toolbar(self):
         for action in self.actions:
+            if len(action) == 1:
+                Frame(self._toolbar, width=1, bg=self.style.colors.get("primarydarkaccent")).pack(
+                    side='left', fill='y', pady=3, padx=5)
+                continue
             btn = Button(self._toolbar, image=action[1], **self.style.dark_button, width=25, height=25)
-            btn.pack(side="left")
+            btn.pack(side="left", padx=3)
             btn.tooltip(action[3])
             btn.on_click(action[2])
 
@@ -229,8 +242,8 @@ class StudioApplication(Application):
             feature.bar.remove(feature)
             feature.pane.forget(feature)
             self._adjust_pane(feature.pane)
-            feature.bar = bar,
-            feature.pane = pane,
+            feature.bar = bar
+            feature.pane = pane
             bar.add_feature(feature)
             pane.add(feature, minsize=100, height=300, sticky='nswe')
 
@@ -249,6 +262,14 @@ class StudioApplication(Application):
             bar.select(obj)
             pane.add(obj, minsize=100, height=300, sticky='nswe')
         return obj
+
+    def features_as_windows(self):
+        for feature in self.features:
+            feature.open_as_window()
+
+    def features_as_docked(self):
+        for feature in self.features:
+            feature.open_as_docked()
 
     def set_path(self, path):
         if path:
