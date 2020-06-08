@@ -176,6 +176,14 @@ class EditableMixin:
         else:
             self.config(state='normal')
 
+    def get(self):
+        """
+        Overrides default get method which often gives an outdated value
+        and instead returns latest value straight from the control variable
+        :return: current value of editable widget, type depends on the control variable type
+        """
+        return self._var.get()
+
 
 class ContextMenuMixin:
     _on_context_menu = None
@@ -576,7 +584,7 @@ class Widget:
         :param window: The tooltip window instance to be used as parent for the custom elements
         :return: None
         """
-        tk.Label(window, **self.style.dark_text, text=self._tooltip_text).pack()
+        tk.Label(window, **self.style.tooltip, text=self._tooltip_text).pack()
 
     @property
     def window(self):
