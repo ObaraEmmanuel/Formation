@@ -247,13 +247,19 @@
 .dark_pane_horizontal, .dark_pane_vertical, .dark_pane{
     background: #303030;
     showhandle: 0;
-    opaqueresize:0;
+    opaqueresize: 0;
 }
 
-.dark_pane_horizontal{
+.dark_pane_horizontal {
     orient: horizontal;
 }
 
-.dark_pane_vertical{
+.dark_pane_vertical {
     orient: vertical;
+}
+
+.tooltip {
+    background: #303030;
+    foreground: #f7f7f7;
+    font: TkDefaultFont 8;
 }

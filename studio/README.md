@@ -1,4 +1,4 @@
-![Formation logo](./resources/logo.png)
+![Formation logo](resources/images/logo.png)
 
 ## Introduction
 
@@ -23,7 +23,7 @@ simplify the design process. The designer supports manipulation using the follow
    - TabLayout (for `Tkinter.ttk.Notebook`)
    - PaneLayout (for PanedWindows)
 
-![Supported layouts](./resources/layouts.png)
+![Supported layouts](resources/images/layouts.png)
 
 * **Component library**
 The component library allows designers to search through the supported widget sets and add them to the designer. They 

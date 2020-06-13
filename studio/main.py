@@ -19,27 +19,30 @@ from studio.feature.components import ComponentPane
 from studio.feature.variable_manager import VariablePane
 from studio.feature._base import BaseFeature
 from studio.ui.widgets import SideBar
+from studio.ui.about import about_window
+import studio
 
 from hoverset.ui.widgets import Application, Frame, PanedWindow, Button
 from hoverset.ui.icons import get_icon_image
 from hoverset.util.execution import Action
+from hoverset.data.utils import get_resource_path
+import hoverset.ui
 
 from formation import AppBuilder
 
 
 class StudioApplication(Application):
-    widget_tree = None
-    designer: Designer = None
-    style_pane: StylePane = None
-    widget_set: ComponentPane = None
-    STYLES_PATH = "../hoverset/ui/themes/default.css"
+    STYLES_PATH = get_resource_path(hoverset.ui, "themes/default.css")
+    ICON_PATH = get_resource_path(studio, "resources/images/formation.ico")
 
     def __init__(self, master=None, **cnf):
         super().__init__(master, **cnf)
+        # Load icon asynchronously to prevent issues which have been known to occur when loading it synchronously
+        self.after(200, lambda: self.wm_iconbitmap(self.ICON_PATH, self.ICON_PATH))
         self.load_styles(self.STYLES_PATH)
         self.geometry("1100x650")
         self.state('zoomed')
-        self.title('Tkinter Studio')
+        self.title('Formation Studio')
         self._toolbar = Frame(self, **self.style.dark, height=30)
         self._toolbar.pack(side="top", fill="x")
         self._toolbar.pack_propagate(0)
@@ -147,7 +150,7 @@ class StudioApplication(Application):
                 ("command", "Documentation", None, None, {}),
                 ("command", "Check for updates", get_icon_image("cloud", 14, 14), None, {}),
                 ("separator",),
-                ("command", "About Studio", None, None, {}),
+                ("command", "About Studio", None, lambda: about_window(self), {}),
             )})
         ), self)
         self.config(menu=self.menu_bar)
@@ -382,9 +385,9 @@ class StudioApplication(Application):
             self.current_preview.destroy()
         window = self.current_preview = Toplevel(self)
         window.wm_transient(self)
-        build = AppBuilder(self.designer.to_xml(), window)
+        window.build = AppBuilder(self.designer.to_xml(), window)
         name = self.designer.design_path if self.designer.design_path is not None else "Untitled"
-        build._app.title(os.path.basename(name))
+        window.build._app.title(os.path.basename(name))
 
 
 def main():

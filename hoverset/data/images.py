@@ -10,10 +10,25 @@ import functools
 import os
 import shelve
 
+from hoverset.data.utils import get_resource_path
+
 from PIL import Image, ImageTk
 
-_module_directory = os.path.dirname(os.path.abspath(__file__))
-_image_locations = os.path.join(_module_directory, "files", "image")
+_image_locations = get_resource_path('hoverset.data', "image")
+
+
+def set_image_resource_path(path):
+    """
+    Set the path at which to obtain image and icon resources at the start of the application
+    :param path: a valid path to a shelve resource without necessarily an extension
+    :return:
+    """
+    global _image_locations
+    if os.path.exists(os.path.dirname(path)):
+        _image_locations = path
+    else:
+        raise FileNotFoundError("Image shelve {} path does not exist", path)
+
 
 # We want to enable memoization to reduce the number of times we read the image database
 # An image can be accessed multiple times in the application lifetime hence a cache can improve performance greatly
@@ -33,6 +48,10 @@ def get_image(identifier: str, width=25, height=25):
             image = image_base.get(identifier)
         else:
             image = image_base.get("default")
+    if image is None:
+        raise FileNotFoundError(
+            "Incorrect image shelve path specified, use set_image_resource_path function to set the correct path!"
+        )
     # Resize the image to required size
     image.thumbnail((width, height), Image.ANTIALIAS)
     return image
@@ -49,11 +68,15 @@ def get_tk_image(identifier: str, width=25, height=25):
     return ImageTk.PhotoImage(image=get_image(identifier, width, height))
 
 
-def load_tk_image(path):
+def load_tk_image(path, width=None, height=None):
     """
     Load image from file described by path and convert to a tkinter image
+    :param height: integer representing height of image to be returned
+    :param width: integer representing width of image to be returned
     :param path: Image file path
     :return: tkinter PhotoImage
     """
     image = Image.open(path)
+    if width is not None and height is not None:
+        image.thumbnail((width, height))
     return ImageTk.PhotoImage(image=image)
