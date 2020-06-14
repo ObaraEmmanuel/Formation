@@ -177,7 +177,10 @@ class MenuConverter(BaseConverter):
             if sub_node.tag in MenuConverter._types and menu is not None:
                 menu.add(sub_node.tag)
                 MenuTree.menu_config(menu, menu.index(tk.END), **attrib.get("menu", {}))
-            elif (obj_class := cls._get_class(sub_node)) == legacy.Menu:
+                return
+
+            obj_class = cls._get_class(sub_node)
+            if obj_class == legacy.Menu:
                 menu_obj = obj_class(widget, **attrib.get("attr", {}))
                 if widget:
                     widget.configure(menu=menu_obj)
