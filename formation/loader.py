@@ -315,6 +315,22 @@ class AppBuilder(Builder):
 
     def __init__(self, path, app=None, screenName=None, baseName=None, className: str = 'Tk', useTk=1, sync=0,
                  use=None):
+        """
+        Create a builder object that automatically adds itself into a toplevel window
+        and resizes the window accordingly. The underlying toplevel window can
+        be accesses as builder_object._app. The private accessor undrscore is to
+        free as much as of the builder namespace to your user defined names and prevent
+        possible issues
+        :param path: Path to xml file created by the formation designer
+        :param app: optional custom external toplevel to use, if unspecified a toplevel window is
+        created for you
+        The rest of the parameters are specific to the underlying toplevel window
+        Return a new Toplevel widget on screen :param screenName. A new Tcl interpreter will
+        be created. :param baseName will be used for the identification of the profile file (see
+        readprofile).
+        It is constructed from sys.argv[0] without extensions if None is given. CLASSNAME
+        is the name of the widget class
+        """
         if app is None:
             self._parent = self._app = tk.Tk(screenName, baseName, className, useTk, sync, use)
         else:

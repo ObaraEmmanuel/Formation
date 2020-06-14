@@ -40,6 +40,8 @@ class MessageDialog(Window):
         self.transient(master)
         # take the screen focus
         self.grab_set()
+        # prevent resizing by default
+        self.resizable(False, False)
         self.bar = None
         # Common dialogs
         routines = {
