@@ -600,7 +600,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
             widget.configure(width=kw['width'])
             kw.pop('width')
         if 'height' in kw:
-            widget.configure(width=kw['height'])
+            widget.configure(height=kw['height'])
             kw.pop('height')
         widget.grid_configure(**kw)
 

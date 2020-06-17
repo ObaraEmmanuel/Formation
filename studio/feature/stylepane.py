@@ -71,7 +71,7 @@ class StylePane(BaseFeature):
         super().__init__(master, studio, **cnf)
         self.items = []
         self._layout_items = {}
-        self._current_layout = None
+        self._prev_layout = None
         self.body = ScrolledFrame(self, **self.style.dark)
         self.body.pack(side="top", fill="both", expand=True)
 
@@ -102,6 +102,7 @@ class StylePane(BaseFeature):
         self._empty_frame = Frame(self.body)
         self.show_empty()
         self._current = None
+        self._prev_widget = None
         self._expanded = False
 
     def create_menu(self):
@@ -114,6 +115,11 @@ class StylePane(BaseFeature):
     def add(self, style_item):
         self.items.append(style_item)
         self._show(style_item)
+
+    def remove(self, style_item):
+        if style_item in self.items:
+            self.items.remove(style_item)
+        self._hide(style_item)
 
     def _show(self, item):
         item.pack(fill="x", pady=1)
@@ -136,7 +142,6 @@ class StylePane(BaseFeature):
             self._current.layout.apply(prop, value, self._current)
             self.studio.designer.adjust_highlight(self._current)
         except Exception as e:
-            print(e)
             logging.log(logging.ERROR, f"Could not set layout {prop} as {value}", )
 
     def show_empty(self):
@@ -181,11 +186,15 @@ class StylePane(BaseFeature):
     def layout_for(self, widget):
         frame = self._layout
         layout_def = widget.layout.definition_for(widget)
-        if widget.layout.layout_strategy.__class__ == self._current_layout:
+        layout_strategy = widget.layout.layout_strategy
+        # Only perform accelerated layout rendering for the same widget possessing the same strategy since last render
+        if layout_strategy.__class__ == self._prev_layout and widget == self._prev_widget:
             for definition in layout_def:
-                self._layout_items.get(layout_def[definition].get("name"))._re_purposed(layout_def[definition])
+                if definition in self._layout_items:
+                    self._layout_items.get(definition)._re_purposed(layout_def[definition])
             return
-        self._current_layout = widget.layout.layout_strategy.__class__
+        self._prev_layout = layout_strategy.__class__
+        self._prev_widget = widget
         self._layout_items = {}
         frame.clear_children()
         frame.label = f"Layout ({widget.layout.layout_strategy.name})"
