@@ -4,9 +4,10 @@ See to it that the state is easily changeable through a unified set and get.
 """
 
 from PIL import ImageTk
+import logging
 
 from hoverset.ui.widgets import *
-from hoverset.ui.icons import get_icon
+from hoverset.ui.icons import get_icon_image
 from hoverset.util.color import to_hex, to_rgb, to_hsl, from_hsl, to_hsv, from_hsv
 from hoverset.util.validators import check_hex_color, numeric_limit
 from hoverset.platform.functions import image_grab
@@ -49,7 +50,8 @@ class _FloatingColorWindow(Frame):
 class ColorPicker(Button):
 
     def __init__(self, master=None, **cnf):
-        super().__init__(master, **cnf, text=get_icon("color_picker"))
+        super().__init__(master, **cnf, image=get_icon_image("colorpicker", 15, 15))
+        self.tooltip('Pick color from anywhere')
         self.image = None
         self.on_click(self.start)
         self._window = None
@@ -124,14 +126,32 @@ class ColorInput(Frame):
         self._picker = picker = ColorPicker(self, width=25, height=25, **self.style.dark_button)
         picker.grid(row=1, column=2, padx=2, pady=2, sticky="n")
         picker.on_pick(self.set)
-        clipboard = Button(self, width=25, height=25, text="\uee92", **self.style.dark_button)
+        clipboard = Button(self, width=25, height=25,
+                           image=get_icon_image("clipboard", 15, 15), **self.style.dark_button)
         clipboard.grid(row=1, column=3, padx=2, pady=2, sticky="n")
+        clipboard.on_click(self.pick_from_clipboard)
+        clipboard.tooltip('Pick color from clipboard')
         self.current_model = self.models.get(self.model_select.get())
         self.attach(self.current_model)
 
     @property
     def picker_active(self):
         return self._picker.active
+
+    def pick_from_clipboard(self, *_):
+        value = self.clipboard_get()
+        try:
+            # convert color from clipboard to general rgb format first
+            # if the color is valid this should not throw any errors
+            # this means if the clipboard contains "red" what is set finally is "#ff0000"
+            r, g, b = self.winfo_rgb(value)  # returns 12-bit color
+            # scale down from 12-bit color to 8-bit color that the color-chooser understands
+            color = to_hex(tuple(map(lambda x: round(x * (255 / 65535)), (r, g, b))))
+            self.set(color)
+        except Exception:
+            # Not a valid color so ignore
+            # TODO Show a message
+            pass
 
     def change(self, implicit=False):
         if self.callback and not implicit:
@@ -306,6 +326,167 @@ class _HsvModel(Frame):
         self.h.set(round(h))
         self.s.set(round(s))
         self.v.set(round(v))
+
+
+class FontPicker(Button):
+
+    def __init__(self, master=None, **cnf):
+        super().__init__(master, **cnf, image=get_icon_image("eye", 15, 15))
+        self.tooltip("Pick Font")
+        self.bind_all('<Button-1>', self.pick, add='+')
+        self.bind_all('<Motion>', self._render, add='+')
+        self.active = False
+        self._grabbed = None
+        self._window = None
+        self._indicator = None
+
+    def start(self, _):
+        if self.active:
+            return
+        self._grabbed = self.grab_current()  # Store the widget that has event grab if any
+        self.grab_set()
+        self.active = True
+        self._window = Window(self.window)
+        self._window.geometry('0x0')
+        self._window.overrideredirect(True)
+        self._window.config(**self.style.dark, **self.style.dark_highlight_passive)
+        self._indicator = Label(self._window, **self.style.dark_text_accent)
+        self._indicator.pack(fill="both", expand=True)
+        self._window.pack_propagate(False)
+
+    def on_pick(self, callback, *args, **kwargs):
+        self._on_pick = lambda color: callback(color, *args, **kwargs)
+
+    def _get_font(self, x, y):
+        widget = self.winfo_containing(x, y)
+        if widget is not None and 'font' in widget.keys():
+            return widget['font']
+
+    def _render(self, event):
+        if not self.active:
+            return
+        displace_x = 10 if self.winfo_screenwidth() - event.x_root > 160 else -160
+        displace_y = 0 if self.winfo_screenheight() - event.y_root > 40 else -30
+        font_value = self._get_font(event.x_root, event.y_root)
+        try:
+            _font = FontStyle(self, font_value)
+            self._indicator['text'] = _font.cget('family') or 'No font to extract'
+            if font_value:
+                self._indicator['font'] = _font.cget('family')
+            else:
+                self._indicator['font'] = 'TkDefaultFont'
+        except Exception:
+            self._indicator['font'] = 'TkDefaultFont'
+            self._indicator['text'] = 'No font to extract'
+
+        self._window.geometry(
+            '{width}x{height}+{x}+{y}'.format(
+                x=event.x_root + displace_x, y=event.y_root + displace_y, width=150, height=30
+            ))
+
+    def pick(self, event):
+        if self.active:
+            if self._window:
+                self._window.destroy()
+                self._window = None
+            self.grab_release()
+            if self._grabbed:
+                self._grabbed.grab_set()
+                self._grabbed = None
+            self.active = False
+            value = self._get_font(event.x_root, event.y_root)
+            if value and self._on_pick:
+                self._on_pick(value)
+        else:
+            # if picker is not active then start it
+            self.start(event)
+
+
+class FontInput(Frame):
+    class FontItem(CompoundList.BaseItem):
+
+        def render(self):
+            label = Label(self, text=self.value, **self.style.dark_text, anchor="w")
+            # label.config(font=(self.value, ))
+            label.pack(side="left")
+
+    def __init__(self, master, **cnf):
+        super().__init__(master, **cnf)
+        self.config(**self.style.dark)
+        self._on_change = None
+        self._font = Spinner(self, **self.style.dark_input, width=110)
+        self._font.config(**self.style.no_highlight)
+        self._font.place(x=0, y=0, relwidth=0.7, height=24)
+        self._font.set_item_class(FontInput.FontItem)
+        self._font.set_values(system_fonts())
+        self._font.on_change(self._change)
+        self._size = SpinBox(self, from_=0, to=999, **self.style.spinbox, width=3, justify='right')
+        self._size.config(**self.style.no_highlight)
+        self._size.place(relx=0.7, y=0, relwidth=0.3, height=24)
+        self._size.on_change(self._change)
+        frame = Frame(self, **self.style.dark, height=25, width=150)
+        frame.place(x=0, y=25, relwidth=1, height=24)
+        self._bold = ToggleButton(frame, text="B", font=FontStyle(family="Times", size=12, weight='bold'),
+                                  width=24, height=24)
+        self._bold.pack(side='left')
+        self._bold.on_change(self._change)
+        self._italic = ToggleButton(frame, text="I", font=FontStyle(family="Times", size=12, slant='italic'),
+                                    width=24, height=24)
+        self._italic.pack(side='left')
+        self._italic.on_change(self._change)
+        self._underline = ToggleButton(frame, text="U", font=FontStyle(family="Times", size=12, underline=1),
+                                       width=24, height=24)
+        self._underline.pack(side='left')
+        self._underline.on_change(self._change)
+        self._strike = ToggleButton(frame, text="abc", font=FontStyle(family="Times", size=12, overstrike=1),
+                                    width=30, height=24)
+        self._strike.pack(side='left')
+        self._strike.on_change(self._change)
+
+        self._picker = picker = FontPicker(frame, width=24, height=24, **self.style.dark_button)
+        picker.pack(side="right")
+        picker.on_pick(self.pick)
+
+    def _change(self, *_):
+        if self._on_change:
+            self._on_change(self.get())
+
+    def pick(self, value):
+        self.set(value)
+        self._change()
+
+    def on_change(self, func, *args, **kwargs):
+        self._on_change = lambda val: func(val, *args, **kwargs)
+
+    def get(self):
+        extra = []
+        if self._bold.get():
+            extra.append('bold')
+        if self._italic.get():
+            extra.append('italic')
+        if self._strike.get():
+            extra.append('overstrike')
+        if self._underline.get():
+            extra.append('underline')
+        extra = ' '.join(extra)
+        return f"{{{self._font.get()}}} {abs(self._size.get() or 0)} {{{extra}}}"
+
+    def set(self, value):
+        if not value:
+            for i in (self._italic, self._bold, self._underline, self._strike):
+                i.set(False)
+            return
+        try:
+            font_obj = FontStyle(self, value)
+        except Exception:
+            logging.error("Font exception")
+            return
+        self._font.set(font_obj.cget("family"))
+        self._size.set(font_obj.cget("size"))
+        self._italic.set(True if font_obj.cget("slant") == "italic" else False)
+        self._bold.set(True if font_obj.cget("weight") == "bold" else False)
+        self._underline.set(font_obj.cget("underline"))
+        self._strike.set(font_obj.cget("overstrike"))
 
 
 if __name__ == "__main__":

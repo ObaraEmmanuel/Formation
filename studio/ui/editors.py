@@ -11,9 +11,10 @@ from tkinter import IntVar, ttk, filedialog, StringVar
 
 import studio.feature.variable_manager as var_manager
 from hoverset.ui.icons import get_icon_image
+from hoverset.ui.panels import FontInput, ColorPicker
 from hoverset.ui.pickers import ColorDialog
 from hoverset.ui.widgets import (CompoundList, Entry, SpinBox, Spinner, Frame, Application, set_ttk_style,
-                                 Label, system_fonts, ToggleButton, FontStyle, Button)
+                                 Label, ToggleButton, Button)
 from hoverset.util.color import to_hex
 from hoverset.util.validators import numeric_limit
 from studio.lib.properties import all_supported_cursors, BUILTIN_BITMAPS
@@ -182,7 +183,10 @@ class Color(Editor):
         self._color_button = Label(self, relief='groove', bd=1)
         self._color_button.bind('<ButtonRelease-1>', self._chooser)
         self._color_button.place(x=2, y=2, width=20, height=20)
-        self._entry.place(x=22, y=0, relheight=1, relwidth=1, width=-22)
+        self._picker = ColorPicker(self, **self.style.dark_button)
+        self._picker.place(relx=1, x=-22, y=0, width=20, height=20)
+        self._picker.on_pick(self.set)
+        self._entry.place(x=22, y=0, relheight=1, relwidth=1, width=-46)
         self._entry.on_change(self._change)
 
     def _change(self, value=None):
@@ -304,76 +308,19 @@ class Duration(TextMixin, Editor):
 
 
 class Font(Editor):
-    class FontItem(Choice.ChoiceItem):
-
-        def render(self):
-            label = Label(self, text=self.value, **self.style.dark_text, anchor="w")
-            # label.config(font=(self.value, ))
-            label.pack(side="left")
 
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
         self.config(height=50, **self.style.dark_highlight_active)
-        self._font = Spinner(self, **self.style.dark_input, width=110)
-        self._font.config(**self.style.no_highlight)
-        self._font.place(x=0, y=0, relwidth=0.7, height=24)
-        self._font.set_item_class(Font.FontItem)
-        self._font.set_values(system_fonts())
-        self._font.on_change(self._change)
-        self._size = SpinBox(self, from_=0, to=999, **self.style.spinbox, width=3, justify='right')
-        self._size.config(**self.style.no_highlight)
-        self._size.place(relx=0.7, y=0, relwidth=0.3, height=24)
-        self._size.on_change(self._change)
-        frame = Frame(self, **self.style.dark, height=25, width=150)
-        frame.place(x=0, y=25, relwidth=1, height=24)
-        self._bold = ToggleButton(frame, text="B", font=FontStyle(family="Times", size=12, weight='bold'),
-                                  width=24, height=24)
-        self._bold.pack(side='left')
-        self._bold.on_change(self._change)
-        self._italic = ToggleButton(frame, text="I", font=FontStyle(family="Times", size=12, slant='italic'),
-                                    width=24, height=24)
-        self._italic.pack(side='left')
-        self._italic.on_change(self._change)
-        self._underline = ToggleButton(frame, text="U", font=FontStyle(family="Times", size=12, underline=1),
-                                       width=24, height=24)
-        self._underline.pack(side='left')
-        self._underline.on_change(self._change)
-        self._strike = ToggleButton(frame, text="abc", font=FontStyle(family="Times", size=12, overstrike=1),
-                                    width=30, height=24)
-        self._strike.pack(side='left')
-        self._strike.on_change(self._change)
+        self._input = FontInput(self)
+        self._input.pack(fill='both', expand=True)
+        self.on_change = self._input.on_change
 
     def get(self):
-        extra = []
-        if self._bold.get():
-            extra.append('bold')
-        if self._italic.get():
-            extra.append('italic')
-        if self._strike.get():
-            extra.append('overstrike')
-        if self._underline.get():
-            extra.append('underline')
-        extra = ' '.join(extra)
-        return f"{{{self._font.get()}}} {abs(self._size.get() or 0)} {{{extra}}}"
-
-    def _change(self, *_):
-        if self._on_change:
-            self._on_change(self.get())
+        return self._input.get()
 
     def set(self, value):
-        if not value:
-            return
-        try:
-            font_obj = FontStyle(self, value)
-        except Exception:
-            print("Font exception")
-            return
-        self._font.set(font_obj.cget("family"))
-        self._size.set(font_obj.cget("size"))
-        self._italic.set(True if font_obj.cget("slant") == "italic" else False)
-        self._bold.set(True if font_obj.cget("weight") == "bold" else False)
-        self._underline.set(font_obj.cget("underline"))
-        self._strike.set(font_obj.cget("overstrike"))
+        self._input.set(value)
 
 
 class Dimension(Number):
