@@ -63,33 +63,38 @@ All feature windows in formation studio can be opened in window mode allowing on
  ## Notes for developers and contributors
  
  ### Structure
- * [**Feature**](./feature) : Contains implementation of the various key components of the designer such as:
-    - [Component tree](./feature/component_tree.py)
-    - [Designer](./feature/design.py)
-    - Component library ([Components](./feature/components.py))
-    - [style pane](./feature/stylepane.py)
-    - [Variable manager](./feature/stylepane.py)
- These components all implement `BaseFeature` defined in [_base](./feature/_base.py) which abstracts all Feature behaviour
+ * [**Feature**](feature) : Contains implementation of the various key components of the designer such as:
+    - [Component tree](feature/component_tree.py)
+    - [Designer](feature/design.py)
+    - Component library ([Components](feature/components.py))
+    - [style pane](feature/stylepane.py)
+    - [Variable manager](feature/stylepane.py)
+ These components all implement `BaseFeature` defined in [_base](feature/_base.py) which abstracts all Feature behaviour
  and manipulation which can then be built upon if special behaviour is needed. It contains methods that
  are to be overridden so as to handle events broadcast by the main application such as change in widget
  selection or deletion of a widget among others.
  
- * [**Lib**](./lib) :  Contains implementation of widget sets, complete definitions of their properties, behaviour. It also
+ * [**Lib**](lib) :  Contains implementation of widget sets, complete definitions of their properties, behaviour. It also
  has implementation for the various layouts used by the designer. Definitions and implementation of menus and properties
  that can be applied to the menu components can also be found here. The files under this folder are:
-    - [Layouts](./lib/layouts.py): layout implementation
-    - [Legacy](./lib/legacy.py): original tkinter widget definition
-    - [Native](./lib/native.py): ttk widget extension widgets
-    - [properties](./lib/properties.py): definition for all widget properties modifiable by the style pane.
-    - [pseudo](./lib/pseudo.py): Base classes for widgets used in the studio designer with added functionality to allow for easy
+    - [Layouts](lib/layouts.py): layout implementation
+    - [Legacy](lib/legacy.py): original tkinter widget definition
+    - [Native](lib/native.py): ttk widget extension widgets
+    - [properties](lib/properties.py): definition for all widget properties modifiable by the style pane.
+    - [pseudo](lib/pseudo.py): Base classes for widgets used in the studio designer with added functionality to allow for easy
     manipulation. Definition for container widgets can also be found here
     
-* [**Ui**](./ui): Contain implementation of widgets and user interface components used in the studio. The included are:
-    - [editors](./ui/editors.py): The ui elements used to modify various widget properties as explained in the style pane feature
-    - [geometry](./ui/geometry.py): Access, analyse and manipulate position and sizes of widgets used by various studio routines
-    - [highlight](./ui/highlight.py): Transient widgets used to guide designers to which widgets currently have focus. Also contains 
+* [**Parsers**](parsers) :  Contains implementation for classes that handle conversion from various designated file formats to
+design view and vice versa. Currently on only [xml](parsers/xml.py) format is supported but if any other formats are to be
+added this would be the package location
+
+* [**Ui**](ui): Contain implementation of widgets and user interface components used in the studio. The included are:
+    - [editors](ui/editors.py): The ui elements used to modify various widget properties as explained in the style pane feature
+    - [geometry](ui/geometry.py): Access, analyse and manipulate position and sizes of widgets used by various studio routines
+    - [highlight](ui/highlight.py): Transient widgets used to guide designers to which widgets currently have focus. Also contains 
     implementations for resizing and moving widgets in the designer
-    - [tree](./ui/tree.py): Implementation of base class for the tree view widgets used in the studio which allows easy manipulation
+    - [tree](ui/tree.py): Implementation of base class for the tree view widgets used in the studio which allows easy manipulation
     using drag drop gestures
-    - [widgets](./ui/widgets.py):  Assortment of special widgets used in the studio
+    - [widgets](ui/widgets.py):  Assortment of special widgets used in the studio
+    - [about](ui/about.py):  The about window for the studio
    

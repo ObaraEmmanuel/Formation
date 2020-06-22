@@ -56,7 +56,7 @@ The underlying xml is as shown below:
     xmlns:attr="http://www.hoversetformationstudio.com/styles/" 
     xmlns:layout="http://www.hoversetformationstudio.com/layouts/" 
     name="Frame_1" 
-    vattr:layout="FrameLayout" 
+    attr:layout="FrameLayout" 
     layout:width="616" 
     layout:height="287" 
     layout:x="33" 
@@ -105,6 +105,7 @@ app.mainloop()
 >possible issues while use the dot syntax to access the widget from the builder object.
 >Use the widgets exact name as specified in the design to avoid `AttributeError`
 
+For those wishing to contribute, see the [studio notes](studio/README.md) for developers and contributors
 More documentation coming soon. Some good documentation for building python user interfaces
 include:
 
