@@ -4,9 +4,8 @@
 
 import functools
 import logging
-import sys
 import os
-
+import sys
 # Add Studio and Hoverset to path so imports from hoverset can work.
 from tkinter import filedialog, Toplevel
 
@@ -26,6 +25,7 @@ from hoverset.ui.widgets import Application, Frame, PanedWindow, Button
 from hoverset.ui.icons import get_icon_image
 from hoverset.util.execution import Action
 from hoverset.data.utils import get_resource_path
+from hoverset.ui.dialogs import MessageDialog
 import hoverset.ui
 
 from formation import AppBuilder
@@ -65,6 +65,7 @@ class StudioApplication(Application):
         self._clipboard = None
         self._undo_stack = []
         self._redo_stack = []
+        self.current_preview = None
 
         self._pane.add(self._left, minsize=320, sticky='nswe', width=320)
         self._pane.add(self._center, minsize=400, width=16000, sticky='nswe')
@@ -126,20 +127,19 @@ class StudioApplication(Application):
                 ("separator",),
                 ("command", "delete", get_icon_image("delete", 14, 14), self.delete, {}),
             )}),
-            # ("cascade", "Code", None, None, {"menu": (
-            #     ("cascade", "Generate", None, None, {"menu": (
-            #         ("command", "Python", None, None, {}),
-            #         ("command", "xml", None, self.print_xml, {}),
-            #         ("command", "tcl", None, None, {})
-            #     )}),
-            #     ("command", "View", None, None, {})
-            # )}),
+            ("cascade", "Code", None, None, {"menu": (
+                ("command", "Preview design", get_icon_image("play", 14, 14), self.preview, {}),
+                ("command", "close preview", None, self.close_preview, {})
+            )}),
             ("cascade", "Window", None, None, {"menu": (
                 ("command", "close all", get_icon_image("close", 14, 14), self.close_all, {}),
                 ("command", "close all on the right", get_icon_image("blank", 14, 14),
                  lambda: self.close_all_on_side("right"), {}),
                 ("command", "close all on the left", get_icon_image("blank", 14, 14),
                  lambda: self.close_all_on_side("left"), {}),
+                ("separator",),
+                ("command", "Open all as windows", None, self.features_as_windows, {}),
+                ("command", "Dock all windows", None, self.features_as_docked, {}),
                 ("separator",),
                 *self.get_features_as_menu(),
                 # ("separator",),
@@ -163,7 +163,6 @@ class StudioApplication(Application):
             ("command", "delete", get_icon_image("delete", 14, 14), self.delete, {}),
         )
         self.open_new()
-        self.current_preview = None
 
     def print_xml(self):
         self.designer.to_xml()
@@ -276,7 +275,7 @@ class StudioApplication(Application):
 
     def set_path(self, path):
         if path:
-            self.title("Tkinter studio" + " - " + path)
+            self.title("Formation studio" + " - " + path)
 
     def open_file(self):
         path = filedialog.askopenfilename(parent=self, filetypes=[('XML', '*.xml')])
@@ -380,7 +379,22 @@ class StudioApplication(Application):
         self.features.insert(self.features.index(old), new)
         self.features.remove(old)
 
+    def on_session_clear(self, source):
+        self._redo_stack.clear()
+        self._undo_stack.clear()
+        if source != self.designer:
+            self.designer.clear()
+        for feature in self.features:
+            if feature != source:
+                feature.on_session_clear()
+
     def preview(self):
+        if self.designer.root_obj is None:
+            # If there is no root object show a warning
+            MessageDialog.show_warning(parent=self,
+                                       title='Empty design',
+                                       message='There is nothing to preview. Please add a root widget')
+            return
         if self.current_preview:
             self.current_preview.destroy()
         window = self.current_preview = Toplevel(self)
@@ -388,6 +402,10 @@ class StudioApplication(Application):
         window.build = AppBuilder(self.designer.to_xml(), window)
         name = self.designer.design_path if self.designer.design_path is not None else "Untitled"
         window.build._app.title(os.path.basename(name))
+
+    def close_preview(self):
+        if self.current_preview:
+            self.current_preview.destroy()
 
 
 def main():

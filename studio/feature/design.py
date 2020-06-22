@@ -8,12 +8,11 @@ Drag drop designer for the studio
 from hashlib import md5
 from tkinter import filedialog
 
+from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.widgets import Frame
 from hoverset.util.execution import Action, as_thread
-from hoverset.ui.dialogs import MessageDialog
-
 from studio.lib.layouts import FrameLayoutStrategy
-from studio.lib.pseudo import PseudoWidget, Container
+from studio.lib.pseudo import PseudoWidget, Container, Groups
 from studio.parsers.xml import XMLForm
 from studio.ui import geometry
 from studio.ui.highlight import HighLight
@@ -23,18 +22,40 @@ from studio.ui.widgets import DesignPad
 class DesignLayoutStrategy(FrameLayoutStrategy):
 
     def add_new(self, widget, x, y):
-        pass
+        self.container.add(widget, x, y, layout=self.container)
 
     def add_widget(self, widget, bounds=None, **kwargs):
-        super().add_widget(widget, bounds=None, **kwargs)
+        super(FrameLayoutStrategy, self).add_widget(widget, bounds=None, **kwargs)
+        super(FrameLayoutStrategy, self).remove_widget(widget)
         if bounds is None:
-            x1, y1, x2, y2 = geometry.relative_bounds(geometry.bounds(widget), self.container)
+            x = kwargs.get("x", 10)
+            y = kwargs.get("y", 10)
+            width = kwargs.get("width", 20)
+            height = kwargs.get("height", 20)
+            self.container.place_child(widget, x=x, y=y, width=width, height=height)
+        else:
+            x1, y1, x2, y2 = bounds
             self.container.place_child(widget, x=x1, y=y1, width=x2 - x1, height=y2 - y1)
+        self.children.append(widget)
+
+    def remove_widget(self, widget):
+        super().remove_widget(widget)
+        self.container.forget_child(widget)
 
     def apply(self, prop, value, widget):
         if value == '':
             return
         self.container.config_child(widget, **{prop: value})
+
+    def restore_widget(self, widget, data=None):
+        data = self._restoration_data[widget] if data is None else data
+        self.children.append(widget)
+        widget.layout = self.container
+        widget.level = self.level + 1
+        self.container.place_child(widget, **data)
+
+    def get_restore(self, widget):
+        return self.container.config_child(widget)
 
     def definition_for(self, widget):
         definition = super().definition_for(widget)
@@ -44,10 +65,6 @@ class DesignLayoutStrategy(FrameLayoutStrategy):
         definition["y"]["value"] = bounds[1]
         definition["bordermode"]["value"] = 'inside'
         return definition
-
-    def remove_widget(self, widget):
-        super().remove_widget(widget)
-        self.container.forget_child(widget)
 
 
 class Designer(DesignPad, Container):
@@ -86,8 +103,8 @@ class Designer(DesignPad, Container):
         self.update_idletasks()
         self.xml = XMLForm(self)
         from studio.lib import legacy
-        self.root_obj = self.add(legacy.Frame, self._padding, self._padding, width=self.width - self._padding * 2,
-                                 height=self.height - self._padding * 2)
+        self.add(legacy.Frame, self._padding, self._padding, width=self.width - self._padding * 2,
+                 height=self.height - self._padding * 2)
         self.xml.generate()
         self.file_hash = md5(self.xml.to_xml_bytes()).hexdigest()
         self.design_path = None
@@ -128,21 +145,27 @@ class Designer(DesignPad, Container):
             elif save is None:
                 # user made no choice or basically selected cancel
                 return
-
-        if self.root_obj:
-            # remove the current root objects and its descendants
-            self.studio.select(None)
-            self.delete(self.root_obj, silently=True)
-            self.objects = []
-            # remove all current variables so we can load fresh ones from the xml design
-            from studio.feature.variable_manager import VariablePane
-            VariablePane.get_instance().clear_variables()
+        self.clear()
+        # inform the studio about the session clearing
+        self.studio.on_session_clear(self)
         if path:
             self.xml = XMLForm(self)
             self._load_design(path)
         else:
             # if no path is supplied the default behaviour is to open a blank design
             self._open_default()
+
+    def clear(self):
+        # Warning: this method deletes elements irreversibly
+        # remove the current root objects and their descendants
+        self.studio.select(None)
+        # create a copy since self.objects will mostly change during iteration
+        objects = list(self.objects)
+        for widget in objects:
+            self.delete(widget, silently=True)
+            widget.destroy()
+        self.objects.clear()
+        self.root_obj = None
 
     @as_thread
     def _load_design(self, path):
@@ -236,6 +259,8 @@ class Designer(DesignPad, Container):
         obj.bind('<ButtonRelease>', self.highlight.clear_resize, '+')
         Frame.add_context_menu(menu, obj)
         self.objects.append(obj)
+        if self.root_obj is None:
+            self.root_obj = obj
         obj.bind("<Button-1>", lambda _: self.select(obj), add='+')
 
     def load(self, obj_class, name, container, attributes, layout):
@@ -248,7 +273,15 @@ class Designer(DesignPad, Container):
         self.studio.add(obj, container)
         return obj
 
+    def _show_root_widget_warning(self):
+        MessageDialog.show_warning(title='Invalid root widget', parent=self.studio,
+                                   message='Only containers are allowed as root widgets')
+
     def add(self, obj_class: PseudoWidget.__class__, x, y, **kwargs):
+        if obj_class.group != Groups.container and self.root_obj is None:
+            # We only need a container as the root widget
+            self._show_root_widget_warning()
+            return
         width = kwargs.get("width", 55)
         height = kwargs.get("height", 30)
         silent = kwargs.get("silently", False)
@@ -276,15 +309,10 @@ class Designer(DesignPad, Container):
             # This only happens when adding the main layout. We dont need to add this action to the undo/redo stack
             # This main layout is attached directly to the designer
             obj.layout = self
-            self.place_child(obj, x=x, y=y, width=width, height=height)
+            self.layout_strategy.add_widget(obj, x=x, y=y, width=width, height=height)
             self.studio.add(obj, None)
 
         return obj
-
-    def get_restore(self, widget):
-        # Just in case the designer is required to provide a restore point. The designer is almost similar to
-        # a frame-layout
-        return widget.place_info()
 
     def select_layout(self, layout: Container):
         pass
@@ -297,6 +325,8 @@ class Designer(DesignPad, Container):
     def _replace_all(self, widget):
         # Recursively add widget and all its children to objects
         self.objects.append(widget)
+        if self.root_obj is None:
+            self.root_obj = widget
         if isinstance(widget, Container):
             for child in widget._children:
                 self._replace_all(child)
@@ -311,6 +341,13 @@ class Designer(DesignPad, Container):
         else:
             self.studio.delete(widget, self)
         widget.layout.remove_widget(widget)
+        if widget == self.root_obj:
+            # try finding another toplevel widget that can be a root obj otherwise leave it as none
+            self.root_obj = None
+            for w in self.layout_strategy.children:
+                if isinstance(w, Container):
+                    self.root_obj = w
+                    break
         self._uproot_widget(widget)
 
     def _uproot_widget(self, widget):
@@ -424,8 +461,6 @@ class Designer(DesignPad, Container):
         if self.current_obj is not None:
             self.current_action = self.MOVE
             container: Container = self.layout_at(new_bound)
-            if container == self:
-                breakpoint()
             if container is not None and self.current_obj != container:
                 if container != self.current_container:
                     if self.current_container is not None:
@@ -436,10 +471,10 @@ class Designer(DesignPad, Container):
             else:
                 if self.current_container is not None:
                     self.current_container.clear_highlight()
-                    self.current_container = None
+                    self.current_container = self
                 self.current_obj.level = 0
                 self.current_obj.layout = self
-                self.place_child(self.current_obj, **self.parse_bounds(new_bound))
+                self.move_widget(self.current_obj, new_bound)
             if self.current_obj.layout.layout_strategy.realtime_support:
                 self.studio.widget_layout_changed(self.current_obj)
             self.current_obj.update_idletasks()

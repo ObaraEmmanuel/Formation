@@ -307,3 +307,6 @@ class VariablePane(BaseFeature):
         if len(search):
             return search[0]
         return ''
+
+    def on_session_clear(self):
+        self.clear_variables()

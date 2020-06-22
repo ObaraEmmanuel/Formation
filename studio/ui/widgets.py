@@ -1,3 +1,4 @@
+import logging
 from tkinter import ttk, TclError
 
 from hoverset.ui.icons import get_icon_image, get_icon
@@ -211,7 +212,7 @@ class DesignPad(ScrollableInterface, Frame):
         except TclError:
             return
         if not scroll_region:
-            print("failed to acquire scroll region")
+            logging.error("failed to acquire scroll region")
             return
         scroll_w = scroll_region[2] - scroll_region[0]
         scroll_h = scroll_region[3] - scroll_region[1]
@@ -236,6 +237,10 @@ class DesignPad(ScrollableInterface, Frame):
         y = kw.get("y", child.winfo_y())
         w = kw.get("width", child.winfo_width())
         h = kw.get("height", child.winfo_height())
+        if not kw:
+            return {
+                "x": x, "y": y, "width": w, "height": h
+            }
         self._frame.coords(self._child_map[child], x, y)
         self._frame.itemconfigure(self._child_map[child], width=w, height=h)
         self.on_configure()

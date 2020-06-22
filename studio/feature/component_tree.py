@@ -39,9 +39,10 @@ class ComponentTree(BaseFeature):
         self._toggle_btn.pack(side="right")
         self._toggle_btn.on_click(self._toggle)
 
-        self._node_map = {}
         self._selected = None
         self._expanded = False
+
+        self.studio.designer.node = self._tree
 
     def create_menu(self):
         return (

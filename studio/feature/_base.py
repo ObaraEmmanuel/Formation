@@ -104,6 +104,9 @@ class BaseFeature(Frame):
     def on_widget_restore(self, widget):
         pass
 
+    def on_session_clear(self):
+        pass
+
     def minimize(self, *_):
         if self.window_handle:
             self.close_window()
