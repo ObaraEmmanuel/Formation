@@ -127,18 +127,21 @@ class Designer(DesignPad, Container):
         # open a blank design
         self.open_xml(None)
 
+    def save_prompt(self):
+        return MessageDialog.builder(
+            {"text": "Save", "value": True, "focus": True},
+            {"text": "Don't save", "value": False},
+            {"text": "Cancel", "value": None},
+            wait=True,
+            title="Save design",
+            message="This design has unsaved changes. Do you want to save them?",
+            parent=self.studio,
+            icon=MessageDialog.ICON_WARNING
+        )
+
     def open_xml(self, path=None):
         if self.has_changed():
-            save = MessageDialog.builder(
-                {"text": "Save", "value": True, "focus": True},
-                {"text": "Don't save", "value": False},
-                {"text": "Cancel", "value": None},
-                wait=True,
-                title="Save design",
-                message="This design has unsaved changes. Do you want to save them?",
-                parent=self.studio,
-                icon=MessageDialog.ICON_WARNING
-            )
+            save = self.save_prompt()
             if save:
                 # user opted to save
                 self.save()
@@ -505,3 +508,12 @@ class Designer(DesignPad, Container):
 
     def show_highlight(self, *_):
         pass
+
+    def on_app_close(self):
+        if self.has_changed():
+            save = self.save_prompt()
+            if save:
+                self.save()
+            elif save is None:
+                return False
+        return True

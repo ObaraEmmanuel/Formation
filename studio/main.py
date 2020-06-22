@@ -43,6 +43,7 @@ class StudioApplication(Application):
         self.geometry("1100x650")
         self.state('zoomed')
         self.title('Formation Studio')
+        self.protocol('WM_DELETE_WINDOW', self._on_close)
         self._toolbar = Frame(self, **self.style.dark, height=30)
         self._toolbar.pack(side="top", fill="x")
         self._toolbar.pack_propagate(0)
@@ -340,9 +341,7 @@ class StudioApplication(Application):
             feature.on_widget_add(widget, parent)
 
     def widget_modified(self, widget1, source=None, widget2=None):
-        if source != self.designer:
-            self.designer.on_widget_change(widget1, widget2)
-        for feature in self.features:
+        for feature in self._all_features():
             if feature != source:
                 feature.on_widget_change(widget1, widget2)
 
@@ -382,9 +381,7 @@ class StudioApplication(Application):
     def on_session_clear(self, source):
         self._redo_stack.clear()
         self._undo_stack.clear()
-        if source != self.designer:
-            self.designer.clear()
-        for feature in self.features:
+        for feature in self._all_features():
             if feature != source:
                 feature.on_session_clear()
 
@@ -406,6 +403,21 @@ class StudioApplication(Application):
     def close_preview(self):
         if self.current_preview:
             self.current_preview.destroy()
+
+    def _all_features(self):
+        """
+        Return a tuple of all features including the designer instance
+        :return: tuple of features
+        """
+        return *self.features, self.designer
+
+    def _on_close(self):
+        # pass the on window close event to the features
+        for feature in self._all_features():
+            # if any feature returns false abort shut down
+            if not feature.on_app_close():
+                return
+        self.destroy()
 
 
 def main():

@@ -79,33 +79,92 @@ class BaseFeature(Frame):
     def quit_search(self, *_):
         self._search_bar.place_forget()
 
-    def on_search_query(self, query):
+    def on_search_query(self, query: str):
+        """
+        Called when inbuilt search feature is queried. Use the query string to display the
+        necessary search results
+        :param query: String of current search query
+        :return: None
+        """
         pass
 
     def on_search_clear(self):
+        """
+        Called when the user terminates the search bar. Ensure you make a call to the super
+        method for the bar to actually get closed. This method can be used to restore the
+        feature state to when not performing a search
+        :return:
+        """
         self.quit_search()
         pass
 
     def on_select(self, widget):
+        """
+        Called when a widget is selected in the designer
+        :param widget: selected widget
+        :return:None
+        """
         pass
 
     def on_widget_change(self, old_widget, new_widget=None):
+        """
+        Called when a widget is fundamentally altered
+        :param old_widget: Altered widget
+        :param new_widget: The new widget taking the older widgets place
+        :return: None
+        """
         pass
 
     def on_widget_layout_change(self, widget):
+        """
+        Called when layout options of a widget are changed
+        :param widget: Widget with altered layout options
+        :return: None
+        """
         pass
 
     def on_widget_add(self, widget, parent):
+        """
+        Called when a new widget is added to the designer
+        :param widget: widget
+        :param parent: the container widget to which thw widget is added
+        :return: None
+        """
         pass
 
     def on_widget_delete(self, widget, silently=False):
+        """
+        Called when a widget is deleted from the designer
+        :param widget: deleted widget
+        :param silently: flag indicating whether the deletion should be treated implicitly
+        which is useful for instance when you don't want the deletion to be logged in the
+        undo stack
+        :return: None
+        """
         pass
 
     def on_widget_restore(self, widget):
+        """
+        Called when a deleted widget is restored
+        :param widget: restored widget
+        :return: None
+        """
         pass
 
     def on_session_clear(self):
+        """
+        Override to perform operations before a session is cleared and the studio
+        resets to a new design
+        :return: None
+        """
         pass
+
+    def on_app_close(self) -> bool:
+        """
+        Override to perform operations before the studio app closes.
+        :return: True to allow shutdown to proceed or False to abort shutdown
+        """
+        return True
 
     def minimize(self, *_):
         if self.window_handle:
