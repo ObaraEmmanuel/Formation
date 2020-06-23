@@ -187,9 +187,8 @@ class Designer(DesignPad, Container):
                 self.file_hash = md5(self.xml.to_xml_bytes()).hexdigest()
                 self.design_path = path
         except Exception as e:
-            progress.destroy()
             MessageDialog.show_error(parent=self.studio, title='Error loading design', message=str(e))
-        else:
+        finally:
             progress.destroy()
 
     def save(self, new_path=False):
@@ -335,6 +334,8 @@ class Designer(DesignPad, Container):
                 self._replace_all(child)
 
     def delete(self, widget, silently=False):
+        if not widget:
+            return
         if not silently:
             restore_point = widget.layout.get_restore(widget)
             self.studio.new_action(Action(

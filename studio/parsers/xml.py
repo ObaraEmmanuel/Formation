@@ -1,19 +1,20 @@
 """
 Conversions of design to xml and back
 """
+import functools
+import re
+import tkinter as tk
+from collections import defaultdict
+
 # ======================================================================= #
 # Copyright (c) 2020 Hoverset Group.                                      #
 # ======================================================================= #
 from lxml import etree
-from collections import defaultdict
-import re
-import functools
-import tkinter as tk
 
+from studio.feature.variable_manager import VariablePane, VariableItem
+from studio.lib import legacy, native
 from studio.lib.menus import MenuTree
 from studio.lib.pseudo import Container, PseudoWidget
-from studio.lib import legacy, native
-from studio.feature.variable_manager import VariablePane, VariableItem
 
 namespaces = {
     "layout": "http://www.hoversetformationstudio.com/layouts/",
@@ -51,6 +52,10 @@ class BaseConverter:
     @staticmethod
     def _is_var(tag):
         return _var_rgx.match(tag)
+
+    @staticmethod
+    def get_source_line_info(node: etree._Element):
+        return "" if node.sourceline is None else "Line {}: ".format(node.sourceline)
 
     @classmethod
     def _get_class(cls, node):
@@ -255,8 +260,13 @@ class XMLForm:
             VariableConverter.from_xml(var)
 
     def _load_widgets(self, node, designer, parent):
-        converter = self.get_converter(BaseConverter._get_class(node))
-        widget = converter.from_xml(node, designer, parent)
+        line_info = BaseConverter.get_source_line_info(node)
+        try:
+            converter = self.get_converter(BaseConverter._get_class(node))
+            widget = converter.from_xml(node, designer, parent)
+        except Exception as e:
+            # Append line number causing error before re-raising for easier debugging by user
+            raise e.__class__("{}{}".format(line_info, e)) from e
         if not isinstance(widget, Container):
             # We dont need to load child tags of non-container widgets
             return widget

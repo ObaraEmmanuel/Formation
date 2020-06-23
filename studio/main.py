@@ -351,6 +351,8 @@ class StudioApplication(Application):
 
     def delete(self, widget=None, source=None):
         widget = self.selected if widget is None else widget
+        if widget is None:
+            return
         if self.selected == widget:
             self.select(None)
         if source != self.designer:
