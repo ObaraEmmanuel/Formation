@@ -290,8 +290,10 @@ class XMLForm:
         for var_item in variables:
             VariableConverter.to_xml(var_item, parent)
 
-    def to_xml(self, pretty_print=True):
-        return etree.tostring(self.root, pretty_print=pretty_print).decode('utf-8')
-
     def to_xml_bytes(self, pretty_print=True):
-        return etree.tostring(self.root, pretty_print=pretty_print)
+        etree.cleanup_namespaces(self.root, top_nsmap=namespaces)
+        return etree.tostring(self.root, pretty_print=pretty_print, encoding='utf-8',
+                              xml_declaration=True)
+
+    def to_xml(self, pretty_print=True):
+        return self.to_xml_bytes(pretty_print).decode('utf-8')
