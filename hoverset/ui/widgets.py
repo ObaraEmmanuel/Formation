@@ -9,12 +9,12 @@ All gui manifestation should strictly use hoverset widget set for easy maintenan
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
 
-import dataclasses
 import functools
 import logging
 import tkinter as tk
 import tkinter.tix as tix
 import tkinter.ttk as ttk
+from collections import namedtuple
 from tkinter import font
 
 from hoverset.ui.animation import Animate, Easing
@@ -103,12 +103,8 @@ class EventMask:
     MOUSE_BUTTON_3 = 0x0400
 
 
-@dataclasses.dataclass
-class EventWrap:
-    x_root: int = 0
-    y_root: int = 0
-    x: int = 0
-    y: int = 0
+# Imitate a tkinter event object for use when handling synthetic events
+EventWrap = namedtuple('EventWrap', ['x_root', 'y_root', 'x', 'y'])
 
 
 class WidgetError(tk.TclError):
@@ -2105,6 +2101,11 @@ class ProgressBar(Widget, tk.Canvas):
         self._interval = self.DEFAULT_INTERVAL
         self._draw()
         self.bind("<Configure>", self._draw)
+
+    def destroy(self):
+        if self._after_id:
+            self.after_cancel(self._after_id)
+        super().destroy()
 
     def _draw(self, event=None):
         self.update_idletasks()
