@@ -2,7 +2,7 @@ from setuptools import setup
 
 import formation
 
-requirements = ['lxml', 'Pillow>=6.0.0', 'pyscreenshot', 'pywin32 ; sys_platform=="win32"']
+requirements = ['lxml', 'Pillow', 'pyscreenshot', 'pywin32 ; sys_platform=="win32"']
 
 setup(
     name='formation-studio',

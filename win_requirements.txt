@@ -1,4 +1,0 @@
-pyscreenshot
-Pillow>=6.2.1
-lxml
-pywin32
