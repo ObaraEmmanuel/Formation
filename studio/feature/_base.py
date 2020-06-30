@@ -1,4 +1,5 @@
-from tkinter import StringVar, BooleanVar
+import logging
+from tkinter import StringVar, BooleanVar, TkVersion
 
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import Frame, Label, Button, MenuButton
@@ -211,6 +212,9 @@ class BaseFeature(Frame):
             self.maximize()
 
     def open_as_window(self):
+        if TkVersion < 8.5:
+            logging.error("Window mode is not supported in current tk version")
+            return
         self.master.window.wm_forget(self)
         rec = absolute_position(self) if self.winfo_ismapped() else self.__class__.rec
         self.window.wm_manage(self)

@@ -1907,6 +1907,11 @@ class TreeView(ScrolledFrame):
             else:
                 self.expand()
 
+        def clear(self):
+            nodes = list(self.nodes)
+            for node in nodes:
+                self.remove(node)
+
     # ============================================= TreeView ================================================
 
     def __init__(self, master=None, **config):
@@ -2024,6 +2029,11 @@ class TreeView(ScrolledFrame):
         if node in self.nodes:
             self.nodes.remove(node)
             node.pack_forget()
+
+    def clear(self):
+        nodes = list(self.nodes)
+        for node in nodes:
+            self.remove(node)
 
     def redraw(self):
         for node in self.nodes:

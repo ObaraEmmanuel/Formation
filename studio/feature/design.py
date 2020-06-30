@@ -5,7 +5,6 @@ Drag drop designer for the studio
 # ======================================================================= #
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
-from hashlib import md5
 from tkinter import filedialog
 
 from hoverset.ui.dialogs import MessageDialog
@@ -94,19 +93,17 @@ class Designer(DesignPad, Container):
         self.bind("<Button-1>", lambda *_: self.select(None))
         self._padding = 30
         self.design_path = None
-        self.xml = None
-        self.file_hash = None
+        self.xml = XMLForm(self)
+        self._load_progress = None
         # Initialize the first layout some time after the designer has been initialized
         self.bind('<Configure>', lambda _: self.adjust_highlight(self.current_obj), add='+')
 
     def _open_default(self):
         self.update_idletasks()
-        self.xml = XMLForm(self)
         from studio.lib import legacy
         self.add(legacy.Frame, self._padding, self._padding, width=self.width - self._padding * 2,
                  height=self.height - self._padding * 2)
         self.xml.generate()
-        self.file_hash = md5(self.xml.to_xml_bytes()).hexdigest()
         self.design_path = None
 
     @property
@@ -115,13 +112,11 @@ class Designer(DesignPad, Container):
 
     def has_changed(self):
         # check if design has changed since last save or loading so we can prompt user to save changes
+        xml = self.xml
         if self.root_obj:
             xml = XMLForm(self)
             xml.generate()
-            _hash = md5(xml.to_xml_bytes()).hexdigest()
-        else:
-            _hash = None
-        return _hash != self.file_hash
+        return xml != self.xml
 
     def open_new(self):
         # open a blank design
@@ -136,7 +131,7 @@ class Designer(DesignPad, Container):
             title="Save design",
             message="This design has unsaved changes. Do you want to save them?",
             parent=self.studio,
-            icon=MessageDialog.ICON_WARNING
+            icon=MessageDialog.ICON_INFO
         )
 
     def open_xml(self, path=None):
@@ -163,9 +158,8 @@ class Designer(DesignPad, Container):
         # remove the current root objects and their descendants
         self.studio.select(None)
         # create a copy since self.objects will mostly change during iteration
-        objects = list(self.objects)
-        for widget in objects:
-            self.delete(widget, silently=True)
+        # remove root and dangling objects
+        for widget in self.objects:
             widget.destroy()
         self.objects.clear()
         self.root_obj = None
@@ -173,7 +167,7 @@ class Designer(DesignPad, Container):
     @as_thread
     def _load_design(self, path):
         # Loading designs is elaborate so better do it on its own thread
-        progress = MessageDialog.show_progress(
+        self._load_progress = MessageDialog.show_progress(
             mode=MessageDialog.INDETERMINATE,
             message='Loading design file to studio...',
             parent=self.studio
@@ -184,15 +178,15 @@ class Designer(DesignPad, Container):
             with open(path, 'rb') as dump:
                 self.root_obj = self.xml.load_xml(dump, self)
                 # store the file hash so we can check for changes later
-                self.file_hash = md5(self.xml.to_xml_bytes()).hexdigest()
                 self.design_path = path
         except Exception as e:
             MessageDialog.show_error(parent=self.studio, title='Error loading design', message=str(e))
         finally:
-            progress.destroy()
+            if self._load_progress:
+                self._load_progress.destroy()
+                self._load_progress = None
 
     def save(self, new_path=False):
-        self.xml = XMLForm(self)
         self.xml.generate()
         if not self.design_path or new_path:
             path = filedialog.asksaveasfilename(parent=self, filetypes=[("XML", "*.xml")],
@@ -202,14 +196,7 @@ class Designer(DesignPad, Container):
             self.design_path = path
         with open(self.design_path, 'w') as dump:
             dump.write(self.xml.to_xml())
-        self.file_hash = md5(self.xml.to_xml_bytes()).hexdigest()
         return self.design_path
-
-    def to_xml(self):
-        # TODO remove this method; was meant for testing
-        xml = XMLForm(self)
-        xml.generate()
-        return xml.root
 
     def paste(self, widget: PseudoWidget):
         if not self.current_obj:

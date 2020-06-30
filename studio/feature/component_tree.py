@@ -111,6 +111,9 @@ class ComponentTree(BaseFeature):
             parent = widget.layout.node
             parent.insert(None, node)
 
+    def on_session_clear(self):
+        self._tree.clear()
+
     def on_widget_change(self, old_widget, new_widget=None):
         new_widget = new_widget if new_widget else old_widget
         new_widget.node.widget_modified(new_widget)
