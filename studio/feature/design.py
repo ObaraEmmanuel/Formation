@@ -122,6 +122,12 @@ class Designer(DesignPad, Container):
         # open a blank design
         self.open_xml(None)
 
+    def to_xml(self):
+        """ Generate xml form of current design state without needing to save"""
+        xml = XMLForm(self)
+        xml.generate()
+        return xml.root
+
     def save_prompt(self):
         return MessageDialog.builder(
             {"text": "Save", "value": True, "focus": True},

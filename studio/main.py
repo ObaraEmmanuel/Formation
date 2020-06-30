@@ -165,9 +165,6 @@ class StudioApplication(Application):
         )
         self.open_new()
 
-    def print_xml(self):
-        self.designer.to_xml()
-
     def new_action(self, action: Action):
         """
         Register a undo redo point
@@ -411,7 +408,9 @@ class StudioApplication(Application):
         Return a tuple of all features including the designer instance
         :return: tuple of features
         """
-        return *self.features, self.designer
+        # We cannot unpack directly at the return statement due to a flaw in python versions < 3.8
+        features = *self.features, self.designer
+        return features
 
     def _on_close(self):
         # pass the on window close event to the features
