@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tkinter.Frame xmlns:attr="http://www.hoversetformationstudio.com/styles/"
+               xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="Frame_1" attr:layout="GridLayout"
+               layout:width="404" layout:height="140" layout:x="86" layout:y="50">
+    <tkinter.ttk.Entry name="str_1" attr:textvariable="string_var" attr:cursor="ibeam" layout:width="30"
+                       layout:padx="10" layout:pady="10" layout:row="0" layout:column="0"/>
+    <tkinter.ttk.Entry name="int_1" attr:textvariable="int_var" attr:cursor="ibeam" layout:width="30" layout:row="1"
+                       layout:column="0"/>
+    <tkinter.ttk.Entry name="double_1" attr:textvariable="double_var" attr:cursor="ibeam" layout:width="30"
+                       layout:padx="10" layout:pady="10" layout:row="2" layout:column="0"/>
+    <tkinter.ttk.Checkbutton name="bool_1" attr:variable="boolean_var" attr:text="1" layout:row="3" layout:column="0"/>
+    <tkinter.ttk.Entry name="str_2" attr:textvariable="string_var" attr:cursor="ibeam" layout:width="30" layout:row="0"
+                       layout:column="1"/>
+    <tkinter.ttk.Entry name="int_2" attr:textvariable="int_var" attr:cursor="ibeam" layout:width="30" layout:row="1"
+                       layout:column="1"/>
+    <tkinter.ttk.Entry name="double_2" attr:textvariable="double_var" attr:cursor="ibeam" layout:width="30"
+                       layout:row="2" layout:column="1"/>
+    <tkinter.Checkbutton name="bool_2" attr:variable="boolean_var" attr:text="1" layout:row="3" layout:column="1"/>
+    <tkinter.StringVar attr:name="string_var" attr:value="Sample text"/>
+    <tkinter.BooleanVar attr:name="boolean_var" attr:value="False"/>
+    <tkinter.IntVar attr:name="int_var" attr:value="200"/>
+    <tkinter.DoubleVar attr:name="double_var" attr:value="50.08"/>
+</tkinter.Frame>

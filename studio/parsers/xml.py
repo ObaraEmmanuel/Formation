@@ -1,47 +1,28 @@
 """
 Conversions of design to xml and back
 """
-import functools
-import re
-import tkinter as tk
-from collections import defaultdict
-
 # ======================================================================= #
 # Copyright (c) 2020 Hoverset Group.                                      #
 # ======================================================================= #
+
+import tkinter as tk
+
 from lxml import etree
 
+from formation import xml
 from studio.feature.variable_manager import VariablePane, VariableItem
 from studio.lib import legacy, native
 from studio.lib.menus import MenuTree
 from studio.lib.pseudo import Container, PseudoWidget
 
-namespaces = {
-    "layout": "http://www.hoversetformationstudio.com/layouts/",
-    "attr": "http://www.hoversetformationstudio.com/styles/",
-    "menu": "http://www.hoversetformationstudio.com/menu",
-}
-_reversed_namespaces = dict(zip(namespaces.values(), namespaces.keys()))
-_tag_rgx = re.compile(r'(.+)\.([^.]+)')
-_attr_rgx = re.compile(r'{(?P<namespace>.+)}(?P<attr>.+)')
-_var_rgx = re.compile(r'.+Var')
 
-
-def _get_widget_impl(widget):
+def get_widget_impl(widget):
     if not hasattr(widget, 'impl'):
         return widget.__class__.__module__ + "." + widget.__class__.__name__
     return widget.impl.__module__ + "." + widget.impl.__name__
 
 
-def _register_namespaces():
-    for k in namespaces:
-        etree.register_namespace(k, namespaces[k])
-
-
-_register_namespaces()
-
-
-class BaseConverter:
+class BaseConverter(xml.BaseConverter):
     _designer_alternates = {
         'tkinter': legacy,
         'tkinter.ttk': native,
@@ -49,18 +30,10 @@ class BaseConverter:
         'ttk': native
     }
 
-    @staticmethod
-    def _is_var(tag):
-        return _var_rgx.match(tag)
-
-    @staticmethod
-    def get_source_line_info(node: etree._Element):
-        return "" if node.sourceline is None else "Line {}: ".format(node.sourceline)
-
     @classmethod
     def _get_class(cls, node):
         tag = node.tag
-        match = _tag_rgx.search(tag)
+        match = xml.tag_rgx.search(tag)
         if match:
             module, impl = match.groups()
         else:
@@ -79,34 +52,15 @@ class BaseConverter:
                 return native.VerticalPanedWindow
         raise NotImplementedError("class {} does not have a designer implementation variant in {}".format(impl, module))
 
-    @staticmethod
-    def get_altered_options(widget):
-        keys = widget.configure()
-        # items with a length of two or less are just alias definitions such as 'bd' and 'borderwidth' so we ignore them
-        # compare the last and 2nd last item to see whether options have been altered
-        return {key: keys[key][-1] for key in keys if keys[key][-1] != keys[key][-2] and len(keys[key]) > 2}
-
-    @staticmethod
-    def create_element(parent, tag):
-        if parent is not None:
-            return etree.SubElement(parent, tag)
-        return etree.Element(tag)
-
     @classmethod
     def to_xml(cls, widget: PseudoWidget, parent=None):
-        node = cls.create_element(parent, _get_widget_impl(widget))
-        assert isinstance(widget, PseudoWidget)
+        node = cls.create_element(parent, get_widget_impl(widget))
         attr = widget.get_altered_options()
         node.attrib['name'] = widget.id
         cls.load_attributes(attr, node, 'attr')
         layout_options = widget.layout.get_altered_options_for(widget)
         cls.load_attributes(layout_options, node, 'layout')
         return node
-
-    @classmethod
-    def load_attributes(cls, attributes, node, namespace=None):
-        for attribute in attributes:
-            node.attrib[cls.get_attr_name(namespace, attribute)] = str(attributes[attribute])
 
     @classmethod
     def from_xml(cls, node, designer, parent):
@@ -120,34 +74,11 @@ class BaseConverter:
         return obj
 
     @staticmethod
-    def get_attr_name(namespace, attr):
-        if namespace is None:
-            return attr
-        return f"{{{namespaces.get(namespace)}}}{attr}"
-
-    @staticmethod
-    def extract_attr_name(attr):
-        match = _attr_rgx.search(attr)
-        if match:
-            return match.group('attr')
-        return attr
-
-    @classmethod
-    def drop_attr(cls, node, attr, namespace):
-        attr = cls.get_attr_name(namespace, attr)
-        if attr in node.attrib:
-            node.attrib.pop(attr)
-
-    @classmethod
-    @functools.lru_cache(maxsize=4)
-    def attrib(cls, node):
-        grouped = defaultdict(dict)
-        for attr in node.attrib:
-            match = _attr_rgx.search(attr)
-            if match:
-                group = _reversed_namespaces.get(match.group("namespace"))
-                grouped[group][match.group("attr")] = node.attrib.get(attr)
-        return grouped
+    def get_altered_options(widget):
+        keys = widget.configure()
+        # items with a length of two or less are just alias definitions such as 'bd' and 'borderwidth' so we ignore them
+        # compare the last and 2nd last item to see whether options have been altered
+        return {key: keys[key][-1] for key in keys if keys[key][-1] != keys[key][-2] and len(keys[key]) > 2}
 
 
 class MenuConverter(BaseConverter):
@@ -182,7 +113,7 @@ class MenuConverter(BaseConverter):
             if sub_node.tag in MenuConverter._types and menu is not None:
                 menu.add(sub_node.tag)
                 MenuTree.menu_config(menu, menu.index(tk.END), **attrib.get("menu", {}))
-                return
+                continue
 
             obj_class = cls._get_class(sub_node)
             if obj_class == legacy.Menu:
@@ -202,7 +133,7 @@ class MenuConverter(BaseConverter):
         if size is None:
             # menu is empty
             return
-        menu_node = cls.create_element(node, _get_widget_impl(menu))
+        menu_node = cls.create_element(node, get_widget_impl(menu))
         cls.load_attributes(cls.get_altered_options(menu), menu_node, 'attr')
         cls.load_attributes(item_opt, menu_node, 'menu')
         for i in range(size + 1):
@@ -219,7 +150,7 @@ class VariableConverter(BaseConverter):
 
     @classmethod
     def to_xml(cls, variable: VariableItem, parent=None):
-        node = cls.create_element(parent, _get_widget_impl(variable.var))
+        node = cls.create_element(parent, get_widget_impl(variable.var))
         attributes = {'name': variable.name, 'value': variable.value}
         cls.load_attributes(attributes, node, 'attr')
         return node
@@ -241,6 +172,7 @@ class XMLForm:
             # Add custom converters here
         }
         self.designer = designer
+        self.root = None
 
     def generate(self):
         self.root = self.to_xml_tree(self.designer.root_obj)
@@ -249,8 +181,11 @@ class XMLForm:
     def get_converter(self, widget_class):
         return self._conversion_map.get(widget_class, BaseConverter)
 
-    def load_xml(self, byte_stream, designer):
-        tree = etree.parse(byte_stream)
+    def load_xml(self, stream, designer):
+        if isinstance(stream, str):
+            tree = etree.fromstring(stream)
+        else:
+            tree = etree.parse(stream)
         self.root = tree.getroot()
         self._load_variables(self.root)
         return self._load_widgets(self.root, designer, designer)
@@ -291,9 +226,17 @@ class XMLForm:
             VariableConverter.to_xml(var_item, parent)
 
     def to_xml_bytes(self, pretty_print=True):
-        etree.cleanup_namespaces(self.root, top_nsmap=namespaces)
+        etree.cleanup_namespaces(self.root, top_nsmap=xml.namespaces)
         return etree.tostring(self.root, pretty_print=pretty_print, encoding='utf-8',
                               xml_declaration=True)
 
     def to_xml(self, pretty_print=True):
         return self.to_xml_bytes(pretty_print).decode('utf-8')
+
+    def __eq__(self, other):
+        if isinstance(other, XMLForm):
+            return BaseConverter.is_equal(self.root, other.root)
+        return False
+
+    def __ne__(self, other):
+        return not (self == other)

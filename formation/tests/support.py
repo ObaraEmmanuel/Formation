@@ -1,4 +1,8 @@
+import os
+
+import formation.tests
 from formation.loader import ttk, tk
+from hoverset.data.utils import get_resource_path
 
 tk_supported = {
     tk.Button, tk.Checkbutton, tk.Label, tk.Menubutton, tk.Scrollbar,
@@ -11,3 +15,7 @@ ttk_supported = {
     ttk.Combobox, ttk.Entry, ttk.LabeledScale, ttk.Radiobutton, ttk.Scale, ttk.Spinbox,
     ttk.Frame, ttk.Panedwindow, ttk.Labelframe, ttk.Notebook, ttk.Sizegrip, ttk.Treeview
 }
+
+
+def get_resource(name):
+    return get_resource_path(formation.tests, os.path.join("samples", name))

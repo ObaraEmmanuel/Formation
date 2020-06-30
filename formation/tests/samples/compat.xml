@@ -1,0 +1,13 @@
+<tkinter.Frame xmlns:attr="http://www.hoversetformationstudio.com/styles/"
+               xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="Frame_1" attr:layout="FrameLayout"
+               layout:width="397" layout:height="281" layout:x="42" layout:y="35">
+    <tkinter.Button name="button_tk_3" attr:background="#e6e6e6" attr:borderwidth="0" attr:highlightthickness="0"
+                    attr:relief="groove" attr:text="Button_1" layout:width="290" layout:height="30" layout:x="45"
+                    layout:y="32"/>
+    <Tkinter.Button name="button_tk_2" attr:background="#e6e6e6" attr:borderwidth="0" attr:relief="groove"
+                    attr:text="Button_2" layout:width="285" layout:height="30" layout:x="49" layout:y="91"/>
+    <ttk.Button name="button_ttk_2" attr:text="Button_1" layout:width="282" layout:height="30" layout:x="50"
+                layout:y="161"/>
+    <tkinter.ttk.Button name="button_ttk_3" attr:text="Button_2" layout:width="281" layout:height="30" layout:x="51"
+                        layout:y="219"/>
+</tkinter.Frame>

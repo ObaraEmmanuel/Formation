@@ -4,20 +4,14 @@ Conversions of design to xml and back
 # ======================================================================= #
 # Copyright (c) 2020 Hoverset Group.                                      #
 # ======================================================================= #
-from lxml import etree
-from collections import defaultdict
+
 from importlib import import_module
-import re
-import functools
 
+from lxml import etree
+
+from formation import xml
 from formation.preprocessors import preprocess
-
-try:
-    import Tkinter as tk
-    import ttk
-except ModuleNotFoundError:
-    import tkinter as tk
-    import tkinter.ttk as ttk
+from formation.xml import ttk, tk
 
 _preloaded = {
     "tkinter": tk,
@@ -37,21 +31,6 @@ _containers = (
     tk.Frame, ttk.Frame, tk.PanedWindow, ttk.PanedWindow, ttk.Notebook, tk.LabelFrame,
     ttk.LabelFrame, ttk.Sizegrip, tk.Toplevel
 )
-
-namespaces = {
-    "layout": "http://www.hoversetformationstudio.com/layouts/",
-    "attr": "http://www.hoversetformationstudio.com/styles/",
-    "menu": "http://www.hoversetformationstudio.com/menu",
-}
-_reversed_namespaces = dict(zip(namespaces.values(), namespaces.keys()))
-_tag_rgx = re.compile(r'(.+)\.([^.]+)')
-_attr_rgx = re.compile(r'{(?P<namespace>.+)}(?P<attr>.+)')
-_var_rgx = re.compile(r'.+Var')
-
-
-def _register_namespaces():
-    for k in namespaces:
-        etree.register_namespace(k, namespaces[k])
 
 
 def set_grid(widget, _=None, **options):
@@ -89,19 +68,13 @@ _layout_handlers = {
     "NativePanedLayout": set_pane
 }
 
-_register_namespaces()
 
-
-class BaseConverter:
-
-    @staticmethod
-    def _is_var(tag):
-        return _var_rgx.match(tag)
+class BaseConverter(xml.BaseConverter):
 
     @classmethod
     def _get_class(cls, node):
         tag = node.tag
-        match = _tag_rgx.search(tag)
+        match = xml.tag_rgx.search(tag)
         if match:
             module, impl = match.groups()
         else:
@@ -131,24 +104,6 @@ class BaseConverter:
         elif widget.__class__ == ttk.PanedWindow:
             return set_pane
 
-    @staticmethod
-    def get_altered_options(widget):
-        keys = widget.configure()
-        # items with a length of two or less are just alias definitions such as 'bd' and 'borderwidth' so we ignore them
-        # compare the last and 2nd last item to see whether options have been altered
-        return {key: keys[key][-1] for key in keys if keys[key][-1] != keys[key][-2] and len(keys[key]) > 2}
-
-    @staticmethod
-    def create_element(parent, tag):
-        if parent is not None:
-            return etree.SubElement(parent, tag)
-        return etree.Element(tag)
-
-    @classmethod
-    def load_attributes(cls, attributes, node, namespace=None):
-        for attribute in attributes:
-            node.attrib[cls.get_attr_name(namespace, attribute)] = str(attributes[attribute])
-
     @classmethod
     def from_xml(cls, node, builder, parent):
         obj_class = cls._get_class(node)
@@ -168,49 +123,6 @@ class BaseConverter:
                 layout_handler(obj, parent, **preprocess(builder, layout))
         setattr(builder, node.attrib.get("name"), obj)
         return obj
-
-    @staticmethod
-    def get_attr_name(namespace, attr):
-        if namespace is None:
-            return attr
-        return "{{{}}}{}".format(namespaces.get(namespace), attr)
-
-    @staticmethod
-    def extract_attr_name(attr):
-        match = _attr_rgx.search(attr)
-        if match:
-            return match.group('attr')
-        return attr
-
-    @classmethod
-    def drop_attr(cls, node, attr, namespace):
-        attr = cls.get_attr_name(namespace, attr)
-        if attr in node.attrib:
-            node.attrib.pop(attr)
-
-    @classmethod
-    def group_attr(cls, node):
-        grouped = defaultdict(dict)
-        for attr in node.attrib:
-            match = _attr_rgx.search(attr)
-            if match:
-                group = _reversed_namespaces.get(match.group("namespace"))
-                grouped[group][match.group("attr")] = node.attrib.get(attr)
-
-    @classmethod
-    @functools.lru_cache(maxsize=4)
-    def attrib(cls, node):
-        grouped = defaultdict(dict)
-        for attr in node.attrib:
-            match = _attr_rgx.search(attr)
-            if match:
-                group = _reversed_namespaces.get(match.group("namespace"))
-                grouped[group][match.group("attr")] = node.attrib.get(attr)
-        return grouped
-
-    @classmethod
-    def get_attr(cls, node, attr, namespace):
-        return node.attrib.get(cls.get_attr_name(namespace, attr))
 
 
 class MenuConverter(BaseConverter):

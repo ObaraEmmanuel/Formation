@@ -1,7 +1,7 @@
 <tkinter.Frame xmlns:attr="http://www.hoversetformationstudio.com/styles/"
                xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="Frame_1" attr:layout="FrameLayout"
                layout:width="616" layout:height="571" layout:x="31" layout:y="31">
-  <tkinter.Canvas name="Canvas_1" attr:background="#c2c2c2" layout:width="76" layout:height="45" layout:x="15"
+  <tkinter.Canvas name="Canvas_1" attr:background="#c2c2c2" layout:height="45" layout:width="76" layout:x="15"
                   layout:y="23"/>
   <tkinter.Frame name="Frame_2" attr:background="#e3e3e3" attr:layout="FrameLayout" layout:width="262"
                  layout:height="145" layout:x="125" layout:y="23"/>
