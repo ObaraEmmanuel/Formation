@@ -23,6 +23,9 @@ class DesignLayoutStrategy(FrameLayoutStrategy):
     def add_new(self, widget, x, y):
         self.container.add(widget, x, y, layout=self.container)
 
+    def _move(self, widget, bounds):
+        self.container.position(widget, bounds)
+
     def add_widget(self, widget, bounds=None, **kwargs):
         super(FrameLayoutStrategy, self).add_widget(widget, bounds=None, **kwargs)
         super(FrameLayoutStrategy, self).remove_widget(widget)
@@ -58,10 +61,10 @@ class DesignLayoutStrategy(FrameLayoutStrategy):
 
     def definition_for(self, widget):
         definition = super().definition_for(widget)
-        # bordermode is not supported in design pad so simply set value to the default 'inside'
-        bounds = geometry.relative_bounds(geometry.bounds(widget), widget.layout)
+        bounds = self.container.bbox(widget)
         definition["x"]["value"] = bounds[0]
         definition["y"]["value"] = bounds[1]
+        # bordermode is not supported in design pad so simply set value to the default 'inside'
         definition["bordermode"]["value"] = 'inside'
         return definition
 

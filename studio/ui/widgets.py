@@ -3,6 +3,7 @@ from tkinter import ttk, TclError
 
 from hoverset.ui.icons import get_icon_image, get_icon
 from hoverset.ui.widgets import Canvas, FontStyle, Frame, Entry, Button, Label, ScrollableInterface, EventMask
+from studio.ui import geometry
 
 
 class CollapseFrame(Frame):
@@ -163,8 +164,10 @@ class DesignPad(ScrollableInterface, Frame):
         self.bind('<Configure>', self.on_configure)
         self._child_map = {}
         self._on_scroll = None
-        self._frame.create_line(0, 0, 0, 0)  # Ensure scroll_region always begins at 0, 0
-        super().configure(bg="green")
+        # Ensure scroll_region always begins at 0, 0
+        # To achieve this we need a line/point at position 2, 2 with the minimum possible width of 1
+        # Without this workaround positioning on the design pad becomes unstable
+        self._frame.create_line(2, 2, 2, 2)
 
     def on_mousewheel(self, event):
         try:
@@ -214,6 +217,7 @@ class DesignPad(ScrollableInterface, Frame):
         if not scroll_region:
             logging.error("failed to acquire scroll region")
             return
+
         scroll_w = scroll_region[2] - scroll_region[0]
         scroll_h = scroll_region[3] - scroll_region[1]
 
@@ -228,15 +232,26 @@ class DesignPad(ScrollableInterface, Frame):
         w = kw.get("width", 1)
         h = kw.get("height", 1)
         self.forget_child(child)
-        window = self._frame.create_window(x, y, window=child, width=w, height=h, anchor='nw')
-        self._child_map[child] = window
+        if child in self._child_map:
+            self.config_child(child, **kw)
+        else:
+            window = self._frame.create_window(x, y, window=child, width=w, height=h, anchor='nw')
+            self._child_map[child] = window
         self.on_configure()
 
+    def bbox(self, child):
+        # return the canvas bbox if possible else use the normal bound
+        # canvas bbox is more accurate
+        if self._child_map.get(child is not None):
+            return self._frame.bbox(self._child_map[child])
+        return geometry.relative_bounds(geometry.bounds(child), self._frame)
+
     def config_child(self, child, **kw):
-        x = kw.get("x", child.winfo_x())
-        y = kw.get("y", child.winfo_y())
-        w = kw.get("width", child.winfo_width())
-        h = kw.get("height", child.winfo_height())
+        x1, y1, x2, y2 = self.bbox(child)
+        x = kw.get("x", x1)
+        y = kw.get("y", y1)
+        w = kw.get("width", x2 - x1)
+        h = kw.get("height", y2 - y1)
         if not kw:
             return {
                 "x": x, "y": y, "width": w, "height": h
@@ -248,6 +263,7 @@ class DesignPad(ScrollableInterface, Frame):
     def forget_child(self, child):
         if self._child_map.get(child) is not None:
             self._frame.delete(self._child_map[child])
+            self._child_map.pop(child)
 
     def configure(self, cnf=None, **kw):
         self._frame.configure(cnf, **kw)
