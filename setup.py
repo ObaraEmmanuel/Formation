@@ -1,13 +1,11 @@
 from setuptools import setup
-import formation
-import sys
 
-requirements = ['lxml', 'Pillow>=6.0.0', 'pyscreenshot']
-if sys.platform == 'win32':
-    requirements.append('pywin32')
+import formation
+
+requirements = ['lxml', 'Pillow', 'pyscreenshot', 'pywin32 ; sys_platform=="win32"']
 
 setup(
-    name='formation',
+    name='formation-studio',
     packages=['hoverset', 'hoverset.data', 'hoverset.platform', 'hoverset.ui', 'hoverset.util',
               'formation',
               'studio', 'studio.feature', 'studio.lib', 'studio.parsers', 'studio.ui'],
@@ -17,7 +15,7 @@ setup(
     author='Hoverset',
     author_email='emmanuelobarany@gmail.com',
     url='https://github.com/ObaraEmmanuel/Formation',
-    keywords=['formation', 'gui', 'graphical-user-interface', 'drag drop', 'tkinter', 'hoverset'],
+    keywords=['formation', 'gui', 'graphical-user-interface', 'drag drop', 'tkinter', 'hoverset', 'python'],
     install_requires=requirements,
     package_data={
         'hoverset.data': ['image.*'],
@@ -35,8 +33,9 @@ setup(
         'Intended Audience :: Developers',
         'Topic :: Software Development :: Build Tools',
         'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'Topic :: Utilities',
         'Topic :: Software Development :: User Interfaces',

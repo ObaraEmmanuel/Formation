@@ -1,3 +1,4 @@
 lxml
 pyscreenshot
-Pillow>=6.2.1
+Pillow
+pywin32; sys_platform == 'win32'
