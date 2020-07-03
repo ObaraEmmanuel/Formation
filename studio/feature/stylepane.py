@@ -140,7 +140,6 @@ class StylePane(BaseFeature):
     def apply_layout(self, prop, value):
         try:
             self._current.layout.apply(prop, value, self._current)
-            self.studio.designer.adjust_highlight(self._current)
         except Exception as e:
             logging.log(logging.ERROR, f"Could not set layout {prop} as {value}", )
 

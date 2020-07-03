@@ -98,8 +98,6 @@ class Designer(DesignPad, Container):
         self.design_path = None
         self.xml = XMLForm(self)
         self._load_progress = None
-        # Initialize the first layout some time after the designer has been initialized
-        self.bind('<Configure>', lambda _: self.adjust_highlight(self.current_obj), add='+')
 
     def _open_default(self):
         self.update_idletasks()
@@ -425,13 +423,11 @@ class Designer(DesignPad, Container):
                 self.current_container.add_widget(self.current_obj, bound, )
             else:
                 self.current_obj.layout.widget_released(self.current_obj)
-            self.adjust_highlight(self.current_obj)
             self.studio.widget_layout_changed(self.current_obj)
             self.current_action = None
         elif self.current_action == self.RESIZE:
             self.current_obj.layout.widget_released(self.current_obj)
             self.current_action = None
-            self.adjust_highlight(self.current_obj)
 
     def create_restore(self, widget):
         restore_point = widget.layout.get_restore()
@@ -444,18 +440,6 @@ class Designer(DesignPad, Container):
         if self.highlight.is_active or not widget:
             return
         self.highlight.adjust_to(self.highlight.bounds_from_object(widget))
-
-    def _y_scroll(self, *args):
-        super()._y_scroll(*args)
-        self.adjust_highlight(self.current_obj)
-
-    def _x_scroll(self, *args):
-        super()._x_scroll(*args)
-        self.adjust_highlight(self.current_obj)
-
-    def on_mousewheel(self, event):
-        super().on_mousewheel(event)
-        self.adjust_highlight(self.current_obj)
 
     def _on_move(self, new_bound):
         if self.current_obj is not None:

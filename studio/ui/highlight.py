@@ -81,8 +81,10 @@ class HighLight:
 
         # These variables help in skipping of several rendering frames to reduce lag when dragging items
         self._skip_var = 0
-        self._skip_max = 2  # The maximum rendering to skip for every one successful render. Ensure its
-        # not too big otherwise we won't be moving and resizing items at all
+        # The maximum rendering to skip (currently 80%) for every one successful render. Ensure its
+        # not too big otherwise we won't be moving and resizing items at all and not too small otherwise the lag would
+        # be unbearable
+        self._skip_max = 4
         self.parent.bind("<Motion>", self.resize)
         for elem in self._elements[4:]:
             elem.bind("<Motion>", self.resize)
@@ -162,13 +164,9 @@ class HighLight:
 
     def _update_bbox(self):
         # Update the bounding box based on the current position of the highlight
-        for elem in self._elements:
-            elem.update_idletasks()
-        x1 = self.l.winfo_x()
-        y1 = self.t.winfo_y()
-        x2 = self.r.winfo_x()
-        y2 = self.b.winfo_y()
-        self._bbox_on_click = (x1, y1, x2, y2)
+        if self.current_obj is None:
+            return
+        self._bbox_on_click = self.bounds_from_object(self.current_obj)
 
     def clear(self):
         """
@@ -179,24 +177,22 @@ class HighLight:
         for elem in self._elements:
             elem.place_forget()
 
-    def redraw(self, bound, radius=None):
+    def redraw(self, widget, radius=None):
         # Redraw the highlight in the new bounding box
-        radius = self.SIZER_LENGTH // 2 if radius is None else radius
-        x1, y1, x2, y2 = bound
-        width, height = x2 - x1, y2 - y1
-        self.l.place(in_=self.parent, x=x1, y=y1, height=y2 - y1)
-        self.r.place(in_=self.parent, x=x2, y=y1, height=y2 - y1)
-        self.t.place(in_=self.parent, x=x1, y=y1, width=x2 - x1)
-        self.b.place(in_=self.parent, x=x1, y=y2, width=x2 - x1)
+        radius = self.SIZER_LENGTH // 2
+        self.l.place(in_=widget, relheight=1)
+        self.r.place(in_=widget, relx=1, relheight=1)
+        self.t.place(in_=widget, relwidth=1)
+        self.b.place(in_=widget, rely=1, relwidth=1)
 
-        self.nw.place(in_=self.parent, x=x1 - radius, y=y1 - radius)
-        self.ne.place(in_=self.parent, x=x2 - radius, y=y1 - radius)
-        self.sw.place(in_=self.parent, x=x1 - radius, y=y2 - radius)
-        self.se.place(in_=self.parent, x=x2 - radius, y=y2 - radius)
-        self.n.place(in_=self.parent, x=x1 + width // 2 - radius, y=y1 - radius)
-        self.s.place(in_=self.parent, x=x1 + width // 2 - radius, y=y2 - radius)
-        self.e.place(in_=self.parent, x=x2 - radius, y=y1 + height // 2 - radius)
-        self.w.place(in_=self.parent, x=x1 - radius, y=y1 + height // 2 - radius)
+        self.nw.place(in_=widget, x=-radius, y=-radius)
+        self.ne.place(in_=widget, relx=1, x=-radius, y=-radius)
+        self.sw.place(in_=widget, x=-radius, rely=1, y=-radius)
+        self.se.place(in_=widget, relx=1, x=-radius, rely=1, y=-radius)
+        self.n.place(in_=widget, relx=0.5, x=-radius, y=-radius)
+        self.s.place(in_=widget, relx=0.5, x=-radius, rely=1, y=-radius)
+        self.e.place(in_=widget, relx=1, x=-radius, rely=0.5, y=-radius)
+        self.w.place(in_=widget, x=-radius, rely=0.5, y=-radius)
 
     # ========================================= resize approaches ==========================================
 
@@ -205,21 +201,18 @@ class HighLight:
         x1, *_, y2 = self.bbox_on_click
         x2 = max(min(self.bounds[2], event.x), x1 + self.MIN_SIZE)
         y1 = min(max(self.bounds[1], event.y), y2 - self.MIN_SIZE)
-        self.redraw((x1, y1, x2, y2))
         self._on_resize((x1, y1, x2, y2))
 
     def n_resize(self, event=None):
         # perform resize in the north direction
         x1, _, x2, y2 = self.bbox_on_click
         y1 = min(max(self.bounds[1], event.y), y2 - self.MIN_SIZE)
-        self.redraw((x1, y1, x2, y2))
         self._on_resize((x1, y1, x2, y2))
 
     def e_resize(self, event=None):
         # perform resize in the east direction
         x1, y1, _, y2 = self.bbox_on_click
         x2 = max(min(self.bounds[2], event.x), x1 + self.MIN_SIZE)
-        self.redraw((x1, y1, x2, y2))
         self._on_resize((x1, y1, x2, y2))
 
     def nw_resize(self, event=None):
@@ -227,7 +220,6 @@ class HighLight:
         *_, x2, y2 = self.bbox_on_click
         x1 = min(max(self.bounds[0], event.x), x2 - self.MIN_SIZE)
         y1 = min(max(self.bounds[1], event.y), y2 - self.MIN_SIZE)
-        self.redraw((x1, y1, x2, y2))
         self._on_resize((x1, y1, x2, y2))
 
     def sw_resize(self, event=None):
@@ -235,21 +227,18 @@ class HighLight:
         _, y1, x2, _ = self.bbox_on_click
         x1 = min(max(self.bounds[0], event.x), x2 - self.MIN_SIZE)
         y2 = max(min(self.bounds[3], event.y), y1 + self.MIN_SIZE)
-        self.redraw((x1, y1, x2, y2))
         self._on_resize((x1, y1, x2, y2))
 
     def s_resize(self, event=None):
         # perform resize in the south direction
         x1, y1, x2, _ = self.bbox_on_click
         y2 = max(min(self.bounds[3], event.y), y1 + self.MIN_SIZE)
-        self.redraw((x1, y1, x2, y2))
         self._on_resize((x1, y1, x2, y2))
 
     def w_resize(self, event=None):
         # perform resize in the west direction
         _, y1, x2, y2 = self.bbox_on_click
         x1 = min(max(self.bounds[0], event.x), x2 - self.MIN_SIZE)
-        self.redraw((x1, y1, x2, y2))
         self._on_resize((x1, y1, x2, y2))
 
     def se_resize(self, event=None):
@@ -257,7 +246,6 @@ class HighLight:
         x1, y1, *_ = self.bbox_on_click
         x2 = max(min(self.bounds[2], event.x), x1 + self.MIN_SIZE)
         y2 = max(min(self.bounds[3], event.y), y1 + self.MIN_SIZE)
-        self.redraw((x1, y1, x2, y2))
         self._on_resize((x1, y1, x2, y2))
 
     # =========================================================================================================
@@ -269,7 +257,7 @@ class HighLight:
         :return: None
         """
         self.current_obj = obj
-        self.redraw(self.bounds_from_object(obj))
+        self.redraw(obj)
         self._update_bbox()
         self._lift_all()
 
@@ -279,9 +267,7 @@ class HighLight:
         :param bound:
         :return:
         """
-        self.redraw(bound)
-        self._update_bbox()
-        self._lift_all()
+        raise DeprecationWarning()
 
     def _stabilised_event(self, event):
         # Since events are bound to the dynamically adjusted handle widgets in the highlight,
@@ -304,7 +290,6 @@ class HighLight:
             delta_x = 0 if x1 + delta_x < bounds[0] else delta_x
             delta_y = 0 if y1 + delta_y < bounds[1] else delta_y
             bound = (x1 + delta_x, y1 + delta_y, x2 + delta_x, y2 + delta_y)
-            self.redraw(bound)
             self._on_move(bound)
             self.pos_cache = event  # Update the cache
             self._update_bbox()
