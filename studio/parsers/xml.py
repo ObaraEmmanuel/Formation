@@ -177,7 +177,7 @@ class MenuConverter(BaseConverter):
             if sub_node.tag in MenuConverter._types and menu is not None:
                 menu.add(sub_node.tag)
                 MenuTree.menu_config(menu, menu.index(tk.END), **attrib.get("menu", {}))
-                return
+                continue
 
             obj_class = cls._get_class(sub_node)
             if obj_class == legacy.Menu:
