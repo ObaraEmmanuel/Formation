@@ -8,7 +8,7 @@ class VariablesTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.builder = AppBuilder(get_resource("variables.xml"))
+        cls.builder = AppBuilder(path=get_resource("variables.xml"))
 
     def test_string_var(self):
         var = self.builder.string_var

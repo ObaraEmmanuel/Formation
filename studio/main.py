@@ -393,7 +393,7 @@ class StudioApplication(Application):
             self.current_preview.destroy()
         window = self.current_preview = Toplevel(self)
         window.wm_transient(self)
-        window.build = AppBuilder(None, window, node=self.designer.to_xml())
+        window.build = AppBuilder(window, node=self.designer.to_xml())
         name = self.designer.design_path if self.designer.design_path is not None else "Untitled"
         window.build._app.title(os.path.basename(name))
 

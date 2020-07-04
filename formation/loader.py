@@ -172,7 +172,7 @@ class Builder:
         # Add custom converters here
     }
 
-    def __init__(self, parent, path):
+    def __init__(self, parent, **kwargs):
         """
         Load xml design into a GUI with all components accessible as attributes
         To access a widget use its name as set in the designer
@@ -181,21 +181,19 @@ class Builder:
         """
         self._parent = parent
         self._image_cache = []  # Cache for images to shield them from garbage collection
-        self._root = self._load_xml(path)
+        self._root = None
+
+        if kwargs.get("path"):
+            self.load_path(kwargs.get("path"))
+        elif kwargs.get("string"):
+            self.load_string(kwargs.get("string"))
+        elif kwargs.get("node") is not None:
+            self.load_node(kwargs.get("node"))
 
     def _get_converter(self, widget_class):
         return self._conversion_map.get(widget_class, BaseConverter)
 
-    def _get_root_node(self, path):
-        if isinstance(path, etree._Element):
-            return path
-        else:
-            with open(path, 'rb') as stream:
-                tree = etree.parse(stream)
-                return tree.getroot()
-
-    def _load_xml(self, path):
-        root_node = self._get_root_node(path)
+    def _load_xml(self, root_node):
         # load variables first
         self._load_variables(root_node, self)
         return self._load_widgets(root_node, self, self._parent)
@@ -217,6 +215,35 @@ class Builder:
             self._load_widgets(sub_node, builder, widget)
         return widget
 
+    def load_path(self, path):
+        """
+        Load xml file at :param path
+        :return: root widget
+        """
+        with open(path, 'rb') as stream:
+            tree = etree.parse(stream)
+            node = tree.getroot()
+        self._root = self._load_xml(node)
+        return self._root
+
+    def load_string(self, xml_string):
+        """
+        Load the builder from a string :param xml_string formatted with the
+        correct supported xml format
+        :return: root widget
+        """
+        node = etree.fromstring(xml_string)
+        self._root = self._load_xml(node)
+        return self._root
+
+    def load_node(self, node: etree._Element):
+        """
+        Load the builder from an lxml _Element :param node
+        :return: root widget
+        """
+        self._root = self._load_xml(node)
+        return self._root
+
 
 class AppBuilder(Builder):
     """
@@ -225,8 +252,8 @@ class AppBuilder(Builder):
     and adapts its size to fit the design perfectly
     """
 
-    def __init__(self, path, app=None, screenName=None, baseName=None, className: str = 'Tk', useTk=1, sync=0,
-                 use=None):
+    def __init__(self, app=None, screenName=None, baseName=None, className: str = 'Tk', useTk=1, sync=0,
+                 use=None, **kwargs):
         """
         Create a builder object that automatically adds itself into a toplevel window
         and resizes the window accordingly. The underlying toplevel window can
@@ -248,20 +275,15 @@ class AppBuilder(Builder):
         else:
             self._parent = self._app = app
 
-        super().__init__(self._app, path)
-        self._root.pack(fill="both", expand=True)
-        # set the xml file name as default
-        # but only if the path is a actual string path and not an xml node
-        if isinstance(path, str):
-            self._app.title(path.split(".")[0])
+        super().__init__(self._app, **kwargs)
 
-    def _load_xml(self, path):
-        root_node = self._get_root_node(path)
+    def _load_xml(self, root_node):
         layout = BaseConverter.attrib(root_node).get("layout", {})
         # Adjust toplevel window size to that of the root widget
         self._app.geometry('{}x{}'.format(layout.get("width", 200), layout.get("height", 200)))
-        self._load_variables(root_node, self)
-        return self._load_widgets(root_node, self, self._parent)
+        root = super()._load_xml(root_node)
+        root.pack(fill="both", expand=True)
+        return root
 
     def mainloop(self, n: int = 0):
         """

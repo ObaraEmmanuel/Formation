@@ -50,7 +50,7 @@ Below is a sample studio preview saved as `hello.xml`
 
 ![Sample design](studio/resources/images/hello.png)
 
-The underlying xml is as shown below:
+The underlying xml uses namespaces and is as shown below:
 ```xml
 <tkinter.Frame 
     xmlns:attr="http://www.hoversetformationstudio.com/styles/" 
@@ -90,14 +90,11 @@ To load the design in your python code is as simple as:
 # import the formation library which loads the design for you
 from formation import AppBuilder
 
-# AppBuilder automatically creates a toplevel window for you
-app = AppBuilder("hello.xml")
+app = AppBuilder(path="hello.xml")
 
-# Access a widget and its properties using its exact name and the dot syntax
 print(app.myLabel["text"]) # outputs text in the label 'Hello world!'
 print(app.myButton["text"]) # outputs text in the button 'Click me'
 
-# mainloop methods calls the underlying toplevel window's mainloop method
 app.mainloop()
 ```
 
