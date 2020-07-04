@@ -16,6 +16,7 @@ from studio.parsers.xml import XMLForm
 from studio.ui import geometry
 from studio.ui.highlight import HighLight
 from studio.ui.widgets import DesignPad
+from formation.xml import BaseConverter
 
 
 class DesignLayoutStrategy(FrameLayoutStrategy):
@@ -205,33 +206,30 @@ class Designer(DesignPad, Container):
             dump.write(self.xml.to_xml())
         return self.design_path
 
-    def paste(self, widget: PseudoWidget):
+    def as_xml_node(self, widget):
+        xml = self.xml
+        if xml is None:
+            xml = XMLForm(self)
+        return xml.to_xml_tree(widget)
+
+    def paste(self, node, silently=False):
         if not self.current_obj:
             return
         layout = self.current_obj if isinstance(self.current_obj, Container) else self.current_obj.layout
-        width, height = widget.winfo_width(), widget.winfo_height()
+        width = int(BaseConverter.get_attr(node, "width", "layout") or 0)
+        height = int(BaseConverter.get_attr(node, "height", "layout") or 0)
         x, y = self.current_obj.last_menu_position
-        obj = self.add(widget.__class__, x, y, width=width, height=height, template=widget,
-                       layout=layout)
-        Frame.copy_config(widget, obj)
-        if isinstance(widget, Container):
-            obj._switch_layout(widget.layout_strategy.__class__)
-            for child in widget._children:
-                # Prevent an endless paste loop if we are pasting the object into itself
-                if child != obj:
-                    self._deep_paste(child, obj)
+        bounds = geometry.resolve_bounds((x, y, x + width, y + height), self)
+        obj = self.xml.load_section(node, layout, bounds)
+        restore_point = layout.get_restore(obj)
+        # Create an undo redo point if add is not silent
+        if not silently:
+            self.studio.new_action(Action(
+                # Delete silently to prevent adding the event to the undo/redo stack
+                lambda: self.delete(obj, True),
+                lambda: self.restore(obj, restore_point, obj.layout)
+            ))
         return obj
-
-    def _deep_paste(self, widget: PseudoWidget, layout: Container):
-        widget_copy = self.add(widget.__class__, 0, 0, width=0, height=0, silently=True, intended_layout=layout)
-        Frame.copy_config(widget, widget_copy)
-        self.studio.add(widget_copy, layout)
-        layout.copy_layout(widget_copy, widget)
-        if isinstance(widget, Container):
-            widget_copy._switch_layout(widget.layout_strategy.__class__)
-            for child in widget._children:
-                self._deep_paste(child, widget_copy)
-        return widget_copy
 
     def _get_unique(self, obj_class):
         """
@@ -259,11 +257,14 @@ class Designer(DesignPad, Container):
             self.root_obj = obj
         obj.bind("<Button-1>", lambda _: self.select(obj), add='+')
 
-    def load(self, obj_class, name, container, attributes, layout):
+    def load(self, obj_class, name, container, attributes, layout, bounds=None):
         obj = obj_class(self, name)
         obj.configure(**attributes)
         self._attach(obj)
-        container.add_widget(obj, **layout)
+        if bounds is not None:
+            container.add_widget(obj, bounds)
+        else:
+            container.add_widget(obj, **layout)
         if container == self:
             container = None
         self.studio.add(obj, container)
@@ -393,6 +394,7 @@ class Designer(DesignPad, Container):
         if obj is None:
             self.clear_obj_highlight()
             self.studio.select(None, self)
+            self.highlight.clear()
             return
         if self.current_obj == obj:
             return
@@ -420,7 +422,10 @@ class Designer(DesignPad, Container):
         if self.current_container is not None and self.current_container != self.current_obj:
             self.current_container.clear_highlight()
             if self.current_action == self.MOVE:
-                self.current_container.add_widget(self.current_obj, bound, )
+                self.current_container.add_widget(self.current_obj, bound)
+                # If the enclosed widget was initially the root object, make the container the new root object
+                if self.current_obj == self.root_obj and self.current_obj != self:
+                    self.root_obj = self.current_container
             else:
                 self.current_obj.layout.widget_released(self.current_obj)
             self.studio.widget_layout_changed(self.current_obj)
@@ -435,11 +440,6 @@ class Designer(DesignPad, Container):
             lambda: self.restore(widget, restore_point, widget.layout),
             lambda: self.studio.delete(widget)
         ))
-
-    def adjust_highlight(self, widget):
-        if self.highlight.is_active or not widget:
-            return
-        self.highlight.adjust_to(self.highlight.bounds_from_object(widget))
 
     def _on_move(self, new_bound):
         if self.current_obj is not None:

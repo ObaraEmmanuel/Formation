@@ -3,7 +3,6 @@
 # ======================================================================= #
 
 import functools
-import logging
 import os
 import sys
 # Add Studio and Hoverset to path so imports from hoverset can work.
@@ -181,7 +180,6 @@ class StudioApplication(Application):
         action = self._undo_stack.pop()
         action.undo()
         self._redo_stack.append(action)
-        logging.debug("Event undone.")
 
     def redo(self):
         if not len(self._redo_stack):
@@ -189,17 +187,17 @@ class StudioApplication(Application):
         action = self._redo_stack.pop()
         action.redo()
         self._undo_stack.append(action)
-        logging.debug("Event re-done")
 
     def copy(self):
         if self.selected:
-            self._clipboard = self.selected
+            # store the current object as an xml node in the clipboard
+            self._clipboard = self.designer.as_xml_node(self.selected)
 
     def get_pane_info(self, pane):
         return self._panes.get(pane, [self._right, self._right_bar])
 
     def paste(self):
-        if self._clipboard:
+        if self._clipboard is not None:
             self.designer.paste(self._clipboard)
 
     def close_all_on_side(self, side):
@@ -363,7 +361,7 @@ class StudioApplication(Application):
             return
         if self.selected == widget:
             self.select(None)
-        self._clipboard = widget
+        self._clipboard = self.designer.as_xml_node(widget)
         if source != self.designer:
             self.designer.delete(widget, True)
         for feature in self.features:
@@ -395,7 +393,7 @@ class StudioApplication(Application):
             self.current_preview.destroy()
         window = self.current_preview = Toplevel(self)
         window.wm_transient(self)
-        window.build = AppBuilder(self.designer.to_xml(), window)
+        window.build = AppBuilder(None, window, node=self.designer.to_xml())
         name = self.designer.design_path if self.designer.design_path is not None else "Untitled"
         window.build._app.title(os.path.basename(name))
 

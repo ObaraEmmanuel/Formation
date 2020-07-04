@@ -7,7 +7,6 @@ Layout classes uses in the studio
 # ======================================================================= #
 from collections import defaultdict
 
-from hoverset.data.images import load_tk_image
 from studio.ui import geometry
 from studio.ui.highlight import WidgetHighlighter, EdgeIndicator
 
@@ -113,7 +112,7 @@ class BaseLayoutStrategy:
     def resize_widget(self, widget, bounds):
         self._move(widget, bounds)
 
-    def restore_widget(self, widget):
+    def restore_widget(self, widget, data=None):
         pass
 
     def get_restore(self, widget):
@@ -532,7 +531,14 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         self._temp = {}
 
     def get_restore(self, widget):
-        pass
+        return widget.grid_info()
+
+    def restore_widget(self, widget, data=None):
+        restoration_data = self._restoration_data.get(widget) if data is None else data
+        self.children.append(widget)
+        widget.level = self.level + 1
+        widget.layout = self.container
+        widget.grid(**restoration_data)
 
     def react_to(self, bounds):
         bounds = geometry.relative_bounds(bounds, self.container)
@@ -540,9 +546,6 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         widget = self.container.grid_slaves(row, col)
         if len(widget):
             self._highlighter.highlight(widget[0])
-
-    def restore_widget(self, widget):
-        pass
 
     def _redraw_widget(self, widget):
         widget.grid(**self._grid_info(widget))

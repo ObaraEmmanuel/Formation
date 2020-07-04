@@ -63,14 +63,14 @@ class BaseConverter(xml.BaseConverter):
         return node
 
     @classmethod
-    def from_xml(cls, node, designer, parent):
+    def from_xml(cls, node, designer, parent, bounds=None):
         obj_class = cls._get_class(node)
         styles = cls.attrib(node).get("attr", {})
         if obj_class in (native.VerticalPanedWindow, native.HorizontalPanedWindow):
             if 'orient' in styles:
                 styles.pop('orient')
         layout = cls.attrib(node).get("layout", {})
-        obj = designer.load(obj_class, node.attrib.get("name"), parent, styles, layout)
+        obj = designer.load(obj_class, node.attrib.get("name"), parent, styles, layout, bounds)
         return obj
 
     @staticmethod
@@ -101,8 +101,8 @@ class MenuConverter(BaseConverter):
         return node
 
     @classmethod
-    def from_xml(cls, node, designer, parent):
-        widget = BaseConverter.from_xml(node, designer, parent)
+    def from_xml(cls, node, designer, parent, bounds=None):
+        widget = BaseConverter.from_xml(node, designer, parent, bounds)
         cls._menu_from_xml(node, None, widget)
         return widget
 
@@ -156,8 +156,8 @@ class VariableConverter(BaseConverter):
         return node
 
     @classmethod
-    def from_xml(cls, node, _=None, __=None):
-        # we do not need the designer and parent attributes hence the _ and __
+    def from_xml(cls, node, *_):
+        # we only need the node argument; ignore the rest
         var_manager: VariablePane = VariablePane.get_instance()
         attributes = cls.attrib(node).get("attr", {})
         var_manager.add_var(VariableItem.supported_types.get(node.tag, tk.StringVar), **attributes)
@@ -175,6 +175,11 @@ class XMLForm:
         self.root = None
 
     def generate(self):
+        """
+        Convert the current contents of the designer to xml. Note that only
+        the root widget and its child widgets are converted to xml
+        :return:
+        """
         self.root = self.to_xml_tree(self.designer.root_obj)
         self._variables_to_xml(self.root)
 
@@ -194,11 +199,23 @@ class XMLForm:
         for var in node.iter(*VariableItem.supported_types):
             VariableConverter.from_xml(var)
 
-    def _load_widgets(self, node, designer, parent):
+    def load_section(self, node, parent, bounds=None):
+        """
+        Load lxml node as a widget/group of widgets in the designer under a specific container
+        :param parent: Container widget to contain new widget group/section
+        :param node: lxml node to be loaded as a widget/group
+        :param bounds: tuple of 4 elements describing the intended location of
+        the new loaded widget. If left as None, node layout attributes will
+        be used instead
+        :return:
+        """
+        return self._load_widgets(node, self.designer, parent, bounds)
+
+    def _load_widgets(self, node, designer, parent, bounds=None):
         line_info = BaseConverter.get_source_line_info(node)
         try:
             converter = self.get_converter(BaseConverter._get_class(node))
-            widget = converter.from_xml(node, designer, parent)
+            widget = converter.from_xml(node, designer, parent, bounds)
         except Exception as e:
             # Append line number causing error before re-raising for easier debugging by user
             raise e.__class__("{}{}".format(line_info, e)) from e
@@ -213,6 +230,13 @@ class XMLForm:
         return widget
 
     def to_xml_tree(self, widget, parent=None):
+        """
+        Convert a PseudoWidget widget and its children to an xml tree/node
+        :param widget: widget to be converted to an xml node
+        :param parent: The intended xml node to act as parent to the created
+        xml node
+        :return: the widget converted to an xml node.
+        """
         converter = self.get_converter(widget.__class__)
         node = converter.to_xml(widget, parent)
         if isinstance(widget, Container):
@@ -231,6 +255,11 @@ class XMLForm:
                               xml_declaration=True)
 
     def to_xml(self, pretty_print=True):
+        """
+        Gets the xml text representing the contents of the designer
+        :param pretty_print: boolean flag indicating whether the text is to be indented and prettified
+        :return: String
+        """
         return self.to_xml_bytes(pretty_print).decode('utf-8')
 
     def __eq__(self, other):

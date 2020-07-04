@@ -245,6 +245,11 @@ class Scale(PseudoWidget, ttk.Scale):
         self.state(['readonly'])
         self.set(40)
 
+    def configure(self, options=None, **kw):
+        # Scale default configure implementation does not work but config strangely works
+        # so lets use config instead
+        return self.config(options, **kw)
+
 
 class Scrollbar(PseudoWidget, ttk.Scrollbar):
     display_name = 'Scrollbar'
@@ -271,7 +276,7 @@ class Separator(PseudoWidget, ttk.Separator):
         self.setup_widget()
 
 
-class Sizegrip(PseudoWidget, ttk.Sizegrip):
+class Sizegrip(Container, ttk.Sizegrip):
     display_name = 'Sizegrip'
     group = Groups.container
     icon = "sizegrip"

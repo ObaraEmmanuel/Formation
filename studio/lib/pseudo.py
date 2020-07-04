@@ -182,6 +182,9 @@ class PseudoWidget:
         if self.__on_context:
             self.__on_context(event)
 
+    def copy_config_to(self, widget):
+        widget.configure(**self.get_altered_options())
+
     def get_altered_options(self):
         # second last item denotes the default value
         try:
