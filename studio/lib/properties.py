@@ -145,7 +145,7 @@ PROPERTY_TABLE = {
     "compound": {
         "display_name": "compound",
         "type": "choice",
-        "options": ("top", "bottom", "left", "right")
+        "options": ("center", "none", "top", "bottom", "left", "right")
     },
     "confine": {
         "display_name": "confine",
