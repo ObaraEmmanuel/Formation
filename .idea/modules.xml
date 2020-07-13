@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project version="4">
-  <component name="ProjectModuleManager">
-    <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Hoverset.iml" filepath="$PROJECT_DIR$/.idea/Hoverset.iml" />
-      <module fileurl="file://$PROJECT_DIR$/../ecosystem/.idea/ecosystem.iml" filepath="$PROJECT_DIR$/../ecosystem/.idea/ecosystem.iml" />
-    </modules>
-  </component>
-</project>
