@@ -176,23 +176,27 @@ class HighLight:
         """
         for elem in self._elements:
             elem.place_forget()
+        self.current_obj = None
 
     def redraw(self, widget, radius=None):
         # Redraw the highlight in the new bounding box
         radius = self.SIZER_LENGTH // 2
-        self.l.place(in_=widget, relheight=1)
-        self.r.place(in_=widget, relx=1, relheight=1)
-        self.t.place(in_=widget, relwidth=1)
-        self.b.place(in_=widget, rely=1, relwidth=1)
+        # border-mode has to be outside so the highlight covers the entire widget
+        extra = dict(in_=widget, bordermode="outside")
 
-        self.nw.place(in_=widget, x=-radius, y=-radius)
-        self.ne.place(in_=widget, relx=1, x=-radius, y=-radius)
-        self.sw.place(in_=widget, x=-radius, rely=1, y=-radius)
-        self.se.place(in_=widget, relx=1, x=-radius, rely=1, y=-radius)
-        self.n.place(in_=widget, relx=0.5, x=-radius, y=-radius)
-        self.s.place(in_=widget, relx=0.5, x=-radius, rely=1, y=-radius)
-        self.e.place(in_=widget, relx=1, x=-radius, rely=0.5, y=-radius)
-        self.w.place(in_=widget, x=-radius, rely=0.5, y=-radius)
+        self.l.place(**extra, relheight=1)
+        self.r.place(**extra, relx=1, relheight=1)
+        self.t.place(**extra, relwidth=1)
+        self.b.place(**extra, rely=1, relwidth=1)
+
+        self.nw.place(**extra, x=-radius, y=-radius)
+        self.ne.place(**extra, relx=1, x=-radius, y=-radius)
+        self.sw.place(**extra, x=-radius, rely=1, y=-radius)
+        self.se.place(**extra, relx=1, x=-radius, rely=1, y=-radius)
+        self.n.place(**extra, relx=0.5, x=-radius, y=-radius)
+        self.s.place(**extra, relx=0.5, x=-radius, rely=1, y=-radius)
+        self.e.place(**extra, relx=1, x=-radius, rely=0.5, y=-radius)
+        self.w.place(**extra, x=-radius, rely=0.5, y=-radius)
 
     # ========================================= resize approaches ==========================================
 
