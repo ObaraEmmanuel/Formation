@@ -64,8 +64,11 @@ class ReusableStyleItem(StyleItem):
 
 class StylePane(BaseFeature):
     name = "Style pane"
-    side = "right"
     icon = "edit"
+    _defaults = {
+        **BaseFeature._defaults,
+        "side": "right",
+    }
 
     def __init__(self, master, studio, **cnf):
         super().__init__(master, studio, **cnf)

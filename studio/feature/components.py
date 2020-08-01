@@ -4,10 +4,13 @@ from tkinter import BooleanVar
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Spinner, EventMask, Button
 from hoverset.ui.windows import DragWindow
+from studio.preferences import Preferences
 from studio.feature._base import BaseFeature
 from studio.feature.design import Designer
 from studio.lib import legacy, native
 from studio.lib.pseudo import PseudoWidget, Container
+
+pref = Preferences.acquire()
 
 
 class Component(Frame):
@@ -84,6 +87,10 @@ class ComponentPane(BaseFeature):
     }
     name = "Components"
     _var_init = False
+    _defaults = {
+        **BaseFeature._defaults,
+        "widget_set": "native"
+    }
 
     def __init__(self, master, studio=None, **cnf):
         if not self._var_init:
@@ -117,7 +124,7 @@ class ComponentPane(BaseFeature):
         self._selectors = []
         self._selected = None
         self._component_cache = None
-        self.collect_groups(self._widget_set.get())
+        self.collect_groups(self.get_pref("widget_set"))
 
     def _init_var(self, master=None):
         self._var_init = True
@@ -163,6 +170,7 @@ class ComponentPane(BaseFeature):
         self.render_groups()
         # component pool has changed so invalidate the cache
         self._component_cache = None
+        self.set_pref("widget_set", widget_set)
 
     def get_components(self):
         if self._component_cache:

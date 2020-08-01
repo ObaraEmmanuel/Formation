@@ -74,7 +74,6 @@ class Designer(DesignPad, Container):
     MOVE = 0x2
     RESIZE = 0x3
     name = "Designer"
-    side = "center"
     pane = None
 
     def __init__(self, master, studio):

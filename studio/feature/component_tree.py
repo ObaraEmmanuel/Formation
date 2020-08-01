@@ -24,7 +24,6 @@ class ComponentTreeView(MalleableTree):
 
 class ComponentTree(BaseFeature):
     name = "Component Tree"
-    side = "left"
     icon = "treeview"
 
     def __init__(self, master, studio=None,  **cnf):

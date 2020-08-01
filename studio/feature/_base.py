@@ -5,26 +5,51 @@ from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import Frame, Label, Button, MenuButton
 from studio.ui.geometry import absolute_position
 from studio.ui.widgets import SearchBar
+from studio.preferences import Preferences
+
+pref = Preferences.acquire()
 
 
 class BaseFeature(Frame):
     _instance = None
     name = "Feature"
-    side = "left"
     pane = None
     bar = None
-    start_minimized = False
     icon = "blank"
     _view_mode = None
     _transparency_flag = None
     rec = (20, 20, 300, 300)  # Default window mode position
+    _defaults = {
+        "mode": "docked",
+        "inactive_transparency": False,
+        "position": "left",
+        "visible": True,
+        "side": "left",
+        "pos": {
+            "initialized": False,
+            "x": 20,
+            "y": 20,
+            "width": 200,
+            "height": 200,
+        }
+    }
+
+    @classmethod
+    def update_defaults(cls):
+        path = "features::{}".format(cls.name)
+        if not pref.exists(path):
+            pref.set(path, dict(**cls._defaults))
+        else:
+            pref.update_defaults(path, dict(**cls._defaults))
 
     def __init__(self, master, studio=None, **cnf):
         super().__init__(master, **cnf)
+        self.update_defaults()
         self.__class__._instance = self
         if not self.__class__._view_mode:
-            self.__class__._view_mode = StringVar(None, "docked")
-            self.__class__._transparency_flag = BooleanVar(None, False)
+            self.__class__._view_mode = StringVar(None, self.get_pref('mode'))
+            self.__class__._transparency_flag = t = BooleanVar(None, self.get_pref('inactive_transparency'))
+            t.trace_add("write", lambda *_: self.set_pref('inactive_transparency', t.get()))
         self.studio = studio
         self._header = Frame(self, **self.style.dark, **self.style.dark_highlight_dim, height=30)
         self._header.pack(side="top", fill="x")
@@ -61,12 +86,27 @@ class BaseFeature(Frame):
         self._pref.config(menu=menu)
         # self._pref.on_click(self.minimize)
         self.config(**self.style.dark)
-        self.is_visible = not self.start_minimized
         self.indicator = None
         self.window_handle = None
         self.on_focus(self._on_focus_get)
         self.on_focus_lost(self._on_focus_release)
         self.on_close(self.close_window)
+        self._mode_map = {
+            'window': self.open_as_window,
+            'docked': self.open_as_docked
+        }
+
+    @classmethod
+    def get_pref_path(cls, short_path):
+        return "features::{}::{}".format(cls.name, short_path)
+
+    @classmethod
+    def get_pref(cls, short_path):
+        return pref.get(cls.get_pref_path(short_path))
+
+    @classmethod
+    def set_pref(cls, short_path, value):
+        pref.set(cls.get_pref_path(short_path), value)
 
     @classmethod
     def get_instance(cls):
@@ -170,19 +210,20 @@ class BaseFeature(Frame):
     def minimize(self, *_):
         if self.window_handle:
             self.close_window()
+            return
         self.studio.minimize(self)
-        self.is_visible = False
+        self.set_pref("visible", False)
 
     def maximize(self):
-        if self._view_mode.get() == "window":
+        if self.get_pref("mode") == "window":
             self.open_as_window()
             self.bar.select(self)
         else:
             self.studio.maximize(self)
-        self.is_visible = True
+        self.set_pref("visible", True)
 
     def toggle(self):
-        if self.is_visible:
+        if self.get_pref("visible"):
             self.minimize()
         else:
             self.maximize()
@@ -199,6 +240,8 @@ class BaseFeature(Frame):
         if self._transparency_flag.get() and self.window_handle:
             if self.window_handle:
                 self.window_handle.wm_attributes('-alpha', 0.3)
+        if self.window_handle:
+            self.save_window_pos()
 
     def _on_focus_get(self):
         if self.window_handle:
@@ -206,6 +249,7 @@ class BaseFeature(Frame):
 
     def open_as_docked(self):
         self._view_mode.set("docked")
+        self.set_pref('mode', 'docked')
         if self.window_handle:
             self.master.window.wm_forget(self)
             self.window_handle = None
@@ -216,7 +260,12 @@ class BaseFeature(Frame):
             logging.error("Window mode is not supported in current tk version")
             return
         self.master.window.wm_forget(self)
-        rec = absolute_position(self) if self.winfo_ismapped() else self.__class__.rec
+        rec = absolute_position(self) if not self.get_pref("pos::initialized") else (
+            self.get_pref("pos::x"),
+            self.get_pref("pos::y"),
+            self.get_pref("pos::width"),
+            self.get_pref("pos::height"),
+        )
         self.window.wm_manage(self)
         # Allow us to create a hook in the close method of the window manager
         self.bind_close()
@@ -227,12 +276,26 @@ class BaseFeature(Frame):
         self.update_idletasks()
         self.window_handle = self
         self._view_mode.set("window")
+        self.set_pref("mode", "window")
         self.studio._adjust_pane(self.pane)
+        self.save_window_pos()
+        if self.focus_get() != self and self.get_pref("inactive_transparency"):
+            self.window_handle.wm_attributes('-alpha', 0.3)
+
+    def save_window_pos(self):
+        if not self.window_handle:
+            return
+        rec = absolute_position(self)
+        self.set_pref("pos", {
+            "x": rec[0], "y": rec[1],
+            "width": rec[2], "height": rec[3], "initialized": True
+        })
 
     def close_window(self):
         if self.window_handle:
             # Store the current position of our window handle to used when it is reopened
-            self.__class__.rec = absolute_position(self)
+            self.save_window_pos()
             self.master.window.wm_forget(self)
             self.window_handle = None
-            self.is_visible = False
+            self.studio.minimize(self)
+            self.set_pref("visible", False)

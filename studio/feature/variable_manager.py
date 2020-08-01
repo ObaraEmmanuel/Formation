@@ -123,8 +123,11 @@ class VariableItem(Label):
 class VariablePane(BaseFeature):
     name = "Variable manager"
     icon = "text"
-    side = "right"
-    start_minimized = True
+
+    _defaults = {
+        **BaseFeature._defaults,
+        "side": "right"
+    }
 
     _definitions = {
         "name": {

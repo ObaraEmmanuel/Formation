@@ -142,8 +142,8 @@ class StudioApplication(Application):
                 ("command", "Dock all windows", None, self.features_as_docked, {}),
                 ("separator",),
                 *self.get_features_as_menu(),
-                # ("separator",),
-                # ("command", "Save window positions", None, None, {})
+                ("separator",),
+                ("command", "Save window positions", None, self.save_window_positions, {})
             )}),
             ("cascade", "Tools", None, None, {"menu": ()}),
             ("cascade", "Help", None, None, {"menu": (
@@ -203,13 +203,13 @@ class StudioApplication(Application):
     def close_all_on_side(self, side):
         for feature in self.features:
             if feature.side == side:
-                self.minimize(feature)
+                feature.minimize()
         # To avoid errors when side is not a valid pane identifier we default to the right pane
         self._panes.get(side, (self._right, self._right_bar))[1].close_all()
 
     def close_all(self, *_):
         for feature in self.features:
-            self.minimize(feature)
+            feature.minimize()
         self._right_bar.close_all()
         self._left_bar.close_all()
 
@@ -243,22 +243,24 @@ class StudioApplication(Application):
             feature.bar = bar
             feature.pane = pane
             bar.add_feature(feature)
-            pane.add(feature, minsize=100, height=300, sticky='nswe')
+            if feature.get_pref("mode") == "docked":
+                pane.add(feature, minsize=100, height=300, sticky='nswe')
+            feature.set_pref("side", side)
 
     def install(self, feature) -> BaseFeature:
-        pane, bar = self._panes.get(feature.side, (self._left, self._left_bar))
         obj = feature(self, self)
+        pane, bar = self._panes.get(obj.get_pref('side'), (self._left, self._left_bar))
         obj.pane = pane
         obj.bar = bar
         self.features.append(obj)
         if bar is not None:
             bar.add_feature(obj)
-        if obj.start_minimized:
+        if not obj.get_pref('visible'):
             bar.deselect(obj)
             self._adjust_pane(pane)
         else:
             bar.select(obj)
-            pane.add(obj, minsize=100, height=300, sticky='nswe')
+            obj.maximize()
         return obj
 
     def features_as_windows(self):
@@ -304,6 +306,10 @@ class StudioApplication(Application):
                  f.name, get_icon_image(f.icon, 14, 14),  # Label, image
                  functools.partial(f.toggle),  # Command built from feature
                  {}) for f in self.features]
+
+    def save_window_positions(self):
+        for feature in self.features:
+            feature.save_window_pos()
 
     def _adjust_pane(self, pane):
         if len(pane.panes()) == 0:
