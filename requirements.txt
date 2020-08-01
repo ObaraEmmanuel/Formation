@@ -1,4 +1,5 @@
 lxml
 pyscreenshot
 Pillow
+appdirs
 pywin32 ; sys_platform == 'win32'
