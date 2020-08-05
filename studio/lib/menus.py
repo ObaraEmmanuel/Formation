@@ -227,25 +227,25 @@ class MenuTree(MalleableTree):
             index += 1
 
     @classmethod
-    def menu_config(cls, menu, index, key=None, **kw):
+    def menu_config(cls, parent_menu, index, key=None, **kw):
         if not kw:
             if key in cls._intercepts:
-                return cls._intercepts.get(key).get(menu, index, key)
+                return cls._intercepts.get(key).get(parent_menu, index, key)
             elif key is not None:
-                return menu.entrycget(index, key)
+                return parent_menu.entrycget(index, key)
 
-            config = menu.entryconfigure(index)
+            config = parent_menu.entryconfigure(index)
             for prop in config:
                 if prop in cls._intercepts:
-                    value = cls._intercepts.get(prop).get(menu, index, prop)
+                    value = cls._intercepts.get(prop).get(parent_menu, index, prop)
                     config[prop] = (*config[prop][:-1], value)
             return config
         else:
             for prop in kw:
                 if prop in cls._intercepts:
-                    cls._intercepts.get(prop).set(menu, index, kw[prop], prop)
+                    cls._intercepts.get(prop).set(parent_menu, index, kw[prop], prop)
                 else:
-                    menu.entryconfigure(index, **{prop: kw[prop]})
+                    parent_menu.entryconfigure(index, **{prop: kw[prop]})
 
 
 class MenuEditor(Window):
