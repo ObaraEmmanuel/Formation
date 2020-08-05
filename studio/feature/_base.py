@@ -3,6 +3,7 @@ from tkinter import StringVar, BooleanVar, TkVersion
 
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import Frame, Label, Button, MenuButton
+from hoverset.ui.menu import EnableIf
 from studio.ui.geometry import absolute_position
 from studio.ui.widgets import SearchBar
 from studio.preferences import Preferences
@@ -18,6 +19,7 @@ class BaseFeature(Frame):
     icon = "blank"
     _view_mode = None
     _transparency_flag = None
+    _side = None
     rec = (20, 20, 300, 300)  # Default window mode position
     _defaults = {
         "mode": "docked",
@@ -49,6 +51,7 @@ class BaseFeature(Frame):
         if not self.__class__._view_mode:
             self.__class__._view_mode = StringVar(None, self.get_pref('mode'))
             self.__class__._transparency_flag = t = BooleanVar(None, self.get_pref('inactive_transparency'))
+            self.__class__._side = side = StringVar(None, self.get_pref('side'))
             t.trace_add("write", lambda *_: self.set_pref('inactive_transparency', t.get()))
         self.studio = studio
         self._header = Frame(self, **self.style.dark, **self.style.dark_highlight_dim, height=30)
@@ -73,12 +76,17 @@ class BaseFeature(Frame):
                 ("radiobutton", "Window", None, self.open_as_window, {"variable": self._view_mode, "value": "window"}),
             )}),
             ("cascade", "Position", None, None, {"menu": (
-                ("command", "Left", None, lambda: self.studio.reposition(self, "left"), {}),
-                ("command", "Right", None, lambda: self.studio.reposition(self, "right"), {}),
+                ("radiobutton", "Left", None, lambda: self.reposition("left"),
+                 {"variable": self._side, "value": "left"}),
+                ("radiobutton", "Right", None, lambda: self.reposition("right"),
+                 {"variable": self._side, "value": "right"}),
             )}),
-            ("cascade", "Window options", None, None, {"menu": (
-                ("checkbutton", "Transparent when inactive", None, None, {"variable": self._transparency_flag}),
-            )}),
+            EnableIf(lambda: self._view_mode.get() == 'window',
+                     ("cascade", "Window options", None, None, {"menu": (
+                         (
+                             "checkbutton", "Transparent when inactive", None, None,
+                             {"variable": self._transparency_flag}),
+                     )})),
             ("command", "Close", get_icon_image("close", 14, 14), self.minimize, {}),
             ("separator",),
             *self.create_menu()
@@ -254,6 +262,10 @@ class BaseFeature(Frame):
             self.master.window.wm_forget(self)
             self.window_handle = None
             self.maximize()
+
+    def reposition(self, side):
+        self._side.set(side)
+        self.studio.reposition(self, side)
 
     def open_as_window(self):
         if TkVersion < 8.5:

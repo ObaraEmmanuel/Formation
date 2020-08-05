@@ -18,6 +18,7 @@ from studio.feature.variable_manager import VariablePane
 from studio.feature._base import BaseFeature
 from studio.ui.widgets import SideBar
 from studio.ui.about import about_window
+from studio.preferences import Preferences
 import studio
 
 from hoverset.ui.widgets import Application, Frame, PanedWindow, Button
@@ -25,9 +26,12 @@ from hoverset.ui.icons import get_icon_image
 from hoverset.util.execution import Action
 from hoverset.data.utils import get_resource_path
 from hoverset.ui.dialogs import MessageDialog
+from hoverset.ui.menu import MenuUtils, EnableIf, dynamic_menu
 import hoverset.ui
 
 from formation import AppBuilder
+
+pref = Preferences.acquire()
 
 
 class StudioApplication(Application):
@@ -108,10 +112,11 @@ class StudioApplication(Application):
 
         # -------------------------------------------- menu definition ------------------------------------------------
 
-        self.menu_bar = self.make_menu((
+        self.menu_bar = MenuUtils.make_dynamic((
             ("cascade", "File", None, None, {"menu": (
                 ("command", "New", None, self.open_new, {"accelerator": "Ctrl+N"}),
                 ("command", "Open", None, self.open_file, {"accelerator": "Ctrl+O"}),
+                ("cascade", "Recent", None, None, {"menu": self._create_recent_menu()}),
                 ("separator",),
                 ("command", "Save", None, self.save, {"accelerator": "Ctrl+S"}),
                 ("command", "Save As", None, self.save_as, {}),
@@ -119,13 +124,16 @@ class StudioApplication(Application):
                 ("command", "Exit", None, self.destroy, {}),
             )}),
             ("cascade", "Edit", None, None, {"menu": (
-                ("command", "undo", get_icon_image("undo", 14, 14), self.undo, {"accelerator": "Ctrl+Z"}),
-                ("command", "redo", get_icon_image("redo", 14, 14), self.redo, {"accelerator": "Ctrl+Y"}),
-                ("separator",),
-                ("command", "copy", get_icon_image("copy", 14, 14), self.copy, {"accelerator": "Ctrl+C"}),
-                ("command", "cut", get_icon_image("cut", 14, 14), self.cut, {"accelerator": "Ctrl+X"}),
-                ("separator",),
-                ("command", "delete", get_icon_image("delete", 14, 14), self.delete, {}),
+                EnableIf(lambda: len(self._undo_stack),
+                         ("command", "undo", get_icon_image("undo", 14, 14), self.undo, {"accelerator": "Ctrl+Z"})),
+                EnableIf(lambda: len(self._redo_stack),
+                         ("command", "redo", get_icon_image("redo", 14, 14), self.redo, {"accelerator": "Ctrl+Y"})),
+                EnableIf(lambda: self.selected,
+                         ("separator",),
+                         ("command", "copy", get_icon_image("copy", 14, 14), self.copy, {"accelerator": "Ctrl+C"}),
+                         ("command", "cut", get_icon_image("cut", 14, 14), self.cut, {"accelerator": "Ctrl+X"}),
+                         ("separator",),
+                         ("command", "delete", get_icon_image("delete", 14, 14), self.delete, {}), )
             )}),
             ("cascade", "Code", None, None, {"menu": (
                 ("command", "Preview design", get_icon_image("play", 14, 14), self.preview, {}),
@@ -152,16 +160,17 @@ class StudioApplication(Application):
                 ("separator",),
                 ("command", "About Studio", None, lambda: about_window(self), {}),
             )})
-        ), self)
+        ), self, self.style, False)
         self.config(menu=self.menu_bar)
 
         self.menu_template = (
-            ("command", "copy", get_icon_image("copy", 14, 14), self.copy, {"accelerator": "Ctrl+C"}),
-            ("command", "paste", get_icon_image("clipboard", 14, 14), self.paste, {"accelerator": "Ctrl+V"}),
-            ("command", "cut", get_icon_image("cut", 14, 14), self.cut, {"accelerator": "Ctrl+X"}),
-            ("separator",),
-            ("command", "delete", get_icon_image("delete", 14, 14), self.delete, {}),
-        )
+            EnableIf(lambda: self.selected,
+                     ("command", "copy", get_icon_image("copy", 14, 14), self.copy, {"accelerator": "Ctrl+C"}),
+                     ("command", "paste", get_icon_image("clipboard", 14, 14), self.paste, {"accelerator": "Ctrl+V"}),
+                     ("command", "cut", get_icon_image("cut", 14, 14), self.cut, {"accelerator": "Ctrl+X"}),
+                     ("separator",),
+                     ("command", "delete", get_icon_image("delete", 14, 14), self.delete, {}),
+                     ),)
         self.open_new()
 
     def new_action(self, action: Action):
@@ -275,11 +284,44 @@ class StudioApplication(Application):
         if path:
             self.title("Formation studio" + " - " + path)
 
-    def open_file(self):
-        path = filedialog.askopenfilename(parent=self, filetypes=[('XML', '*.xml')])
+    def _clear_recent(self):
+        pref.set("studio::recent", [])  # clear recent files
+
+    @dynamic_menu
+    def _create_recent_menu(self, menu):
+        # Dynamically create recent file menu every time menu is posted
+        menu.image = get_icon_image("close", 14, 14)
+        menu.config(**self.style.dark_context_menu)
+        recent = pref.get("studio::recent")
+        for path in recent:
+            menu.add("command", label=os.path.basename(path), command=lambda: self.open_file(path))
+        menu.add("command", label="Clear", image=menu.image, command=self._clear_recent,
+                 compound="left")
+
+    def open_file(self, path=None):
+        if path is None:
+            path = filedialog.askopenfilename(parent=self, filetypes=[('XML', '*.xml')])
+        elif not os.path.exists(path):
+            MessageDialog.show_error(
+                parent=self,
+                title="Missing File",
+                message="File {} does not exist".format(path),
+            )
+            return
         if path:
             self.designer.open_xml(path)
-        self.set_path(path)
+            self.set_path(path)
+            recent = pref.get("studio::recent")
+            max_recent = pref.get("studio::recent_max")
+            if len(recent) > max_recent and path not in recent:
+                recent = recent[:-1]
+            if path in recent:
+                recent.remove(path)
+            recent.insert(0, path)
+
+    def open_recent(self, path):
+        if os.path.exists(path):
+            self.designer.open_xml(path)
 
     def open_new(self):
         self.designer.open_new()

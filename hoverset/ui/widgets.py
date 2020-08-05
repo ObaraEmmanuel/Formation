@@ -21,6 +21,7 @@ from hoverset.ui.animation import Animate, Easing
 from hoverset.ui.icons import get_icon
 from hoverset.ui.styles import StyleDelegator
 from hoverset.ui.windows import DragWindow
+from hoverset.ui.menu import MenuUtils
 
 __all__ = (
     "Application",
@@ -227,47 +228,9 @@ class EditableMixin:
 class ContextMenuMixin:
     _on_context_menu = None
 
-    def make_menu(self, templates, parent=None, **cnf):
-        """
-        Create a menu object for the widget
-        :param templates: a tuple of tuples of the format (type, label, icon, command, additional_configuration={})
-        used to generate the menu. Repeat the same template format in the "menu" attribute in additional configurations
-        for cascade menus
-        :param parent: The parent of the menu. You will never need to set this attribute directly as it only exists
-        for the purposes of recursion
-        :param cnf:
-        :return:
-        """
-        # If no style is provided use the default
-        if not len(cnf):
-            cnf = self.style.dark_context_menu
-        parent = self if parent is None else parent
-        menu = tk.Menu(parent, **cnf)
-        # A holding array for for menu image items to hold out the garbage collector
-        menu.images = []
-        for template in templates:
-            if template[0] == "separator":
-                menu.add_separator()
-            elif template[0] == "cascade":
-                _type, label, icon, command, config = template
-                # Create cascade menu recursively
-                # create a new config copy to prevent messing with the template
-                config = dict(**config)
-                config["menu"] = self.make_menu(config.get("menu"), menu, **cnf)
-                # Be careful we dont end up changing values in global style delegator. Don't assign directly
-                conf = {**self.style.dark_context_menu_item}
-                conf.update(config)
-                menu.add_cascade(label=label, image=icon, command=command, compound='left', **conf)
-                menu.images.append(icon)
-            else:
-                _type, label, icon, command, config = template
-                conf = {**self.style.dark_context_menu_selectable} if _type in ("radiobutton", "checkbutton") else \
-                    {**self.style.dark_context_menu_item}
-                conf.update(config)
-                menu.images.append(icon)
-                menu.add(_type, label=label, image=icon, command=command, compound='left', **conf)
-
-        return menu
+    @functools.wraps(MenuUtils.make_dynamic)
+    def make_menu(self, templates, parent=None, dynamic=True, **cnf):
+        return MenuUtils.make_dynamic(templates, parent or self, self.style, dynamic, **cnf)
 
     def set_up_context(self, templates, **cnf):
         """
@@ -603,6 +566,7 @@ class Widget:
         :param parent: A tk widget which will be clones parent
         :return: A clone of the current widget
         """
+        # noinspection PyArgumentList
         return self.__class__(parent)
 
     @staticmethod
