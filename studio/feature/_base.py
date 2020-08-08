@@ -297,11 +297,13 @@ class BaseFeature(Frame):
     def save_window_pos(self):
         if not self.window_handle:
             return
-        rec = absolute_position(self)
-        self.set_pref("pos", {
-            "x": rec[0], "y": rec[1],
-            "width": rec[2], "height": rec[3], "initialized": True
-        })
+        self.set_pref("pos", dict(
+            x=self.winfo_x(),
+            y=self.winfo_y(),
+            width=self.width,
+            height=self.height,
+            initialized=True
+        ))
 
     def close_window(self):
         if self.window_handle:

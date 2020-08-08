@@ -43,8 +43,7 @@ class StudioApplication(Application):
         # Load icon asynchronously to prevent issues which have been known to occur when loading it synchronously
         self.after(200, lambda: self.wm_iconbitmap(self.ICON_PATH, self.ICON_PATH))
         self.load_styles(self.STYLES_PATH)
-        self.geometry("1100x650")
-        self.state('zoomed')
+        self._restore_position()
         self.title('Formation Studio')
         self.protocol('WM_DELETE_WINDOW', self._on_close)
         self._toolbar = Frame(self, **self.style.dark, height=30)
@@ -172,6 +171,25 @@ class StudioApplication(Application):
                      ("command", "delete", get_icon_image("delete", 14, 14), self.delete, {}),
                      ),)
         self.open_new()
+        self._restore_position()
+
+    def _save_position(self):
+        # self.update_idletasks()
+        pref.set("studio::pos", dict(
+            width=self.width,
+            height=self.height,
+            x=self.winfo_x(),
+            y=self.winfo_y(),
+            state=self.state(),  # window state either zoomed or normal
+        ))
+
+    def _restore_position(self):
+        pos = pref.get("studio::pos")
+        if pos.get("state") == 'zoomed':
+            self.state('zoomed')
+            return
+        self.state('normal')
+        self.geometry('{width}x{height}+{x}+{y}'.format(**pos))
 
     def new_action(self, action: Action):
         """
@@ -459,6 +477,7 @@ class StudioApplication(Application):
         return features
 
     def _on_close(self):
+        self._save_position()
         # pass the on window close event to the features
         for feature in self._all_features():
             # if any feature returns false abort shut down
