@@ -7,6 +7,8 @@ Drag drop designer for the studio
 # ======================================================================= #
 from tkinter import filedialog
 
+from hoverset.data import actions
+from hoverset.data.keymap import KeyMap
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.widgets import Frame
 from hoverset.util.execution import Action, as_thread
@@ -82,7 +84,8 @@ class Designer(DesignPad, Container):
         self.setup_widget()
         self.parent = self
         self.studio = studio
-        self.config(**self.style.bright)
+        self.config(**self.style.bright, takefocus=True)
+        # self._frame.config(takefocus=True)
         self.objects = []
         self.root_obj = None
         self.layout_strategy = DesignLayoutStrategy(self)
@@ -93,11 +96,34 @@ class Designer(DesignPad, Container):
         self.current_obj = None
         self.current_container = None
         self.current_action = None
-        self.bind("<Button-1>", lambda *_: self.select(None))
+        self._frame.bind("<Button-1>", lambda *_: self.focus_set())
         self._padding = 30
         self.design_path = None
         self.xml = XMLForm(self)
         self._load_progress = None
+        self._shortcut_mgr = KeyMap(self._frame)
+        self._set_shortcuts()
+        self._last_click_pos = None
+
+    def focus_set(self):
+        self._frame.focus_force()
+
+    def _set_shortcuts(self):
+        shortcut_mgr = self._shortcut_mgr
+        shortcut_mgr.bind()
+        shortcut_mgr.add_routines(
+            actions.get('STUDIO_COPY'),
+            actions.get('STUDIO_CUT'),
+            actions.get('STUDIO_DELETE'),
+            actions.get('STUDIO_PASTE'),
+        )
+        # allow control of widget position using arrow keys
+        shortcut_mgr.add_shortcut(
+            (lambda: self.displace('right'), KeyMap.RIGHT),
+            (lambda: self.displace('left'), KeyMap.LEFT),
+            (lambda: self.displace('up'), KeyMap.UP),
+            (lambda: self.displace('down'), KeyMap.DOWN),
+        )
 
     def _open_default(self):
         self.update_idletasks()
@@ -217,7 +243,8 @@ class Designer(DesignPad, Container):
         layout = self.current_obj if isinstance(self.current_obj, Container) else self.current_obj.layout
         width = int(BaseConverter.get_attr(node, "width", "layout") or 0)
         height = int(BaseConverter.get_attr(node, "height", "layout") or 0)
-        x, y = self.current_obj.last_menu_position
+        x, y = self._last_click_pos or (self.winfo_rootx() + 50, self.winfo_rooty() + 50)
+        self._last_click_pos = x + 5, y + 5  # slightly displace click position so multiple pastes are still visible
         bounds = geometry.resolve_bounds((x, y, x + width, y + height), self)
         obj = self.xml.load_section(node, layout, bounds)
         restore_point = layout.get_restore(obj)
@@ -246,15 +273,22 @@ class Designer(DesignPad, Container):
         # Create the context menu associated with the object including the widgets own custom menu
         menu = self.make_menu(self.studio.menu_template + obj.create_menu(), obj)
         # Select the widget before drawing the menu
-        obj.bind("<Button-3>", lambda _: self.select(obj), add='+')
-        obj.bind('<ButtonPress-1>', lambda e: self.highlight.set_function(self.highlight.move, e), add='+')
+        obj.bind("<Button-3>", lambda e: self._handle_select(obj, e), add='+')
+        obj.bind('<Shift-ButtonPress-1>', lambda e: self.highlight.set_function(self.highlight.move, e), add='+')
         obj.bind('<Motion>', self.highlight.resize, '+')
         obj.bind('<ButtonRelease>', self.highlight.clear_resize, '+')
         Frame.add_context_menu(menu, obj)
         self.objects.append(obj)
         if self.root_obj is None:
             self.root_obj = obj
-        obj.bind("<Button-1>", lambda _: self.select(obj), add='+')
+        obj.bind("<Button-1>", lambda e: self._handle_select(obj, e), add='+')
+        # bind shortcuts
+        self._shortcut_mgr.bind_widget(obj)
+
+    def _handle_select(self, obj, event):
+        # store the click position for effective widget pasting
+        self._last_click_pos = event.x_root, event.y_root
+        self.select(obj)
 
     def load(self, obj_class, name, container, attributes, layout, bounds=None):
         obj = obj_class(self, name)
@@ -395,6 +429,7 @@ class Designer(DesignPad, Container):
             self.studio.select(None, self)
             self.highlight.clear()
             return
+        self.focus_set()
         if self.current_obj == obj:
             return
         self.clear_obj_highlight()
@@ -407,6 +442,22 @@ class Designer(DesignPad, Container):
     def draw_highlight(self, obj):
         self.highlight.surround(obj)
 
+    def displace(self, side):
+        if not self.current_obj:
+            return
+        bounds = geometry.bounds(self.current_obj)
+        x1, y1, x2, y2 = bounds
+        if side == 'right':
+            bounds = x1 + 1, y1, x2 + 1, y2
+        elif side == 'left':
+            bounds = x1 - 1, y1, x2 - 1, y2
+        elif side == 'up':
+            bounds = x1, y1 - 1, x2, y2 - 1
+        elif side == 'down':
+            bounds = x1, y1 + 1, x2, y2 + 1
+        self._on_move(bounds)
+        self._on_release(bounds)
+
     def clear_obj_highlight(self):
         if self.highlight is not None:
             self.highlight.clear()
@@ -416,21 +467,23 @@ class Designer(DesignPad, Container):
                 self.current_container = None
 
     def _on_release(self, bound):
-        if self.current_obj is None:
+        obj = self.current_obj
+        container = self.current_container
+        if obj is None:
             return
-        if self.current_container is not None and self.current_container != self.current_obj:
-            self.current_container.clear_highlight()
+        if container is not None and container != obj:
+            container.clear_highlight()
             if self.current_action == self.MOVE:
-                self.current_container.add_widget(self.current_obj, bound)
+                container.add_widget(obj, bound)
                 # If the enclosed widget was initially the root object, make the container the new root object
-                if self.current_obj == self.root_obj and self.current_obj != self:
+                if obj == self.root_obj and obj != self:
                     self.root_obj = self.current_container
             else:
-                self.current_obj.layout.widget_released(self.current_obj)
-            self.studio.widget_layout_changed(self.current_obj)
+                obj.layout.widget_released(obj)
+            self.studio.widget_layout_changed(obj)
             self.current_action = None
         elif self.current_action == self.RESIZE:
-            self.current_obj.layout.widget_released(self.current_obj)
+            obj.layout.widget_released(obj)
             self.current_action = None
 
     def create_restore(self, widget):
@@ -441,41 +494,41 @@ class Designer(DesignPad, Container):
         ))
 
     def _on_move(self, new_bound):
-        if self.current_obj is not None:
-            self.current_action = self.MOVE
-            container: Container = self.layout_at(new_bound)
-            if container is not None and self.current_obj != container:
-                if container != self.current_container:
-                    if self.current_container is not None:
-                        self.current_container.clear_highlight()
-                    container.show_highlight()
-                    self.current_container = container
-                container.move_widget(self.current_obj, new_bound)
-            else:
-                if self.current_container is not None:
-                    self.current_container.clear_highlight()
-                    self.current_container = self
-                self.current_obj.level = 0
-                self.current_obj.layout = self
-                self.move_widget(self.current_obj, new_bound)
-            if self.current_obj.layout.layout_strategy.realtime_support:
-                self.studio.widget_layout_changed(self.current_obj)
-            self.current_obj.update_idletasks()
-            self.update_idletasks()
+        obj = self.current_obj
+        current_container = self.current_container
+        if obj is None:
+            return
+        self.current_action = self.MOVE
+        container: Container = self.layout_at(new_bound)
+        if container is not None and obj != container:
+            if container != current_container:
+                if current_container is not None:
+                    current_container.clear_highlight()
+                container.show_highlight()
+                self.current_container = container
+            container.move_widget(obj, new_bound)
+        else:
+            if current_container is not None:
+                current_container.clear_highlight()
+                self.current_container = self
+            obj.level = 0
+            obj.layout = self
+            self.move_widget(obj, new_bound)
+        if obj.layout.layout_strategy.realtime_support:
+            self.studio.widget_layout_changed(obj)
 
     def _on_size_changed(self, new_bound):
-        if self.current_obj is None:
+        obj = self.current_obj
+        if obj is None:
             return
         self.current_action = self.RESIZE
-        if isinstance(self.current_obj.layout, Container) and self.current_obj.layout != self:
-            self.current_obj.layout.resize_widget(self.current_obj, new_bound)
+        if isinstance(obj.layout, Container) and obj.layout != self:
+            obj.layout.resize_widget(obj, new_bound)
         else:
-            self.current_obj.level = 0
-            self.place_child(self.current_obj, **self.parse_bounds(new_bound))
-        if self.current_obj.layout.layout_strategy.realtime_support:
-            self.studio.widget_layout_changed(self.current_obj)
-        self.current_obj.update_idletasks()
-        self.update_idletasks()
+            obj.level = 0
+            self.place_child(obj, **self.parse_bounds(new_bound))
+        if obj.layout.layout_strategy.realtime_support:
+            self.studio.widget_layout_changed(obj)
 
     def on_select(self, widget):
         self.select(widget)

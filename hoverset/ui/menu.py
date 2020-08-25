@@ -1,5 +1,7 @@
 import functools
 import tkinter as tk
+
+from hoverset.data.actions import Routine
 from hoverset.ui.styles import StyleDelegator
 
 
@@ -72,6 +74,9 @@ class MenuUtils:
                 _type, label, icon, command, config = template
                 # create a new config copy to prevent messing with the template
                 config = dict(**config)
+                if isinstance(command, Routine):
+                    config['accelerator'] = command.accelerator
+                    command = command.invoke
                 if style:
                     config.update(
                         {**style.dark_context_menu_selectable} if _type in ("radiobutton", "checkbutton")
