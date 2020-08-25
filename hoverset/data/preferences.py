@@ -3,7 +3,7 @@ import shelve
 import os
 import atexit
 from collections import defaultdict
-import errno
+from hoverset.data.utils import make_path
 
 
 class _PreferenceInstanceCreator(type):
@@ -31,12 +31,7 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
             self.data = self._get_shelve()
             self._deep_update(self.data, defaults)
         else:
-            # create the directory in a python 2 compatible manner
-            try:
-                os.makedirs(self.get_dir())
-            except OSError as exc:  # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
+            make_path(self.get_dir())
             self.data = self._get_shelve()
             self.data.update(defaults)
         atexit.register(self._release)
@@ -120,6 +115,31 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
         # call all listeners associated to path
         for listener in self._listeners.get(path, []):
             listener(value)
+
+    def create_path(self, path):
+        """
+        Creates a config path and sets it to None if no value has been set
+        :param path: config path to be created
+        :return:
+        """
+        *dicts, key = path.split(SharedPreferences.PATH_SEP)
+        ref_dict = self.data
+        for d in dicts:
+            if d not in ref_dict:
+                ref_dict[d] = {}
+            ref_dict = ref_dict[d]
+        ref_dict[key] = ref_dict.get(key)
+
+    def set_default(self, path, value):
+        """
+        Set value for path only if value has not already been set.
+        Use PATH_SEP to separate nested paths for instance "theme::color"
+        :param path: path to value
+        :param value: the value to be set to path
+        :return: None
+        """
+        if not self.exists(path):
+            self.set(path, value)
 
     def append(self, path, *values):
         """

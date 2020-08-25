@@ -1,3 +1,4 @@
+import errno
 import sys
 import os
 import pkgutil
@@ -13,6 +14,21 @@ def get_resource_path(package, resource):
     """
     d = os.path.dirname(sys.modules[package if isinstance(package, str) else package.__name__].__file__)
     return os.path.join(d, resource)
+
+
+def make_path(path):
+    """
+    Create path if it does not exist. May raise OSError if creation fails
+    :param path: path to create
+    :return: None
+    :raises OSError
+    """
+    # create the directory in a python 2 compatible manner
+    try:
+        os.makedirs(path)
+    except OSError as exc:  # Guard against race condition
+        if exc.errno != errno.EEXIST:
+            raise
 
 
 get_resource = pkgutil.get_data
