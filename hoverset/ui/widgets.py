@@ -2078,7 +2078,7 @@ class ProgressBar(Widget, tk.Canvas):
 
     def destroy(self):
         if self._after_id:
-            self.after_cancel(self._after_id)
+            self.master.after_cancel(self._after_id)
         super().destroy()
 
     def _draw(self, event=None):
@@ -2092,7 +2092,7 @@ class ProgressBar(Widget, tk.Canvas):
             elif self._step_var <= 0:
                 self._direction = 3
             if event is None:
-                self._after_id = self.after(self._interval, self._draw)
+                self._after_id = self.master.after(self._interval, self._draw)
         else:
             self.coords(self._bar, 0, 0, self._progress * self.winfo_width(), self.winfo_height())
         self.itemconfigure(self._bar, fill=self._bar_color, width=0)
