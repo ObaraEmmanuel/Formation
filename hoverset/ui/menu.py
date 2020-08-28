@@ -50,6 +50,17 @@ class EnableIf(Manipulator):
         return [(*t[:-1], {'state': tk.DISABLED, **t[-1]}) if len(t) == 5 else t for t in self.templates]
 
 
+class LoadLater(Manipulator):
+    __slots__ = ('loader',)
+
+    def __init__(self, loader):
+        super().__init__()
+        self.loader = loader
+
+    def manipulated(self):
+        return () or self.loader()
+
+
 class MenuUtils:
     image_cache = set()
 
@@ -134,6 +145,19 @@ class MenuUtils:
             # otherwise just populate menu on creation
             cls._make_menu(templates, menu, style)
         return menu
+
+    @classmethod
+    def popup(cls, event, menu):
+        """
+        Display context menu based on a right click event
+        :param event: tk event object
+        :param menu: tk menu to be displayed
+        :return: None
+        """
+        try:
+            menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            menu.grab_release()
 
 
 def dynamic_menu(func):

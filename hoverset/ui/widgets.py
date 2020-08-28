@@ -245,10 +245,7 @@ class ContextMenuMixin:
 
     @staticmethod
     def popup(event, menu):
-        try:
-            menu.tk_popup(event.x_root, event.y_root)
-        finally:
-            menu.grab_release()
+        MenuUtils.popup(event, menu)
 
     @staticmethod
     def add_context_menu(menu, widget):
