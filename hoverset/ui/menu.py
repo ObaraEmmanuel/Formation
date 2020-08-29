@@ -76,12 +76,14 @@ class MenuUtils:
                     raw_templates.append(sub_t)
             else:
                 raw_templates.append(t)
-
-        for template in raw_templates:
-            if template[0] == "separator":
+        prev = None
+        template_count = len(raw_templates)
+        for i, template in enumerate(raw_templates):
+            # suppress continuous, trailing and leading separators on the fly
+            if template[0] == "separator" and prev != 'separator' and prev is not None and (i + 1) < template_count:
                 config = {} if len(template) == 1 else template[1]
                 menu.add_separator(**config)
-            else:
+            elif template[0] != "separator":
                 _type, label, icon, command, config = template
                 # create a new config copy to prevent messing with the template
                 config = dict(**config)
@@ -112,6 +114,7 @@ class MenuUtils:
                     cls.image_cache.add(icon)
                 else:
                     menu.add(_type, label=label, image=icon, command=command, compound='left', **config)
+            prev = template[0]
 
     @classmethod
     def make_dynamic(cls, templates, parent=None, style: StyleDelegator = None, dynamic=True, **cnf):
