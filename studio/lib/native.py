@@ -2,7 +2,6 @@ import tkinter as tk
 import tkinter.ttk as ttk
 
 from studio.lib.layouts import NPanedLayoutStrategy
-from studio.lib.menus import menu_options
 from studio.lib.pseudo import PseudoWidget, Groups, Container, LabelFrameCorrection, TabContainer, PanedContainer
 
 
@@ -134,9 +133,6 @@ class Menubutton(PseudoWidget, ttk.Menubutton):
 
     def set_name(self, name):
         self.config(text=name)
-
-    def create_menu(self):
-        return super().create_menu() + menu_options(self)
 
 
 class Notebook(TabContainer, ttk.Notebook):

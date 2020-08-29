@@ -6,99 +6,20 @@ Menu editor for the studio widgets including menu functionality
 # ======================================================================= #
 
 import functools
-import logging
 import tkinter as tk
 
-from hoverset.data.images import load_tk_image
 from hoverset.ui.icons import get_icon_image, get_icon
-from hoverset.ui.widgets import Window, PanedWindow, Frame, MenuButton, Button, ScrolledFrame, Label
+from hoverset.ui.widgets import PanedWindow, Frame, MenuButton, Button, ScrolledFrame, Label
+from hoverset.ui.menu import EnableIf
 from studio.lib.properties import PROPERTY_TABLE, get_properties
+from studio.lib.menu import menu_config, MENU_PROPERTY_TABLE, MENU_PROPERTIES
 from studio.ui.editors import StyleItem
 from studio.ui.tree import MalleableTree
 from studio.ui.widgets import CollapseFrame
-import studio.feature.variable_manager as var_manager
-
-
-class _ImageIntercept:
-    _image_lookup = {}
-    _image_cache = set()
-    __slots__ = ()
-
-    @classmethod
-    def set(cls, menu, index, value, prop='image'):
-        try:
-            image = load_tk_image(value)
-        except Exception:
-            logging.error("could not open image at {}".format(value))
-            return
-        # store the image string name in the lookup along with its path
-        cls._image_lookup[str(image)] = value
-        # add to cache to protect image from garbage collection
-        cls._image_cache.add(image)
-        menu.entryconfigure(index, **{prop: image})
-
-    @classmethod
-    def get(cls, menu, index, prop='image'):
-        return cls._image_lookup.get(menu.entrycget(index, prop), '')
-
-
-class _VariableIntercept:
-    __slots__ = []
-
-    @staticmethod
-    def set(menu, index, value, prop):
-        if isinstance(value, tk.Variable):
-            menu.entryconfigure(index, **{prop: value})
-        else:
-            variable = var_manager.VariablePane.get_instance().lookup(value)
-            if isinstance(variable, var_manager.VariableItem):
-                menu.entryconfigure(index, **{prop: variable.var})
-            else:
-                logging.debug(f'variable {value} not found')
-
-    @staticmethod
-    def get(menu, index, prop):
-        return str(var_manager.VariablePane.get_instance().lookup(menu.entrycget(index, prop)))
-
-
-_MENU_SPECIFIC_DEFINITION = {
-    "hidemargin": {
-        "name": "hidemargin",
-        "display_name": "hide margin",
-        "type": "boolean",
-    },
-    "columnbreak": {
-        "display_name": "column break",
-        "type": "boolean",
-    },
-    "selectcolor": {
-        "display_name": "select color",
-        "type": "color",
-    },
-    "value": {
-        "display_name": "value",
-        "type": "text",
-    },
-    "accelerator": {
-        "display_name": "accelerator",
-        "type": "text",
-    }
-}
-
-_ALL_PROPERTIES = (
-    'compound', 'image', 'columnbreak', 'menu', 'label', 'foreground', 'accelerator', 'command', 'variable',
-    'selectimage', 'underline', 'onvalue', 'activebackground', 'indicatoron', 'offvalue', 'value', 'background',
-    'bitmap', 'activeforeground', 'hidemargin', 'font', 'selectcolor', 'state',
-)
+from studio.tools._base import BaseToolWindow, BaseTool
 
 
 class MenuTree(MalleableTree):
-    _intercepts = {
-        "image": _ImageIntercept,
-        "selectimage": _ImageIntercept,
-        "variable": _VariableIntercept
-    }
-
     class Node(MalleableTree.Node):
         _type_def = {
             tk.CASCADE: ("menubutton",),
@@ -137,14 +58,14 @@ class MenuTree(MalleableTree):
             return self._menu.type(self.get_index())
 
         def get_option(self, key):
-            return MenuTree.menu_config(self._menu, self.get_index(), key)
+            return menu_config(self._menu, self.get_index(), key)
 
         def get_altered_options(self):
-            keys = MenuTree.menu_config(self._menu, self.get_index())
+            keys = menu_config(self._menu, self.get_index())
             return {key: keys[key][-1] for key in keys if keys[key][-1] != keys[key][-2]}
 
         def get_options(self):
-            keys = MenuTree.menu_config(self._menu, self.get_index())
+            keys = menu_config(self._menu, self.get_index())
             return {key: keys[key][-1] for key in keys}
 
         def get_index(self):
@@ -180,7 +101,7 @@ class MenuTree(MalleableTree):
                 # apply node properties from backup
                 try:
                     self.sub_menu.insert(index, node.type)
-                    MenuTree.menu_config(self.sub_menu, self.get_index(), **properties[i])
+                    menu_config(self.sub_menu, self.get_index(), **properties[i])
                 except tk.TclError:
                     breakpoint()
                 finally:
@@ -223,51 +144,23 @@ class MenuTree(MalleableTree):
         for i, node in enumerate(nodes):
             node._menu = self._menu
             self._menu.insert(index, node.type)
-            MenuTree.menu_config(self._menu, index, **properties[i])
+            menu_config(self._menu, index, **properties[i])
             index += 1
 
-    @classmethod
-    def menu_config(cls, parent_menu, index, key=None, **kw):
-        if not kw:
-            if key in cls._intercepts:
-                return cls._intercepts.get(key).get(parent_menu, index, key)
-            elif key is not None:
-                return parent_menu.entrycget(index, key)
 
-            config = parent_menu.entryconfigure(index)
-            for prop in config:
-                if prop in cls._intercepts:
-                    value = cls._intercepts.get(prop).get(parent_menu, index, prop)
-                    config[prop] = (*config[prop][:-1], value)
-            return config
-        else:
-            for prop in kw:
-                if prop in cls._intercepts:
-                    cls._intercepts.get(prop).set(parent_menu, index, kw[prop], prop)
-                else:
-                    parent_menu.entryconfigure(index, **{prop: kw[prop]})
-
-
-class MenuEditor(Window):
+class MenuEditor(BaseToolWindow):
     # TODO Add context menu for nodes
     # TODO Add style search
-    # TODO Extend menu editor to other menu widgets
     # TODO Handle widget change from the studio main control
     _MESSAGE_EDITOR_EMPTY = "No item selected"
-    _active_editors = {}
 
     def __init__(self, master, widget, menu=None):
-        super().__init__(master)
-        self._widget = widget
-        MenuEditor._active_editors[widget] = self
-        self.on_close(self.release)
-        self.transient(master)
+        super().__init__(master, widget)
         self.title(f'Edit menu for {widget.id}')
         if not isinstance(menu, tk.Menu):
             menu = tk.Menu(widget, tearoff=False)
             widget.configure(menu=menu)
         self._base_menu = menu
-        self.config(**self.style.dark)
         self._tool_bar = Frame(self, **self.style.dark, **self.style.dark_highlight_dim, height=30)
         self._tool_bar.pack(side="top", fill="x")
         self._tool_bar.pack_propagate(False)
@@ -324,33 +217,6 @@ class MenuEditor(Window):
         self.focus_set()
         self._load_all_properties()
 
-    @classmethod
-    def acquire(cls, master, widget, menu=None):
-        """
-        To avoid opening multiple editors for the same widget use this
-        constructor. It will either create an editor for the widget if none exists or bring
-        an existing editor to focus.
-        :param master: tk toplevel window
-        :param widget: menu supporting widget
-        :param menu: the widgets menu
-        :return: a MenuEditor instance
-        """
-        if widget in cls._active_editors:
-            cls._active_editors[widget].lift()
-            cls._active_editors[widget].focus_set()
-            return cls._active_editors[widget]
-        return cls(master, widget, menu)
-
-    def release(self):
-        """
-        Release an existing MenuEditor. This is called when destroying the
-        MenuEditor to remove it from the active editors map allowing a new one to
-        be spawned next time
-        :return: None
-        """
-        MenuEditor._active_editors.pop(self._widget)
-        self.destroy()
-
     def _show_editor_message(self, message):
         # Show an overlay message
         self._editor_pane_cover.config(text=message)
@@ -378,8 +244,8 @@ class MenuEditor(Window):
     def _load_all_properties(self):
         # Generate all style editors that may be needed by any of the types of menu items
         # This needs to be called only once
-        ref = dict(**PROPERTY_TABLE, **_MENU_SPECIFIC_DEFINITION)
-        for prop in _ALL_PROPERTIES:
+        ref = dict(**PROPERTY_TABLE, **MENU_PROPERTY_TABLE)
+        for prop in MENU_PROPERTIES:
             if not ref.get(prop):
                 continue
             definition = dict(**ref.get(prop))
@@ -393,7 +259,7 @@ class MenuEditor(Window):
     def _on_item_change(self, prop, value):
         # Called when the style of a menu item changes
         for node in self._tree.get():
-            MenuTree.menu_config(node._menu, node.get_index(), **{prop: value})
+            menu_config(node._menu, node.get_index(), **{prop: value})
             # For changes in label we need to change the label on the node as well node
             node.label = node._menu.entrycget(node.get_index(), 'label')
 
@@ -433,7 +299,7 @@ class MenuEditor(Window):
             style_item.set(node._menu.cget(style_item.name))
 
     def _preview(self, *_):
-        self._widget.event_generate("<Button-1>")
+        self.widget.event_generate("<Button-1>")
 
     def _delete(self, *_):
         # create a copy since the list may change during iteration
@@ -482,13 +348,48 @@ class MenuEditor(Window):
                 node.add_menu_item(type=menu.type(i), label=label, index=i)
 
 
-def menu_options(widget):
-    """
-    Get the menu option for accessing the editor for a widget
-    :param widget: widget with menu editor option
-    :return: Hoverset menu notation
-    """
-    return (
-        ("command", "Edit menu", None,
-         lambda: MenuEditor.acquire(widget.winfo_toplevel(), widget, widget.nametowidget(widget.cget("menu"))), {}),
-    )
+class MenuTool(BaseTool):
+    _deleted = {}
+    name = 'Menu'
+
+    @classmethod
+    def close_editors(cls):
+        MenuEditor.close_all()
+
+    @classmethod
+    def edit(cls, widget):
+        MenuEditor.acquire(widget.winfo_toplevel(), widget, widget.nametowidget(widget.cget("menu")))
+
+    @classmethod
+    def remove(cls, widget):
+        # store menu for restoration
+        cls._deleted[widget] = widget.nametowidget(widget.cget("menu"))
+        widget.configure(menu='')
+
+    @classmethod
+    def restore(cls, widget):
+        if widget in cls._deleted:
+            widget.configure(menu=cls._deleted.get(widget))
+            cls._deleted.pop(widget)
+
+    @classmethod
+    def supports(cls, widget):
+        if widget is None:
+            return widget
+        return 'menu' in widget.keys()
+
+    @classmethod
+    def get_menu(cls, studio):
+        icon = get_icon_image
+        return (
+            ('command', 'Edit', icon('edit', 14, 14), lambda: cls.edit(studio.selected), {}),
+            EnableIf(
+                lambda: studio.selected and studio.selected['menu'] != '',
+                ('command', 'Remove', icon('delete', 14, 14), lambda: cls.remove(studio.selected), {})),
+            EnableIf(
+                lambda: studio.selected and studio.selected in cls._deleted,
+                ('command', 'Restore', None, lambda: cls.restore(studio.selected), {})),
+            EnableIf(
+                lambda: MenuEditor._tool_map,
+                ('command', 'Close all editors', icon('close', 14, 14), lambda: cls.close_editors(), {}))
+        )

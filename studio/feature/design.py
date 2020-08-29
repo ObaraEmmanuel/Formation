@@ -10,7 +10,7 @@ from tkinter import filedialog
 from hoverset.data import actions
 from hoverset.data.keymap import KeyMap
 from hoverset.ui.dialogs import MessageDialog
-from hoverset.ui.widgets import Frame
+from hoverset.ui.menu import MenuUtils, LoadLater
 from hoverset.util.execution import Action, as_thread
 from studio.lib.layouts import FrameLayoutStrategy
 from studio.lib.pseudo import PseudoWidget, Container, Groups
@@ -18,6 +18,7 @@ from studio.parsers.xml import XMLForm
 from studio.ui import geometry
 from studio.ui.highlight import HighLight
 from studio.ui.widgets import DesignPad
+from studio.tools import ToolManager
 from formation.xml import BaseConverter
 
 
@@ -85,7 +86,6 @@ class Designer(DesignPad, Container):
         self.parent = self
         self.studio = studio
         self.config(**self.style.bright, takefocus=True)
-        # self._frame.config(takefocus=True)
         self.objects = []
         self.root_obj = None
         self.layout_strategy = DesignLayoutStrategy(self)
@@ -104,6 +104,14 @@ class Designer(DesignPad, Container):
         self._shortcut_mgr = KeyMap(self._frame)
         self._set_shortcuts()
         self._last_click_pos = None
+        # create the dynamic menu
+        self._context_menu = MenuUtils.make_dynamic(
+            self.studio.menu_template +
+            ToolManager.get_tool_menu(self.studio) +
+            (LoadLater(lambda: self.current_obj.create_menu() if self.current_obj else ()),),
+            self.studio,
+            self.style
+        )
 
     def focus_set(self):
         self._frame.focus_force()
@@ -270,20 +278,23 @@ class Designer(DesignPad, Container):
         return name
 
     def _attach(self, obj):
-        # Create the context menu associated with the object including the widgets own custom menu
-        menu = self.make_menu(self.studio.menu_template + obj.create_menu(), obj)
-        # Select the widget before drawing the menu
-        obj.bind("<Button-3>", lambda e: self._handle_select(obj, e), add='+')
+        # bind events for context menu and object selection
+        obj.bind("<Button-3>", lambda e: self.show_menu(e, obj), add='+')
         obj.bind('<Shift-ButtonPress-1>', lambda e: self.highlight.set_function(self.highlight.move, e), add='+')
         obj.bind('<Motion>', self.highlight.resize, '+')
         obj.bind('<ButtonRelease>', self.highlight.clear_resize, '+')
-        Frame.add_context_menu(menu, obj)
         self.objects.append(obj)
         if self.root_obj is None:
             self.root_obj = obj
         obj.bind("<Button-1>", lambda e: self._handle_select(obj, e), add='+')
         # bind shortcuts
         self._shortcut_mgr.bind_widget(obj)
+
+    def show_menu(self, event, obj=None):
+        # select object generating the context menu event first
+        if obj is not None:
+            self.select(obj)
+        MenuUtils.popup(event, self._context_menu)
 
     def _handle_select(self, obj, event):
         # store the click position for effective widget pasting

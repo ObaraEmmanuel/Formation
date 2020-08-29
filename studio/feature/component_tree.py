@@ -72,10 +72,9 @@ class ComponentTree(BaseFeature):
             parent = parent.node
             node = parent.add_as_node(widget=widget)
 
-        # Set up as follows
-        # (type, label, icon, command/callback, additional_configuration={})
-        # use also get_icon_image("image_key", width, height)
-        node.set_up_context(self.studio.menu_template + widget.create_menu())
+        # let the designer render the menu for us
+        node.bind_all('<Button-3>',
+                      lambda e: self.studio.designer.show_menu(e, widget) if self.studio.designer else None)
 
     def _trigger_select(self):
         if self._selected and self._selected.widget == self._tree.get().widget:

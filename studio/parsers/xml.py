@@ -12,7 +12,7 @@ from lxml import etree
 from formation import xml
 from studio.feature.variable_manager import VariablePane, VariableItem
 from studio.lib import legacy, native
-from studio.lib.menus import MenuTree
+from studio.lib.menu import menu_config
 from studio.lib.pseudo import Container, PseudoWidget
 
 
@@ -86,7 +86,7 @@ class MenuConverter(BaseConverter):
 
     @staticmethod
     def get_item_options(menu, index):
-        keys = MenuTree.menu_config(menu, index)
+        keys = menu_config(menu, index)
         if 'menu' in keys:
             keys.pop('menu')
         return {key: keys[key][-1] for key in keys if keys[key][-1] != keys[key][-2]}
@@ -112,7 +112,7 @@ class MenuConverter(BaseConverter):
             attrib = cls.attrib(sub_node)
             if sub_node.tag in MenuConverter._types and menu is not None:
                 menu.add(sub_node.tag)
-                MenuTree.menu_config(menu, menu.index(tk.END), **attrib.get("menu", {}))
+                menu_config(menu, menu.index(tk.END), **attrib.get("menu", {}))
                 continue
 
             obj_class = cls._get_class(sub_node)
@@ -122,7 +122,7 @@ class MenuConverter(BaseConverter):
                     widget.configure(menu=menu_obj)
                 elif menu:
                     menu.add(tk.CASCADE, menu=menu_obj)
-                    MenuTree.menu_config(menu, menu.index(tk.END), **attrib.get("menu", {}))
+                    menu_config(menu, menu.index(tk.END), **attrib.get("menu", {}))
                 cls._menu_from_xml(sub_node, menu_obj)
 
     @classmethod
