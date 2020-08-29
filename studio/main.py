@@ -16,6 +16,7 @@ from studio.feature.stylepane import StylePane
 from studio.feature.components import ComponentPane
 from studio.feature.variable_manager import VariablePane
 from studio.feature._base import BaseFeature
+from studio.tools import ToolManager
 from studio.ui.widgets import SideBar
 from studio.ui.about import about_window
 from studio.preferences import Preferences
@@ -26,7 +27,7 @@ from hoverset.ui.icons import get_icon_image
 from hoverset.util.execution import Action
 from hoverset.data.utils import get_resource_path
 from hoverset.ui.dialogs import MessageDialog
-from hoverset.ui.menu import MenuUtils, EnableIf, dynamic_menu
+from hoverset.ui.menu import MenuUtils, EnableIf, dynamic_menu, LoadLater
 from hoverset.data import actions
 from hoverset.data.keymap import ShortcutManager, CharKey, KeyMap
 import hoverset.ui
@@ -84,15 +85,6 @@ class StudioApplication(Application):
             "right": (self._right, self._right_bar),
             "center": (self._center, None)
         }
-
-        self.features = []
-
-        self.designer = Designer(self._center, self)
-        self._center.add(self.designer, sticky='nswe')
-        self.install(ComponentPane)
-        self.install(ComponentTree)
-        self.install(StylePane)
-        self.install(VariablePane)
 
         icon = get_icon_image
 
@@ -161,11 +153,11 @@ class StudioApplication(Application):
                 ("command", "Open all as windows", None, actions.get('FEATURE_DOCK_ALL'), {}),
                 ("command", "Dock all windows", None, actions.get('FEATURE_UNDOCK_ALL'), {}),
                 ("separator",),
-                *self.get_features_as_menu(),
+                LoadLater(self.get_features_as_menu),
                 ("separator",),
                 ("command", "Save window positions", None, actions.get('FEATURE_SAVE_POS'), {})
             )}),
-            ("cascade", "Tools", None, None, {"menu": ()}),
+            ("cascade", "Tools", None, None, {"menu": ToolManager.get_tools_as_menu(self)}),
             ("cascade", "Help", None, None, {"menu": (
                 ("command", "Help", icon('dialog_info', 14, 14), actions.get('STUDIO_HELP'), {}),
                 ("command", "Check for updates", icon("cloud", 14, 14), None, {}),
@@ -174,6 +166,15 @@ class StudioApplication(Application):
             )})
         ), self, self.style, False)
         self.config(menu=self.menu_bar)
+
+        self.features = []
+
+        self.designer = Designer(self._center, self)
+        self._center.add(self.designer, sticky='nswe')
+        self.install(ComponentPane)
+        self.install(ComponentTree)
+        self.install(StylePane)
+        self.install(VariablePane)
 
         self.open_new()
         self._restore_position()
