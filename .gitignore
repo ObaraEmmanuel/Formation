@@ -1,7 +1,3 @@
-/hoverset/apps/
-/hoverset/catalogue.py
-/hoverset/data.*
-/hoverset/main.py
 __pycache__/
 *.pyc
 *.pyd
@@ -17,7 +13,6 @@ build/
 dist/
 eggs/
 .eggs/
-lib/
 lib64/
 sdist/
 var/
