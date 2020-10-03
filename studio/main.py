@@ -322,7 +322,7 @@ class StudioApplication(Application):
         menu.config(**self.style.dark_context_menu)
         recent = pref.get("studio::recent")
         for path in recent:
-            menu.add("command", label=os.path.basename(path), command=lambda: self.open_file(path))
+            menu.add("command", label=os.path.basename(path), command=functools.partial(self.open_recent, path))
         menu.add("command", label="Clear", image=menu.image, command=self._clear_recent,
                  compound="left")
 
@@ -339,13 +339,16 @@ class StudioApplication(Application):
         if path:
             self.designer.open_xml(path)
             self.set_path(path)
-            recent = pref.get("studio::recent")
-            max_recent = pref.get("studio::recent_max")
-            if len(recent) > max_recent and path not in recent:
-                recent = recent[:-1]
-            if path in recent:
-                recent.remove(path)
-            recent.insert(0, path)
+            self.update_recent(path)
+
+    def update_recent(self, path):
+        recent = pref.get("studio::recent")
+        max_recent = pref.get("studio::recent_max")
+        if len(recent) > max_recent and path not in recent:
+            recent = recent[:-1]
+        if path in recent:
+            recent.remove(path)
+        recent.insert(0, path)
 
     def open_recent(self, path):
         if os.path.exists(path):
@@ -358,10 +361,12 @@ class StudioApplication(Application):
     def save(self):
         path = self.designer.save()
         self.set_path(path)
+        self.update_recent(path)
 
     def save_as(self):
         path = self.designer.save(new_path=True)
         self.set_path(path)
+        self.update_recent(path)
 
     def get_feature(self, feature_class) -> BaseFeature:
         for feature in self.features:
