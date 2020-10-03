@@ -253,7 +253,9 @@ class VariablePane(BaseFeature):
             self._show_overlay(True)
 
     def clear_variables(self):
-        for var in self._variables:
+        # the list is likely to change during iteration, create local copy
+        variables = list(self._variables)
+        for var in variables:
             self.delete_var(var)
         self._show_overlay(True)
 
