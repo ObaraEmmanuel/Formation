@@ -16,7 +16,7 @@ from hoverset.ui.pickers import ColorDialog
 from hoverset.ui.widgets import (CompoundList, Entry, SpinBox, Spinner, Frame, Application, set_ttk_style,
                                  Label, ToggleButton, Button)
 from hoverset.util.color import to_hex
-from hoverset.util.validators import numeric_limit
+from hoverset.util.validators import numeric_limit, validate_any, is_empty, is_floating_numeric, is_signed
 from studio.lib.properties import all_supported_cursors, BUILTIN_BITMAPS
 
 
@@ -273,6 +273,14 @@ class Number(TextMixin, Editor):
         self._entry.on_change(self._change)
 
 
+class Float(Number):
+    validator = validate_any(is_empty, is_floating_numeric, is_signed)
+
+    def __init__(self, master, style_def=None):
+        super().__init__(master, style_def)
+        self._entry.set_validator(Float.validator)
+
+
 class Duration(TextMixin, Editor):
     UNITS = ('ns', 'ms', 'sec', 'min', 'hrs')
     MULTIPLIER = {
@@ -463,8 +471,8 @@ class Variable(Choice):
         # Override default conversion of value to string by Choice class
         var_pane = var_manager.VariablePane.get_instance()
         var = list(filter(lambda x: x.name == value, var_pane.variables))
-        if len(var):
-            value = var[0].var
+        # if variable does not match anything in the variable manager presume as empty
+        value = var[0].var if len(var) else ''
         self._spinner.set(value)
 
     def on_var_add(self, var):

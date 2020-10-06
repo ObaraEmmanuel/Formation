@@ -911,7 +911,7 @@ class NPanedLayoutStrategy(PanedLayoutStrategy):
         "weight": {
             "name": "weight",
             "display_name": "weight",
-            "type": "number",
+            "type": "float",
             "default": 0,
         }
     }

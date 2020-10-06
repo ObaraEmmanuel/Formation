@@ -190,7 +190,7 @@ PROPERTY_TABLE = {
     },
     "from": {
         "display_name": "from",
-        "type": "number",
+        "type": "float",
     },
     "handlepad": {
         "display_name": "handle pad",
@@ -227,7 +227,7 @@ PROPERTY_TABLE = {
     },
     "increment": {
         "display_name": "increment",
-        "type": "number",
+        "type": "float",
     },
     "indicatoron": {
         "display_name": "indicator on",
@@ -495,7 +495,7 @@ PROPERTY_TABLE = {
     },
     "to": {
         "display_name": "to",
-        "type": "number",
+        "type": "float",
     },
     "tristateimage": {
         "display_name": "tri-state image",
