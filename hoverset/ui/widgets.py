@@ -1099,6 +1099,47 @@ class ToolWindow(Window):
         self.wm_attributes('-alpha', 1.0)
 
 
+class ActionNotifier(Window):
+    DELAY = 50
+
+    def __init__(self, master, event, command=None, **cnf):
+        super().__init__(master)
+        self.config(self.style.dark)
+        self.wm_overrideredirect(True)
+        self.attributes("-alpha", 0)
+        Label(self, **{**self.style.dark_text, **cnf}).pack()
+        self.current_opacity = 1
+        self.initialized = False
+        self.event = event
+        if command:
+            command(event)
+        self.after(ActionNotifier.DELAY, self.__fade_up())
+
+    @classmethod
+    def bind_event(cls, sequence: str, widget, command, **cnf):
+        widget.bind_all(sequence, lambda event: cls(widget.master, event, command, **cnf))
+        return widget
+
+    def __fade_up(self):
+        if self.current_opacity == 0:
+            self.destroy()
+            return
+        if not self.initialized:
+            self.update_idletasks()
+            width, height = self.winfo_width(), self.winfo_height()
+            self._set_position(self.event.x_root - width / 2, self.event.y_root - height + 4)
+            self.initialized = True
+        self.current_opacity -= 0.05
+        self.attributes("-alpha", self.current_opacity)
+        self.update_idletasks()
+        x, y = self.winfo_rootx(), self.winfo_rooty() - 1
+        self._set_position(x, y)
+        self.after(ActionNotifier.DELAY, self.__fade_up)
+
+    def _set_position(self, x, y):
+        self.geometry("+{}+{}".format(*list(map(int, [x, y]))))
+
+
 class Canvas(Widget, ContextMenuMixin, tk.Canvas):
 
     def __init__(self, master=None, **kwargs):

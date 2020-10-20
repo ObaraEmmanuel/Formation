@@ -22,7 +22,7 @@ from studio.ui.about import about_window
 from studio.preferences import Preferences
 import studio
 
-from hoverset.ui.widgets import Application, Frame, PanedWindow, Button
+from hoverset.ui.widgets import Application, Frame, PanedWindow, Button, ActionNotifier
 from hoverset.ui.icons import get_icon_image
 from hoverset.util.execution import Action
 from hoverset.data.utils import get_resource_path
@@ -255,7 +255,7 @@ class StudioApplication(Application):
             btn = Button(self._toolbar, image=action[1], **self.style.dark_button, width=25, height=25)
             btn.pack(side="left", padx=3)
             btn.tooltip(action[3])
-            btn.on_click(action[2])
+            ActionNotifier.bind_event("<Button-1>", btn, action[2], text=action[3])
 
     def uninstall(self, feature):
         self.features.remove(feature)
@@ -342,6 +342,8 @@ class StudioApplication(Application):
             self.update_recent(path)
 
     def update_recent(self, path):
+        if not path:
+            return
         recent = pref.get("studio::recent")
         max_recent = pref.get("studio::recent_max")
         if len(recent) > max_recent and path not in recent:
