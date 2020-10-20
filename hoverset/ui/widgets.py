@@ -17,6 +17,7 @@ import tkinter.ttk as ttk
 from collections import namedtuple
 from tkinter import font
 
+from hoverset.data.images import load_image_to_widget
 from hoverset.ui.animation import Animate, Easing
 from hoverset.ui.icons import get_icon
 from hoverset.ui.styles import StyleDelegator
@@ -646,20 +647,22 @@ class ImageCacheMixin:
     """
     Performs automatic handling of images in tkinter widgets that use
     images by overriding configure methods and adding references to
-    the images to shield them from garbage collection.
+    the images to shield them from garbage collection. It also handles
+    animated widgets
     """
+    _image_properties = ("image", "tristateimage", "selectimage")
 
     def configure(self, cnf=None, **kw):
         cnf = {} if cnf is None else cnf
         cnf.update(kw)
-        if cnf.get("image"):
-            # If an image value is set, shield it from garbage collection by increasing its reference count
-            self.image = cnf.get("image")
+        for prop in ImageCacheMixin._image_properties:
+            if cnf.get(prop):
+                load_image_to_widget(self, cnf.get(prop), prop)
         return super().configure(cnf, **kw)
 
     def __setitem__(self, key, value):
-        if key == "image":
-            self.image = value
+        if key in ImageCacheMixin._image_properties:
+            setattr(self, key, value)
         super().__setitem__(key, value)
 
 

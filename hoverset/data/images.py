@@ -7,8 +7,10 @@ Provides functions for global image access and processing by hoverset apps
 # ======================================================================= #
 
 import functools
+import itertools
 import os
 import shelve
+import math
 
 from hoverset.data.utils import get_resource_path
 
@@ -66,6 +68,72 @@ def get_tk_image(identifier: str, width=25, height=25):
     :return: A tkinter compatible image
     """
     return ImageTk.PhotoImage(image=get_image(identifier, width, height))
+
+
+def load_image(path, **kwargs):
+    image = Image.open(path)
+    width = kwargs.get("width", image.width)
+    height = kwargs.get("height", image.height)
+    if (width, height) != image.size:
+        image.thumbnail((width, height))
+    return image
+
+
+def get_frames(image):
+    # Get all frames present in an image
+    frames = [to_tk_image(image)]
+    try:
+        while True:
+            image.seek(image.tell() + 1)
+            frames.append(to_tk_image(image))
+    except EOFError:
+        pass
+    return frames
+
+
+def load_image_to_widget(widget, image, prop):
+    # cancel any animate cycles present
+    if hasattr(widget, '_animate_cycle'):
+        widget.after_cancel(widget._animate_cycle)
+    if not isinstance(image, Image.Image):
+        # load non PIL image values
+        widget.config(**{prop: image})
+        # store a reference to shield from garbage collection
+        setattr(widget, prop, image)
+        return
+    if not image.is_animated:
+        image = to_tk_image(image)
+        widget.config(**{prop: image})
+        # store a reference to shield from garbage collection
+        setattr(widget, prop, image)
+        return
+    # Animate the image
+    frames = get_frames(image)
+    frame_count = len(frames)
+    if len(frames) == 1:
+        widget.config(**{prop: frames[0]})
+        return
+
+    # an infinite iterator to loop through the frames continuously
+    cycle = itertools.cycle(frames)
+    loop = image.info.get("loop", 0)
+    loop = math.inf if loop == 0 else loop
+    loop_count = 0
+
+    def cycle_frames():
+        nonlocal loop_count
+        widget.config(**{prop: next(cycle)})
+        loop_count += 1
+        if loop_count // frame_count >= loop:
+            return
+        widget._animate_cycle = widget.after(image.info.get("duration", 100), cycle_frames)
+
+    # begin animation
+    cycle_frames()
+
+
+def to_tk_image(image):
+    return ImageTk.PhotoImage(image)
 
 
 def load_tk_image(path, width=None, height=None):

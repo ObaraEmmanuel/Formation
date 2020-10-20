@@ -3,7 +3,7 @@ import logging
 import tkinter
 from enum import Enum
 
-from hoverset.data.images import load_tk_image
+from hoverset.data.images import load_tk_image, load_image, load_image_to_widget
 from hoverset.ui.icons import get_icon, get_icon_image
 from studio.lib import layouts
 from studio.lib.properties import get_properties
@@ -24,15 +24,12 @@ class _ImageIntercept:
     @staticmethod
     def set(widget, value, prop='image'):
         try:
-            image = load_tk_image(value)
+            image = load_image(value)
+            load_image_to_widget(widget, image, prop)
+            setattr(widget, f'{prop}_path', value)
         except Exception as e:
             logging.error(e)
-            logging.error("could not open image at {}".format(value))
             return
-        widget.config(**{prop: image})
-        widget.image = image
-        setattr(widget, f'{prop}_path', value)
-        widget.image_path = value
 
     @staticmethod
     def get(widget, prop='image'):
@@ -155,7 +152,7 @@ class PseudoWidget:
             if intercept:
                 intercept.set(self, kw[opt], opt)
                 kw.pop(opt)
-        return super().configure(**kw)
+        return super().config(**kw)
 
     @property
     def properties(self):
