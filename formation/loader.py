@@ -10,8 +10,8 @@ from importlib import import_module
 from lxml import etree
 
 from formation import xml
-from formation.preprocessors import preprocess
 from formation.xml import ttk, tk
+from formation.handlers import dispatch_to_handlers
 
 _preloaded = {
     "tkinter": tk,
@@ -31,42 +31,6 @@ _containers = (
     tk.Frame, ttk.Frame, tk.PanedWindow, ttk.PanedWindow, ttk.Notebook, tk.LabelFrame,
     ttk.LabelFrame, ttk.Sizegrip, tk.Toplevel
 )
-
-
-def set_grid(widget, _=None, **options):
-    for opt in list(options):
-        if opt in ("width", "height"):
-            widget[opt] = options.pop(opt)
-    widget.grid(**options)
-
-
-def set_pack(widget, _=None, **options):
-    for opt in list(options):
-        if opt in ("width", "height"):
-            widget[opt] = options.pop(opt)
-    widget.pack(**options)
-
-
-def set_place(widget, _=None, **options):
-    widget.place(**options)
-
-
-def set_tab(widget, parent, **options):
-    parent.add(widget, **options)
-
-
-def set_pane(widget, parent, **options):
-    parent.add(widget, **options)
-
-
-_layout_handlers = {
-    "FrameLayout": set_place,
-    "LinearLayout": set_pack,
-    "GridLayout": set_grid,
-    "TabLayout": set_tab,
-    "PanedLayout": set_pane,
-    "NativePanedLayout": set_pane
-}
 
 
 class BaseConverter(xml.BaseConverter):
@@ -93,35 +57,26 @@ class BaseConverter(xml.BaseConverter):
         return kwargs
 
     @classmethod
-    def get_layout_handler(cls, node, widget):
-        layout = cls.attrib(node).get("attr", {}).get("layout")
-        if layout is not None:
-            return _layout_handlers.get(layout)
-        if widget.__class__ == ttk.Notebook:
-            return set_tab
-        elif widget.__class__ == tk.PanedWindow:
-            return set_pane
-        elif widget.__class__ == ttk.PanedWindow:
-            return set_pane
-
-    @classmethod
     def from_xml(cls, node, builder, parent):
         obj_class = cls._get_class(node)
-        styles = dict(**cls.attrib(node).get("attr", {}))
-        if "layout" in styles:
-            styles.pop("layout")
-        if obj_class == ttk.PanedWindow and 'orient' in styles:
-            orient = styles.pop('orient')
-            obj = obj_class(parent, orient=orient, **preprocess(builder, styles))
+        config = cls.attrib(node)
+        if obj_class == ttk.PanedWindow and 'orient' in config.get("attr", {}):
+            orient = config["attr"].pop('orient')
+            obj = obj_class(parent, orient=orient)
         else:
-            obj = obj_class(parent, **preprocess(builder, styles))
+            obj = obj_class(parent)
         parent_node = node.getparent()
-        if parent_node is not None:
-            layout_handler = cls.get_layout_handler(parent_node, parent)
-            if layout_handler:
-                layout = cls.attrib(node).get("layout", {})
-                layout_handler(obj, parent, **preprocess(builder, layout))
-        setattr(builder, node.attrib.get("name"), obj)
+        kwargs = {
+            "parent_node": parent_node,
+            "parent": parent,
+            "node": node,
+            "builder": builder,
+        }
+        dispatch_to_handlers(obj, config, **kwargs)
+        name = node.attrib.get("name")
+        if name:
+            # if name attribute is missing calling setattr will raise errors
+            setattr(builder, name, obj)
         return obj
 
 
@@ -138,17 +93,25 @@ class MenuConverter(BaseConverter):
     def _menu_from_xml(cls, node, builder, menu=None, widget=None):
         for sub_node in node:
             attrib = cls.attrib(sub_node)
+            kwargs = {
+                "parent_node": sub_node.getparent(),
+                "node": sub_node,
+                "builder": builder,
+            }
             if sub_node.tag in MenuConverter._types and menu is not None:
                 menu.add(sub_node.tag)
-                menu.entryconfigure(menu.index(tk.END), **preprocess(builder, attrib.get("menu", {})))
+                index = menu.index(tk.END)
+                dispatch_to_handlers(menu, attrib, **kwargs, menu=menu, index=index)
             elif cls._get_class(sub_node) == tk.Menu:
                 obj_class = cls._get_class(sub_node)
-                menu_obj = obj_class(widget, **preprocess(builder, attrib.get("attr", {})))
+                menu_obj = obj_class(widget)
                 if widget:
                     widget.configure(menu=menu_obj)
+                    dispatch_to_handlers(menu_obj, attrib, **kwargs)
                 elif menu:
                     menu.add(tk.CASCADE, menu=menu_obj)
-                    menu.entryconfigure(menu.index(tk.END), **preprocess(builder, attrib.get("menu", {})))
+                    index = menu.index(tk.END)
+                    dispatch_to_handlers(menu_obj, attrib, **kwargs, menu=menu, index=index)
                 cls._menu_from_xml(sub_node, builder, menu_obj)
 
 
