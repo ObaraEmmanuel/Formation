@@ -1,10 +1,11 @@
 """
 Contains all the widget representations used in the designer and specifies all the styles that can be applied to them
 """
-import os
 # ======================================================================= #
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
+
+import os
 import re
 import sys
 from tkinter import IntVar, ttk, filedialog, StringVar
@@ -410,15 +411,15 @@ class Anchor(Editor):
         return anchor
 
     def set(self, value):
+        # bypass the special value 'center' before subjecting to validity check
+        value = '' if value == 'center' else str(value)
         # Ignore invalid values
         if self._is_multiple.match(str(value)) and not self.multiple:
             return
         # Assume no anchor means center
-        value = '' if value == 'center' else value
-        for anchor in str(value):
-            self.anchors.get(anchor).set(False)
-            if self.anchors.get(anchor):
-                self.anchors.get(anchor).set(True)
+        for anchor in self.anchors:
+            self.anchors.get(anchor).set(anchor in value)
+
         self._adjust()
 
 
