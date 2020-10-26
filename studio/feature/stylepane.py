@@ -62,6 +62,147 @@ class ReusableStyleItem(StyleItem):
         return item
 
 
+class StyleGroup(CollapseFrame):
+    """
+    Main subdivision of the Style pane
+    """
+
+    def __init__(self, master, **cnf):
+        super().__init__(master)
+        self.configure(**{**self.style.dark, **cnf})
+        self._widget = None
+        self._prev_widget = None
+        self._has_initialized = False  # Flag to mark whether Style Items have been created
+        self.items = {}
+
+    @property
+    def widget(self):
+        return self._widget
+
+    def can_optimize(self):
+        return False
+
+    def add(self, style_item):
+        self.items[style_item.name] = style_item
+        self._show(style_item)
+
+    def remove(self, style_item):
+        if style_item.name in self.items:
+            self.items.pop(style_item.name)
+        self._hide(style_item)
+
+    def _show(self, item):
+        item.pack(fill="x", pady=1)
+
+    def _hide(self, item):
+        item.pack_forget()
+
+    def on_widget_change(self, widget):
+        self._widget = widget
+        if widget is None:
+            self.collapse()
+            return
+        definitions = self.get_definition()
+        if self.can_optimize():
+            for prop in definitions:
+                self.items[prop]._re_purposed(definitions[prop])
+        else:
+            # this unmaps all style items returning them to the pool for reuse
+            self.clear_children()
+            self.items.clear()
+            add = self.add
+            list(map(lambda p: add(ReusableStyleItem.acquire(self, definitions[p], self.apply), ), definitions))
+
+        self._has_initialized = True
+        self._prev_widget = widget
+
+    def apply(self, prop, value):
+        if self.widget is None:
+            return
+        try:
+            self.widget.configure(**{prop: value})
+        except Exception as e:
+            # Empty string values are too common to be useful in logger debug
+            if value != '':
+                logging.error(e)
+                logging.error(f"Could not set style {prop} as {value}", )
+
+    def get_definition(self):
+        return {}
+
+    def on_search_query(self, query):
+        for item in self.items.values():
+            if query in item.definition.get("display_name"):
+                self._show(item)
+            else:
+                self._hide(item)
+
+    def on_search_clear(self):
+        # Calling search query with empty query ensures all items are displayed
+        self.on_search_query("")
+
+
+class IdentityGroup(StyleGroup):
+
+    def __init__(self, master, **cnf):
+        super().__init__(master, **cnf)
+        self.label = "Widget identity"
+
+    def get_definition(self):
+        if hasattr(self.widget, 'identity'):
+            return self.widget.identity
+        return None
+
+    def can_optimize(self):
+        return self._has_initialized
+
+
+class AttributeGroup(StyleGroup):
+
+    def __init__(self, master, **cnf):
+        super().__init__(master, **cnf)
+        self.label = "Attributes"
+
+    def get_definition(self):
+        if hasattr(self.widget, 'properties'):
+            return self.widget.properties
+        return {}
+
+    def can_optimize(self):
+        return self._widget.__class__ == self._prev_widget.__class__ and self._has_initialized
+
+
+class LayoutGroup(StyleGroup):
+
+    def __init__(self, master, **cnf):
+        super().__init__(master, **cnf)
+        self.label = "Layout"
+        self._prev_layout = None
+
+    def on_widget_change(self, widget):
+        super().on_widget_change(widget)
+        self._prev_layout = widget.layout.layout_strategy
+        if widget:
+            self.label = f"Layout ({widget.layout.layout_strategy.name})"
+        else:
+            self.label = "Layout"
+
+    def can_optimize(self):
+        layout_strategy = self.widget.layout.layout_strategy
+        return layout_strategy.__class__ == self._prev_layout.__class__ and self.widget == self._prev_widget
+
+    def get_definition(self):
+        if self.widget is not None:
+            return self.widget.layout.definition_for(self.widget)
+        return {}
+
+    def apply(self, prop, value):
+        try:
+            self.widget.layout.apply(prop, value, self.widget)
+        except Exception as e:
+            logging.log(logging.ERROR, f"{e} : Could not set layout {prop} as {value}", )
+
+
 class StylePane(BaseFeature):
     name = "Style pane"
     icon = "edit"
@@ -72,9 +213,6 @@ class StylePane(BaseFeature):
 
     def __init__(self, master, studio, **cnf):
         super().__init__(master, studio, **cnf)
-        self.items = []
-        self._layout_items = {}
-        self._prev_layout = None
         self.body = ScrolledFrame(self, **self.style.dark)
         self.body.pack(side="top", fill="both", expand=True)
 
@@ -89,23 +227,15 @@ class StylePane(BaseFeature):
         self._search_btn.pack(side="right")
         self._search_btn.on_click(self.start_search)
 
-        self._id = CollapseFrame(self.body.body, **self.style.dark)
-        self._id.pack(side="top", fill="x", pady=4)
-        self._id.label = "Widget identity"
+        self.groups = []
 
-        self._layout = CollapseFrame(self.body.body, **self.style.dark)
-        self._layout.pack(side="top", fill="x", pady=4)
-        self._layout.label = "Layout"
+        self._identity_group = self.add_group(IdentityGroup)
+        self._layout_group = self.add_group(LayoutGroup)
+        self._attribute_group = self.add_group(AttributeGroup)
 
-        self._all = CollapseFrame(self.body.body, **self.style.dark)
-        self._all.pack(side="top", fill="x", pady=4)
-        self._all.label = "All attributes"
-
-        self.frames = (self._id, self._layout, self._all)
         self._empty_frame = Frame(self.body)
         self.show_empty()
         self._current = None
-        self._prev_widget = None
         self._expanded = False
 
     def create_menu(self):
@@ -115,36 +245,13 @@ class StylePane(BaseFeature):
             ("command", "Collapse all", get_icon_image("chevron_up", 14, 14), self.collapse_all, {})
         )
 
-    def add(self, style_item):
-        self.items.append(style_item)
-        self._show(style_item)
-
-    def remove(self, style_item):
-        if style_item in self.items:
-            self.items.remove(style_item)
-        self._hide(style_item)
-
-    def _show(self, item):
-        item.pack(fill="x", pady=1)
-
-    def _hide(self, item):
-        item.pack_forget()
-
-    def apply(self, prop, value):
-        if self._current is None:
-            return
-        try:
-            self._current.configure(**{prop: value})
-            # self.studio.designer.adjust_highlight(self._current)
-        except Exception as e:
-            logging.error(e)
-            logging.error(f"Could not set style {prop} as {value}", )
-
-    def apply_layout(self, prop, value):
-        try:
-            self._current.layout.apply(prop, value, self._current)
-        except Exception as e:
-            logging.log(logging.ERROR, f"Could not set layout {prop} as {value}", )
+    def add_group(self, group_class) -> StyleGroup:
+        if not issubclass(group_class, StyleGroup):
+            raise ValueError('type required.')
+        group = group_class(self.body.body)
+        self.groups.append(group)
+        group.pack(side='top', fill='x', pady=4)
+        return group
 
     def show_empty(self):
         self.remove_empty()
@@ -163,48 +270,18 @@ class StylePane(BaseFeature):
               **self.style.dark_text_passive).place(x=0, y=0, relheight=1, relwidth=1)
 
     def styles_for(self, widget):
-        self.show_loading()
         self._current = widget
-        self._id.clear_children()
-        self._all.clear_children()
-        self.items = []
         if widget is None:
-            self.collapse_all()
             self.show_empty()
             return
-        self.expand_all()
-        identities = widget.identity
-        frame = self._id
-        add = self.add
-        list(map(
-            lambda identity: add(ReusableStyleItem.acquire(frame, identities[identity], self.apply), ), identities
-        ))
-        prop = widget.properties
-        frame = self._all
-        list(map(lambda definition: add(ReusableStyleItem.acquire(frame, prop[definition], self.apply), ), prop))
-        self.layout_for(widget)
+        self.show_loading()
+        for group in self.groups:
+            group.on_widget_change(widget)
         self.remove_empty()
+        self.body.update_idletasks()
 
     def layout_for(self, widget):
-        frame = self._layout
-        layout_def = widget.layout.definition_for(widget)
-        layout_strategy = widget.layout.layout_strategy
-        # Only perform accelerated layout rendering for the same widget possessing the same strategy since last render
-        if layout_strategy.__class__ == self._prev_layout and widget == self._prev_widget:
-            for definition in layout_def:
-                if definition in self._layout_items:
-                    self._layout_items.get(definition)._re_purposed(layout_def[definition])
-            return
-        self._prev_layout = layout_strategy.__class__
-        self._prev_widget = widget
-        self._layout_items = {}
-        frame.clear_children()
-        frame.label = f"Layout ({widget.layout.layout_strategy.name})"
-        for definition in layout_def:
-            item = ReusableStyleItem.acquire(frame, layout_def[definition], self.apply_layout)
-            self.add(item)
-            self._layout_items[item.name] = item
-        self.body.update_idletasks()
+        self._layout_group.on_widget_change(widget)
 
     def on_select(self, widget):
         self.styles_for(widget)
@@ -216,18 +293,18 @@ class StylePane(BaseFeature):
         self.layout_for(widget)
 
     def expand_all(self):
-        for frame in self.frames:
-            frame.expand()
+        for group in self.groups:
+            group.expand()
         self._expanded = True
         self._toggle_btn.config(image=get_icon_image("chevron_up", 15, 15))
 
     def clear_all(self):
-        for frame in self.frames:
-            frame.clear_children()
+        for group in self.groups:
+            group.clear_children()
 
     def collapse_all(self):
-        for frame in self.frames:
-            frame.collapse()
+        for group in self.groups:
+            group.collapse()
         self._expanded = False
         self._toggle_btn.config(image=get_icon_image("chevron_down", 15, 15))
 
@@ -238,8 +315,8 @@ class StylePane(BaseFeature):
             self.collapse_all()
 
     def __update_frames(self):
-        for frame in self.frames:
-            frame.update_state()
+        for group in self.groups:
+            group.update_state()
 
     def start_search(self, *_):
         if self._current:
@@ -247,15 +324,12 @@ class StylePane(BaseFeature):
             self.body.scroll_to_start()
 
     def on_search_query(self, query):
-        for item in self.items:
-            if query in item.definition.get("display_name"):
-                self._show(item)
-            else:
-                self._hide(item)
+        for group in self.groups:
+            group.on_search_query(query)
         self.__update_frames()
 
     def on_search_clear(self):
+        for group in self.groups:
+            group.on_search_clear()
         # The search bar is being closed and we need to bring everything back
-        # Calling search query with empty query ensures all items are displayed
-        self.on_search_query("")
         super().on_search_clear()
