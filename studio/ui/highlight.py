@@ -1,6 +1,8 @@
 import tkinter as tk
 
 from hoverset.platform import platform_is, WINDOWS
+from studio.ui import geometry
+from studio.ui.widgets import DesignPad
 
 
 def resize_cursor() -> tuple:
@@ -26,7 +28,7 @@ class HighLight:
     SIZER_LENGTH = 6
     MIN_SIZE = 2
 
-    def __init__(self, parent):
+    def __init__(self, parent: DesignPad):
         self.parent = self.designer = parent
         self._resize_func = None
         self.bounds = (0, 0, parent.width, parent.height)
@@ -128,8 +130,11 @@ class HighLight:
         if self._resize_func:
             if self._skip_var >= self._skip_max:
                 # Render frames and begin skip cycle
+                event = self._stabilised_event(event)
                 self._skip_var = 0
-                self._resize_func(self._stabilised_event(event))
+                # get the latest limits from DesignPad
+                self.bounds = self.parent.bound_limits()
+                self._resize_func(event)
             else:
                 # Skip rendering frames
                 self._skip_var += 1
@@ -160,7 +165,6 @@ class HighLight:
         self._resize_func = func
         self.pos_on_click = self.pos_cache = self._stabilised_event(event)
         self._update_bbox()
-        self.bounds = (0, 0, float("INF"), float("INF"))
 
     def _update_bbox(self):
         # Update the bounding box based on the current position of the highlight
@@ -265,28 +269,19 @@ class HighLight:
         self._update_bbox()
         self._lift_all()
 
-    def adjust_to(self, bound):
-        """
-        Draw the highlight using the bound :param bound supplied.
-        :param bound:
-        :return:
-        """
-        raise DeprecationWarning()
-
     def _stabilised_event(self, event):
         # Since events are bound to the dynamically adjusted handle widgets in the highlight,
         # coordinates for the event object may vary unpredictably.
         # This method attempts to fix that by adjusting the x and y attributes of the event to always
         # be in reference to a static parent widget in this case self.parent
-        event.x = event.x_root - self.parent.winfo_rootx()
-        event.y = event.y_root - self.parent.winfo_rooty()
+        geometry.make_event_relative(event, self.parent)
         return event
 
     def move(self, event=None):
         # We will use the small change approach. We detect the small change in cursor position then map this
         # difference to the highlight box.
         # Update the position cache with the new position so that we can calculate the subsequent small change
-        bounds = (0, 0, float('INF'), float('INF'))
+        bounds = self.parent.bound_limits()
         if self.pos_cache is not None:
             delta_x, delta_y = event.x - self.pos_cache.x, event.y - self.pos_cache.y
             x1, y1, x2, y2 = self.bbox_on_click

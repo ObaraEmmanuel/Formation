@@ -200,7 +200,8 @@ class LayoutGroup(StyleGroup):
         try:
             self.widget.layout.apply(prop, value, self.widget)
         except Exception as e:
-            logging.log(logging.ERROR, f"{e} : Could not set layout {prop} as {value}", )
+            if value != '':
+                logging.log(logging.ERROR, f"{e} : Could not set layout {prop} as {value}", )
 
 
 class StylePane(BaseFeature):

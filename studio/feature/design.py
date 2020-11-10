@@ -17,7 +17,7 @@ from studio.lib.pseudo import PseudoWidget, Container, Groups
 from studio.parsers.xml import XMLForm
 from studio.ui import geometry
 from studio.ui.highlight import HighLight
-from studio.ui.widgets import DesignPad
+from studio.ui.widgets import DesignPad, CoordinateIndicator
 from studio.tools import ToolManager
 from formation.xml import BaseConverter
 
@@ -28,7 +28,7 @@ class DesignLayoutStrategy(FrameLayoutStrategy):
         self.container.add(widget, x, y, layout=self.container)
 
     def _move(self, widget, bounds):
-        self.container.position(widget, bounds)
+        self.container.position(widget, self.container.canvas_bounds(bounds))
 
     def add_widget(self, widget, bounds=None, **kwargs):
         super(FrameLayoutStrategy, self).add_widget(widget, bounds=None, **kwargs)
@@ -40,7 +40,7 @@ class DesignLayoutStrategy(FrameLayoutStrategy):
             height = kwargs.get("height", 20)
             self.container.place_child(widget, x=x, y=y, width=width, height=height)
         else:
-            x1, y1, x2, y2 = bounds
+            x1, y1, x2, y2 = self.container.canvas_bounds(bounds)
             self.container.place_child(widget, x=x1, y=y1, width=x2 - x1, height=y2 - y1)
         self.children.append(widget)
 
@@ -97,6 +97,7 @@ class Designer(DesignPad, Container):
         self.current_container = None
         self.current_action = None
         self._frame.bind("<Button-1>", lambda *_: self.focus_set())
+        self._frame.bind('<Motion>', self.on_motion, '+')
         self._padding = 30
         self.design_path = None
         self.xml = XMLForm(self)
@@ -112,6 +113,7 @@ class Designer(DesignPad, Container):
             self.studio,
             self.style
         )
+        self._coord_indicator = self.studio.install_status_widget(CoordinateIndicator)
 
     def focus_set(self):
         self._frame.focus_force()
@@ -180,7 +182,10 @@ class Designer(DesignPad, Container):
             save = self.save_prompt()
             if save:
                 # user opted to save
-                self.save()
+                saved_to = self.save()
+                if saved_to is None:
+                    # User did not complete saving and opted to cancel
+                    return
             elif save is None:
                 # user made no choice or basically selected cancel
                 return
@@ -233,7 +238,7 @@ class Designer(DesignPad, Container):
             path = filedialog.asksaveasfilename(parent=self, filetypes=[("XML", "*.xml")],
                                                 defaultextension='.xml')
             if not path:
-                return
+                return None
             self.design_path = path
         with open(self.design_path, 'w') as dump:
             dump.write(self.xml.to_xml())
@@ -277,11 +282,19 @@ class Designer(DesignPad, Container):
             count += 1
         return name
 
+    def on_motion(self, event):
+        self.highlight.resize(event)
+        geometry.make_event_relative(event, self)
+        self._coord_indicator.set_coord(
+            self._frame.canvasx(event.x),
+            self._frame.canvasy(event.y)
+        )
+
     def _attach(self, obj):
         # bind events for context menu and object selection
         obj.bind("<Button-3>", lambda e: self.show_menu(e, obj), add='+')
         obj.bind('<Shift-ButtonPress-1>', lambda e: self.highlight.set_function(self.highlight.move, e), add='+')
-        obj.bind('<Motion>', self.highlight.resize, '+')
+        obj.bind('<Motion>', self.on_motion, '+')
         obj.bind('<ButtonRelease>', self.highlight.clear_resize, '+')
         self.objects.append(obj)
         if self.root_obj is None:
@@ -533,11 +546,9 @@ class Designer(DesignPad, Container):
         if obj is None:
             return
         self.current_action = self.RESIZE
-        if isinstance(obj.layout, Container) and obj.layout != self:
+        if isinstance(obj.layout, Container):
             obj.layout.resize_widget(obj, new_bound)
-        else:
-            obj.level = 0
-            self.place_child(obj, **self.parse_bounds(new_bound))
+
         if obj.layout.layout_strategy.realtime_support:
             self.studio.widget_layout_changed(obj)
 

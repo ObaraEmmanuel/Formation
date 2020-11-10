@@ -85,6 +85,10 @@ class BaseLayoutStrategy:
     def add_widget(self, widget, bounds=None, **kwargs):
         widget.level = self.level + 1
         widget.layout = self.container
+        try:
+            widget.lift(self.container)
+        except Exception:
+            pass
         self.container.clear_highlight()
 
     def widget_released(self, widget):

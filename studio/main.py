@@ -121,14 +121,15 @@ class StudioApplication(Application):
 
         self.menu_bar = MenuUtils.make_dynamic((
             ("cascade", "File", None, None, {"menu": (
-                ("command", "New", None, actions.get('STUDIO_NEW'), {}),
-                ("command", "Open", None, actions.get('STUDIO_OPEN'), {}),
-                ("cascade", "Recent", None, None, {"menu": self._create_recent_menu()}),
+                ("command", "New", icon("add", 14, 14), actions.get('STUDIO_NEW'), {}),
+                ("command", "Open", icon("folder", 14, 14), actions.get('STUDIO_OPEN'), {}),
+                ("cascade", "Recent", icon("clock", 14, 14), None, {"menu": self._create_recent_menu()}),
                 ("separator",),
-                ("command", "Save", None, actions.get('STUDIO_SAVE'), {}),
-                ("command", "Save As", None, actions.get('STUDIO_SAVE_AS'), {}),
+                ("command", "Save", icon("save", 14, 14), actions.get('STUDIO_SAVE'), {}),
+                ("command", "Save As", icon("save", 14, 14), actions.get('STUDIO_SAVE_AS'), {}),
                 ("separator",),
-                ("command", "Exit", None, actions.get('STUDIO_EXIT'), {}),
+                ("command", "Settings", icon("settings", 14, 14), None, {}),
+                ("command", "Exit", icon("exit", 14, 14), actions.get('STUDIO_EXIT'), {}),
             )}),
             ("cascade", "Edit", None, None, {"menu": (
                 EnableIf(lambda: len(self._undo_stack),
@@ -225,6 +226,11 @@ class StudioApplication(Application):
         if self.selected:
             # store the current object as an xml node in the clipboard
             self._clipboard = self.designer.as_xml_node(self.selected)
+
+    def install_status_widget(self, widget_class, *args, **kwargs):
+        widget = widget_class(self._statusbar, *args, **kwargs)
+        widget.pack(side='right', padx=2, fill='y')
+        return widget
 
     def get_pane_info(self, pane):
         return self._panes.get(pane, [self._right, self._right_bar])

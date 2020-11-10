@@ -1,9 +1,26 @@
 import logging
+import math
 from tkinter import ttk, TclError
 
 from hoverset.ui.icons import get_icon_image, get_icon
 from hoverset.ui.widgets import Canvas, FontStyle, Frame, Entry, Button, Label, ScrollableInterface, EventMask
 from studio.ui import geometry
+
+
+class CoordinateIndicator(Frame):
+
+    def __init__(self, master, **cnf):
+        super().__init__(master, **cnf)
+        Label(self, **self.style.dark_text_accent_1, text="x: ", width=3).pack(side='left')
+        self._x = Label(self, **self.style.dark_text, width=5, anchor='w')
+        self._x.pack(side='left')
+        Label(self, **self.style.dark_text_accent_1, text="y: ", width=3).pack(side='left')
+        self._y = Label(self, **self.style.dark_text, width=5, anchor='w')
+        self._y.pack(side='left')
+
+    def set_coord(self, x, y):
+        self._y['text'] = int(y)
+        self._x['text'] = int(x)
 
 
 class CollapseFrame(Frame):
@@ -203,7 +220,7 @@ class DesignPad(ScrollableInterface, Frame):
 
     def _show_x_scroll(self, flag):
         if flag and not self._scroll_x.winfo_ismapped():
-            self._scroll_x.grid(in_=self, row=1, column=0, columnspan=2, sticky='ew')
+            self._scroll_x.grid(in_=self, row=1, column=0, sticky='ew')
         elif not flag:
             self._scroll_x.grid_forget()
         self.update_idletasks()
@@ -226,6 +243,31 @@ class DesignPad(ScrollableInterface, Frame):
 
         self._frame.config(scrollregion=scroll_region)
 
+    def canvasx(self, x):
+        return self._frame.canvasx(x)
+
+    def canvasy(self, y):
+        return self._frame.canvasy(y)
+
+    def canvas_bounds(self, bounds):
+        return (
+            self.canvasx(bounds[0]), self.canvasy(bounds[1]),
+            self.canvasx(bounds[2]), self.canvasy(bounds[3]),
+        )
+
+    def bound_limits(self):
+        """
+        Get the maximum scrolling bounds relative to current view point
+
+        :return: tuple representing max bounding rectangle
+        """
+        return (
+            self.canvasx(0) * -1,
+            self.canvasy(0) * -1,
+            math.inf,
+            math.inf,
+        )
+
     def place_child(self, child, **kw):
         x = kw.get("x", 0)
         y = kw.get("y", 0)
@@ -242,7 +284,7 @@ class DesignPad(ScrollableInterface, Frame):
     def bbox(self, child):
         # return the canvas bbox if possible else use the normal bound
         # canvas bbox is more accurate
-        if self._child_map.get(child is not None):
+        if self._child_map.get(child) is not None:
             return self._frame.bbox(self._child_map[child])
         return geometry.relative_bounds(geometry.bounds(child), self._frame)
 
