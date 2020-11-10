@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tkinter.Frame xmlns:attr="http://www.hoversetformationstudio.com/styles/"
+               xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="place_frame"
+               attr:layout="FrameLayout" layout:width="498" layout:height="380" layout:x="30" layout:y="30">
+    <tkinter.Frame name="grid_frame" attr:background="#9356fb" attr:layout="GridLayout" layout:width="397"
+                   layout:height="250" layout:x="14" layout:y="11">
+        <tkinter.Button name="button_1" attr:text="Button_1" layout:width="0" layout:height="0" layout:row="0"
+                        layout:column="0"/>
+        <tkinter.Button name="button_2" attr:text="Button_2" layout:width="0" layout:height="0" layout:ipadx="20"
+                        layout:ipady="20" layout:padx="5" layout:pady="5" layout:sticky="nesw" layout:row="1"
+                        layout:column="0" layout:columnspan="2"/>
+        <tkinter.Button name="button_4" attr:text="Button_4" layout:width="0" layout:height="0" layout:row="0"
+                        layout:column="1"/>
+        <tkinter.Button name="button_3" attr:text="Button_3" layout:width="0" layout:height="0" layout:sticky="ns"
+                        layout:row="0" layout:column="2" layout:rowspan="2"/>
+        <tkinter.Button name="button_6" attr:text="Button_6" layout:width="4" layout:height="1" layout:row="2"
+                        layout:column="0"/>
+        <tkinter.Button name="button_5" attr:text="Button_5" layout:width="0" layout:height="0" layout:row="2"
+                        layout:column="2"/>
+        <tkinter.Frame name="pack_frame" attr:background="#ff8817" attr:layout="LinearLayout" layout:width="0"
+                       layout:height="0" layout:ipadx="30" layout:ipady="30" layout:row="1" layout:column="3">
+            <tkinter.Button name="button_7" attr:text="Button_7" layout:width="0" layout:height="0" layout:anchor="se"
+                            layout:side="right"/>
+            <tkinter.Button name="button_8" attr:text="Button_8" layout:width="9" layout:height="2" layout:anchor="w"/>
+            <tkinter.Button name="button_9" attr:text="Button_9" layout:width="0" layout:height="0" layout:ipadx="5"
+                            layout:ipady="5" layout:padx="5" layout:pady="5" layout:anchor="w" layout:expand="1"
+                            layout:fill="both" layout:side="bottom"/>
+            <tkinter.ttk.Button name="button_n8" attr:text="Button_1" layout:width="9"/>
+        </tkinter.Frame>
+    </tkinter.Frame>
+    <tkinter.Button name="button_10" attr:borderwidth="12" attr:text="Button_10" layout:width="400" layout:height="60"
+                    layout:x="20" layout:y="280" layout:bordermode="outside"/>
+    <tkinter.Label name="label" attr:text="label" layout:width="55" layout:height="30" layout:x="424" layout:y="12"/>
+    <tkinter.Entry name="entry" attr:vcmd="" layout:width="314" layout:height="30" layout:x="17" layout:y="342"/>
+    <tkinter.Radiobutton name="radio" attr:text="Rbtn" layout:width="57" layout:height="30" layout:x="422"
+                         layout:y="69"/>
+    <tkinter.Scale name="scale" attr:from="0.0" attr:resolution="1.0" attr:tickinterval="0.0" attr:to="100.0"
+                   layout:width="55" layout:height="203" layout:x="426" layout:y="127"/>
+</tkinter.Frame>
