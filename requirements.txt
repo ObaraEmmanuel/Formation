@@ -1,5 +1,5 @@
 lxml
-pyscreenshot
+pyscreenshot; sys_platform != 'win32'
 Pillow
 appdirs
 pywin32 ; sys_platform == 'win32'
