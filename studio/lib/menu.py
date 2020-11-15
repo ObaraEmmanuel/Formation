@@ -1,7 +1,7 @@
 import logging
 import tkinter as tk
 from hoverset.data.images import load_tk_image
-import studio.feature.variable_manager as var_manager
+from studio.lib.variables import VariableManager, VariableItem
 
 MENU_PROPERTY_TABLE = {
     "hidemargin": {
@@ -65,15 +65,15 @@ class _VariableIntercept:
         if isinstance(value, tk.Variable):
             menu.entryconfigure(index, **{prop: value})
         else:
-            variable = var_manager.VariablePane.get_instance().lookup(value)
-            if isinstance(variable, var_manager.VariableItem):
+            variable = VariableManager.lookup(value)
+            if isinstance(variable, VariableItem):
                 menu.entryconfigure(index, **{prop: variable.var})
             else:
                 logging.debug(f'variable {value} not found')
 
     @staticmethod
     def get(menu, index, prop):
-        return str(var_manager.VariablePane.get_instance().lookup(menu.entrycget(index, prop)))
+        return str(VariableManager.lookup(menu.entrycget(index, prop)))
 
 
 _intercepts = {

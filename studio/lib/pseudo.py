@@ -6,6 +6,7 @@ from enum import Enum
 from hoverset.data.images import load_tk_image, load_image, load_image_to_widget
 from hoverset.ui.icons import get_icon, get_icon_image
 from studio.lib import layouts
+from studio.lib.variables import VariableManager
 from studio.lib.properties import get_properties
 from studio.ui.highlight import WidgetHighlighter
 from studio.ui.tree import MalleableTree
@@ -58,9 +59,7 @@ class _VariableIntercept:
         else:
             setattr(widget, f"__{prop}", value)
         if isinstance(value, str):
-            import studio.feature.variable_manager as variable_manager
-            var_manager = variable_manager.VariablePane.get_instance()
-            var = list(filter(lambda x: x.name == value, var_manager.variables))
+            var = list(filter(lambda x: x.name == value, VariableManager.variables))
             if len(var):
                 value = var[0].var
         widget.config(**{prop: value})

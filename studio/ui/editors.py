@@ -10,7 +10,6 @@ import re
 import sys
 from tkinter import IntVar, ttk, filedialog, StringVar
 
-import studio.feature.variable_manager as var_manager
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.panels import FontInput, ColorPicker
 from hoverset.ui.pickers import ColorDialog
@@ -19,6 +18,7 @@ from hoverset.ui.widgets import (CompoundList, Entry, SpinBox, Spinner, Frame, A
 from hoverset.util.color import to_hex
 from hoverset.util.validators import numeric_limit, validate_any, is_empty, is_floating_numeric, is_signed
 from studio.lib.properties import all_supported_cursors, BUILTIN_BITMAPS
+from studio.lib.variables import VariableManager, VariableItem
 
 
 class Editor(Frame):
@@ -453,16 +453,15 @@ class Variable(Choice):
 
         def render(self):
             if self.value:
-                item = var_manager.VariableItem(self, self.value)
+                item = VariableItem(self, self.value)
                 item.pack(fill="both")
                 item.pack_propagate(0)
             else:
                 Label(self, text="", **self.style.dark_text).pack(fill="x")
 
     def set_up(self):
-        var_pane: var_manager.VariablePane = var_manager.VariablePane.get_instance()
-        var_pane.register_editor(self)
-        values = [i.var for i in var_pane.variables]
+        VariableManager.editors.append(self)
+        values = [i.var for i in VariableManager.variables]
         self._spinner.set_item_class(Variable.VariableChoiceItem)
         self._spinner.set_values((
             '', *values,
@@ -470,8 +469,7 @@ class Variable(Choice):
 
     def set(self, value):
         # Override default conversion of value to string by Choice class
-        var_pane = var_manager.VariablePane.get_instance()
-        var = list(filter(lambda x: x.name == value, var_pane.variables))
+        var = list(filter(lambda x: x.name == value, VariableManager.variables))
         # if variable does not match anything in the variable manager presume as empty
         value = var[0].var if len(var) else ''
         self._spinner.set(value)
@@ -483,7 +481,7 @@ class Variable(Choice):
         self._spinner.remove_value(var)
 
     def destroy(self):
-        var_manager.VariablePane.get_instance().unregister_editor(self)
+        VariableManager.remove_editor(self)
         super().destroy()
 
 
@@ -491,10 +489,9 @@ class Stringvariable(Variable):
     # TODO Check for any instances where class is needed otherwise delete
 
     def set_up(self):
-        var_pane: var_manager.VariablePane = var_manager.VariablePane.get_instance()
         # filter to obtain only string variables
-        var_pane.register_editor(self)
-        values = [i.var for i in var_pane.variables if i.var.__class__ == StringVar]
+        VariableManager.editors.append(self)
+        values = [i.var for i in VariableManager.variables if i.var.__class__ == StringVar]
         self._spinner.set_item_class(Variable.VariableChoiceItem)
         self._spinner.set_values((
             '', *values,

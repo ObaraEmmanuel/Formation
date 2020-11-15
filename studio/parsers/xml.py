@@ -10,7 +10,8 @@ import tkinter as tk
 from lxml import etree
 
 from formation import xml
-from studio.feature.variable_manager import VariablePane, VariableItem
+from studio.feature.variable_manager import VariablePane
+from studio.lib.variables import VariableItem
 from studio.lib import legacy, native
 from studio.lib.menu import menu_config
 from studio.lib.pseudo import Container, PseudoWidget
