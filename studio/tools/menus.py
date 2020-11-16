@@ -6,6 +6,7 @@ Menu editor for the studio widgets including menu functionality
 # ======================================================================= #
 
 import functools
+import logging
 import tkinter as tk
 
 from hoverset.ui.icons import get_icon_image, get_icon
@@ -103,7 +104,7 @@ class MenuTree(MalleableTree):
                     self.sub_menu.insert(index, node.type)
                     menu_config(self.sub_menu, self.get_index(), **properties[i])
                 except tk.TclError:
-                    breakpoint()
+                    logging.error("Menu item insert failed")
                 finally:
                     index += 1
 
