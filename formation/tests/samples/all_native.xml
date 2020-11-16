@@ -16,14 +16,13 @@
     <tkinter.ttk.Button name="Button_1" attr:text="Button_1" layout:width="55" layout:height="30" layout:x="36"
                         layout:y="286"/>
     <tkinter.ttk.Checkbutton name="Checkbutton_1"
-                             attr:variable=".!frame3.!panedwindow.!panedwindow2.!designer.!checkbutton"
                              attr:text="Checkbutton_1" layout:width="55" layout:height="30" layout:x="68"
                              layout:y="334"/>
     <tkinter.ttk.Label name="Label_1" attr:text="Label_1" layout:width="55" layout:height="30" layout:x="54"
                        layout:y="375"/>
     <tkinter.ttk.Menubutton name="Menubutton_1" attr:text="Menubutton_1" layout:width="55" layout:height="30"
                             layout:x="75" layout:y="424"/>
-    <tkinter.ttk.Progressbar name="Progressbar_1" attr:variable="PY_VAR39" layout:width="162" layout:height="16"
+    <tkinter.ttk.Progressbar name="Progressbar_1" layout:width="162" layout:height="16"
                              layout:x="29" layout:y="477"/>
     <tkinter.ttk.Scrollbar name="Scrollbar_1" layout:width="24" layout:height="164" layout:x="327" layout:y="238"/>
     <tkinter.ttk.Separator name="Separator_1" layout:width="55" layout:height="30" layout:x="286" layout:y="464"/>

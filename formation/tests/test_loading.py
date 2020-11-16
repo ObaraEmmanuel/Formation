@@ -10,22 +10,22 @@ class XMLLoadingTextCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.xml_string = """
-        <tkinter.Frame 
+        <tkinter.Frame
             xmlns:attr="http://www.hoversetformationstudio.com/styles/"
-            xmlns:layout="http://www.hoversetformationstudio.com/layouts/" 
-            name="Frame_1" 
+            xmlns:layout="http://www.hoversetformationstudio.com/layouts/"
+            name="Frame_1"
             attr:layout="FrameLayout"
-            layout:width="616" 
-            layout:height="571" 
-            layout:x="31" 
+            layout:width="616"
+            layout:height="571"
+            layout:x="31"
             layout:y="31">
-            <tkinter.Frame 
-                name="Frame_2" 
-                attr:background="#e3e3e3" 
-                attr:layout="FrameLayout" 
+            <tkinter.Frame
+                name="Frame_2"
+                attr:background="#e3e3e3"
+                attr:layout="FrameLayout"
                 layout:width="262"
-                layout:height="145" 
-                layout:x="125" 
+                layout:height="145"
+                layout:x="125"
                 layout:y="23"/>
         </tkinter.Frame>"""
 
@@ -68,8 +68,9 @@ class XMLLoadingTextCase(unittest.TestCase):
 
 
 class CompatibilityTestCase(unittest.TestCase):
-    def setUp(self) -> None:
-        self.builder = AppBuilder(path=get_resource("compat.xml"))
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.builder = AppBuilder(path=get_resource("compat.xml"))
 
     def test_tk_compatibility(self):
         # Both tests should pass in python 2 and 3
@@ -83,8 +84,9 @@ class CompatibilityTestCase(unittest.TestCase):
 
 
 class LegacyWidgetCreationTestCase(unittest.TestCase):
-    def setUp(self) -> None:
-        self.builder = AppBuilder(path=get_resource("all_legacy.xml"))
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.builder = AppBuilder(path=get_resource("all_legacy.xml"))
 
     def test_creation(self):
         for widget_class in tk_supported:
@@ -95,8 +97,9 @@ class LegacyWidgetCreationTestCase(unittest.TestCase):
 
 
 class WidgetCreationTestCase(unittest.TestCase):
-    def setUp(self) -> None:
-        self.builder = AppBuilder(path=get_resource("all_native.xml"))
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.builder = AppBuilder(path=get_resource("all_native.xml"))
 
     def test_panedwindow_creation(self):
         self.assertEqual(str(self.builder.Panedwindow_1["orient"]), tk.HORIZONTAL)

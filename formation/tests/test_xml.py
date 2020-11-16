@@ -72,7 +72,7 @@ class AttributeHandlingTestCase(unittest.TestCase):
     def setUp(self) -> None:
         self.node = etree.fromstring(
             """
-            <tag1 
+            <tag1
                 xmlns:attr="http://www.hoversetformationstudio.com/styles/"
                 xmlns:layout="http://www.hoversetformationstudio.com/layouts/"
                 attr:background = "#ffffff"
