@@ -34,6 +34,4 @@
     <tkinter.ttk.Radiobutton name="Radiobutton_1" attr:text="Radiobutton_1" layout:width="55" layout:height="30"
                              layout:x="517" layout:y="374"/>
     <tkinter.ttk.Scale name="Scale_1" layout:width="55" layout:height="30" layout:x="496" layout:y="436"/>
-    <tkinter.ttk.Spinbox name="Spinbox_1" attr:textvariable="Spinbox_1" layout:width="55" layout:height="20"
-                         layout:x="473" layout:y="501"/>
 </tkinter.Frame>

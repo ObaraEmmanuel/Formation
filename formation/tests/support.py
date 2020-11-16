@@ -11,9 +11,10 @@ tk_supported = {
 }
 
 ttk_supported = {
-    ttk.Button, ttk.Checkbutton, ttk.Label, ttk.Menubutton, ttk.Progressbar, ttk.Scrollbar, ttk.Separator,
-    ttk.Combobox, ttk.Entry, ttk.LabeledScale, ttk.Radiobutton, ttk.Scale, ttk.Spinbox,
-    ttk.Frame, ttk.Panedwindow, ttk.Labelframe, ttk.Notebook, ttk.Sizegrip, ttk.Treeview
+    ttk.Button, ttk.Checkbutton, ttk.Label, ttk.Menubutton, ttk.Progressbar,
+    ttk.Scrollbar, ttk.Separator, ttk.Combobox, ttk.Entry, ttk.LabeledScale,
+    ttk.Radiobutton, ttk.Scale, ttk.Frame, ttk.Panedwindow, ttk.Labelframe,
+    ttk.Notebook, ttk.Sizegrip, ttk.Treeview
 }
 
 
