@@ -1,5 +1,5 @@
 """
-Conversions of design to xml and back
+Contains classes that load formation xml design files and generate user interfaces
 """
 # ======================================================================= #
 # Copyright (c) 2020 Hoverset Group.                                      #
@@ -13,27 +13,34 @@ from formation import xml
 from formation.xml import ttk, tk
 from formation.handlers import dispatch_to_handlers
 
-_preloaded = {
-    "tkinter": tk,
-    "Tkinter": tk,
-    "ttk": ttk,
-    "tkinter.ttk": ttk
-}
+_preloaded = {"tkinter": tk, "Tkinter": tk, "ttk": ttk, "tkinter.ttk": ttk}
 
 _variable_types = (
-    "tkinter.StringVar", "Tkinter.StringVar",
-    "tkinter.BooleanVar", "Tkinter.BooleanVar",
-    "tkinter.DoubleVar", "Tkinter.DoubleVar",
-    "tkinter.IntVar", "Tkinter.IntVar",
+    "tkinter.StringVar",
+    "Tkinter.StringVar",
+    "tkinter.BooleanVar",
+    "Tkinter.BooleanVar",
+    "tkinter.DoubleVar",
+    "Tkinter.DoubleVar",
+    "tkinter.IntVar",
+    "Tkinter.IntVar",
 )
 
 _containers = (
-    tk.Frame, ttk.Frame, tk.PanedWindow, ttk.PanedWindow, ttk.Notebook, tk.LabelFrame,
-    ttk.LabelFrame, ttk.Sizegrip, tk.Toplevel
+    tk.Frame,
+    ttk.Frame,
+    tk.PanedWindow,
+    ttk.PanedWindow,
+    ttk.Notebook,
+    tk.LabelFrame,
+    ttk.LabelFrame,
+    ttk.Sizegrip,
+    tk.Toplevel,
 )
 
 
 class BaseConverter(xml.BaseConverter):
+    required_fields = ["layout"]
 
     @classmethod
     def _get_class(cls, node):
@@ -53,15 +60,11 @@ class BaseConverter(xml.BaseConverter):
         raise AttributeError("class {} not found in module {}".format(impl, module))
 
     @classmethod
-    def preprocess(cls, **kwargs):
-        return kwargs
-
-    @classmethod
     def from_xml(cls, node, builder, parent):
         obj_class = cls._get_class(node)
         config = cls.attrib(node)
-        if obj_class == ttk.PanedWindow and 'orient' in config.get("attr", {}):
-            orient = config["attr"].pop('orient')
+        if obj_class == ttk.PanedWindow and "orient" in config.get("attr", {}):
+            orient = config["attr"].pop("orient")
             obj = obj_class(parent, orient=orient)
         else:
             obj = obj_class(parent)
@@ -111,12 +114,13 @@ class MenuConverter(BaseConverter):
                 elif menu:
                     menu.add(tk.CASCADE, menu=menu_obj)
                     index = menu.index(tk.END)
-                    dispatch_to_handlers(menu_obj, attrib, **kwargs, menu=menu, index=index)
+                    dispatch_to_handlers(
+                        menu_obj, attrib, **kwargs, menu=menu, index=index
+                    )
                 cls._menu_from_xml(sub_node, builder, menu_obj)
 
 
 class VariableConverter(BaseConverter):
-
     @classmethod
     def from_xml(cls, node, builder, __=None):
         # we do not need the designer and parent attributes hence the _ and __
@@ -129,6 +133,14 @@ class VariableConverter(BaseConverter):
 
 
 class Builder:
+    """
+    Load xml design into a GUI with all components accessible as attributes
+    To access a widget use its name as set in the designer
+
+    :param parent: The parent window where the design widgets are to be loaded
+    :param path: The path to the xml file containing the design
+    """
+
     _conversion_map = {
         tk.Menubutton: MenuConverter,
         ttk.Menubutton: MenuConverter,
@@ -136,14 +148,10 @@ class Builder:
     }
 
     def __init__(self, parent, **kwargs):
-        """
-        Load xml design into a GUI with all components accessible as attributes
-        To access a widget use its name as set in the designer
-        :param parent: The parent window where the design widgets are to be loaded
-        :param path: The path to the xml file containing the design
-        """
         self._parent = parent
-        self._image_cache = []  # Cache for images to shield them from garbage collection
+        self._image_cache = (
+            []
+        )  # Cache for images to shield them from garbage collection
         self._root = None
 
         if kwargs.get("path"):
@@ -180,10 +188,12 @@ class Builder:
 
     def load_path(self, path):
         """
-        Load xml file at :param path
+        Load xml file
+
+        :param path: Path to xml file to be loaded
         :return: root widget
         """
-        with open(path, 'rb') as stream:
+        with open(path, "rb") as stream:
             tree = etree.parse(stream)
             node = tree.getroot()
         self._root = self._load_xml(node)
@@ -191,8 +201,9 @@ class Builder:
 
     def load_string(self, xml_string):
         """
-        Load the builder from a string :param xml_string formatted with the
-        correct supported xml format
+        Load the builder from a string
+
+        :param xml_string: string containing xml to be loaded
         :return: root widget
         """
         node = etree.fromstring(xml_string)
@@ -201,7 +212,9 @@ class Builder:
 
     def load_node(self, node: etree._Element):
         """
-        Load the builder from an lxml _Element :param node
+        Load the builder from :class:lxml._Element node
+
+        :param node: :class:lxml._Element node to be loaded
         :return: root widget
         """
         self._root = self._load_xml(node)
@@ -210,31 +223,38 @@ class Builder:
 
 class AppBuilder(Builder):
     """
-    Subclass of builder that allow opening of xml designs without
+    Subclass of :class:`formation.loader.Builder` that allow opening of xml designs without
     toplevel root widget. It automatically creates a toplevel window
-    and adapts its size to fit the design perfectly
+    and adapts its size to fit the design perfectly. The underlying toplevel window can
+    be accesses as _app. The private accessor underscore is to
+    free as much as of the builder namespace to your user defined names and prevent
+    possible issues
+
+    :param app: optional custom external toplevel to use, if unspecified a toplevel window is created for you
+    :param args: Additional arguments to be passed to underlying toplevel window
+    :param kwargs: Keyword arguments to be passed to underlying toplevel window. The arguments allowed are:
+
+      * path: Path to the xml file to be loaded
+      * string: xml string to be loaded
+      * node: :class:`lxml.etree._Element` node to be loaded
+
+      These arguments are mutually exclusive since design can be loaded from only one format at time.
+
+    .. code-block:: python
+        :linenos:
+
+        # import the formation library which loads the design for you
+        from formation import AppBuilder
+
+        # hello.xml can be any design file created in formation studio
+        app = AppBuilder(path="hello.xml")
+
+        app.mainloop()
     """
 
-    def __init__(self, app=None, screenName=None, baseName=None, className: str = 'Tk', useTk=1, sync=0,
-                 use=None, **kwargs):
-        """
-        Create a builder object that automatically adds itself into a toplevel window
-        and resizes the window accordingly. The underlying toplevel window can
-        be accesses as builder_object._app. The private accessor undrscore is to
-        free as much as of the builder namespace to your user defined names and prevent
-        possible issues
-        :param path: Path to xml file created by the formation designer
-        :param app: optional custom external toplevel to use, if unspecified a toplevel window is
-        created for you
-        The rest of the parameters are specific to the underlying toplevel window
-        Return a new Toplevel widget on screen :param screenName. A new Tcl interpreter will
-        be created. :param baseName will be used for the identification of the profile file (see
-        readprofile).
-        It is constructed from sys.argv[0] without extensions if None is given. CLASSNAME
-        is the name of the widget class
-        """
+    def __init__(self, app=None, *args, **kwargs):
         if app is None:
-            self._parent = self._app = tk.Tk(screenName, baseName, className, useTk, sync, use)
+            self._parent = self._app = tk.Tk(*args)
         else:
             self._parent = self._app = app
 
@@ -243,7 +263,9 @@ class AppBuilder(Builder):
     def _load_xml(self, root_node):
         layout = BaseConverter.attrib(root_node).get("layout", {})
         # Adjust toplevel window size to that of the root widget
-        self._app.geometry('{}x{}'.format(layout.get("width", 200), layout.get("height", 200)))
+        self._app.geometry(
+            "{}x{}".format(layout.get("width", 200), layout.get("height", 200))
+        )
         root = super()._load_xml(root_node)
         root.pack(fill="both", expand=True)
         return root
@@ -251,6 +273,7 @@ class AppBuilder(Builder):
     def mainloop(self, n: int = 0):
         """
         Start the mainloop for the underlying toplevel window
+
         :param n:
         :return:
         """

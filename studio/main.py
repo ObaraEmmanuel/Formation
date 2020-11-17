@@ -5,7 +5,6 @@
 import functools
 import os
 import sys
-# Add Studio and Hoverset to path so imports from hoverset can work.
 from tkinter import filedialog, Toplevel
 
 sys.path.append('..')
@@ -30,7 +29,6 @@ from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.menu import MenuUtils, EnableIf, dynamic_menu, LoadLater
 from hoverset.data import actions
 from hoverset.data.keymap import ShortcutManager, CharKey, KeyMap
-import hoverset.ui
 
 from formation import AppBuilder
 
@@ -38,14 +36,12 @@ pref = Preferences.acquire()
 
 
 class StudioApplication(Application):
-    STYLES_PATH = get_resource_path(hoverset.ui, "themes/default.css")
     ICON_PATH = get_resource_path(studio, "resources/images/formation.ico")
 
     def __init__(self, master=None, **cnf):
         super().__init__(master, **cnf)
         # Load icon asynchronously to prevent issues which have been known to occur when loading it synchronously
         self.after(200, lambda: self.wm_iconbitmap(self.ICON_PATH, self.ICON_PATH))
-        self.load_styles(self.STYLES_PATH)
         self._restore_position()
         self.title('Formation Studio')
         self.protocol('WM_DELETE_WINDOW', self._on_close)
@@ -352,6 +348,10 @@ class StudioApplication(Application):
             return
         recent = pref.get("studio::recent")
         max_recent = pref.get("studio::recent_max")
+        if not os.path.exists(path):
+            # path doesn't exist just remove it
+            recent.remove(path)
+            return
         if len(recent) > max_recent and path not in recent:
             recent = recent[:-1]
         if path in recent:
@@ -359,8 +359,7 @@ class StudioApplication(Application):
         recent.insert(0, path)
 
     def open_recent(self, path):
-        if os.path.exists(path):
-            self.designer.open_xml(path)
+        self.open_file(path)
 
     def open_new(self):
         self.designer.open_new()
@@ -475,9 +474,10 @@ class StudioApplication(Application):
     def preview(self):
         if self.designer.root_obj is None:
             # If there is no root object show a warning
-            MessageDialog.show_warning(parent=self,
-                                       title='Empty design',
-                                       message='There is nothing to preview. Please add a root widget')
+            MessageDialog.show_warning(
+                parent=self,
+                title='Empty design',
+                message='There is nothing to preview. Please add a root widget')
             return
         # close previous preview if any
         self.close_preview()

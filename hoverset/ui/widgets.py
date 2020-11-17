@@ -1,9 +1,8 @@
 """
-Widget factory classes. This is the foundation of all GUI components used in hoverset.
-You may ask, why rewrite say tkinter classes?
-The answer is simple, we need a way to easily switch GUI frameworks in the future without
-breaking functionality in the soon to grow hoverset app ecosystem
-All gui manifestation should strictly use hoverset widget set for easy maintenance in the future
+This is the foundation of all GUI components used in hoverset based project.
+These widget classes are used in the Formation studio and have special features
+such as tkinter styles loaded from css files and available for use anywhere inside them.
+All gui manifestation should strictly use hoverset widget set for easy maintenance in the future.
 """
 # ======================================================================= #
 # Copyright (C) 2019 Hoverset Group.                                      #
@@ -18,11 +17,13 @@ from collections import namedtuple
 from tkinter import font
 
 from hoverset.data.images import load_image_to_widget
+from hoverset.data.utils import get_resource_path
 from hoverset.ui.animation import Animate, Easing
 from hoverset.ui.icons import get_icon
 from hoverset.ui.styles import StyleDelegator
 from hoverset.ui.windows import DragWindow
 from hoverset.ui.menu import MenuUtils
+import hoverset.ui
 
 __all__ = (
     "Application",
@@ -69,13 +70,24 @@ __all__ = (
 
 
 class FontStyle(font.Font):
+    """
+    Hoverset equivalent of :py:class:`tkinter.font.Font` with additional
+    functionality
+
+    """
 
     @staticmethod
     def families(root=None, displayof=None):
+        """
+        Get font families as tuple
+        """
         return font.families(root, displayof)
 
     @staticmethod
     def nametofont(name):
+        """
+        Given the name of a tk named font, returns a Font representation.
+        """
         try:
             return font.nametofont(name)
         except tk.TclError:
@@ -83,15 +95,38 @@ class FontStyle(font.Font):
 
     @staticmethod
     def names(root=None):
+        """
+        Get names of defined fonts (as a tuple)
+        """
         return font.names(root)
 
 
 class EventMask:
     """
-    Event mask values to be used to test events occurring with these states set.
-    To check whether control button was down just check whether:
+    Event mask values to be used to test events occurring with these
+    states set. For instance, to check whether control button was
+    down the following check can be performed
 
-    event.state & EventMask.CONTROL != 0
+    .. code:: python
+
+        def on_event(event):
+            if event.state & EventMask.CONTROL:
+                print("Control button pressed")
+
+    .. table::
+
+        ============================  ========================
+        Event Mask                    Event status
+        ============================  ========================
+        EventMask.SHIFT               Shift key down
+        EventMask.CAPS_LOCK           Caps lock key down
+        EventMask.CONTROL             Control key down
+        EventMask.L_ALT               Left Alt key down
+        EventMask.NUM_LOCK            Num lock key down
+        EventMask.MOUSE_BUTTON_1      Right mouse button down
+        EventMask.MOUSE_BUTTON_2      Mouse wheel down
+        EventMask.MOUSE_BUTTON_3      Left mouse button down
+        ============================  ========================
 
     """
     SHIFT = 0x0001
@@ -107,9 +142,14 @@ class EventMask:
 
 # Imitate a tkinter event object for use when handling synthetic events
 EventWrap = namedtuple('EventWrap', ['x_root', 'y_root', 'x', 'y'])
+EventWrap.__doc__ = """
+Imitate a tkinter event object for use when handling synthetic events"""
 
 
 class WidgetError(tk.TclError):
+    """
+    Extra errors thrown by hoverset widgets
+    """
     pass
 
 
@@ -117,6 +157,7 @@ def chain(func):
     """
     Decorator function that allows class methods to be chained by implicitly returning the object. Any method
     decorated with this function returns its object.
+
     :param func:
     :return:
     """
@@ -134,6 +175,7 @@ def set_ttk_style(widget, cnf=None, **styles) -> None:
     Allows you set styles for ttk widgets just like conventional tkinter widgets.
     It bypasses the need to work with ttk styles.
     It is important however to note that unsupported styles will be silently ignored!
+
     :param widget: A ttk widget
     :param styles: keyword arguments representing conventional tkinter style
     :param cnf: Dictionary of styles to applied
@@ -155,6 +197,7 @@ def clean_styles(widget, styles) -> dict:
     styles that are not allowed for a given widget. This function takes in the styles dictionary and removes
     invalid styles for the particular widget returning the cleaned styles dictionary. As a bonus, duplicate definitions
     are overwritten.
+
     :param widget:
     :param styles:
     :return: dict cleaned_styles
@@ -168,6 +211,11 @@ def clean_styles(widget, styles) -> dict:
 
 
 def system_fonts():
+    """
+    A list of all font on the current system
+
+    :return: list of font names
+    """
     fonts = sorted(list(font.families()))
     fonts = list(filter(lambda x: not x.startswith("@"), fonts))
     return fonts
@@ -175,27 +223,37 @@ def system_fonts():
 
 class EditableMixin:
     """
-    This mixin implements all methods applicable to all widgets that allow entry of data
-    using the keyboard. All widgets that have such functionality should ensure they extend
-    this mixin.
+    This mixin implements all methods applicable to all widgets that allow
+    entry of data using the keyboard. All widgets that have such functionality
+    should ensure they extend this mixin.
     """
 
     def set_validator(self, validator, *args, **kwargs) -> None:
         """
-        Allows addition of realtime validation of data entered by the user to input widgets. This validation
-        is carried out at the lowest level before the user interface even displays the value in the widget allowing
-        invalid data to be blocked before it is ever displayed.
-        :param validator: The validation method that accepts one argument which is the string to be validated. Such
-        functions can be found or added at hoverset.util.validators
+        Allows addition of realtime validation of data entered by the
+        user to input widgets. This validation is carried out at the
+        lowest level before the user interface even displays the value in
+        the widget allowing invalid data to be blocked before it is ever
+        displayed.
+
+        :param validator: The validation method that accepts one argument
+          which is the string to be validated. Such functions can be found
+          or added at hoverset.util.validators
         :return: None
         """
-        self.configure(validate='all',
-                       validatecommand=(self.register(lambda val: validator(val, *args, **kwargs)), "%P")
-                       )
+        self.configure(
+            validate='all',
+            validatecommand=(
+                self.register(lambda val: validator(val, *args, **kwargs)),
+                "%P"
+            )
+        )
 
     def on_change(self, callback, *args, **kwargs):
         """
-        Set the callback when data in the input widget is changed either explicitly or implicitly.
+        Set the callback when data in the input widget is changed either
+        explicitly or implicitly.
+
         :param callback:
         :return:
         """
@@ -203,8 +261,9 @@ class EditableMixin:
 
     def on_entry(self, callback, *args, **kwargs):
         """
-        Set the callback when data in the input widget is changed explicitly i.e when the user actually types values
-        into the input widget.
+        Set the callback when data in the input widget is changed explicitly
+        i.e when the user actually types values into the input widget.
+
         :param callback:
         :return:
         """
@@ -212,6 +271,11 @@ class EditableMixin:
         self.bind("<KeyRelease>", lambda *_: callback(*args, **kwargs))
 
     def disabled(self, flag):
+        """
+        Change the state of an editable widget, whether disable or enabled
+
+        :param flag: set to ``True`` to disable and ``False`` to enable
+        """
         if flag:
             self.config(state='disabled')
         else:
@@ -221,35 +285,53 @@ class EditableMixin:
         """
         Overrides default get method which often gives an outdated value
         and instead returns latest value straight from the control variable
-        :return: current value of editable widget, type depends on the control variable type
+
+        :return: current value of editable widget, type depends on the
+          control variable type
         """
         return self._var.get()
 
 
 class ContextMenuMixin:
+    """
+    Adds context menu functionality to a widget
+    """
     _on_context_menu = None
 
-    @functools.wraps(MenuUtils.make_dynamic)
+    @functools.wraps(MenuUtils.make_dynamic, assigned=('__doc__',))
     def make_menu(self, templates, parent=None, dynamic=True, **cnf):
         return MenuUtils.make_dynamic(templates, parent or self, self.style, dynamic, **cnf)
 
     def set_up_context(self, templates, **cnf):
         """
-        Set up a context menu using the template which is a tuple containing items in the format
-        (type, label, icon, command, additional_configuration={})
-        :param templates:
-        :param cnf:
-        :return:
+        Set up a context menu using the template which is a tuple
+        containing items in the format
+        ``(type, label, icon, command, additional_configuration={})``
+
+        :param templates: menu template
+        :param cnf: config for menu
         """
         self.context_menu = self.make_menu(templates, **cnf)
         self.bind_all("<Button-3>", lambda event: ContextMenuMixin.popup(event, self.context_menu), add='+')
 
     @staticmethod
     def popup(event, menu):
+        """
+        Show context menu at event location
+
+        :param event: event whose location is to be used
+        :param menu: menu to be displayed
+        """
         MenuUtils.popup(event, menu)
 
     @staticmethod
     def add_context_menu(menu, widget):
+        """
+        Setup context menu for other widgets not extending this mixin
+
+        :param menu: menu to be set up as context
+        :param widget: widget to context menu on
+        """
         widget.bind("<Button-3>", lambda event: ContextMenuMixin.popup(event, menu), add="+")
 
 
@@ -299,11 +381,13 @@ class CenterWindowMixin:
 class PositionMixin:
     """
     Automatic positioning of popup windows, it positions windows such that
-    the are visible from any point of the screen by prividing a post method
+    the are visible from any point of the screen by providing a post method
     """
 
     def post(self, widget, **kwargs):
         """
+        Display a popup window anchored around a widget
+
         :param widget: A tk widget to be used as an anchor point
         :param kwargs:
             -side: a string value "nw", "ne", "sw", "se", "auto" representing where the
@@ -353,6 +437,7 @@ class _Tooltip(tix.Toplevel):
     def __init__(self, style: StyleDelegator, xy: tuple, render, master=None):
         """
         Create a tooltip window
+
         :param style: A style delegator object to allow use of hoverset widgets inside the window
         :param xy: a tuple representing the current cursor position
         :param render: A function taking accepting one argument (the tooltip window)
@@ -385,7 +470,7 @@ class _Tooltip(tix.Toplevel):
 # noinspection PyTypeChecker
 class Widget:
     """
-    Base class for all hoverset widgets providing all methods common to all widgets
+    Base class for all hoverset widgets implementing all common methods.
     """
     s_style = None  # Static style holder
     s_window = None  # Static window holder
@@ -395,8 +480,6 @@ class Widget:
         """
         It performs the necessary dependency injection and event bindings and
         set up.
-        :param _:
-        :return:
         """
         self._allow_drag = False
         self._drag_setup = False
@@ -408,10 +491,18 @@ class Widget:
 
     @property
     def allow_drag(self):
+        """
+        Determines whether widgets can be dragged in-case of a drag drop event
+        """
         return self._allow_drag
 
     @allow_drag.setter
     def allow_drag(self, flag: bool):
+        """
+        Call this method to make the widget allow or disallow drag and drop
+
+        :param flag: set to True to allow drag drop and False to disallow
+        """
         self._allow_drag = flag
         if self._allow_drag and not self._drag_setup:
             self.bind_all('<Motion>', self._drag_handler)
@@ -419,6 +510,10 @@ class Widget:
             self._drag_setup = True
 
     def _drag_handler(self, event):
+        """
+        Handle drag drop events
+        :param event: tk event
+        """
         if not self.allow_drag:
             return
         if event.type.value == "6":
@@ -445,38 +540,47 @@ class Widget:
     def accept_context(self, context):
         """
         This method is called when a drag drop operation is completed to allow the dropped object to be handled
-        :param context:
-        :return:
+
+        :param context: Object being dropped at the widget
         """
         logging.info(f"Accepted context {context}")
 
     def render_drag(self, window):
         """
-        Override this method to create and position widgets on the drag shadow window
+        Override this method to create and position widgets on the drag shadow window (The object displayed
+        as the widget is dragged around). Create your custom widget hierarchy and position
+        it in window.
+
         :param window: The drag window provided by the drag manager that should be used as the widget master
         :return: None
         """
         tk.Label(window, text="Item", bg="#f7f7f7").pack()  # Default render
+
+    def on_drag_start(self, *args):
+        pass
 
     def config_all(self, cnf=None, **kwargs):
         """
         A way to config all the children of a widget. Especially useful for compound widgets where styles need to be
         applied uniformly or following a custom approach to all contained child widgets. Override this method to
         customize its behaviour to suit your widget. It defaults to the normal config
-        :param cnf:
-        :param kwargs:
-        :return:
+
+        :param cnf: :class:`dict` containing configuration
+        :param kwargs: configurations as keyword arguments
+        :return: None
         """
         self.config(cnf, **kwargs)
 
     def bind_all(self, sequence=None, func=None, add=None):
         """
-        Total override of the tkinter bind_all method allowing events to be bounds to all the children of a widget.
-        This is useful for compound widgets which need to behave as a single entity
-        :param sequence: Event sequence
-        :param func: Callback
-        :param add:
-        :return:
+        Total override of the tkinter bind_all method allowing events to be bounds to all the children of a widget
+        and not the entire application. This is useful for compound widgets which need to behave as a single entity
+
+        :param sequence: Event sequence to be bound
+        :param func: Callback function
+        :param add: specifies whether func will be called additionally to the other bound function or whether
+          it will replace the previous function entirely.
+        :return: identifier of the bound function allowing it to be unbound later
         """
         return self.bind(sequence, func, add)
 
@@ -484,7 +588,8 @@ class Widget:
     def width(self) -> int:
         """
         Wrapper property of the tk Misc class w.winfo_width() method for quick access to widget width property in pixels
-        :return: int
+
+        :return: width of widget
         """
         return self.winfo_width()
 
@@ -501,6 +606,7 @@ class Widget:
         """
         Set the state of a widget to disabled .Override this method for compound widgets to obtain the
         expected behaviour as the state is by default only applied to the containing/parent widget.
+
         :param flag: True or False
         :return:
         """
@@ -512,6 +618,13 @@ class Widget:
 
     @staticmethod
     def event_in(event, widget):
+        """
+        Check whether event has occurred within a widget
+
+        :param event: event object containing position data
+        :param widget: the widget to be checked
+        :return: True if event occurred in within widget else False
+        """
         check = widget.winfo_containing(event.x_root, event.y_root)
         while not isinstance(check, Application) and check is not None:
             if check == widget:
@@ -521,6 +634,18 @@ class Widget:
 
     @staticmethod
     def event_first(event, widget, class_: type, ignore=None):
+        """
+        Gets the first widget belonging to `class\_` at the event position. This widget
+        may be the top widget or it's parents and grandparents deep down the hierarchy.
+        Useful when you want to ignore widgets and cascade the event to a specific lower
+        level widget.
+
+        :param event: a tk event object containing the position data
+        :param widget: any widget preferably the toplevel widget
+        :param class_: the class of the widget we are interested in
+        :param ignore: widget to be ignored if any
+        :return: the first widget belonging to `class\_`, if no widget is found None is returned
+        """
         check = widget.winfo_containing(event.x_root, event.y_root)
         while not isinstance(check, Application) and check is not None:
             if isinstance(check, class_) and not check == ignore:
@@ -529,12 +654,14 @@ class Widget:
         return None
 
     def absolute_bounds(self):
+        """
+        Get the position of the widget on the screen
+
+        :return: a tuple containing the bounding box of the widget (x1, y2, x2, y2)
+        """
         self.update_idletasks()
         return (self.winfo_rootx(), self.winfo_rooty(),
                 self.winfo_rootx() + self.width, self.winfo_rooty() + self.height)
-
-    def on_drag_start(self, *args):
-        pass
 
     @staticmethod
     def clone_to(parent, widget):
@@ -542,6 +669,7 @@ class Widget:
         Clone a tkinter widget to a different parent. Tkinter widget parents cannot be changed directly. This method
         performs recursive cloning of widget hierarchies. For cloning of custom tkinter widgets it is advisable to
         use clone method instead to specify your clone procedure
+
         :param parent: The new parent for cloned widget
         :param widget: The widget to be cloned
         :return: cloned widget
@@ -561,6 +689,7 @@ class Widget:
         """
         Generates a clone of the current widget for the given parent. Override this method in a custom widget to
         provide a custom implementation for cloning
+
         :param parent: A tk widget which will be clones parent
         :return: A clone of the current widget
         """
@@ -571,6 +700,7 @@ class Widget:
     def copy_config(from_, to):
         """
         Copy styles and configuration from one widget to another
+
         :param from_: Widget whose configuration is to be copied
         :param to: Widget receiving the copied configurations
         :return: None
@@ -588,6 +718,7 @@ class Widget:
     def tooltip(self, text, delay=1500):
         """
         Set the tooltip text for a widget
+
         :param text: Tooltip text to be displayed
         :param delay: Amount of time in milliseconds it takes for the tooltip to appear
         :return: None
@@ -629,6 +760,7 @@ class Widget:
         """
         Create a custom tooltip body by overriding this method. The default rendering displays
         a simple Label with the tooltip text
+
         :param window: The tooltip window instance to be used as parent for the custom elements
         :return: None
         """
@@ -894,7 +1026,7 @@ class ScrolledFrame(Widget, ScrollableInterface, ContextMenuMixin, WindowMixin, 
 
     def _show_x_scroll(self, flag):
         if flag and not self._scroll_x.winfo_ismapped():
-            self._scroll_x.grid(row=1, column=0, columnspan=2, sticky='ew')
+            self._scroll_x.grid(row=1, column=0, sticky='ew')
         elif not flag:
             self._scroll_x.grid_forget()
         self.update_idletasks()
@@ -985,8 +1117,8 @@ class ScrolledFrame(Widget, ScrollableInterface, ContextMenuMixin, WindowMixin, 
     def set_scrollbars(self, flag):
         """
         :param flag: set to tkinter.X to enable horizontal scrollbar, tkinter.Y to enable vertical scrollbar,
-        tkinter.BOTH to enable both scrollbars and None to disable all scrollbars. The default is tkinter.Y for
-        the vertical scrollbar.
+          tkinter.BOTH to enable both scrollbars and None to disable all scrollbars. The default is tkinter.Y for
+          the vertical scrollbar.
         :return: None
         """
         self._scrollbar_flag = flag
@@ -1025,6 +1157,11 @@ class Screen:
 
 
 class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, ContextMenuMixin, tix.Tk):
+    """
+    The main toplevel widget for hoverset widgets. All hoverset widgets must
+    be children or descendants of an :class:`hoverset.ui.widgets.Application` object.
+    """
+
     # We want to extend tix.Tk to broaden our widget scope because now we can use tix widgets!
     # This is inconsequential to other widgets as tix.Tk subclasses tkinter.tk which is the base class here
     # This class needs no dependency injection since its the source of the dependencies after all!
@@ -1037,24 +1174,40 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
         self.bind_all("<MouseWheel>", self._on_mousewheel, '+')
         self.drag_context = None
         self.drag_window = None
+        # Load default styles
+        self.load_styles(get_resource_path(
+            hoverset.ui, "themes/default.css"
+        ))
 
     def load_styles(self, path):
         """
         Accepts a path to a cascading style sheet containing the styles used by the widgets. The style dependency is
         loaded here
-        :param path:
-        :return:
+
+        :param path: path to the css file to be loaded
+        :return: A :class:`hoverset.ui.styles.StyleDelegator` object
         """
         self._style = StyleDelegator(path)
 
     @property
     def style(self):
+        """
+        Get the currently loaded css
+        :return: a :class:`hoverset.ui.styles.StyleDelegator`
+        """
         return self._style
 
     def bind_all(self, sequence=None, func=None, add="+"):
         return super(tix.Tk, self).bind_all(sequence, func, add)
 
     def unbind_all(self, sequence, func_id=None):
+        """
+        Unbind sequence from immediate children
+
+        :param sequence: sequence to be unbound
+        :param func_id: function id if any to unbind a specific callback
+        :return:
+        """
         for child in self.winfo_children():
             try:
                 child.unbind(sequence, func_id)
@@ -1094,7 +1247,6 @@ class ToolWindow(Window):
     def show(self):
         """
         The window is initialized as invisible to allow you to set it up first. Call this method to make it visible
-        :return:
         """
         self.wm_attributes('-alpha', 1.0)
 
@@ -1141,6 +1293,9 @@ class ActionNotifier(Window):
 
 
 class Canvas(Widget, ContextMenuMixin, tk.Canvas):
+    """
+    Hoverset wrapper for :class:`tkinter.Canvas`
+    """
 
     def __init__(self, master=None, **kwargs):
         self.setup(master)
@@ -1148,6 +1303,9 @@ class Canvas(Widget, ContextMenuMixin, tk.Canvas):
 
 
 class MenuButton(Widget, ImageCacheMixin, tk.Menubutton):
+    """
+    Hoverset wrapper for :class:`tkinter.Menubutton`
+    """
 
     def __init__(self, master=None, **kwargs):
         self.setup(master)
@@ -1155,6 +1313,10 @@ class MenuButton(Widget, ImageCacheMixin, tk.Menubutton):
 
 
 class Button(Frame):
+    """
+    Completely custom Hoverset widget built on top of :class:`hoverset.ui.widgets.Frame`
+    """
+
     # For purposes of easy customization we saw it wise to extend the Label instead of the button
     # The default tkinter button implements a sunken relief on click that is rather ancient.
     # So we'd rather reinvent the wheel (Painful yes) but we can stay modern.
@@ -1176,6 +1338,15 @@ class Button(Frame):
         return FontStyle(family=self._label["font"]).measure(text)
 
     def on_click(self, callback, *args, **kwargs):
+        """
+        A more elaborate event binding that binds mouse clicks, return button and
+        space button useful for mouse free operation. The callback should accept
+        an event argument.
+
+        :param callback: callback function to be bound
+        :param args: arguments to be passed to callback
+        :param kwargs: keyword arguments to be passed to callback
+        """
         if callback is None:
             return
         self.bind_all("<Button-1>", lambda e: callback(e, *args, **kwargs))
@@ -1190,6 +1361,9 @@ class Button(Frame):
 
 
 class ToggleButton(Button):
+    """
+    Hoverset button allowing toggling
+    """
 
     def __init__(self, master=None, **cnf):
         super().__init__(master, **cnf)
@@ -1379,11 +1553,41 @@ class DrawOver(PositionMixin, Frame):
 
 
 class CompoundList(ScrolledFrame):
+    """
+    ListBox widget allowing for more flexibility with custom items extending
+    :py:class:`CompoundList.BaseItem`. Here is an example:
+
+    .. code-block:: python
+
+        from hoverset.ui.widgets import CompoundList, Application, Label
+
+        app = Application()
+
+        my_list = CompoundList(app)
+
+        class CustomItem(CompoundList.BaseItem):
+            # Custom class to display two fields in a single item
+
+            def render(self):
+                occupation, name = self.value
+                Label(self, text=f"Occupation: {occupation}").pack(side="top")
+                Label(self, text=f"Name: {name}").pack(side="top")
+
+        my_list.set_item_class(CustomItem)
+        my_list.set_values([["Engineer", "John"], ["Professor", "Sir Isaac"]])
+        my_list.pack()
+
+        app.mainloop()
+
+    """
     MULTI_MODE = 0x001
     SINGLE_MODE = 0x002
     BROWSE_MODE = 0x003
 
     class BaseItem(Frame):
+        """
+        Base class for all custom list items
+        """
 
         def __init__(self, master, value, index, isolated=False):
             super().__init__(master.body)
@@ -1400,26 +1604,52 @@ class CompoundList(ScrolledFrame):
             self.config_all(**self.style.dark)
 
         def render(self):
+            """
+            Create the custom section of a custom item. Override this
+            method and add new widgets to the item. The default rendering
+            is a label containing the value of the item
+            """
             self._text = Label(self, **self.style.dark_text, text=self._value, anchor="w")
             self._text.pack(fill="both")
 
         @property
         def value(self):
+            """
+            The value the item is supposed to display. Can be any object
+            depending on what is set through :py:attr:`CompoundList.set_values`
+
+            :return: Value represented by item
+            """
             return self._value
 
         def select_self(self, event=None, *_):
+            """
+            Set the item as selected in its parent list
+
+            :param event: event causing the selection. Default is ``None``
+            """
             self._parent.select(self._index, event)
 
         def select(self, *_):
+            """
+            Marks item as selected and applies the required styles and
+            configuration to make it appear selected such as the color
+            """
             self._selected = True
             self.on_hover()
 
         def deselect(self):
+            """
+            Marks item as deselected and applies the required styles and
+            configuration to make it return to its normal state
+            """
             self._selected = False
             self.on_hover_ended()
 
-        # We need to add implementation details separate from library user interference
-        # Users are therefore free to override the non-private wrappers without breaking core functionality
+        # We need to add implementation details separate from library
+        # user interference
+        # Users are therefore free to override the non-private wrappers
+        # without breaking core functionality
         def _on_hover(self, *_):
             if self._parent.get_mode() == CompoundList.BROWSE_MODE:
                 self._parent.select(self._index)
@@ -1431,15 +1661,32 @@ class CompoundList(ScrolledFrame):
                 self.on_hover_ended(*_)
 
         def on_hover(self, *_):
+            """
+            Applies styles and config required when item is hovered
+            """
             self.config_all(**self.style.dark_on_hover)
 
         def on_hover_ended(self, *_):
+            """
+            Revert the item config when no longer under hover
+            """
             self.config_all(**self.style.dark_on_hover_ended)
 
         def get(self):
+            """
+            Get the value represented by the item
+
+            :return: Value represented by the item
+            """
             return self._value
 
         def clone_to(self, parent):
+            """
+            Create a copy of the item for positioning in a new parent
+
+            :param parent: New intended parent
+            :return: the new item clone
+            """
             return self.__class__(parent, self._value, self._index, True)
 
     # ----------------------------------------- CompoundList -----------------------------------------------
@@ -1455,18 +1702,50 @@ class CompoundList(ScrolledFrame):
         self._on_change = None
 
     def set_mode(self, mode):
+        """
+        Set the mode of selection
+
+        :param mode: mode value which can be one of the following
+
+            * :py:attr:`CompoundList.SINGLE_MODE`: allows selection of one
+              item at a time
+            * :py:attr:`CompoundList.MULTI_MODE`: allows selection of multiple
+              items by holding down the control key
+            * :py:attr:`CompoundList.BROWSE_MODE`: allows selection of one item
+              at a time. Selection will follow the currently hovered item
+
+        """
         self._mode = mode
 
     def get_mode(self):
+        """
+        Get currently set mode
+        """
         return self._mode
 
     def set_item_class(self, cls):
+        """
+        Set the class used to render the list items in the case of custom
+        items.
+
+        :param cls: A a subclass of :py:class:`CompoundList.BaseItem`
+        """
         self._cls = cls
 
-    def class_in_use(self):
+    def get_class(self):
+        """
+        Get the item class currently in use
+
+        :return: current item class
+        """
         return self._cls
 
     def set_values(self, values):
+        """
+        Set the values to be displayed by the list box
+
+        :param values: an iterable containing the item values to be displayed
+        """
         self._values = values
         self._render(values)
 
@@ -1478,10 +1757,22 @@ class CompoundList(ScrolledFrame):
             item.update_idletasks()
 
     def add_values(self, values):
+        """
+        Append new values to the list
+
+        :param values: an iterable containing items to be added
+        :return:
+        """
         self._values += values
         self._render(values)
 
     def select(self, index, event=None):
+        """
+        Select item at given index
+
+        :param index: index to be selected
+        :param event: event generating the selection if any
+        """
         if event and event.state & EventMask.CONTROL and self._mode == CompoundList.MULTI_MODE:
             self._multi_selector(index)
         else:
@@ -1504,6 +1795,20 @@ class CompoundList(ScrolledFrame):
             self._items[index].select()
 
     def get(self):
+        """
+        Get currently selected item(s)
+
+        .. note::
+
+            This does not return the underlying value but the rendered item
+            currently selected which is a :class:`CompoundList.BaseItem`
+            object. To obtain the value use its ``value`` property or ``get``
+            method
+
+        :return: selected item if mode is not set to MULTI_MODE otherwise
+          a list of all selected items. If no item is selected ``None`` is
+          returned
+        """
         if self._mode == CompoundList.MULTI_MODE:
             return [self._items[index] for index in self._current_indices]
         elif len(self._current_indices):
@@ -1512,10 +1817,21 @@ class CompoundList(ScrolledFrame):
             return None
 
     def on_change(self, func, *args, **kwargs):
+        """
+        Set a callback function to be called on selection change
+
+        :param func: callback function
+        :param args: extra positional arguments to be passed to callback
+          in addition to the selected item
+        :param kwargs: keyword arguments to be passed to callback function
+        """
         self._on_change = lambda value: func(value, *args, **kwargs)
 
 
 class Spinner(Frame):
+    """
+    Combobox widget allowing easy customization of choice items
+    """
 
     def __init__(self, master=None, **_):
         super().__init__(master)
@@ -1791,25 +2107,25 @@ class TreeView(ScrolledFrame):
         def insert_after(self, *nodes):
             """
             Insert the nodes immediately after this node in the same parent
+
             :param nodes: List of nodes to be inserted
-            :return:
             """
             self.parent_node.insert(self.parent_node.nodes.index(self) + 1, *nodes)
 
         def insert_before(self, *nodes):
             """
             Insert the nodes immediately before this node in the same parent
+
             :param nodes: List of nodes to be inserted
-            :return:
             """
             self.parent_node.insert(self.index(), *nodes)
 
         def insert(self, index=None, *nodes):
             """
             Insert all child nodes passed into parent node starting from the given index
+
             :param index: int representing the index from which to insert
             :param nodes: Child nodes to be inserted
-            :return: None
             """
             # If no index is provided we assume we are appending
             index = len(self.nodes) if index is None else index
@@ -1833,6 +2149,7 @@ class TreeView(ScrolledFrame):
         def add_as_node(self, **options):
             """
             Adds a node to the tree view.
+
             :param options: Options used in creating the node like name, icon e.t.c. depending on the Node
             :return: The created Node
             """
@@ -1849,6 +2166,7 @@ class TreeView(ScrolledFrame):
             """
             Remove the node from node's child nodes. If node is not provided the the node removes itself from
             its parent
+
             :param node: Node to be removed (optional)
             :return: None
             """
@@ -1904,8 +2222,6 @@ class TreeView(ScrolledFrame):
         def toggle(self, *_):
             """
             Toggle between the expanded and collapsed state
-            :param _:
-            :return: None
             """
             if self._expanded:
                 self.collapse()
@@ -1939,9 +2255,9 @@ class TreeView(ScrolledFrame):
     def select(self, n, silently=False):
         """
         Select a node :param n and deselect all other selected nodes
+
         :param silently: Flag set to true to prevent firing on change event and vice versa. Default is false
-        :param n: Node
-        :return: None
+        :param n: Node to be selected
         """
         for node in self._selected:
             node.deselect()
@@ -1952,7 +2268,6 @@ class TreeView(ScrolledFrame):
     def clear_selection(self):
         """
         Deselect all currently selected nodes
-        :return:
         """
         for node in self._selected:
             node.deselect()
@@ -1963,7 +2278,8 @@ class TreeView(ScrolledFrame):
         """
         Get the currently selected node if multi select is set to False and a list of all selected items if multi
         select is set to True. Returns None if no item is selected.
-        :return:
+
+        :return: Selected widget or None if no widget is selected
         """
         if self._multi_select:
             return self._selected
@@ -2001,8 +2317,8 @@ class TreeView(ScrolledFrame):
         """
         Add an already created node to the tree view. Use add_as_node instead to avoid tkinter parent
         issues.
+
         :param node: The child Node to be added to the Node
-        :return:
         """
         self.nodes.append(node)
         node.parent_node = self
@@ -2012,6 +2328,7 @@ class TreeView(ScrolledFrame):
     def add_as_node(self, **options) -> Node:
         """
         Adds a base node to the Tree. The node will belong to a subclass' Node definition if any.
+
         :param options: Options used in creating the node like name, icon e.t.c.
         :return: The created Node
         """
@@ -2024,9 +2341,10 @@ class TreeView(ScrolledFrame):
 
     def allow_multi_select(self, flag):
         """
+        Allow or disallow multiple widgets to be selected
+
         :param flag: Set to True to allow multiple items to be selected by the tree view and false to disable
-        selection of multiple items.
-        :return:
+          selection of multiple items.
         """
         self._multi_select = flag
 
@@ -2066,16 +2384,14 @@ class TreeView(ScrolledFrame):
 
     def collapse_all(self):
         """
-        Collapse all nodes and sub-nodes
-        :return:
+        Collapse all nodes and sub-nodes so that their sub-node are not displayed
         """
         for node in self.nodes:
             node.collapse_all()
 
     def expand_all(self):
         """
-        Expand all nodes and sub-nodes
-        :return:
+        Expand all nodes and sub-nodes so that their sub-nodes are displayed
         """
         for node in self.nodes:
             node.expand_all()
@@ -2083,7 +2399,8 @@ class TreeView(ScrolledFrame):
     def selected_count(self) -> int:
         """
         Return the total number of items currently selected usually 1 if multi-select is disabled.
-        :return: an int representing item count
+
+        :return: total number of items selected
         """
         return len(self._selected)
 
@@ -2117,15 +2434,15 @@ class ProgressBar(Widget, tk.Canvas):
         self._draw()
         self.bind("<Configure>", self._draw)
 
-    def destroy(self):
-        if self._after_id:
-            self.master.after_cancel(self._after_id)
-        super().destroy()
-
     def _draw(self, event=None):
         self.update_idletasks()
         if self._indeterminate:
-            width = (0.3 + self._step_var / self.winfo_width() * 0.8) * self.winfo_width()
+            try:
+                # Sometimes the after event gets called after widget is deleted
+                # If someone is able to fix this more elegantly code away
+                width = (0.3 + self._step_var / self.winfo_width() * 0.8) * self.winfo_width()
+            except tk.TclError:
+                return
             self.coords(self._bar, self._step_var, 0, self._step_var + width, self.winfo_height())
             self._step_var += self._direction
             if self._step_var + width >= self.winfo_width():
@@ -2133,7 +2450,7 @@ class ProgressBar(Widget, tk.Canvas):
             elif self._step_var <= 0:
                 self._direction = 3
             if event is None:
-                self._after_id = self.master.after(self._interval, self._draw)
+                self.master.after(self._interval, self._draw)
         else:
             self.coords(self._bar, 0, 0, self._progress * self.winfo_width(), self.winfo_height())
         self.itemconfigure(self._bar, fill=self._bar_color, width=0)
@@ -2141,8 +2458,8 @@ class ProgressBar(Widget, tk.Canvas):
     def mode(self, value):
         """
         Set the mode of the progressbar to determinate or indeterminate
+
         :param value: constant value either ProgressBar.DETERMINATE or ProgressBar.INDETERMINATE
-        :return: None
         """
         self._indeterminate = value == ProgressBar.INDETERMINATE
         self._draw()
@@ -2150,24 +2467,26 @@ class ProgressBar(Widget, tk.Canvas):
     def interval(self, milliseconds):
         """
         Controls the speed of the indeterminate mode of the progressbar
+
         :param milliseconds: the update time in milliseconds, the smaller the faster
-        :return: None
         """
         self._interval = milliseconds
 
     def set(self, value: float):
         """
         Sets the progress to a fraction value
+
         :param value: A floating point value between 0 and 1 inclusive which determines the progress
-        :return: None
         """
         self._progress = value
         self._draw()
 
     def get(self):
         """
-        Fetch the current progress of the bar if in determinate mode otherwise None is returned
-        :return:
+        Fetch the current progress of the bar.
+
+        :return: a floating point from 0 to 1 representing current progress. If mode is set to
+          indeterminate None is returned
         """
         if self._indeterminate:
             return None
@@ -2176,8 +2495,9 @@ class ProgressBar(Widget, tk.Canvas):
     def color(self, color):
         """
         Set the progress bar color
+
         :param color: A named color or hex defined color
-        :return: None
+        :raises: :class:`ValueError` if color is not a valid tk color
         """
         prev_color = self._bar_color
         self._bar_color = color

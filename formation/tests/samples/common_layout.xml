@@ -26,6 +26,7 @@
                             layout:ipady="5" layout:padx="5" layout:pady="5" layout:anchor="w" layout:expand="1"
                             layout:fill="both" layout:side="bottom"/>
             <tkinter.ttk.Button name="button_n8" attr:text="Button_1" layout:width="9"/>
+            <tkinter.ttk.Button name="button_plain" attr:text="Button_p"/>
         </tkinter.Frame>
     </tkinter.Frame>
     <tkinter.Button name="button_10" attr:borderwidth="12" attr:text="Button_10" layout:width="400" layout:height="60"

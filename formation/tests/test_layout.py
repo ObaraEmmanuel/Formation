@@ -13,12 +13,13 @@ class PlaceLayoutTestCase(unittest.TestCase):
     def test_loading(self):
         children = self.builder.place_frame.winfo_children()
         self.assertEqual(len(children), 6, "Loading incomplete")
-        self.assertIsNotNone(getattr(self.builder, "grid_frame", None))
-        self.assertIsNotNone(getattr(self.builder, "radio", None))
-        self.assertIsNotNone(getattr(self.builder, "scale", None))
-        self.assertIsNotNone(getattr(self.builder, "entry", None))
-        self.assertIsNotNone(getattr(self.builder, "button_10", None))
-        self.assertIsNotNone(getattr(self.builder, "label", None))
+        children = ["grid_frame", "radio", "scale", "entry",
+                    "button_10", "label", ]
+        for child in children:
+            with self.subTest(child=child):
+                widget = getattr(self.builder, child, None)
+                self.assertIsNotNone(widget)
+                self.assertEqual(widget.winfo_manager(), 'place')
 
     def test_properties(self):
         prop = self.builder.button_10.place_info()
@@ -40,13 +41,13 @@ class GridLayoutTestCase(unittest.TestCase):
     def test_loading(self):
         children = self.builder.grid_frame.winfo_children()
         self.assertEqual(len(children), 7)
-        self.assertIsNotNone(getattr(self.builder, "button_1", None))
-        self.assertIsNotNone(getattr(self.builder, "button_2", None))
-        self.assertIsNotNone(getattr(self.builder, "button_3", None))
-        self.assertIsNotNone(getattr(self.builder, "button_4", None))
-        self.assertIsNotNone(getattr(self.builder, "button_5", None))
-        self.assertIsNotNone(getattr(self.builder, "button_6", None))
-        self.assertIsNotNone(getattr(self.builder, "pack_frame", None))
+        children = ["button_1", "button_2", "button_3", "button_4",
+                    "button_5", "button_6", "pack_frame"]
+        for child in children:
+            with self.subTest(child=child):
+                widget = getattr(self.builder, child, None)
+                self.assertIsNotNone(widget)
+                self.assertEqual(widget.winfo_manager(), 'grid')
 
     def test_properties(self):
         btn2_info = self.builder.button_2.grid_info()
@@ -73,11 +74,14 @@ class PackLayoutTestCase(unittest.TestCase):
 
     def test_loading(self):
         children = self.builder.pack_frame.winfo_children()
-        self.assertEqual(len(children), 4)
-        self.assertIsNotNone(getattr(self.builder, "button_7", None))
-        self.assertIsNotNone(getattr(self.builder, "button_8", None))
-        self.assertIsNotNone(getattr(self.builder, "button_9", None))
-        self.assertIsNotNone(getattr(self.builder, "button_n8", None))
+        self.assertEqual(len(children), 5)
+        children = ["button_7", "button_8", "button_9", "button_n8",
+                    "button_plain"]
+        for child in children:
+            with self.subTest(child=child):
+                widget = getattr(self.builder, child, None)
+                self.assertIsNotNone(widget)
+                self.assertEqual(widget.winfo_manager(), 'pack')
 
     def test_properties(self):
         info = self.builder.button_9.pack_info()

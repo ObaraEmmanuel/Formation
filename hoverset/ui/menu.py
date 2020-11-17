@@ -6,12 +6,21 @@ from hoverset.ui.styles import StyleDelegator
 
 
 class Manipulator:
+    """
+    Enables simplification of creation of dynamic menus allowing menu
+    items to be easily manipulated at runtime
+    """
     __slots__ = ('templates',)
 
     def __init__(self, *templates):
         self.templates = templates
 
     def manipulated(self):
+        """
+        Generate templates to be rendered when menu is displayed
+
+        :return: manipulated templates menu
+        """
         return self.templates
 
     def __iter__(self):
@@ -25,6 +34,10 @@ class Manipulator:
 
 
 class ShowIf(Manipulator):
+    """
+    Builtin manipulator that displays a set of menu items only if a
+    certain condition is met at runtime
+    """
     __slots__ = ('predicate',)
 
     def __init__(self, predicate, *templates):
@@ -38,6 +51,11 @@ class ShowIf(Manipulator):
 
 
 class EnableIf(Manipulator):
+    """
+    Built in manipulator that displays only a set of menu items if a
+    condition is met at runtime. If condition is nt met, the menu items
+    are displayed but are disabled
+    """
     __slots__ = ('predicate',)
 
     def __init__(self, predicate, *templates):
@@ -51,6 +69,10 @@ class EnableIf(Manipulator):
 
 
 class LoadLater(Manipulator):
+    """
+    A built in manipulator that generates templates at runtime using a
+    loader function passed in its constructor
+    """
     __slots__ = ('loader',)
 
     def __init__(self, loader):
@@ -120,17 +142,27 @@ class MenuUtils:
     def make_dynamic(cls, templates, parent=None, style: StyleDelegator = None, dynamic=True, **cnf):
         """
         Create a dynamic menu object under a tkinter widget parent
-        :param dynamic: suppress dynamic behaviour, useful for toplevel menubar. Default is set to true
-        :param style: hoverset StyleDelegator object to allow retrieval of necessary menu theme styles
-        :param templates: a tuple that may contain the following:
-            1. a tuples of the format (type, label, icon, command, additional_configuration={}) where type is
-            either command, cascade, radiobutton, checkbutton
-            2. a tuple of he format ('separator', (config: dict)) to declare a separator. The config is optional
-            3. a Manipulator object
-        :param parent: The parent of the menu. You will never need to set this attribute directly as it only exists
-        for the purposes of recursion
+
+        :param dynamic: suppress dynamic behaviour, useful for toplevel
+          menubar. Default is set to true
+        :param style: hoverset StyleDelegator object to allow retrieval of
+          necessary menu theme styles
+        :param templates: a tuple that may contain the following
+
+          1. a tuples of the format
+             (type, label, icon, command, additional_config)
+             where type is either ``command, cascade, radiobutton, checkbutton``
+             and additional_config is a dict containing menu item configuration
+          2. a tuple of he format ('separator', additional_config) to
+             declare a separator. The additional_config is optional
+          3. a :class:`Hoverset.ui.menu.Manipulator` object.
+
+        :param parent: The parent of the menu. You will never need to set
+          this attribute directly as it only exists for the purposes of
+          recursion
         :param cnf: configuration for created menu
-        :return:dynamic menu
+        :return: dynamic menu
+
         """
         if style:
             cnf.update(style.dark_context_menu)
@@ -153,6 +185,7 @@ class MenuUtils:
     def popup(cls, event, menu):
         """
         Display context menu based on a right click event
+
         :param event: tk event object
         :param menu: tk menu to be displayed
         :return: None
@@ -166,9 +199,10 @@ class MenuUtils:
 def dynamic_menu(func):
     """
     Generate a dynamic menu from a class method
-    :param func: An instance method taking one positional argument menu. This method wil be called
-    every time the menu needs to be posted. Note that the menu will always be cleared before
-    the method is called
+
+    :param func: An instance method taking one positional argument menu.
+      This method wil be called every time the menu needs to be posted.
+      Note that the menu will always be cleared before the method is called
     :return: the wrapped method returns a dynamic menu
     """
 

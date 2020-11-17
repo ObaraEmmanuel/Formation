@@ -1,4 +1,9 @@
-![Formation logo](studio/resources/images/logo.png)
+![Formation logo](docs/_static/logo.png)
+
+![license](https://img.shields.io/github/license/ObaraEmmanuel/Formation)
+![tests](https://github.com/ObaraEmmanuel/Formation/workflows/build/badge.svg)
+[![pypi version](https://img.shields.io/pypi/v/formation-studio.svg)](https://pypi.org/project/formation-studio/)
+[![Documentation Status](https://readthedocs.org/projects/formation-studio/badge/?version=latest)](https://formation-studio.readthedocs.io/en/latest/?badge=latest)
 
 ## Introduction
 
@@ -33,13 +38,9 @@ After a successful installation you can launch the studio from the command line 
 ```bash
 formation-studio
 ```
-for windows you can specify the extension
-```commandline
-formation-studio.exe
-```
 The studio will open with a blank design as shown below
 
-![Formation window](studio/resources/images/formation-window.png)
+![Formation window](docs/_static/formation-window.png)
 
 You can select widgets from the _**Components**_ pane at the top and drag them onto the stage. Click to
 select widgets on the workspace and customize them on _**Stylepane**_ to the right. You can view
@@ -48,7 +49,7 @@ To preview the the design, use the preview ("run button") on the toolbar.
 After you are satisfied with the design, save by heading to the menubar _File > Save_. 
 Below is a sample studio preview saved as `hello.xml`
 
-![Sample design](studio/resources/images/hello.png)
+![Sample design](docs/_static/hello.png)
 
 The underlying xml uses namespaces and is as shown below:
 ```xml
@@ -102,7 +103,8 @@ app.mainloop()
 >possible issues while use the dot syntax to access the widget from the builder object.
 >Use the widgets exact name as specified in the design to avoid `AttributeError`
 
-For those wishing to contribute, see the [studio notes](studio/README.md) for developers and contributors
+For more details checkout the [documentation](https://formation-studio.readthedocs.io/en/latest/)
+For those wishing to contribute, see the [studio notes](https://formation-studio.readthedocs.io/en/latest/architecture.html) for developers and contributors
 More documentation coming soon. Some good documentation for building python user interfaces
 include:
 
