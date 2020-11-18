@@ -104,8 +104,8 @@ app.mainloop()
 >Use the widgets exact name as specified in the design to avoid `AttributeError`
 
 For more details checkout the [documentation](https://formation-studio.readthedocs.io/en/latest/)
-For those wishing to contribute, see the [studio notes](https://formation-studio.readthedocs.io/en/latest/architecture.html) for developers and contributors
-More documentation coming soon. Some good documentation for building python user interfaces
+For those wishing to contribute, see the [studio notes](https://formation-studio.readthedocs.io/en/latest/studio/architecture.html) for developers and contributors
+Some good documentation for building python user interfaces
 include:
 
 - [TkDocs](http://www.tkdocs.com)

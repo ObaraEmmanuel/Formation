@@ -16,7 +16,7 @@ from studio.lib.variables import VariableItem, VariableManager
 
 
 class VariablePane(BaseFeature):
-    name = "Variable manager"
+    name = "Variablepane"
     icon = "text"
 
     _defaults = {

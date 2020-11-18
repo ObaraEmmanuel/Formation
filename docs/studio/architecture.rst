@@ -59,7 +59,7 @@ file. Below are core features implemented in the formation studio:
       Create and edit menus using easy to use drag and drop gestures. Access all attributes applicable to the various types
       of menu items and preview the modified menu with the click of a button.
 
-    * **Variable manager**
+    * **Variable pane**
       Create tkinter control variables, access and assign them to widgets in the designer. Modify the values of the variables
       on the fly from the manager window. Any control variables added from the manager immediately reflect in the style pane
       allowing the designer to assign them to as many widgets as they desire. Control variables provide an elegant way to
@@ -74,7 +74,7 @@ Structure
     - :py:mod:`studio.feature.design`
     - :py:mod:`studio.feature.components`
     - :py:mod:`studio.feature.stylepane`
-    - :py:mod:`studio.feature.variable_manger`
+    - :py:mod:`studio.feature.variablepane`
 
    These components all implement :py:class:`studio.feature._base.BaseFeature` which abstracts all Feature behaviour
    and manipulation which can then be built upon if special behaviour is needed. It contains methods that
@@ -91,6 +91,8 @@ Structure
     - :py:mod:`studio.lib.properties`: definition for all widget properties modifiable by the style pane.
     - :py:mod:`studio.lib.pseudo`: Base classes for widgets used in the studio designer with added functionality to allow for easy
       manipulation. Definition for container widgets can also be found here
+    - :py:mod:`studio.lib.menu`: Utilities and definitions for handling menus in the studio
+    - :py:mod:`studio.lib.variables`: Classes for managing tk variables in the studio
 
 * :py:mod:`studio.parsers` :  Contains implementation for classes that handle conversion from various designated file formats to
   design view and vice versa. Currently on only xml defined in :py:mod:`studio.parsers.xml` format is supported but if any other formats are to be
@@ -106,3 +108,7 @@ Structure
       using drag drop gestures
     - :py:mod:`studio.ui.widgets`:  Assortment of special widgets used in the studio
     - :py:mod:`studio.ui.about`:  The about window for the studio
+
+* :py:mod:`studio.main`: Contains the entry point of studio user interface. Implementation
+  for general functionality and the coordination of feature windows can be found
+  inside the :py:class:`studio.main.StudioApplication` class
