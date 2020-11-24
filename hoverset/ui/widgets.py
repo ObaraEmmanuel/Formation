@@ -627,12 +627,14 @@ class Widget:
         :param widget: the widget to be checked
         :return: True if event occurred in within widget else False
         """
-        check = widget.winfo_containing(event.x_root, event.y_root)
-        while not isinstance(check, Application) and check is not None:
-            if check == widget:
-                return True
-            check = check.nametowidget(check.winfo_parent())
-        return False
+        x, y = event.x_root, event.y_root
+        x1, y1, x2, y2 = (
+            widget.winfo_rootx(),
+            widget.winfo_rooty(),
+            widget.winfo_rootx() + widget.winfo_width(),
+            widget.winfo_rooty() + widget.winfo_height(),
+        )
+        return x1 < x < x2 and y1 < y < y2
 
     @staticmethod
     def event_first(event, widget, class_: type, ignore=None):
