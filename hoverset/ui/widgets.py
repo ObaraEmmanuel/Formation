@@ -1,4 +1,5 @@
 """
+
 This is the foundation of all GUI components used in hoverset based project.
 These widget classes are used in the Formation studio and have special features
 such as tkinter styles loaded from css files and available for use anywhere inside them.
@@ -10,6 +11,7 @@ All gui manifestation should strictly use hoverset widget set for easy maintenan
 
 import functools
 import logging
+import webbrowser
 import tkinter as tk
 import tkinter.tix as tix
 import tkinter.ttk as ttk
@@ -2507,6 +2509,27 @@ class ProgressBar(Widget, tk.Canvas):
             self._bar_color = prev_color
             self._draw()
             raise ValueError(f"{color} is not a valid tk color")
+
+
+class Hyperlink(Label):
+    def __init__(self, master=None, **kwargs):
+        self.setup(master)
+        super().__init__(master)
+        self.configure(**self.style.hyperlink, takefocus=True, **kwargs)
+        self.font_ = font.Font(self, self.cget('font'))
+        self.bind('<Enter>', lambda font_: self.font_.configure(underline=True))
+        self.bind('<FocusIn>', lambda font_: self.font_.configure(underline=True))
+        self.bind('<Leave>', lambda font_: self.font_.configure(underline=False))
+        self.bind('<FocusOut>', lambda font_: self.font_.configure(underline=False))
+        self.bind('<Return>', self._open_in_browser)
+        self.bind('<Button-1>', self._open_in_browser)
+        self.configure(font=self.font_)
+
+    # TODO   Add the link to the hyperlink (override configure method)
+
+    def _open_in_browser(self, event):
+        if self['text']:
+            webbrowser.open(self['text'])
 
 
 if __name__ == "__main__":
