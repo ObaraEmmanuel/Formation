@@ -118,7 +118,7 @@ class MessageDialog(Window):
         }
         if render_routine in routines:
             # Completely custom dialogs
-            routines[render_routine](**kw)
+            routines[render_routine](**kw)  # noqa
         elif render_routine is not None:
             render_routine(self)
         self.enable_centering()
@@ -177,6 +177,8 @@ class MessageDialog(Window):
         btn.on_click(kw.get("command", lambda _: self._terminate_with_val(kw.get("value"))))
         if focus:
             btn.focus_set()
+            btn.config_all(**self.style.button_highlight)
+        return btn
 
     def _message(self, text, icon=None):
         # set default icon to INFO
