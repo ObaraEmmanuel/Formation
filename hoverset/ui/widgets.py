@@ -32,6 +32,7 @@ __all__ = (
     "Button",
     "Canvas",
     "CenterWindowMixin",
+    "Checkbutton",
     "ComboBox",
     "CompoundList",
     "ContextMenuMixin",
@@ -43,15 +44,18 @@ __all__ = (
     "EventWrap",
     "FontStyle",
     "Frame",
-    "HorizontalScale",
+    "Scale",
     "ImageCacheMixin",
     "Label",
+    "LabelFrame",
     "MenuButton",
     "Message",
     "PanedWindow",
     "Popup",
     "PositionMixin",
     "ProgressBar",
+    "RadioButton",
+    "RadioButtonGroup",
     "Screen",
     "ScrollableInterface",
     "ScrolledFrame",
@@ -188,9 +192,29 @@ def set_ttk_style(widget, cnf=None, **styles) -> None:
     styles.update(cnf)
     ttk_style = ttk.Style()
     # Use hoverset class extension to avoid collision with actual native widgets in use
-    class_name = 'hover.{}'.format(widget.winfo_class())
+    orient = "." + str(widget['orient']).title() if 'orient' in widget.keys() else ''
+    class_name = 'hover{}.{}'.format(orient, widget.winfo_class())
     ttk_style.configure(class_name, **styles)
     widget.configure(style=class_name)
+
+
+def config_ttk(widget, cnf=None, **styles) -> None:
+    """
+
+    :param widget:
+    :param cnf:
+    :param styles:
+    :return:
+    """
+    if cnf is None:
+        cnf = {}
+    styles.update(cnf)
+    direct = {i: styles[i] for i in styles.keys() & set(widget.keys())}
+    widget.configure(**direct)
+    set_ttk_style(
+        widget,
+        None,
+        **{i: styles[i] for i in styles.keys() - direct.keys()})
 
 
 def clean_styles(widget, styles) -> dict:
@@ -204,7 +228,7 @@ def clean_styles(widget, styles) -> dict:
     :param styles:
     :return: dict cleaned_styles
     """
-    allowed_styles = widget.config()
+    allowed_styles = widget.config() or {}
     cleaned_styles = {}
     for style in styles:
         if style in allowed_styles:
@@ -614,9 +638,9 @@ class Widget:
         """
         # clean the styles so we don't end up setting state to a widget that does not support it
         if flag:
-            self.config(clean_styles(self, {"state": tk.DISABLED}))
+            self.config(**clean_styles(self, {"state": tk.DISABLED}))
         else:
-            self.config(clean_styles(self, {"state": tk.NORMAL}))
+            self.config(**clean_styles(self, {"state": tk.NORMAL}))
 
     @staticmethod
     def event_in(event, widget):
@@ -802,6 +826,41 @@ class ImageCacheMixin:
         super().__setitem__(key, value)
 
 
+class ContainerMixin:
+    """
+    Provides extra functionality to container types
+    """
+
+    def clear_children(self):
+        for child in self.winfo_children():
+            child.pack_forget()
+            child.grid_forget()
+            child.place_forget()
+
+    def bind_all(self, sequence=None, func=None, add=None):
+        self.bind(sequence, func, add)
+        for child in self.winfo_children():
+            if not (hasattr(child, "bind_all") and isinstance(child, Widget)):
+                child.bind(sequence, func, add)
+            else:
+                child.bind_all(sequence, func, add)
+
+    def on_click(self, callback, *args, **kwargs):
+        self.bind_all('<Button-1>', self._click)
+        self.bind_all("<Return>", self._click)
+        self._on_click = lambda event: callback(event, *args, **kwargs)
+
+    def _click(self, event):
+        self.focus_set()
+        if self._on_click is not None:
+            self._on_click(event)
+
+    def config_all(self, **cnf):
+        self.config(**cnf)
+        for child in self.winfo_children():
+            child.config(**clean_styles(child, cnf))
+
+
 class _MouseWheelDispatcherMixin:
     """
     Dispatches mousewheel events to the right scrolledFrame. The mousewheel event is bound to the main window
@@ -874,7 +933,7 @@ class WindowMixin(_MouseWheelDispatcherMixin):
 class SpinBox(Widget, EditableMixin, tk.Spinbox):
 
     def __init__(self, master=None, **cnf):
-        self.setup(master)  # Dependency injection
+        self.setup(master)
         super().__init__(master, **cnf)
         self._var = tk.IntVar()
         self.config(textvariable=self._var)
@@ -945,49 +1004,36 @@ class Message(Widget, ContextMenuMixin, ImageCacheMixin, tk.Message):
         self.config(anchor=alignment)
 
 
-class Frame(Widget, ContextMenuMixin, WindowMixin, tk.Frame, tk.Wm):
+class Frame(ContainerMixin, Widget, ContextMenuMixin, WindowMixin, tk.Frame, tk.Wm):
 
     def __init__(self, master=None, **kwargs):
         self.setup(master)
         super().__init__(master, **kwargs)
         self.setup_window()
-        self._style = self.winfo_toplevel().style
         self._on_click = None
         self.body = self
-        # Since the frame may be a toplevel at some point we want the style variable to be from the initial parent
+        # Since the frame may be a toplevel at some point we want the style
+        # variable to be from the initial parent
 
     @property
     def style(self):
-        return self._style
-
-    def clear_children(self):
-        for child in self.winfo_children():
-            child.pack_forget()
-            child.grid_forget()
-            child.place_forget()
-
-    def bind_all(self, sequence=None, func=None, add=None):
-        self.bind(sequence, func, add)
-        for child in self.winfo_children():
-            child.bind(sequence, func, add)
-
-    def on_click(self, callback, *args, **kwargs):
-        self.bind_all('<Button-1>', self._click)
-        self.bind_all("<Return>", self._click)
-        self._on_click = lambda event: callback(event, *args, **kwargs)
-
-    def _click(self, event):
-        self.focus_set()
-        if self._on_click is not None:
-            self._on_click(event)
-
-    def config_all(self, **cnf):
-        self.config(**cnf)
-        for child in self.winfo_children():
-            child.config(**cnf)
+        return self.winfo_toplevel().style
 
 
-class ScrolledFrame(Widget, ScrollableInterface, ContextMenuMixin, WindowMixin, tk.Frame, tk.Wm):
+class LabelFrame(ContainerMixin, Widget, ContextMenuMixin, tk.LabelFrame):
+    """
+    Hoverset wrapper for :py:class:`tkinter.LabelFrame`
+    """
+
+    def __init__(self, master=None, **kwargs):
+        self.setup(master)
+        super().__init__(master)
+        self.config(**{**self.style.dark_text, **kwargs})
+        self._on_click = None
+        self.body = self
+
+
+class ScrolledFrame(ContainerMixin, Widget, ScrollableInterface, ContextMenuMixin, WindowMixin, tk.Frame, tk.Wm):
 
     def __init__(self, master=None, **cnf):
         self.setup(master)
@@ -1034,6 +1080,10 @@ class ScrolledFrame(Widget, ScrollableInterface, ContextMenuMixin, WindowMixin, 
         elif not flag:
             self._scroll_x.grid_forget()
         self.update_idletasks()
+
+    def config_all(self, **cnf):
+        self.body.config_all(**clean_styles(self.body, cnf))
+        super().config_all(**cnf)
 
     def _limiter(self, callback, axis, *args):
         # Frame limiting reduces lags while scrolling by skipping a number of scroll events to reduce the burden
@@ -1409,46 +1459,239 @@ class ToggleButton(Button):
         self._on_change = lambda value: func(value, *args, **kwargs)
 
 
-class HorizontalScale(Widget, tk.Frame):
+class Checkbutton(Widget, ttk.Checkbutton):
+    """
+    Hoverset wrapper for :py:class:`tkinter.ttk.Checkbutton`
+    """
 
     def __init__(self, master=None, **cnf):
         self.setup(master)
-        super().__init__(master, cnf)
-        self._frame = tk.Label(self)
-        self._frame.pack(side="top", fill="x")
-        self._label = tk.Label(self._frame)
-        self._value = tk.Label(self._frame, width=5, anchor="e")
-        self._value.pack(side="right")
-        self._label.pack(side="left", fill="x")
-        self.scale = ttk.Scale(self)
-        self.scale.pack(fill="x", side="top")
-
-    def get(self):
-        return self.scale.get()
-
-    def set(self, value):
-        self.scale.set(value)
+        super().__init__(master)
+        cnf = {**self.style.dark_text, **cnf}
+        config_ttk(self, **cnf)
+        self._var = tk.BooleanVar()
+        self.config(variable=self._var)
 
     def config_all(self, cnf=None, **kwargs):
-        # We have to do this because it is not advisable to have mutable types(like {})  as default arguments!
-        if cnf is None:
-            cnf = {}
-        cnf.update(kwargs)
+        config_ttk(self, cnf, **kwargs)
+
+    config = config_all
+
+    def set(self, value):
+        """
+        Set the boolean value directly
+
+        :param value: boolean value to be set
+        """
+        self._var.set(value)
+
+    def get(self):
+        """
+        Get the selection state
+
+        :return: ``True`` if selected else ``False``
+        """
+        return self._var.get()
+
+
+class RadioButton(Widget, ttk.Radiobutton):
+    """
+    Hoverset wrapper for :py:class:`tkinter.ttk.Radiobutton`
+    """
+
+    def __init__(self, master, **cnf):
+        self.setup(master)
+        super().__init__(master)
+        cnf = {**self.style.dark_text, **cnf}
+        self.config_all(**cnf)
+
+    def config_all(self, cnf=None, **kwargs):
+        config_ttk(self, cnf, **kwargs)
+
+
+class RadioButtonGroup(Frame):
+    """
+    Group of :py:class:`RadioButton` objects used to obtain a single value
+    out of multiple options.
+
+    .. code-block:: python
+
+        button_group = RadioButtonGroup(
+            parent,
+            choices=(
+                ("yellow", "This is the yellow option"),
+                ("red", "This is the red option"),
+            ),
+            label="Select an option"
+        )
+        button_group.add_choice(("blue", "This is the blue option"))
+        button_group.pack(side="top")
+        button_group.set("red")  # selects the red option
+        button_group.get()  # returns red
+    """
+
+    def __init__(self, master=None, choices=(), label='', **cnf):
+        super().__init__(master)
+        cnf = {**self.style.dark_text, **cnf}
+        self._pool = []
+        self._radio_buttons = []
+        self._var = tk.StringVar()
+        self._var.trace("w", self._change)
+        self._blocked = False
+        self._on_change = None
+        self._label = Label(self, text=label, anchor=tk.W)
+        self._label.pack(side=tk.TOP, fill=tk.X, pady=3)
+        self.set_choices(choices)
+        self.config_all(**cnf)
+
+    def _change(self, *_):
+        if self._on_change and not self._blocked:
+            self._on_change()
+
+    def on_change(self, callback, *args, **kwargs):
+        self._on_change = lambda: callback(*args, **kwargs)
+
+    def config_all(self, **cnf):
+        """
+        Use this method to correctly configure all radio buttons in the
+        group
+
+        :param cnf: config options
+        :return: None
+        """
         self.config(clean_styles(self, cnf))
         self._label.config(clean_styles(self._label, cnf))
-        self._value.config(clean_styles(self._value, cnf))
-        self._frame.config(clean_styles(self._frame, cnf))
-        self.scale.config(clean_styles(self.scale, cnf))
-        set_ttk_style(self.scale, cnf)
+        if len(self._radio_buttons):
+            radio_conf = clean_styles(self._radio_buttons[0], cnf)
+            for button in self._radio_buttons:
+                button.config_all(**radio_conf)
 
-    def config_value(self, cnf=None, **kwargs):
-        self._value.config(cnf, **kwargs)
+    def set_label(self, label):
+        """
+        Set the group label
 
-    def config_label(self, cnf=None, **kwargs):
-        self._label.config(cnf, **kwargs)
+        :param label: string to be set as label
+        """
+        self._label.config(text=label)
 
-    def config_scale(self, cnf=None, **kwargs):
-        self.scale.config(cnf, **kwargs)
+    def add_choice(self, choice):
+        """
+        Add a choices to be appended at the end of the radio group as
+        a ``(value, label)`` pair
+
+        :param choice: a ``(value label)`` pair
+        """
+        value, desc = choice
+        if len(self._pool):
+            button = self._pool.pop(0)
+        else:
+            button = RadioButton(self)
+        button.config(value=value, text=desc, variable=self._var)
+        button.pack(side=tk.TOP, fill=tk.X, padx=10)
+        self._radio_buttons.append(button)
+
+    def set_choices(self, choices):
+        """
+        Add the choices to be displayed in the radio group as
+        ``(value, label)`` pairs
+
+        :param choices: a tuple of ``(value label)`` pairs
+        """
+        # clear previous value silently without triggering change
+        self.set("", True)
+        for btn in self._radio_buttons:
+            btn.pack_forget()
+        # move all radio buttons to the pool
+        self._pool.extend(self._radio_buttons)
+        self._radio_buttons.clear()
+        for value, desc in choices:
+            if len(self._pool):
+                # pool is not empty so get buttons from there
+                button = self._pool.pop(0)
+            else:
+                # create a new radio button since pool is empty
+                button = RadioButton(self)
+            button.config(value=value, text=desc, variable=self._var)
+            button.pack(side=tk.TOP, fill=tk.X, padx=10)
+            self._radio_buttons.append(button)
+
+    def get(self):
+        """
+        Get the value of the currently selected option
+
+        :return: value of the current option
+        """
+        return self._var.get()
+
+    def disabled(self, flag: bool) -> None:
+        super().disabled(flag)
+        self._label.disabled(flag)
+        for button in self._radio_buttons:
+            button.disabled(flag)
+
+    def set(self, value, silent=False):
+        """
+        Set the selected option
+
+        :param value: value to be set
+        :param silent: set to ``True`` to trigger change event
+        """
+        self._blocked = silent
+        self._var.set(value)
+        self._blocked = False
+
+
+class Scale(Widget, ttk.Scale):
+    """
+    Hoverset wrapper for :py:class:`tkinter.ttk.Scale`
+    """
+
+    def __init__(self, master=None, variable=None, **cnf):
+        self.setup(master)
+        self._var = variable or tk.DoubleVar()
+        super().__init__(master, variable=self._var)
+        cnf = {**self.style.dark, **cnf}
+        self.config_all(**cnf)
+        self._on_change = None
+        self._var.trace('w', self._change)
+
+    def _change(self, *_):
+        if self._on_change:
+            self._on_change()
+
+    def on_change(self, callback, *args, **kwargs):
+        self._on_change = lambda: callback(*args, **kwargs)
+
+    def config_all(self, **kwargs):
+        """
+        Configure all options including ttk themed options automatically
+
+        :param kwargs: config options
+        :return: None
+        """
+        config_ttk(self, **kwargs)
+
+    def set(self, value):
+        """
+        Set scale value. Overrides default behaviour and sets the value
+        directly to the underlying variable
+
+        :param value: Value to be set
+        """
+        self._var.set(value)
+
+    def get(self, x=None, y=None):
+        """
+        Gets the current value directly from the underlying variable
+        if either x or y is not provided.
+
+        :param y: return value at x if provided
+        :param x: return value at y if provided
+        :return: current scale value
+        """
+        if x is None or y is None:
+            return self._var.get()
+        return super().get(x, y)
 
 
 class Popup(PositionMixin, Window):
@@ -1704,6 +1947,10 @@ class CompoundList(ScrolledFrame):
         self._mode = CompoundList.SINGLE_MODE  # Default
         self.config(self.style.dark)
         self._on_change = None
+
+    @property
+    def items(self):
+        return self._items
 
     def set_mode(self, mode):
         """
