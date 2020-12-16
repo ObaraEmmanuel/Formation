@@ -1,9 +1,28 @@
 import appdirs
-import shelve
-import os
 import atexit
+import os
+import shelve
+import pickle
+import logging
+import tkinter as tk
+from pathlib import Path
 from collections import defaultdict
+
 from hoverset.data.utils import make_path
+from hoverset.ui.dialogs import MessageDialog
+from hoverset.ui.widgets import *
+
+__all__ = (
+    "SharedPreferences",
+    "Component",
+    "ComponentGroup",
+    "PreferenceManager",
+    "DependentGroup",
+    "Check",
+    "RadioGroup",
+    "Number",
+    "LabeledScale",
+)
 
 
 class _PreferenceInstanceCreator(type):
@@ -26,10 +45,25 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
         self._file = file
         self._app_dir = appdirs.AppDirs(app, author)
         self._listeners = defaultdict(list)
-
-        if os.path.exists(os.path.join(self.get_dir(), "{}.dat".format(file))):
+        path = os.path.join(self.get_dir(), "{}.dat".format(file))
+        if os.path.exists(path):
             self.data = self._get_shelve()
-            self._deep_update(self.data, defaults)
+            try:
+                self._deep_update(self.data, defaults)
+            except pickle.UnpicklingError:
+                # The pickle file is corrupted
+                logging.error("Config file is corrupted, attempting recovery.")
+                # the cache contains the data that was recoverable
+                recovered = self.data.cache
+                self.data.close()
+                # delete all the generated pickle files usually dir, bak and dat
+                for f in Path(self.get_dir()).glob('{}.*'.format(file)):
+                    f.unlink(True)
+                self.data = self._get_shelve()
+                self._deep_update(self.data, defaults)
+                # restore the little we could recover
+                self._deep_update(self.data, recovered)
+
         else:
             make_path(self.get_dir())
             self.data = self._get_shelve()
@@ -211,3 +245,254 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
 
     def update_defaults(self, path, defaults):
         self._deep_update(self.get(path), defaults)
+
+
+class Component:
+
+    def load(self, pref: SharedPreferences, path):
+        self.pref = pref
+        self.path = path
+        self.set(pref.get(path))
+        self._on_change = None
+
+    def _change(self, *_):
+        if self._on_change:
+            self._on_change()
+
+    def commit(self):
+        self.pref.set(self.path, self.get())
+
+    def has_changes(self):
+        return self.pref.get(self.path) != self.get()
+
+    def on_change(self, callback, *args, **kwargs):
+        self._on_change = lambda: callback(*args, **kwargs)
+
+    def disable(self, flag):
+        """
+        Change the state of component, whether disable or enabled.
+        All components must implement this method
+
+        :param flag: set to ``True`` to disable and ``False`` to enable
+        """
+        raise NotImplementedError()
+
+
+class ComponentGroup(Frame):
+
+    def __init__(self, master, label):
+        super().__init__(master)
+        Label(
+            self, **self.style.dark_text_accent, text=label, anchor='w'
+        ).pack(side="top", fill="x")
+        self.config(**self.style.dark)
+
+
+class DependentGroup:
+
+    def __init__(self, group_def):
+        self.controller = group_def["controller"]
+        self.children = group_def["children"]
+        self.allowed_values = group_def.get("allow", [])
+
+
+class RadioGroup(Component, RadioButtonGroup):
+
+    def __init__(self, master, pref, path, desc, **extra):
+        super().__init__(master, extra.get('choices', ()), desc)
+        self.load(pref, path)
+
+    def disable(self, flag):
+        self.disabled(flag)
+
+
+class Number(Component, Frame):
+
+    def __init__(self, master, pref, path, desc, **extra):
+        super().__init__(master)
+        self.config_all(**self.style.dark)
+        self._label = Label(
+            self, text=desc,
+            **self.style.dark_text
+        )
+        self._label.pack(side="left")
+        self.editor = SpinBox(self, **{**self.style.spinbox, **extra})
+        self.editor.pack(side="left", padx=5)
+        self.load(pref, path)
+
+    def disable(self, flag):
+        self.editor.disabled(flag)
+        self._label.disabled(flag)
+
+    def set(self, value):
+        self.editor.set(value)
+
+    def get(self):
+        return self.editor.get()
+
+
+class LabeledScale(Component, Frame):
+
+    def __init__(self, master, pref, path, desc, **extra):
+        super().__init__(master)
+        self._label = Label(self, **self.style.dark_text, text=desc)
+        self._label.pack(side="left")
+        self._var = tk.IntVar()
+        self._scale = Scale(self, self._var, **extra)
+        self._scale.pack(side="left", padx=5)
+        self._val = Label(self, **self.style.dark_text)
+        self._val.pack(side="left", padx=5)
+        self.load(pref, path)
+        self.config_all(**self.style.dark)
+        self._scale.on_change(self._change)
+
+    def _change(self, *_):
+        super()._change(*_)
+        self._val.config(text=self.get())
+
+    def disable(self, flag):
+        self._scale.disabled(flag)
+        self._label.disabled(flag)
+
+    def set(self, value):
+        self._scale.set(value)
+
+    def get(self):
+        return self._scale.get()
+
+
+class Check(Component, Checkbutton):
+
+    def __init__(self, master, pref, path, desc, **extra):
+        super().__init__(master, **extra)
+        self.load(pref, path)
+        self.config(text=desc, **self.style.dark_text)
+        self._var.trace("w", lambda *_: self._change())
+
+    def disable(self, flag):
+        if flag:
+            self.config(state='disabled')
+        else:
+            self.config(state='normal')
+
+
+class PreferenceManager(MessageDialog):
+    class NavItem(CompoundList.BaseItem):
+
+        def __init__(self, master, value, index, isolated=False):
+            super().__init__(master, value, index, isolated)
+            self.config_all(**self.style.bright)
+
+        def render(self):
+            Label(
+                self, text=self.value, padx=5,
+                pady=10, **self.style.dark_text,
+                anchor='w'
+            ).pack(fill="x")
+
+        def on_hover(self, *_):
+            self.config_all(**self.style.dark)
+
+        def on_hover_ended(self, *_):
+            self.config_all(**self.style.bright)
+
+    def __init__(self, master, pref, templates):
+        super().__init__(master, self.render)
+        self.title("Preferences")
+        self.resizable(1, 1)
+        self.nav.on_change(self._change_category)
+        self.templates = templates
+        self.pref = pref
+        self.components = set()
+        self._category_render = {}
+        self._load_template(templates)
+
+    def _change_category(self, new_category):
+        self._load_category(new_category.value)
+
+    def _add_component(self, parent, template) -> Component:
+        if isinstance(template, DependentGroup):
+            controller = self._add_component(parent, template.controller)
+            dependents = []
+            for child in template.children:
+                dependents.append(self._add_component(parent, child))
+
+            def set_state():
+                for comp in dependents:
+                    comp.disable(controller.get() not in template.allowed_values)
+
+            controller.on_change(set_state)
+            # call set state to initialize the right state
+            set_state()
+            return controller
+
+        element = template["element"](
+            parent, self.pref, template["path"],
+            template["desc"], **template.get("extra", {}))
+        element.pack(fill="x", pady=2)
+        element.pack_configure(**template.get("layout", {}))
+        self.components.add(element)
+        return element
+
+    def update_state(self):
+        for component in self.components:
+            if component.has_changes():
+                self.apply_btn.disabled(False)
+                break
+        else:
+            self.apply_btn.disabled(True)
+
+    def _load_category(self, category):
+        if category in self._category_render:
+            self.pref_body.clear_children()
+            self._category_render[category].pack(
+                fill="both", expand=True, padx=5, pady=5)
+            return
+        templates = self.templates[category]
+        body = Frame(self.pref_body, **self.style.dark)
+        for comp in templates:
+            if isinstance(templates[comp], tuple):
+                group = ComponentGroup(body, comp)
+                for sub_comp in templates[comp]:
+                    self._add_component(group, sub_comp)
+                group.pack(fill="x", pady=10)
+            else:
+                self._add_component(body, templates[comp])
+
+        self._category_render[category] = body
+        self.pref_body.clear_children()
+        body.pack(fill="both", expand=True, padx=5, pady=5)
+
+    def _load_template(self, template):
+        keys = list(template.keys())
+        self.nav.set_values(keys)
+        # Load the first group to begin with
+        self.nav.select(0)
+        self.update_state()
+
+    def cancel(self, *_):
+        self.destroy()
+
+    def apply(self, *_):
+        for component in self.components:
+            if component.has_changes():
+                component.commit()
+
+    def okay(self, *_):
+        self.apply()
+        self.destroy()
+
+    def render(self, window):
+        pane = PanedWindow(window, **self.style.dark, width=700, height=500)
+        self.nav = CompoundList(pane)
+        self.nav.config_all(**self.style.bright)
+        self.nav.set_item_class(PreferenceManager.NavItem)
+        self.pref_frame = ScrolledFrame(pane, **self.style.dark)
+        self.pref_frame.fill_y = True
+        self.pref_body = self.pref_frame.body
+        pane.add(self.nav, width=250, minsize=250, sticky="nswe")
+        pane.add(self.pref_frame, width=450, minsize=200, sticky="nswe")
+        self.apply_btn = self._add_button(text="Apply", command=self.apply)
+        self.cancel_btn = self._add_button(text="Cancel", command=self.cancel)
+        self.okay_btn = self._add_button(text="Okay", command=self.okay, focus=True)
+        pane.pack(side="top", fill='both', expand=True)
