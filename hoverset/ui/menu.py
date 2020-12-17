@@ -87,17 +87,24 @@ class MenuUtils:
     image_cache = set()
 
     @classmethod
+    def expand_template(cls, template):
+        raw_templates = []
+        # recursively expand manipulators
+        if isinstance(template, Manipulator):
+            for sub_t in template:
+                raw_templates.extend(cls.expand_template(sub_t))
+        else:
+            raw_templates.append(template)
+        return raw_templates
+
+    @classmethod
     def _make_menu(cls, templates, menu, style: StyleDelegator = None):
         # populate the menu by following the templates
         raw_templates = []
-        # expand manipulators to their constituent templates
-        # the manipulators will perform their given transformations first
+        # expand any manipulators to their constituent templates
+        # the manipulators will perform their internal transformations first
         for t in templates:
-            if isinstance(t, Manipulator):
-                for sub_t in t:
-                    raw_templates.append(sub_t)
-            else:
-                raw_templates.append(t)
+            raw_templates.extend(cls.expand_template(t))
         prev = None
         template_count = len(raw_templates)
         for i, template in enumerate(raw_templates):
@@ -192,6 +199,8 @@ class MenuUtils:
         """
         try:
             menu.tk_popup(event.x_root, event.y_root)
+        except tk.TclError:
+            pass
         finally:
             menu.grab_release()
 
