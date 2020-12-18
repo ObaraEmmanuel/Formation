@@ -15,6 +15,11 @@ import sys
 
 sys.path.insert(0, os.path.abspath('..'))
 
+from unittest.mock import MagicMock as Mock
+
+MOCK_MODULES = ['lxml']
+sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
+
 # -- Project information -----------------------------------------------------
 
 project = 'Formation'
