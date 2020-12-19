@@ -356,6 +356,7 @@ class LabeledScale(Component, Frame):
 
     def set(self, value):
         self._scale.set(value)
+        self._val.config(text=self.get())
 
     def get(self):
         return self._scale.get()
