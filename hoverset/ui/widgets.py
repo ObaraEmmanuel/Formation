@@ -1010,14 +1010,15 @@ class Frame(ContainerMixin, Widget, ContextMenuMixin, WindowMixin, tk.Frame, tk.
         self.setup(master)
         super().__init__(master, **kwargs)
         self.setup_window()
-        self._on_click = None
-        self.body = self
         # Since the frame may be a toplevel at some point we want the style
         # variable to be from the initial parent
+        self._style = self.winfo_toplevel().style
+        self._on_click = None
+        self.body = self
 
     @property
     def style(self):
-        return self.winfo_toplevel().style
+        return self._style
 
 
 class LabelFrame(ContainerMixin, Widget, ContextMenuMixin, tk.LabelFrame):
