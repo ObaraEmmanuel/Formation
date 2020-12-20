@@ -9,6 +9,8 @@ from tkinter import filedialog
 
 from hoverset.data import actions
 from hoverset.data.keymap import KeyMap
+from hoverset.data.images import get_tk_image
+from hoverset.ui.widgets import Label
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.menu import MenuUtils, LoadLater
 from hoverset.util.execution import Action, as_thread
@@ -93,6 +95,11 @@ class Designer(DesignPad, Container):
         self.highlight.on_resize(self._on_size_changed)
         self.highlight.on_move(self._on_move)
         self.highlight.on_release(self._on_release)
+        self._update_throttling()
+        self.studio.pref.add_listener(
+            "designer::frame_skip",
+            self._update_throttling
+        )
         self.current_obj = None
         self.current_container = None
         self.current_action = None
@@ -114,9 +121,26 @@ class Designer(DesignPad, Container):
             self.style
         )
         self._coord_indicator = self.studio.install_status_widget(CoordinateIndicator)
+        self._empty = Label(
+            self,
+            image=get_tk_image("paint", 30, 30), compound="top",
+            text="Drag a container here to start",
+            **self.style.dark_text_passive,
+        )
+        self._empty.config(**self.style.bright)
+        self._show_empty(True)
 
     def focus_set(self):
         self._frame.focus_force()
+
+    def _update_throttling(self, *_):
+        self.highlight.set_skip_max(self.studio.pref.get("designer::frame_skip"))
+
+    def _show_empty(self, flag):
+        if flag:
+            self._empty.place(relwidth=1, relheight=1)
+        else:
+            self._empty.place_forget()
 
     def _set_shortcuts(self):
         shortcut_mgr = self._shortcut_mgr
@@ -241,7 +265,9 @@ class Designer(DesignPad, Container):
                 return None
             self.design_path = path
         with open(self.design_path, 'w') as dump:
-            dump.write(self.xml.to_xml())
+            dump.write(self.xml.to_xml(
+                self.studio.pref.get("designer::xml::pretty_print")
+            ))
         return self.design_path
 
     def as_xml_node(self, widget):
@@ -292,6 +318,8 @@ class Designer(DesignPad, Container):
 
     def _attach(self, obj):
         # bind events for context menu and object selection
+        # all widget additions call this method so clear empty message
+        self._show_empty(False)
         obj.bind("<Button-3>", lambda e: self.show_menu(e, obj), add='+')
         obj.bind('<Shift-ButtonPress-1>', lambda e: self.highlight.set_function(self.highlight.move, e), add='+')
         obj.bind('<Motion>', self.on_motion, '+')

@@ -97,6 +97,9 @@ class HighLight:
             elem.bind("<ButtonRelease>", self.clear_resize)
         self.parent.bind_all("<ButtonRelease>", self.clear_resize)
 
+    def set_skip_max(self, value):
+        self._skip_max = value
+
     @staticmethod
     def bounds_from_object(obj: tk.Misc):
         """

@@ -18,7 +18,7 @@ from studio.feature._base import BaseFeature
 from studio.tools import ToolManager
 from studio.ui.widgets import SideBar
 from studio.ui.about import about_window
-from studio.preferences import Preferences
+from studio.preferences import Preferences, open_preferences
 import studio
 
 from hoverset.ui.widgets import Application, Frame, PanedWindow, Button, ActionNotifier
@@ -42,6 +42,7 @@ class StudioApplication(Application):
         super().__init__(master, **cnf)
         # Load icon asynchronously to prevent issues which have been known to occur when loading it synchronously
         self.after(200, lambda: self.wm_iconbitmap(self.ICON_PATH, self.ICON_PATH))
+        self.pref = pref
         self._restore_position()
         self.title('Formation Studio')
         self.protocol('WM_DELETE_WINDOW', self._on_close)
@@ -124,7 +125,7 @@ class StudioApplication(Application):
                 ("command", "Save", icon("save", 14, 14), actions.get('STUDIO_SAVE'), {}),
                 ("command", "Save As", icon("save", 14, 14), actions.get('STUDIO_SAVE_AS'), {}),
                 ("separator",),
-                ("command", "Settings", icon("settings", 14, 14), None, {}),
+                ("command", "Settings", icon("settings", 14, 14), actions.get('STUDIO_SETTINGS'), {}),
                 ("command", "Exit", icon("exit", 14, 14), actions.get('STUDIO_EXIT'), {}),
             )}),
             ("cascade", "Edit", None, None, {"menu": (
@@ -147,8 +148,8 @@ class StudioApplication(Application):
                 ("command", "close all on the right", icon("blank", 14, 14), actions.get('FEATURE_CLOSE_RIGHT'), {}),
                 ("command", "close all on the left", icon("blank", 14, 14), actions.get('FEATURE_CLOSE_LEFT'), {}),
                 ("separator",),
-                ("command", "Open all as windows", None, actions.get('FEATURE_DOCK_ALL'), {}),
-                ("command", "Dock all windows", None, actions.get('FEATURE_UNDOCK_ALL'), {}),
+                ("command", "Undock all windows", None, actions.get('FEATURE_UNDOCK_ALL'), {}),
+                ("command", "Dock all windows", None, actions.get('FEATURE_DOCK_ALL'), {}),
                 ("separator",),
                 LoadLater(self.get_features_as_menu),
                 ("separator",),
@@ -172,9 +173,18 @@ class StudioApplication(Application):
         self.install(ComponentTree)
         self.install(StylePane)
         self.install(VariablePane)
-
-        self.open_new()
+        self._startup()
         self._restore_position()
+
+    def _startup(self):
+        on_startup = pref.get("studio::on_startup")
+        if on_startup == "new":
+            self.open_new()
+        elif on_startup == "recent":
+            latest = pref.get_latest()
+            if latest:
+                self.open_file(latest)
+        # if blank do nothing
 
     def _save_position(self):
         # self.update_idletasks()
@@ -314,18 +324,15 @@ class StudioApplication(Application):
         if path:
             self.title("Formation studio" + " - " + path)
 
-    def _clear_recent(self):
-        pref.set("studio::recent", [])  # clear recent files
-
     @dynamic_menu
     def _create_recent_menu(self, menu):
         # Dynamically create recent file menu every time menu is posted
         menu.image = get_icon_image("close", 14, 14)
         menu.config(**self.style.dark_context_menu)
-        recent = pref.get("studio::recent")
-        for path in recent:
-            menu.add("command", label=os.path.basename(path), command=functools.partial(self.open_recent, path))
-        menu.add("command", label="Clear", image=menu.image, command=self._clear_recent,
+        recent = pref.get_recent()
+        for path, label in recent:
+            menu.add("command", label=label, command=functools.partial(self.open_recent, path))
+        menu.add("command", label="Clear", image=menu.image, command=pref.clear_recent,
                  compound="left")
 
     def open_file(self, path=None):
@@ -341,22 +348,7 @@ class StudioApplication(Application):
         if path:
             self.designer.open_xml(path)
             self.set_path(path)
-            self.update_recent(path)
-
-    def update_recent(self, path):
-        if not path:
-            return
-        recent = pref.get("studio::recent")
-        max_recent = pref.get("studio::recent_max")
-        if not os.path.exists(path):
-            # path doesn't exist just remove it
-            recent.remove(path)
-            return
-        if len(recent) > max_recent and path not in recent:
-            recent = recent[:-1]
-        if path in recent:
-            recent.remove(path)
-        recent.insert(0, path)
+            pref.update_recent(path)
 
     def open_recent(self, path):
         self.open_file(path)
@@ -368,12 +360,12 @@ class StudioApplication(Application):
     def save(self):
         path = self.designer.save()
         self.set_path(path)
-        self.update_recent(path)
+        pref.update_recent(path)
 
     def save_as(self):
         path = self.designer.save(new_path=True)
         self.set_path(path)
-        self.update_recent(path)
+        pref.update_recent(path)
 
     def get_feature(self, feature_class) -> BaseFeature:
         for feature in self.features:
@@ -513,6 +505,9 @@ class StudioApplication(Application):
         # Entry point for studio help functionality
         pass
 
+    def settings(self):
+        open_preferences(self)
+
     def _register_actions(self):
         CTRL, ALT, SHIFT = KeyMap.CONTROL, KeyMap.ALT, KeyMap.SHIFT
         routine = actions.Routine
@@ -533,9 +528,10 @@ class StudioApplication(Application):
             routine(self.save_as, 'STUDIO_SAVE_AS', 'Save current design under a new file', 'studio',
                     CTRL + SHIFT + CharKey('s')),
             routine(self.get_help, 'STUDIO_HELP', 'Show studio help', 'studio', KeyMap.F(12)),
+            routine(self.settings, 'STUDIO_SETTINGS', 'Open studio settings', 'studio', ALT + CharKey('s')),
             routine(self._on_close, 'STUDIO_EXIT', 'Exit application', 'studio', CTRL + CharKey('q')),
             # ------------------------------
-            routine(self.show_all_windows, 'FEATURE_SHOW_ALL', 'Close all feature windows', 'studio',
+            routine(self.show_all_windows, 'FEATURE_SHOW_ALL', 'Show all feature windows', 'studio',
                     ALT + CharKey('a')),
             routine(self.close_all, 'FEATURE_CLOSE_ALL', 'Close all feature windows', 'studio', ALT + CharKey('x')),
             routine(lambda: self.close_all_on_side('right'),
@@ -546,7 +542,7 @@ class StudioApplication(Application):
                     ALT + CharKey('d')),
             routine(self.features_as_windows, 'FEATURE_UNDOCK_ALL', 'Undock all feature windows', 'studio',
                     ALT + CharKey('u')),
-            routine(self.save_window_positions, 'FEATURE_SAVE_POS', 'Undock all feature windows', 'studio',
+            routine(self.save_window_positions, 'FEATURE_SAVE_POS', 'Save window positions', 'studio',
                     ALT + SHIFT + CharKey('s')),
             # -----------------------------
             routine(self.preview, 'STUDIO_PREVIEW', 'Show preview', 'studio', KeyMap.F(5)),
