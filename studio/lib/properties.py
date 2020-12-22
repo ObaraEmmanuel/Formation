@@ -402,10 +402,10 @@ PROPERTY_TABLE = {
         "display_name": "show",
         "type": "text",
     },
-    "TreeView_show": {
+    "Treeview_show": {
         "display_name": "show",
         "type": "choice",
-        "options": ("tree", "headings")
+        "options": ("tree", "headings", "tree headings")
     },
     "showhandle": {
         "display_name": "show handle",
@@ -526,6 +526,10 @@ PROPERTY_TABLE = {
         "display_name": "validate command",
         "type": "callback",
     },
+    "value": {
+        "display_name": "value",
+        "type": "text",
+    },
     "variable": {
         "display_name": "variable",
         "type": "variable",
@@ -598,10 +602,6 @@ _unimplemented = {
     },
     "_type": {
         "display_name": "type",
-        "type": "color",
-    },
-    "_value": {
-        "display_name": "value",
         "type": "color",
     },
     "_values": {

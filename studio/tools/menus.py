@@ -245,11 +245,12 @@ class MenuEditor(BaseToolWindow):
     def _load_all_properties(self):
         # Generate all style editors that may be needed by any of the types of menu items
         # This needs to be called only once
-        ref = dict(**PROPERTY_TABLE, **MENU_PROPERTY_TABLE)
+        ref = dict(PROPERTY_TABLE)
+        ref.update(MENU_PROPERTY_TABLE)
         for prop in MENU_PROPERTIES:
             if not ref.get(prop):
                 continue
-            definition = dict(**ref.get(prop))
+            definition = dict(ref.get(prop))
             definition['name'] = prop
             self._add_item(StyleItem(self._menu_item_styles, definition, self._on_item_change))
         menu_prop = get_properties(self._base_menu)
