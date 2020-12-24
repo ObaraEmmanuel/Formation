@@ -134,10 +134,21 @@ class BaseLayoutStrategy:
     def apply(self, prop, value, widget):
         pass
 
+    def info(self, widget):  # noqa
+        return {}
+
+    def get_def(self, widget):
+        # May be overridden to return dynamic definitions based on the widget
+        # Always use a copy to avoid messing with definition
+        return dict(self.DEFINITION)
+
     def definition_for(self, widget):
-        definition = {**self.DEFINITION}
-        definition["width"]["value"] = widget.winfo_width()
-        definition["height"]["value"] = widget.winfo_height()
+        info = self.info(widget)
+        # Ensure we use the dynamic definitions
+        definition = self.get_def(widget)
+        for key in definition:
+            # will throw a key error if a definition value is not found in info
+            definition[key]["value"] = info[key]
         return definition
 
     def initialize(self, former_strategy=None):
@@ -235,13 +246,9 @@ class FrameLayoutStrategy(BaseLayoutStrategy):
     def apply(self, prop, value, widget):
         widget.place_configure(**{prop: value})
 
-    def definition_for(self, widget):
-        definition = super().definition_for(widget)
-        info = widget.place_info()
-        definition["x"]["value"] = info.get("x", 0)
-        definition["y"]["value"] = info.get("y", 0)
-        definition["bordermode"]["value"] = info.get("bordermode")
-        return definition
+    def info(self, widget):
+        info = widget.place_info() or {}
+        return info
 
     def copy_layout(self, widget, from_):
         info = from_.place_info()
@@ -366,31 +373,29 @@ class LinearLayoutStrategy(BaseLayoutStrategy):
             widget.pack_configure(**{prop: value})
 
     def config_widget(self, widget, **kw):
-        if 'width' in kw:
-            widget.configure(width=kw['width'])
-            kw.pop('width')
-        if 'height' in kw:
-            widget.configure(width=kw['height'])
-            kw.pop('height')
+        for prop in ("width", "height"):
+            if prop in kw:
+                widget.configure(**{prop: kw[prop]})
+                kw.pop(prop)
+
         widget.pack_configure(**kw)
 
-    def definition_for(self, widget):
-        definition = super().definition_for(widget)
-        info = widget.pack_info()
-        for prop in ("anchor", "padx", "pady", "ipady", "ipadx", "expand", "fill", "side"):
-            definition[prop]["value"] = info.get(prop)
-
-        if "width" in widget.keys():
-            definition["width"]["value"] = widget["width"]
-            definition["width"]["default"] = ''
-        else:
-            definition.pop('width')
-        if "height" in widget.keys():
-            definition["height"]["value"] = widget["height"]
-            definition["height"]["default"] = ''
-        else:
-            definition.pop('height')
+    def get_def(self, widget):
+        # Use copy since we are going to modify definition
+        definition = dict(self.DEFINITION)
+        keys = widget.keys()
+        for prop in ("width", "height"):
+            if prop not in keys:
+                definition.pop(prop)
         return definition
+
+    def info(self, widget):
+        info = widget.pack_info() or {}
+        keys = widget.keys()
+        for prop in ("width", "height"):
+            if prop in keys:
+                info.update({prop: widget[prop]})
+        return info
 
     def copy_layout(self, widget, from_):
         info = from_.pack_info()
@@ -603,12 +608,10 @@ class GridLayoutStrategy(BaseLayoutStrategy):
             return info
 
     def config_widget(self, widget, **kw):
-        if 'width' in kw:
-            widget.configure(width=kw['width'])
-            kw.pop('width')
-        if 'height' in kw:
-            widget.configure(height=kw['height'])
-            kw.pop('height')
+        for prop in ("width", "height"):
+            if prop in kw:
+                widget.configure(**{prop: kw[prop]})
+                kw.pop(prop)
         widget.grid_configure(**kw)
 
     def widget_released(self, widget):
@@ -690,21 +693,21 @@ class GridLayoutStrategy(BaseLayoutStrategy):
     def react_to_pos(self, x, y):
         self._location_analysis((*geometry.resolve_position((x, y), self.container.parent), 0, 0))
 
-    def definition_for(self, widget):
-        definition = super().definition_for(widget)
-        info = widget.grid_info()
-        for prop in ("sticky", "padx", "pady", "ipady", "ipadx", "row", "column", "columnspan", "rowspan"):
-            definition[prop]["value"] = info.get(prop)
-        if "width" in widget.keys():
-            definition["width"]["value"] = widget["width"]
-            definition["width"]["default"] = ''
-        else:
-            definition.pop('width')
-        if "height" in widget.keys():
-            definition["height"]["value"] = widget["height"]
-            definition["height"]["default"] = ''
-        else:
-            definition.pop('height')
+    def info(self, widget):
+        info = widget.grid_info() or {}
+        keys = widget.keys()
+        for prop in ("width", "height"):
+            if prop in keys:
+                info.update({prop: widget[prop]})
+        return info
+
+    def get_def(self, widget):
+        # Use copy since we are going to modify definition
+        definition = dict(self.DEFINITION)
+        keys = widget.keys()
+        for prop in ("width", "height"):
+            if prop not in keys:
+                definition.pop(prop)
         return definition
 
     def copy_layout(self, widget, from_):
@@ -796,14 +799,12 @@ class TabLayoutStrategy(BaseLayoutStrategy):
         super().remove_widget(widget)
         self.container.forget(widget)
 
-    def definition_for(self, widget):
-        definition = {**self.DEFINITION}
-        info = self.container.tab(widget)
-        for prop in self.DEFINITION.keys():
-            definition[prop]["value"] = info.get(prop)
-        definition["padding"]["value"] = definition["padding"]["value"][0]
-
-        return definition
+    def info(self, widget):
+        info = self.container.tab(widget) or {}
+        if "padding" in info:
+            # use the first padding value until we can support full padding
+            info["padding"] = info["padding"][0]
+        return info
 
     def apply(self, prop, value, widget):
         self.container.tab(widget, **{prop: value})
@@ -883,16 +884,19 @@ class PanedLayoutStrategy(BaseLayoutStrategy):
             return self.container.paneconfig(widget)
         self.container.paneconfig(widget, **kwargs)
 
-    def definition_for(self, widget):
-        definition = {**self.DEFINITION}
-        info = self._config(widget)
-        for prop in self.DEFINITION.keys():
-            definition[prop]["value"] = info.get(prop)[-1]  # Last item is the value
+    def get_def(self, widget):
+        definition = dict(self.DEFINITION)
         # Give a hint on what the minsize attribute will affect
-        # if panedwindow is in horizontal orient minsize affects min-width of children otherwise it affects height
+        # if panedwindow is in horizontal orient minsize affects min-width of
+        # the children otherwise it affects height
         side = "width" if self.container["orient"] == "horizontal" else "height"
         definition["minsize"]["display_name"] = f"minsize ({side})"
         return definition
+
+    def info(self, widget):
+        info = self._config(widget) or {}
+        # we only need to use the last value for every value returned by config
+        return {k: info[k][-1] for k in info}
 
     def apply(self, prop, value, widget):
         self.container.paneconfig(widget, **{prop: value})
@@ -933,15 +937,17 @@ class NPanedLayoutStrategy(PanedLayoutStrategy):
         info = from_.layout.pane(from_)
         self.add_widget(widget, (0, 0, 0, 0), **info)
 
-    def definition_for(self, widget):
-        definition = {**self.DEFINITION}
-        info = self._config(widget)
-        for prop in self.DEFINITION.keys():
-            definition[prop]["value"] = info.get(prop)
-        return definition
+    def get_def(self, widget):
+        # We need to override the hinting behaviour inherited since there's no
+        # orient and minsize options
+        return dict(self.DEFINITION)
+
+    def info(self, widget):
+        return self._config(widget) or {}
 
 
-# Do not include tab layout since it requires special widgets like notebooks to function
+# Do not include tab layout since it requires special widgets like notebooks
+# to function and this list is displayed in the layout options menu for containers
 layouts = (
     FrameLayoutStrategy, LinearLayoutStrategy, GridLayoutStrategy
 )

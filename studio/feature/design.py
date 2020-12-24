@@ -65,14 +65,21 @@ class DesignLayoutStrategy(FrameLayoutStrategy):
     def get_restore(self, widget):
         return self.container.config_child(widget)
 
-    def definition_for(self, widget):
-        definition = super().definition_for(widget)
-        bounds = self.container.bbox(widget)
-        definition["x"]["value"] = bounds[0]
-        definition["y"]["value"] = bounds[1]
-        # bordermode is not supported in design pad so simply set value to the default 'inside'
-        definition["bordermode"]["value"] = 'inside'
+    def get_def(self, widget):
+        definition = dict(self.DEFINITION)
+        # We don't need bordermode
+        definition.pop("bordermode")
         return definition
+
+    def info(self, widget):
+        bounds = self.container.bbox(widget)
+        width, height = geometry.dimensions(bounds)
+        return {
+            "x": bounds[0],
+            "y": bounds[1],
+            "width": width,
+            "height": height,
+        }
 
 
 class Designer(DesignPad, Container):
