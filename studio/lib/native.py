@@ -42,6 +42,12 @@ class Combobox(PseudoWidget, ttk.Combobox):
     icon = "combobox"
     impl = ttk.Combobox
 
+    DEF_OVERRIDES = {
+        "state": {
+            "options": ("readonly",)
+        }
+    }
+
     def __init__(self, master, id_):
         super().__init__(master)
         self.id = id_
@@ -285,6 +291,13 @@ class Treeview(PseudoWidget, ttk.Treeview):
     group = Groups.container
     icon = "treeview"
     impl = ttk.Treeview
+
+    DEF_OVERRIDES = {
+        "show": {
+            "type": "choice",
+            "options": ("tree", "headings", "tree headings")
+        }
+    }
 
     def __init__(self, master, id_):
         super().__init__(master)

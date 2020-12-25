@@ -9,6 +9,12 @@ class Button(PseudoWidget, tk.Button):
     icon = "button"
     impl = tk.Button
 
+    DEF_OVERRIDES = {
+        "state": {
+            "options": ("normal", "active", "disabled")
+        }
+    }
+
     def __init__(self, master, id_):
         super().__init__(master)
         self.id = id_
@@ -53,6 +59,12 @@ class Entry(PseudoWidget, tk.Entry):
     group = Groups.input
     icon = "entry"
     impl = tk.Entry
+
+    DEF_OVERRIDES = {
+        "state": {
+            "options": ("normal", "readonly", "disabled")
+        }
+    }
 
     def __init__(self, master, id_):
         super().__init__(master)

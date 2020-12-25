@@ -41,13 +41,13 @@ BUILTIN_CURSORS_MAC = (
 BUILTIN_BITMAPS = (
     'error', 'gray75', 'gray50', 'gray25', 'gray12',
     'hourglass', 'info', 'questhead', 'question', 'warning',
-    )
+)
 
 BUILTIN_BITMAPS_MAC = (
     'document', 'stationery', 'edition', 'application', 'accessory',
     'forder', 'pfolder', 'trash', 'floppy', 'ramdisk', 'cdrom',
     'preferences', 'querydoc', 'stop', 'note', 'caution'
-    )
+)
 
 if platform_is(MAC):
     BUILTIN_BITMAPS = BUILTIN_BITMAPS + BUILTIN_BITMAPS_MAC
@@ -149,10 +149,6 @@ PROPERTY_TABLE = {
     },
     "confine": {
         "display_name": "confine",
-        "type": "boolean",
-    },
-    "_container": {
-        "display_name": "container",
         "type": "boolean",
     },
     "cursor": {
@@ -402,11 +398,6 @@ PROPERTY_TABLE = {
         "display_name": "show",
         "type": "text",
     },
-    "Treeview_show": {
-        "display_name": "show",
-        "type": "choice",
-        "options": ("tree", "headings", "tree headings")
-    },
     "showhandle": {
         "display_name": "show handle",
         "type": "boolean",
@@ -443,21 +434,6 @@ PROPERTY_TABLE = {
         "display_name": "state",
         "type": "choice",
         "options": ("normal", "disabled")
-    },
-    "Button_state": {
-        "display_name": "state",
-        "type": "choice",
-        "options": ("normal", "active", "disabled")
-    },
-    "Combobox_state": {
-        "display_name": "state",
-        "type": "choice",
-        "options": ("readonly",)
-    },
-    "Entry_state": {
-        "display_name": "state",
-        "type": "choice",
-        "options": ("readonly", "normal", "disabled")
     },
     "tabstyle": {
         "display_name": "tab style",
@@ -559,6 +535,10 @@ _unimplemented = {
         "display_name": "colormap",
         "type": "color",
     },
+    "_container": {
+        "display_name": "container",
+        "type": "boolean",
+    },
     "_endline": {
         "display_name": "endline",
         "type": "color",
@@ -630,7 +610,6 @@ _unimplemented = {
     },
 }
 
-
 WIDGET_IDENTITY = {
     "class": {
         "display_name": "class",
@@ -650,13 +629,13 @@ WIDGET_IDENTITY = {
 def get_properties(widget):
     properties = widget.config()
     resolved_properties = {}
+    overrides = getattr(widget, "DEF_OVERRIDES", {})
     for prop in properties:
-        resolved_name = f"{widget.__class__.__name__}_{prop}"
-        obtained = PROPERTY_TABLE.get(resolved_name, PROPERTY_TABLE.get(prop, {}))
-        if not obtained:
-            continue
-        resolved_properties[prop] = dict(**obtained)
-        resolved_properties[prop]["value"] = widget[prop]
-        resolved_properties[prop]["name"] = prop
+        # use a copy to avoid messing up the general definition
+        definition = dict(PROPERTY_TABLE.get(prop, {}))
+        if definition:
+            definition.update(overrides.get(prop, {}))
+            definition.update(value=widget[prop], name=prop)
+            resolved_properties[prop] = definition
 
     return resolved_properties
