@@ -110,5 +110,5 @@ include:
 
 - [TkDocs](http://www.tkdocs.com)
 - [Graphical User Interfaces with Tk](http://docs.python.org/3.5/library/tk.html)
-- [An Introduction to Tkinter](http://effbot.org/tkinterbook/)
+- [An Introduction to Tkinter](https://web.archive.org/web/20170518202115/http://effbot.org/tkinterbook/tkinter-index.htm)
 - [Tcl/Tk 8.5 Manual](http://www.tcl.tk/man/tcl8.5/) 
