@@ -36,6 +36,8 @@ class ReusableStyleItem(StyleItem):
         temp = self._on_change
         self._on_change = None
         self.name = style_definition.get("name")
+        # allow editor to adjust to the new definition
+        self._editor.set_def(style_definition)
         self._editor.set(style_definition.get("value"))
         self._editor.on_change(self._change)
         self._label.configure(text=style_definition.get("display_name"))

@@ -25,6 +25,7 @@ class Editor(Frame):
 
     def __init__(self, master, style_def=None):
         super().__init__(master)
+        self.style_def = style_def
         self.config(**self.style.dark, width=150, height=25)
         self.pack_propagate(False)
         self.grid_propagate(0)
@@ -39,8 +40,15 @@ class Editor(Frame):
     def get(self):
         raise NotImplementedError()
 
+    def set_def(self, definition):
+        self.style_def = definition
+
 
 class Choice(Editor):
+    # Some subclasses may not need to repopulate when definition changes
+    # When extending this class take note of this for the sake of performance
+    _setup_once = False
+
     class ChoiceItem(CompoundList.BaseItem):
 
         def render(self):
@@ -51,22 +59,21 @@ class Choice(Editor):
 
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
-        if style_def is None:
-            style_def = {}
-        self.style_def = style_def
         self._spinner = Spinner(self, **self.style.dark_input)
         self._spinner.pack(fill="x")
         self._spinner.on_change(self.spinner_change)
+        # initial set up is mandatory for all Choice subclasses
         self.set_up()
-        values = style_def.get("options", ())
-        if values:
-            if not style_def.get('allow_empty', True):
-                self._spinner.set_values(('', *values))
-            else:
-                self._spinner.set_values(values)
 
     def set_up(self):
         self._spinner.set_item_class(Choice.ChoiceItem)
+        # update the values from definition provided
+        values = self.style_def.get("options", ())
+        if values:
+            if not self.style_def.get('allow_empty', True):
+                self._spinner.set_values(('', *values))
+            else:
+                self._spinner.set_values(values)
 
     def spinner_change(self, value):
         if self._on_change is not None:
@@ -78,6 +85,12 @@ class Choice(Editor):
 
     def get(self):
         return self._spinner.get()
+
+    def set_def(self, definition):
+        super().set_def(definition)
+        if not self._setup_once:
+            # repopulate only when needed for the sake of efficiency
+            self.set_up()
 
 
 class Boolean(Editor):
@@ -111,6 +124,8 @@ class Boolean(Editor):
 
 
 class Relief(Choice):
+    _setup_once = True
+
     class ReliefItem(Choice.ChoiceItem):
 
         def render(self):
@@ -129,6 +144,8 @@ class Relief(Choice):
 
 
 class Cursor(Choice):
+    _setup_once = True
+
     class CursorItem(Choice.ChoiceItem):
 
         def render(self):
@@ -144,6 +161,8 @@ class Cursor(Choice):
 
 
 class Bitmap(Choice):
+    _setup_once = True
+
     class BitmapItem(Choice.ChoiceItem):
 
         def render(self):
@@ -160,6 +179,8 @@ class Bitmap(Choice):
 
 
 class Layout(Choice):
+    _setup_once = True
+
     class LayoutItem(Choice.ChoiceItem):
 
         def render(self):
@@ -252,14 +273,16 @@ class Text(TextMixin, Editor):
 
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
-        if style_def is None:
-            style_def = {}
         self.config(**self.style.dark_highlight_active)
         self._entry = Entry(self, **self.style.dark_input)
         self._entry.pack(fill="x")
         self._entry.on_entry(self._change)
-        if style_def.get("readonly", False):
+        self.set_def(style_def)
+
+    def set_def(self, definition):
+        if definition.get("readonly", False):
             self._entry.config(state='disabled')
+        super().set_def(definition)
 
 
 class Number(TextMixin, Editor):
@@ -290,8 +313,6 @@ class Duration(TextMixin, Editor):
 
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
-        if style_def is None:
-            style_def = {}
         self.config(**self.style.dark_highlight_active)
         self._entry = SpinBox(self, from_=0, to=1e6, **self.style.spinbox)
         self._entry.config(**self.style.no_highlight)
@@ -301,11 +322,15 @@ class Duration(TextMixin, Editor):
         self._unit.config(**self.style.no_highlight, width=50)
         self._unit.set_item_class(Choice.ChoiceItem)
         self._unit.set_values(Duration.UNITS)
-        self._metric = style_def.get("units", "ms")
-        self._unit.set(self._metric)
         self._unit.pack(side="right")
         self._unit.on_change(self._change)
         self._entry.pack(side='left', fill="x")
+        self.set_def(style_def)
+
+    def set_def(self, definition):
+        super().set_def(definition)
+        self._metric = definition.get("units", "ms")
+        self._unit.set(self._metric)
 
     def get(self):
         if self._entry.get() == '':
@@ -339,23 +364,26 @@ class Dimension(Number):
 
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
-        if style_def is None:
-            style_def = {}
         self._entry.config(from_=0, to=1e6)
         self._entry.set_validator(numeric_limit, 0, 1e6)
         self._entry.pack_forget()
-        unit = self.SHORT_FORMS.get(style_def.get("units", "pixels"), 'px')
-        Label(self, **self.style.dark_text_passive, text=unit).pack(side="right")
+        self._unit = Label(self, **self.style.dark_text_passive)
+        self._unit.pack(side="right")
+        self.set_def(style_def)
         self._entry.pack(side="left", fill="x")
+
+    def set_def(self, definition):
+        self._unit['text'] = self.SHORT_FORMS.get(
+            definition.get("units", "pixels"), 'px'
+        )
+        super().set_def(definition)
 
 
 class Anchor(Editor):
 
     def __init__(self, master, style_def):
         super().__init__(master, style_def)
-        style_def = style_def if style_def else {}
-        # This flag determines whether multiple anchors are allowed at a time
-        self.multiple = style_def.get("multiple", True)  # set to True to obtain a sticky property editor
+        self.set_def(style_def)
         self.config(width=150, height=110)
         self.n = ToggleButton(self, text="N", width=20, height=20)
         self.n.grid(row=0, column=0, columnspan=3, sticky='ns')
@@ -422,6 +450,12 @@ class Anchor(Editor):
 
         self._adjust()
 
+    def set_def(self, definition):
+        # This flag determines whether multiple anchors are allowed at a time
+        # set to True to obtain a sticky property editor
+        self.multiple = definition.get("multiple", True)
+        super().set_def(definition)
+
 
 class Image(Text):
 
@@ -449,6 +483,8 @@ class Image(Text):
 
 
 class Variable(Choice):
+    _setup_once = True
+
     class VariableChoiceItem(Choice.ChoiceItem):
 
         def render(self):
