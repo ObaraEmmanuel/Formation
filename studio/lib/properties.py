@@ -70,6 +70,7 @@ def all_supported_cursors() -> tuple:
         return BUILTIN_CURSORS + BUILTIN_CURSORS_MAC
     elif platform_is(WINDOWS):
         return BUILTIN_CURSORS + BUILTIN_CURSORS_WINDOWS
+    return BUILTIN_CURSORS
 
 
 PROPERTY_TABLE = {

@@ -11,7 +11,7 @@
                             layout:height="85" layout:x="22" layout:y="81"/>
     <tkinter.ttk.Notebook name="Notebook_1" layout:width="290" layout:height="145" layout:x="275" layout:y="16"/>
     <tkinter.ttk.Treeview name="Treeview_1" layout:width="223" layout:height="59" layout:x="28" layout:y="179"/>
-    <tkinter.ttk.Sizegrip name="Sizegrip_1" attr:cursor="size_nw_se" layout:width="195" layout:height="74"
+    <tkinter.ttk.Sizegrip name="Sizegrip_1" layout:width="195" layout:height="74"
                           layout:x="300" layout:y="181"/>
     <tkinter.ttk.Button name="Button_1" attr:text="Button_1" layout:width="55" layout:height="30" layout:x="36"
                         layout:y="286"/>
@@ -27,7 +27,7 @@
     <tkinter.ttk.Scrollbar name="Scrollbar_1" layout:width="24" layout:height="164" layout:x="327" layout:y="238"/>
     <tkinter.ttk.Separator name="Separator_1" layout:width="55" layout:height="30" layout:x="286" layout:y="464"/>
     <tkinter.ttk.Combobox name="Combobox_1" layout:width="55" layout:height="30" layout:x="424" layout:y="196"/>
-    <tkinter.ttk.Entry name="Entry_1" attr:cursor="ibeam" layout:width="55" layout:height="30" layout:x="453"
+    <tkinter.ttk.Entry name="Entry_1" layout:width="55" layout:height="30" layout:x="453"
                        layout:y="264"/>
     <tkinter.ttk.LabeledScale name="LabeledScale_1" layout:width="55" layout:height="30" layout:x="490" layout:y="314"/>
     <tkinter.ttk.Radiobutton name="Radiobutton_1" attr:text="Radiobutton_1" layout:width="55" layout:height="30"
