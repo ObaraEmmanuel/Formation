@@ -77,9 +77,16 @@
     foreground: #101010;
 }
 
-.dark_checkbutton {
+.checkbutton, .radiobutton, .dark_checkbutton {
     background: #303030;
     foreground: #f7f7f7;
+    activebackground: #3a3a3a;
+    activeforeground: #f7f7f7;
+    selectcolor: #303030;
+    highlightbackground: #303030;
+    highlightcolor: #3d8aff;
+    highlightthickness: 1;
+    anchor: w;
     relief: flat;
 }
 
@@ -222,11 +229,12 @@
 }
 
 .dark_context_menu{
-    background:#303030;
+    background:#353535;
     tearoff: 0;
     foreground: #f7f7f7;
     activebackground: #3a3a3a;
     activeforeground: #f7f7f7;
+    activeborderwidth: 0;
     borderwidth: 0;
     relief: flat;
     font: TkDefaultFont 10;

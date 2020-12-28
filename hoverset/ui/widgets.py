@@ -1478,7 +1478,7 @@ class ToggleButton(Button):
         self._on_change = lambda value: func(value, *args, **kwargs)
 
 
-class Checkbutton(Widget, ttk.Checkbutton):
+class Checkbutton(Widget, ImageCacheMixin, tk.Checkbutton):
     """
     Hoverset wrapper for :py:class:`tkinter.ttk.Checkbutton`
     """
@@ -1486,15 +1486,10 @@ class Checkbutton(Widget, ttk.Checkbutton):
     def __init__(self, master=None, **cnf):
         self.setup(master)
         super().__init__(master)
-        cnf = {**self.style.dark_text, **cnf}
-        config_ttk(self, **cnf)
+        cnf = {**self.style.checkbutton, **cnf}
+        self.configure(**cnf)
         self._var = tk.BooleanVar()
         self.config(variable=self._var)
-
-    def config_all(self, cnf=None, **kwargs):
-        config_ttk(self, cnf, **kwargs)
-
-    config = config_all
 
     def set(self, value):
         """
@@ -1513,7 +1508,7 @@ class Checkbutton(Widget, ttk.Checkbutton):
         return self._var.get()
 
 
-class RadioButton(Widget, ttk.Radiobutton):
+class RadioButton(Widget, ImageCacheMixin, tk.Radiobutton):
     """
     Hoverset wrapper for :py:class:`tkinter.ttk.Radiobutton`
     """
@@ -1521,11 +1516,8 @@ class RadioButton(Widget, ttk.Radiobutton):
     def __init__(self, master, **cnf):
         self.setup(master)
         super().__init__(master)
-        cnf = {**self.style.dark_text, **cnf}
-        self.config_all(**cnf)
-
-    def config_all(self, cnf=None, **kwargs):
-        config_ttk(self, cnf, **kwargs)
+        cnf = {**self.style.radiobutton, **cnf}
+        self.configure(**cnf)
 
 
 class RadioButtonGroup(Frame):
@@ -1602,8 +1594,10 @@ class RadioButtonGroup(Frame):
         """
         value, desc = choice
         if len(self._pool):
+            # pool is not empty so get buttons from there
             button = self._pool.pop(0)
         else:
+            # create a new radio button since pool is empty
             button = RadioButton(self)
         button.config(value=value, text=desc, variable=self._var)
         button.pack(side=tk.TOP, fill=tk.X, padx=10)
@@ -1623,16 +1617,8 @@ class RadioButtonGroup(Frame):
         # move all radio buttons to the pool
         self._pool.extend(self._radio_buttons)
         self._radio_buttons.clear()
-        for value, desc in choices:
-            if len(self._pool):
-                # pool is not empty so get buttons from there
-                button = self._pool.pop(0)
-            else:
-                # create a new radio button since pool is empty
-                button = RadioButton(self)
-            button.config(value=value, text=desc, variable=self._var)
-            button.pack(side=tk.TOP, fill=tk.X, padx=10)
-            self._radio_buttons.append(button)
+        for choice in choices:
+            self.add_choice(choice)
 
     def get(self):
         """
