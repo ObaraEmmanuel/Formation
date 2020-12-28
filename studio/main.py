@@ -23,6 +23,7 @@ import studio
 
 from hoverset.ui.widgets import Application, Frame, PanedWindow, Button, ActionNotifier
 from hoverset.ui.icons import get_icon_image
+from hoverset.data.images import load_tk_image
 from hoverset.util.execution import Action
 from hoverset.data.utils import get_resource_path
 from hoverset.ui.dialogs import MessageDialog
@@ -36,12 +37,13 @@ pref = Preferences.acquire()
 
 
 class StudioApplication(Application):
-    ICON_PATH = get_resource_path(studio, "resources/images/formation.ico")
+    ICON_PATH = get_resource_path(studio, "resources/images/formation_icon.png")
 
     def __init__(self, master=None, **cnf):
         super().__init__(master, **cnf)
         # Load icon asynchronously to prevent issues which have been known to occur when loading it synchronously
-        self.after(200, lambda: self.wm_iconbitmap(self.ICON_PATH, self.ICON_PATH))
+        icon_image = load_tk_image(self.ICON_PATH)
+        self.after(200, lambda: self.iconphoto(True, icon_image))
         self.pref = pref
         self._restore_position()
         self.title('Formation Studio')
@@ -199,7 +201,7 @@ class StudioApplication(Application):
     def _restore_position(self):
         pos = pref.get("studio::pos")
         if pos.get("state") == 'zoomed':
-            self.state('zoomed')
+            self.wm_attributes('-zoomed', True)
             return
         self.state('normal')
         self.geometry('{width}x{height}+{x}+{y}'.format(**pos))

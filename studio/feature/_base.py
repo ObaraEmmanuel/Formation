@@ -281,7 +281,6 @@ class BaseFeature(Frame):
         self.window.wm_manage(self)
         # Allow us to create a hook in the close method of the window manager
         self.bind_close()
-        self.wm_attributes('-toolwindow', True)
         self.title(self.name)
         self.transient(self.master.window)
         self.geometry('{}x{}+{}+{}'.format(rec[2], rec[3], rec[0], rec[1]))

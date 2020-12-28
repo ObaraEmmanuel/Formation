@@ -11,6 +11,7 @@ All gui manifestation should strictly use hoverset widget set for easy maintenan
 
 import functools
 import logging
+import re
 import webbrowser
 import tkinter as tk
 import tkinter.tix as tix
@@ -381,17 +382,22 @@ class ScrollableInterface:
 
 
 class CenterWindowMixin:
+    GEOMETRY_RGX = re.compile(
+        r"(\d+)x(\d+)\+(\d+)\+(\d+)"
+    )
 
     def enable_centering(self):
         self.centered = False
-        self.bind('<Configure>', lambda _: self.center())
-        self.event_generate('<Configure>')
+        self.bind('<Visibility>', lambda _: self.center())
+        # self.event_generate('<Configure>')
 
     def center(self):
         if not self.centered:
             self.update_idletasks()
-            x = int((self.position_ref.winfo_width() - self.winfo_width()) / 2) + self.position_ref.winfo_x()
-            y = int((self.position_ref.winfo_height() - self.winfo_height()) / 2) + self.position_ref.winfo_y()
+            r_width, r_height, r_x, r_y = self.position_ref.get_geometry()
+            width, height, *_ = self.get_geometry()
+            x = int((r_width - width) / 2) + r_x
+            y = int((r_height - height) / 2) + r_y
             self.geometry("+{}+{}".format(x, y))
             self.centered = True if self.winfo_width() != 1 else False
 
@@ -402,6 +408,15 @@ class CenterWindowMixin:
     def force_center(self):
         self.centered = False
         self.center()
+
+    def get_geometry(self):
+        """
+        Get window geometry parsed into a tuple
+
+        :return: tuple containing (width, height, x, y) in that order
+        """
+        search = self.GEOMETRY_RGX.search(self.geometry())
+        return tuple(map(int, search.groups()))
 
 
 class PositionMixin:
@@ -1210,6 +1225,9 @@ class Screen:
     def winfo_height(self):
         return self.window.winfo_screenheight()
 
+    def get_geometry(self):
+        return self.winfo_width(), self.winfo_height(), 0, 0
+
 
 class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, ContextMenuMixin, tix.Tk):
     """
@@ -1706,9 +1724,13 @@ class Popup(PositionMixin, Window):
         self.overrideredirect(True)
         self.attributes("-topmost", 1)
         self._grabbed = self.grab_current()  # Store the widget that currently has the grab
-        self.grab_set_global()  # Grab all events so we can tell whether someone is clicking outside the popup
+        # Grab all events so we can tell whether someone is clicking outside the popup
+        self.bind("<Visibility>", self._on_visibility)
         self.bind("<Button-1>", self._exit)
         self.body = self
+
+    def _on_visibility(self, _):
+        self.grab_set_global()
 
     def _exit(self, event):
         if not Widget.event_in(event, self):
