@@ -23,7 +23,7 @@ from hoverset.data.images import load_image_to_widget
 from hoverset.data.utils import get_resource_path
 from hoverset.platform import platform_is, WINDOWS
 from hoverset.ui.animation import Animate, Easing
-from hoverset.ui.icons import get_icon
+from hoverset.ui.icons import get_icon_image
 from hoverset.ui.styles import StyleDelegator
 from hoverset.ui.windows import DragWindow
 from hoverset.ui.menu import MenuUtils
@@ -2102,10 +2102,18 @@ class Spinner(Frame):
     """
     Combobox widget allowing easy customization of choice items
     """
+    __icons_loaded = False
+    EXPAND = None
+    COLLAPSE = None
 
     def __init__(self, master=None, **_):
         super().__init__(master)
-        self._button = Button(self, **self.style.dark_button, text=get_icon("triangle_down"), width=20, anchor="center")
+        self._load_images()
+        self._button = Button(
+            self, **self.style.dark_button,
+            image=self.EXPAND,
+            width=20, anchor="center"
+        )
         self._button.pack(side="right", fill="y")
         self._button.on_click(self._popup)
         self._entry = Frame(self, **self.style.dark)
@@ -2121,10 +2129,18 @@ class Spinner(Frame):
         self._item_cls = CompoundList.BaseItem
         self.dropdown_height = 150
 
+    @classmethod
+    def _load_images(cls):
+        if cls.__icons_loaded:
+            return
+        cls.EXPAND = get_icon_image("triangle_down", 14, 14)
+        cls.COLLAPSE = get_icon_image("triangle_up", 14, 14)
+        cls.__icons_loaded = True
+
     def _popup(self, _=None):
         if self._popup_window is not None:
             self._popup_window.destroy()
-            self._button.config(text=get_icon("triangle_down"))
+            self._button.config(image=self.EXPAND)
             self._popup_window = None
             return
         self.update_idletasks()
@@ -2167,14 +2183,14 @@ class Spinner(Frame):
 
         Animate(popup, 0, initial_height, update_popup,
                 easing=Easing.SLING_SHOT, dur=0.2)
-        self._button.config(text=get_icon("triangle_up"))
+        self._button.config(image=self.COLLAPSE)
         popup.on_close(self._close_popup)
 
     def _close_popup(self):
         # self._popup_window = None
         # This fails at times during program close up
         try:
-            self._button.config(text=get_icon("triangle_down"))
+            self._button.config(image=self.EXPAND)
         except tk.TclError:
             pass
 
@@ -2252,15 +2268,19 @@ class TreeView(ScrolledFrame):
             self.parent_node.deselect()
 
     class Node(Frame):
-        EXPANDED_ICON = get_icon("chevron_down")
-        COLLAPSED_ICON = get_icon("chevron_right")
+        # will be loaded later
+        EXPANDED_ICON = None
+        COLLAPSED_ICON = None
+        BLANK = None
+        __icons_loaded = False
         PADDING = 1
 
         def __init__(self, master=None, **config):
             super().__init__(master.body)
+            self._load_images()
             self.config(**self.style.dark)
             self.tree = master
-            self._icon = config.get("icon", get_icon("data"))
+            self._icon = config.get("icon", self.BLANK)
             self._name = config.get("name", "unknown")
             self.strip = f = TreeView.Strip(self, **self.style.dark, takefocus=True)
             f.pack(side="top", fill="x")
@@ -2272,7 +2292,7 @@ class TreeView(ScrolledFrame):
             self.strip.bind("<FocusIn>", self.select)
             self.strip.bind("<Up>", self.select_prev)
             self.strip.bind("<Down>", self.select_next)
-            self.icon_pad = Label(f, **self.style.dark_text, text=self._icon)
+            self.icon_pad = Label(f, **self.style.dark_text, image=self._icon)
             self.icon_pad.pack(side="left")
             self.name_pad = Label(f, **self.style.dark_text, text=self._name)
             self.name_pad.pack(side="left", fill="x")
@@ -2285,6 +2305,15 @@ class TreeView(ScrolledFrame):
             self._depth = 0  # Will be set on addition to a node or tree so this value is just placeholder
             self.parent_node = None
             self.nodes = []
+
+        @classmethod
+        def _load_images(cls):
+            if cls.__icons_loaded:
+                return
+            cls.EXPANDED_ICON = get_icon_image("chevron_down", 14, 14)
+            cls.COLLAPSED_ICON = get_icon_image("chevron_right", 14, 14)
+            cls.BLANK = get_icon_image("blank", 14, 14)
+            cls.__icons_loaded = True
 
         @property
         def depth(self):
@@ -2308,11 +2337,11 @@ class TreeView(ScrolledFrame):
             for child in self.strip.winfo_children():
                 child.bind(sequence, func, add)
 
-        def _set_expander(self, text):
-            if text:
-                self.expander.config(text=text)
+        def _set_expander(self, icon):
+            if icon:
+                self.expander.configure(image=icon)
             else:
-                self.expander.config(text=" " * 4)
+                self.expander.configure(image=self.BLANK)
 
         def is_descendant(self, node):
             if node.depth >= self.depth:
@@ -2454,7 +2483,7 @@ class TreeView(ScrolledFrame):
                     self.expand()
                 if len(self.nodes) == 0:
                     # remove the expansion icon
-                    self._set_expander(False)
+                    self._set_expander(self.BLANK)
 
         def expand(self):
             if len(self.nodes) == 0:

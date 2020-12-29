@@ -9,7 +9,7 @@ import functools
 import logging
 import tkinter as tk
 
-from hoverset.ui.icons import get_icon_image, get_icon
+from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import PanedWindow, Frame, MenuButton, Button, ScrolledFrame, Label
 from hoverset.ui.menu import EnableIf
 from studio.lib.properties import PROPERTY_TABLE, get_properties
@@ -34,7 +34,8 @@ class MenuTree(MalleableTree):
             super().__init__(master, **config)
             self._menu = config.get("menu")
             self.name_pad.config(text=config.get("label"))
-            self.icon_pad.config(text=get_icon(self._type_def.get(config.get("type"))[0]))
+            icon = self._type_def.get(config.get("type"))[0]
+            self.icon_pad.configure(image=get_icon_image(icon, 14, 14))
             self.editable = True
             self.type = config.get("type")
             if config.get("type") == tk.CASCADE:
