@@ -30,6 +30,7 @@ from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.menu import MenuUtils, EnableIf, dynamic_menu, LoadLater
 from hoverset.data import actions
 from hoverset.data.keymap import ShortcutManager, CharKey, KeyMap
+from hoverset.platform import platform_is, WINDOWS
 
 from formation import AppBuilder
 
@@ -43,7 +44,7 @@ class StudioApplication(Application):
         super().__init__(master, **cnf)
         # Load icon asynchronously to prevent issues which have been known to occur when loading it synchronously
         icon_image = load_tk_image(self.ICON_PATH)
-        self.after(200, lambda: self.iconphoto(True, icon_image))
+        self.iconphoto(True, icon_image)
         self.pref = pref
         self._restore_position()
         self.title('Formation Studio')
@@ -201,7 +202,10 @@ class StudioApplication(Application):
     def _restore_position(self):
         pos = pref.get("studio::pos")
         if pos.get("state") == 'zoomed':
-            self.wm_attributes('-zoomed', True)
+            if platform_is(WINDOWS):
+                self.state('zoomed')
+            else:
+                self.wm_attributes('-zoomed', True)
             return
         self.state('normal')
         self.geometry('{width}x{height}+{x}+{y}'.format(**pos))

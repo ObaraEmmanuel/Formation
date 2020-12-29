@@ -21,6 +21,7 @@ from tkinter import font
 
 from hoverset.data.images import load_image_to_widget
 from hoverset.data.utils import get_resource_path
+from hoverset.platform import platform_is, WINDOWS
 from hoverset.ui.animation import Animate, Easing
 from hoverset.ui.icons import get_icon
 from hoverset.ui.styles import StyleDelegator
@@ -388,10 +389,12 @@ class CenterWindowMixin:
 
     def enable_centering(self):
         self.centered = False
-        self.bind('<Visibility>', lambda _: self.center())
-        # self.event_generate('<Configure>')
+        self.bind('<Visibility>', self.center)
+        if platform_is(WINDOWS):
+            self.bind('<Configure>', self.center)
+            self.event_generate('<Configure>')
 
-    def center(self):
+    def center(self, *_):
         if not self.centered:
             self.update_idletasks()
             r_width, r_height, r_x, r_y = self.position_ref.get_geometry()
@@ -400,14 +403,10 @@ class CenterWindowMixin:
             y = int((r_height - height) / 2) + r_y
             self.geometry("+{}+{}".format(x, y))
             self.centered = True if self.winfo_width() != 1 else False
-
-    def re_center(self):
-        self.centered = False
-        self.center()
-
-    def force_center(self):
-        self.centered = False
-        self.center()
+        else:
+            # we no longer need the bindings
+            self.unbind("<Configure>")
+            self.unbind("<Visibility>")
 
     def get_geometry(self):
         """
