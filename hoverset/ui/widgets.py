@@ -21,7 +21,7 @@ from tkinter import font
 
 from hoverset.data.images import load_image_to_widget
 from hoverset.data.utils import get_resource_path
-from hoverset.platform import platform_is, WINDOWS
+from hoverset.platform import platform_is, WINDOWS, LINUX, MAC
 from hoverset.ui.animation import Animate, Easing
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.styles import StyleDelegator
@@ -371,6 +371,23 @@ class ScrollableInterface:
 
     def on_mousewheel(self, event):
         raise NotImplementedError("on_mousewheel method is required")
+    
+    def handle_wheel(self, widget, event):
+        # perform cross platform mousewheel handling
+        delta = 0
+        if platform_is(LINUX):
+            delta = 1 if event.num == 5 else -1
+        elif platform_is(MAC):
+            # For mac delta remains unmodified
+            delta = event.delta
+        elif platform_is(WINDOWS):
+            delta = -1 * (event.delta // 120)
+            
+        if event.state & EventMask.CONTROL:
+            # scroll horizontally when control is held down
+            widget.xview_scroll(delta, "units")
+        else:
+            widget.yview_scroll(delta, "units")
 
     def scroll_position(self):
         # Return the scroll position to determine if we have reach the end of scroll so we can
@@ -1182,12 +1199,13 @@ class ScrolledFrame(ContainerMixin, Widget, ScrollableInterface, ContextMenuMixi
             self.body.unbind('<Configure>')
 
     def on_mousewheel(self, event):
-        # TODO Add specialised mousewheel behaviour for the various platforms
         # Enable the scrollbar to be scrolled using mouse wheel
         # Occasionally throws unpredictable errors so we better wrap it up in a try block
         try:
-            if self._scroll_y.winfo_ismapped():
-                self._canvas.yview_scroll(-1 * int(event.delta / 50), "units")
+            if event.state & EventMask.CONTROL and self._scroll_x.winfo_ismapped():
+                self.handle_wheel(self._canvas, event)
+            elif self._scroll_y.winfo_ismapped():
+                self.handle_wheel(self._canvas, event)
         except tk.TclError:
             pass
 
@@ -1255,6 +1273,9 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
         self.position_ref = Screen(self)
         self.enable_centering()
         self.bind_all("<MouseWheel>", self._on_mousewheel, '+')
+        # linux bindings
+        self.bind_all("<Button-4>", self._on_mousewheel, '+')
+        self.bind_all("<Button-5>", self._on_mousewheel, '+')
         self.drag_context = None
         self.drag_window = None
         # Load default styles

@@ -200,9 +200,9 @@ class DesignPad(ScrollableInterface, Frame):
     def on_mousewheel(self, event):
         try:
             if event.state & EventMask.CONTROL and self._scroll_x.winfo_ismapped():
-                self._frame.xview_scroll(-1 * int(event.delta / 50), "units")
+                self.handle_wheel(self._frame, event)
             elif self._scroll_y.winfo_ismapped():
-                self._frame.yview_scroll(-1 * int(event.delta / 50), "units")
+                self.handle_wheel(self._frame, event)
         except TclError:
             pass
 
