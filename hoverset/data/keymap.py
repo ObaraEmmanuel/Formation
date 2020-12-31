@@ -269,7 +269,7 @@ class ShortcutPicker(MessageDialog):
         super().__init__(master, self.render)
         self.title("Shortcut Picker")
         self.resizable(0, 0)
-        self.geometry('350x200')
+        self.minsize(350, 200)
         self.value = None
         self.key = None
         self.shortcut_pane = shortcut_pane
