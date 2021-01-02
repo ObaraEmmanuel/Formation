@@ -5,6 +5,7 @@
 import hoverset.data.actions as actions
 from hoverset.data.preferences import SharedPreferences, Component
 from hoverset.data.images import get_tk_image
+from hoverset.platform import platform_is, LINUX
 from hoverset.ui.widgets import Frame, Label, CompoundList
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.menu import EnableIf
@@ -34,26 +35,46 @@ class Key:
     def keycode(self):
         return self._keycodes
 
+    @classmethod
+    def platform(cls, label, windows, linux):
+        if platform_is(LINUX):
+            return Key(label, linux)
+        return Key(label, windows)
+
 
 BlankKey = Key('')
 
 
 class CharKey(Key):
+    qwerty = "1234567890-=  QWERTYUIOP[]\r ASDFGHJKL;\'   ZXCVBNM,./"
 
     def __init__(self, alphanumeric: str):
         alphanumeric = alphanumeric.upper()
-        super().__init__(alphanumeric, ord(alphanumeric))
+        if platform_is(LINUX):
+            super().__init__(alphanumeric, 10 + self.qwerty.index(alphanumeric))
+        else:
+            super().__init__(alphanumeric, ord(alphanumeric))
 
 
 class Symbol(Key):
-    _keycodes = {
-        '\'': 222, '[': 219,
-        '-': 189, '\\': 220,
-        ',': 188, ']': 221,
-        '.': 190, '`': 192,
-        '/': 192, '=': 187,
-        ';': 186,
-    }
+    if platform_is(LINUX):
+        _keycodes = {
+            '\'': 48, '[': 34,
+            '-': 20, '\\': 51,
+            ',': 59, ']': 35,
+            '.': 60, '`': 49,
+            '/': 61, '=': 21,
+            ';': 47,
+        }
+    else:
+        _keycodes = {
+            '\'': 222, '[': 219,
+            '-': 189, '\\': 220,
+            ',': 188, ']': 221,
+            '.': 190, '`': 192,
+            '/': 192, '=': 187,
+            ';': 186,
+        }
 
     def __init__(self, symbol: str):
         if len(symbol):
@@ -67,13 +88,18 @@ class Symbol(Key):
 
 
 class KeyPad(Key):
-    _keys = '0123456789*+ -./'
+    if platform_is(LINUX):
+        _offset = 79
+        _keys = '789-456+1230.'
+    else:
+        _offset = 96
+        _keys = '0123456789*+ -./'
 
     def __init__(self, key):
         key = str(key)[:1]
         key = key.replace(' ', '')
         if key != '' and key in self._keys:
-            super().__init__(key, 96 + self._keys.index(key))
+            super().__init__(key, self._offset + self._keys.index(key))
         else:
             raise ValueError('Invalid keypad key')
 
@@ -93,39 +119,42 @@ class _KeymapDispatch(type):
 def function_key(number):
     if number > 12 or number < 1:
         raise ValueError("Function keys should be between 1 and 12 inclusive")
+    if platform_is(LINUX):
+        return Key('F{}'.format(number), 66 + number)
     return Key('F{}'.format(number), 111 + number)
 
 
 class KeyMap(metaclass=_KeymapDispatch):
-    ALT = Key('Alt', 18)
-    BACKSPACE = Key('Backspace', 8)
-    BREAK = Key('Break', 3)
-    CANCEL = Key('Cancel', 3)
-    CAPS_LOCK = Key('CapsLock', 20)
-    CONTROL = CTRL = Key('Ctrl', 17)
-    DELETE = Key('Del', 46)
-    END = Key('End', 35)
-    ESCAPE = Key('Esc', 27)
-    ENTER = RETURN = Key('Enter', 13)
+    ALT = Key.platform('Alt', 18, 64)
+    BACKSPACE = Key.platform('Backspace', 8, 22)
+    BREAK = Key.platform('Break', 3, 127)
+    CANCEL = Key.platform('Cancel', 3, 127)
+    CAPS_LOCK = Key.platform('CapsLock', 20, 66)
+    CONTROL = CTRL = Key.platform('Ctrl', 17, 37)
+    DELETE = Key.platform('Del', 46, 119)
+    END = Key.platform('End', 35, 115)
+    ESCAPE = Key.platform('Esc', 27, 9)
+    ENTER = RETURN = Key.platform('Enter', 13, 36)
     F = function_key
-    HOME = Key('Home', 36)
-    INSERT = Key('Insert', 45)
-    SHIFT = Key('Shift', 16)
-    NUM_LCK = Key('NumLock', 144)
-    PAGE_UP = Key('PageUp', 33)
-    PAGE_DOWN = Key('PageUp', 34)
-    PAUSE = Key('Pause', 19)
-    SPACE = Key('Space', 32)
-    TAB = Key('Tab', 9)
-    SCROLL_LCK = Key('Scroll', 145)
-    DOWN = Key('Down', 40)
-    LEFT = Key('Left', 37)
-    RIGHT = Key('Right', 39)
-    UP = Key('Up', 38)
+    HOME = Key.platform('Home', 36, 110)
+    INSERT = Key.platform('Insert', 45, 118)
+    SHIFT = Key.platform('Shift', 16, 50)
+    NUM_LCK = Key.platform('NumLock', 144, 77)
+    PAGE_UP = PRIOR = Key.platform('PageUp', 33, 112)
+    PAGE_DOWN = NEXT = Key.platform('PageUp', 34, 117)
+    PAUSE = Key.platform('Pause', 19, 127)
+    SPACE = Key.platform('Space', 32, 65)
+    TAB = Key.platform('Tab', 9, 23)
+    SCROLL_LCK = Key.platform('Scroll', 145, 78)
+    DOWN = Key.platform('Down', 40, 116)
+    LEFT = Key.platform('Left', 37, 113)
+    RIGHT = Key.platform('Right', 39, 114)
+    UP = Key.platform('Up', 38, 111)
 
     EVENT_MASK = {
         0x0004: CONTROL,
-        0x20000: ALT,
+        0x20000: ALT,  # Windows
+        0x0008: ALT,  # Linux
         0x0001: SHIFT,
         0x0002: CAPS_LOCK,
 
@@ -310,6 +339,8 @@ class ShortcutPicker(MessageDialog):
             text="Tap here to begin capturing shortcuts."
         )
         self.event_pad.bind("<Any-KeyPress>", self.on_key_change)
+        # for some reason alt needs to be bound separately
+        self.event_pad.bind("<Alt-KeyPress>", self.on_key_change)
         self.event_pad.bind("<Button-1>", lambda e: self.event_pad.focus_set())
         self.event_pad.pack(fill="both", expand=True)
 
