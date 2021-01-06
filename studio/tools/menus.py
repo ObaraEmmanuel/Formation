@@ -354,6 +354,7 @@ class MenuEditor(BaseToolWindow):
 class MenuTool(BaseTool):
     _deleted = {}
     name = 'Menu'
+    icon = 'menubutton'
 
     @classmethod
     def close_editors(cls):
@@ -391,7 +392,7 @@ class MenuTool(BaseTool):
                 ('command', 'Remove', icon('delete', 14, 14), lambda: cls.remove(studio.selected), {})),
             EnableIf(
                 lambda: studio.selected and studio.selected in cls._deleted,
-                ('command', 'Restore', None, lambda: cls.restore(studio.selected), {})),
+                ('command', 'Restore', icon('undo', 14, 14), lambda: cls.restore(studio.selected), {})),
             EnableIf(
                 lambda: MenuEditor._tool_map,
                 ('command', 'Close all editors', icon('close', 14, 14), lambda: cls.close_editors(), {}))

@@ -1,4 +1,5 @@
 from hoverset.ui.menu import ShowIf, EnableIf
+from hoverset.ui.icons import get_icon_image
 from studio.tools.menus import MenuTool
 from studio.tools._base import BaseTool
 
@@ -33,7 +34,8 @@ class ToolManager:
             # if tool has more than one template entry use a cascade menu
             # otherwise use if only a single item is available, use as is
             if len(template) > 1:
-                template = ('cascade', tool.name, None, None, {'menu': template})
+                icon = get_icon_image(tool.icon, 14, 14) if isinstance(tool.icon, str) else tool.icon
+                template = ('cascade', tool.name, icon, None, {'menu': template})
             else:
                 template = template[0]
             templates += (

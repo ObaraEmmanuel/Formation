@@ -107,6 +107,8 @@ class StudioApplication(Application):
 
         self.init_toolbar()
         self.selected = None
+        # set the image option to blank if there is no image for the menu option
+        self.blank_img = blank_img = icon("blank", 14, 14)
 
         # -------------------------------------------- menu definition ------------------------------------------------
         self.menu_template = (EnableIf(
@@ -146,24 +148,24 @@ class StudioApplication(Application):
                 )
             )}),
             ("cascade", "Window", None, None, {"menu": (
-                ("command", "show all", None, actions.get('FEATURE_SHOW_ALL'), {}),
+                ("command", "show all", blank_img, actions.get('FEATURE_SHOW_ALL'), {}),
                 ("command", "close all", icon("close", 14, 14), actions.get('FEATURE_CLOSE_ALL'), {}),
-                ("command", "close all on the right", icon("blank", 14, 14), actions.get('FEATURE_CLOSE_RIGHT'), {}),
-                ("command", "close all on the left", icon("blank", 14, 14), actions.get('FEATURE_CLOSE_LEFT'), {}),
+                ("command", "close all on the right", blank_img, actions.get('FEATURE_CLOSE_RIGHT'), {}),
+                ("command", "close all on the left", blank_img, actions.get('FEATURE_CLOSE_LEFT'), {}),
                 ("separator",),
-                ("command", "Undock all windows", None, actions.get('FEATURE_UNDOCK_ALL'), {}),
-                ("command", "Dock all windows", None, actions.get('FEATURE_DOCK_ALL'), {}),
+                ("command", "Undock all windows", blank_img, actions.get('FEATURE_UNDOCK_ALL'), {}),
+                ("command", "Dock all windows", blank_img, actions.get('FEATURE_DOCK_ALL'), {}),
                 ("separator",),
                 LoadLater(self.get_features_as_menu),
                 ("separator",),
-                ("command", "Save window positions", None, actions.get('FEATURE_SAVE_POS'), {})
+                ("command", "Save window positions", blank_img, actions.get('FEATURE_SAVE_POS'), {})
             )}),
             ("cascade", "Tools", None, None, {"menu": ToolManager.get_tools_as_menu(self)}),
             ("cascade", "Help", None, None, {"menu": (
                 ("command", "Help", icon('dialog_info', 14, 14), actions.get('STUDIO_HELP'), {}),
                 ("command", "Check for updates", icon("cloud", 14, 14), None, {}),
                 ("separator",),
-                ("command", "About Studio", None, lambda: about_window(self), {}),
+                ("command", "About Studio", blank_img, lambda: about_window(self), {}),
             )})
         ), self, self.style, False)
         self.config(menu=self.menu_bar)
@@ -337,9 +339,15 @@ class StudioApplication(Application):
         menu.config(**self.style.dark_context_menu)
         recent = pref.get_recent()
         for path, label in recent:
-            menu.add("command", label=label, command=functools.partial(self.open_recent, path))
-        menu.add("command", label="Clear", image=menu.image, command=pref.clear_recent,
-                 compound="left")
+            menu.add_command(
+                label=label,
+                command=functools.partial(self.open_recent, path),
+                image=self.blank_img, compound='left',
+            )
+        menu.add_command(
+            label="Clear", image=menu.image, command=pref.clear_recent,
+            compound="left"
+        )
 
     def open_file(self, path=None):
         if path is None:
