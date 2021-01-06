@@ -14,7 +14,6 @@ import logging
 import re
 import webbrowser
 import tkinter as tk
-import tkinter.tix as tix
 import tkinter.ttk as ttk
 from collections import namedtuple
 from tkinter import font
@@ -495,7 +494,7 @@ class PositionMixin:
             self.set_geometry((x_pos, y_pos))
 
 
-class _Tooltip(tix.Toplevel):
+class _Tooltip(tk.Toplevel):
     """
     Tooltip window class. It is not meant to be used directly; use the tooltip methods instead
     to create tooltips
@@ -1238,7 +1237,7 @@ class Screen:
     This allows calculations for centering the window possible with reference to the whole screen
     """
 
-    def __init__(self, window: tix.Tk):
+    def __init__(self, window: tk.Tk):
         self.window = window
 
     def winfo_x(self):
@@ -1257,14 +1256,11 @@ class Screen:
         return self.winfo_width(), self.winfo_height(), 0, 0
 
 
-class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, ContextMenuMixin, tix.Tk):
+class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, ContextMenuMixin, tk.Tk):
     """
     The main toplevel widget for hoverset widgets. All hoverset widgets must
     be children or descendants of an :class:`hoverset.ui.widgets.Application` object.
     """
-
-    # We want to extend tix.Tk to broaden our widget scope because now we can use tix widgets!
-    # This is inconsequential to other widgets as tix.Tk subclasses tkinter.tk which is the base class here
     # This class needs no dependency injection since its the source of the dependencies after all!
 
     def __init__(self, *args, **kwargs):
@@ -1302,7 +1298,7 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
         return self._style
 
     def bind_all(self, sequence=None, func=None, add="+"):
-        return super(tix.Tk, self).bind_all(sequence, func, add)
+        return super(tk.Tk, self).bind_all(sequence, func, add)
 
     def unbind_all(self, sequence, func_id=None):
         """
@@ -1319,7 +1315,7 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
                 pass
 
 
-class Window(Widget, CenterWindowMixin, WindowMixin, tix.Toplevel):
+class Window(Widget, CenterWindowMixin, WindowMixin, tk.Toplevel):
 
     def __init__(self, master=None, content=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
