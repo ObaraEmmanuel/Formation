@@ -3,6 +3,7 @@ import atexit
 import os
 import shelve
 import pickle
+import glob
 import logging
 import tkinter as tk
 from pathlib import Path
@@ -45,20 +46,25 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
         self._file = file
         self._app_dir = appdirs.AppDirs(app, author)
         self._listeners = defaultdict(list)
-        path = os.path.join(self.get_dir(), "{}.dat".format(file))
-        if os.path.exists(path):
+        files = self._get_files()
+
+        if len(files):
             self.data = self._get_shelve()
             try:
                 self._deep_update(self.data, defaults)
             except pickle.UnpicklingError:
+                if len(files) > 1:
+                    # we cannot tell whether the config file is really
+                    # corrupted if there are multiple possibly non-pickle files
+                    raise Exception("Cannot perform recovery, multiple config files found!")
                 # The pickle file is corrupted
                 logging.error("Config file is corrupted, attempting recovery.")
                 # the cache contains the data that was recoverable
                 recovered = self.data.cache
                 self.data.close()
-                # delete all the generated pickle files usually dir, bak and dat
-                for f in Path(self.get_dir()).glob('{}.*'.format(file)):
-                    f.unlink(True)
+                # delete all the generated pickle files
+                for f in self._get_generated_files():
+                    Path(f).unlink(True)
                 self.data = self._get_shelve()
                 self._deep_update(self.data, defaults)
                 # restore the little we could recover
@@ -79,6 +85,18 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
 
     def get_dir(self):
         return self._app_dir.user_config_dir
+
+    def _get_files(self):
+        # possible .dat extension
+        files = glob.glob(os.path.join(self.get_dir(), f"{self._file}.dat"))
+        # possible no extension
+        files.extend(glob.glob(os.path.join(self.get_dir(), f"{self._file}")))
+        return files
+
+    def _get_generated_files(self):
+        files = glob.glob(os.path.join(self.get_dir(), f'{self._file}.*'))
+        files.extend(glob.glob(os.path.join(self.get_dir(), f'{self._file}')))
+        return files
 
     def _get_shelve(self):
         return shelve.open(os.path.join(self.get_dir(), self._file), writeback=True)

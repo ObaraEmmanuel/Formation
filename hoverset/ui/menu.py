@@ -198,7 +198,7 @@ class MenuUtils:
         :return: None
         """
         try:
-            menu.tk_popup(event.x_root, event.y_root)
+            menu.post(event.x_root, event.y_root)
         except tk.TclError:
             pass
         finally:

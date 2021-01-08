@@ -8,13 +8,13 @@ Contains all the widget representations used in the designer and specifies all t
 import os
 import re
 import sys
-from tkinter import IntVar, ttk, filedialog, StringVar
+from tkinter import BooleanVar, filedialog, StringVar
 
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.panels import FontInput, ColorPicker
 from hoverset.ui.pickers import ColorDialog
-from hoverset.ui.widgets import (CompoundList, Entry, SpinBox, Spinner, Frame, Application, set_ttk_style,
-                                 Label, ToggleButton, Button)
+from hoverset.ui.widgets import (CompoundList, Entry, SpinBox, Spinner, Frame, Application,
+                                 Label, ToggleButton, Button, Checkbutton)
 from hoverset.util.color import to_hex
 from hoverset.util.validators import numeric_limit, validate_any, is_empty, is_floating_numeric, is_signed
 from studio.lib.properties import all_supported_cursors, BUILTIN_BITMAPS
@@ -97,27 +97,20 @@ class Boolean(Editor):
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
         self.config(**self.style.dark, **self.style.dark_highlight_active)
-        self._var = IntVar()
-        self._check = ttk.Checkbutton(self, command=self.check_change, text='',
-                                      variable=self._var)
-        set_ttk_style(self._check, **self.style.dark_checkbutton)
+        self._var = BooleanVar()
+        self._var.trace('w', self.check_change)
+        self._check = Checkbutton(self, text='')
+        self._check['variable'] = self._var
         self._check.pack(fill="x")
 
-    def check_change(self):
-        if self._var.get():
-            self._check.config(text="True")
-        else:
-            self._check.config(text="False")
+    def check_change(self, *_):
+        self._check.config(text=str(self._var.get()))
         if self._on_change is not None:
             self._on_change(self._var.get())
 
     def set(self, value):
-        if value:
-            self._var.set(1)
-            self._check.config(text="True")
-        else:
-            self._check.config(text="False")
-            self._var.set(0)
+        self._var.set(bool(value))
+        self._check.config(text=str(self._var.get()))
 
     def get(self):
         return bool(self._var.get())
@@ -201,7 +194,7 @@ class Color(Editor):
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
         self.config(**self.style.dark_highlight_active)
-        self._entry = Entry(self, **self.style.dark_input)
+        self._entry = Entry(self, **self.style.dark_input, **self.style.no_highlight)
         self._color_button = Label(self, relief='groove', bd=1)
         self._color_button.bind('<ButtonRelease-1>', self._chooser)
         self._color_button.place(x=2, y=2, width=20, height=20)
@@ -224,7 +217,7 @@ class Color(Editor):
             val = self.winfo_rgb(value)
         except Exception:
             return ""
-        val = tuple(map(lambda x: round((x/65535)*255), val))
+        val = tuple(map(lambda x: round((x / 65535) * 255), val))
         return to_hex(val)
 
     def get(self):
@@ -275,6 +268,7 @@ class Text(TextMixin, Editor):
         super().__init__(master, style_def)
         self.config(**self.style.dark_highlight_active)
         self._entry = Entry(self, **self.style.dark_input)
+        self._entry.configure(**self.style.no_highlight)
         self._entry.pack(fill="x")
         self._entry.on_entry(self._change)
         self.set_def(style_def)
@@ -389,7 +383,7 @@ class Anchor(Editor):
         self.n.grid(row=0, column=0, columnspan=3, sticky='ns')
         self.w = ToggleButton(self, text='W', width=20, height=20)
         self.w.grid(row=1, column=0, sticky='ew')
-        self.pad = Frame(self, width=60, height=60, **self.style.dark,  **self.style.dark_highlight_active)
+        self.pad = Frame(self, width=60, height=60, **self.style.dark, **self.style.dark_highlight_active)
         self.pad.grid(row=1, column=1, padx=1, pady=1)
         self.pad.grid_propagate(0)
         self.pad.grid_columnconfigure(0, minsize=60)

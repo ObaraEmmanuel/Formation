@@ -9,7 +9,7 @@ import functools
 import logging
 import tkinter as tk
 
-from hoverset.ui.icons import get_icon_image, get_icon
+from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import PanedWindow, Frame, MenuButton, Button, ScrolledFrame, Label
 from hoverset.ui.menu import EnableIf
 from studio.lib.properties import PROPERTY_TABLE, get_properties
@@ -34,7 +34,8 @@ class MenuTree(MalleableTree):
             super().__init__(master, **config)
             self._menu = config.get("menu")
             self.name_pad.config(text=config.get("label"))
-            self.icon_pad.config(text=get_icon(self._type_def.get(config.get("type"))[0]))
+            icon = self._type_def.get(config.get("type"))[0]
+            self.icon_pad.configure(image=get_icon_image(icon, 14, 14))
             self.editable = True
             self.type = config.get("type")
             if config.get("type") == tk.CASCADE:
@@ -353,6 +354,7 @@ class MenuEditor(BaseToolWindow):
 class MenuTool(BaseTool):
     _deleted = {}
     name = 'Menu'
+    icon = 'menubutton'
 
     @classmethod
     def close_editors(cls):
@@ -390,7 +392,7 @@ class MenuTool(BaseTool):
                 ('command', 'Remove', icon('delete', 14, 14), lambda: cls.remove(studio.selected), {})),
             EnableIf(
                 lambda: studio.selected and studio.selected in cls._deleted,
-                ('command', 'Restore', None, lambda: cls.restore(studio.selected), {})),
+                ('command', 'Restore', icon('undo', 14, 14), lambda: cls.restore(studio.selected), {})),
             EnableIf(
                 lambda: MenuEditor._tool_map,
                 ('command', 'Close all editors', icon('close', 14, 14), lambda: cls.close_editors(), {}))

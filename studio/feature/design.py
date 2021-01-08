@@ -169,8 +169,12 @@ class Designer(DesignPad, Container):
     def _open_default(self):
         self.update_idletasks()
         from studio.lib import legacy
-        self.add(legacy.Frame, self._padding, self._padding, width=self.width - self._padding * 2,
-                 height=self.height - self._padding * 2)
+        width = max(self.width - self._padding * 2, 300)
+        height = max(self.height - self._padding * 2, 300)
+        self.add(
+            legacy.Frame, self._padding, self._padding,
+            width=width, height=height
+        )
         self.xml.generate()
         self.design_path = None
 

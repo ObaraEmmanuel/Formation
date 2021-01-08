@@ -6,6 +6,7 @@ class BaseTool:
     Base tool for Tools. Subclass this class to implement a studio tool
     """
     name = ''
+    icon = 'blank'
 
     @classmethod
     def get_menu(cls, studio):

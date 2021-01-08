@@ -7,6 +7,7 @@ Common dialogs customised for hoverset platform
 
 from hoverset.ui.widgets import Frame, Label, Window, Button, Application, ProgressBar
 from hoverset.ui.icons import get_icon_image
+from hoverset.platform import platform_is, WINDOWS
 
 
 class MessageDialog(Window):
@@ -100,8 +101,6 @@ class MessageDialog(Window):
         self.configure(**self.style.dark)
         # ensure the dialog is above the parent window at all times
         self.transient(master)
-        # take the screen focus
-        self.grab_set()
         # prevent resizing by default
         self.resizable(False, False)
         self.bar = None
@@ -123,11 +122,17 @@ class MessageDialog(Window):
             render_routine(self)
         self.enable_centering()
         self.value = None
-        self.bind('<Visibility>', lambda _: self.grab_set())
-        self.bind('<FocusOut>', lambda _: self.grab_release())
-        self.bind('<FocusIn>', lambda _: self.grab_set())
+        self.bind('<Visibility>', lambda _: self._get_focus())
+        if platform_is(WINDOWS):
+            # This special case fixes a windows specific issue which blocks
+            # application from retuning from a withdrawn state
+            self.bind('<FocusOut>', lambda _: self.grab_release())
+        self.bind('<FocusIn>', lambda _: self._get_focus())
         self._reaction = -1
         self.bind('<Button>', self._on_event)
+
+    def _get_focus(self):
+        self.grab_set()
 
     def _react(self, step):
         """
@@ -141,7 +146,8 @@ class MessageDialog(Window):
             self._reaction = -1
             return
         try:
-            x, y = self.winfo_x() + step, self.winfo_y()
+            *_, x, y = self.get_geometry()
+            x += step
             self.geometry('+{}+{}'.format(x, y))
             self.after(100, lambda: self._react(step * -1))
             self._reaction += 1

@@ -4,7 +4,7 @@ import tkinter
 from enum import Enum
 
 from hoverset.data.images import load_tk_image, load_image, load_image_to_widget
-from hoverset.ui.icons import get_icon, get_icon_image
+from hoverset.ui.icons import get_icon_image
 from studio.lib import layouts
 from studio.lib.variables import VariableManager
 from studio.lib.properties import get_properties
@@ -74,7 +74,7 @@ class _VariableIntercept:
 class PseudoWidget:
     display_name = 'Widget'
     group = Groups.widget
-    icon = get_icon("play")
+    icon = "play"
     impl = None
     # special handlers (intercepts) for attributes that need additional processing
     # to interface with the studio easily

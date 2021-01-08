@@ -11,7 +11,7 @@ Introduction
 
    * `Tkinter <https://docs.python.org/3/library/tkinter.html>`_ default (Legacy)
    * `Tkinter ttk <https://docs.python.org/3/library/tkinter.ttk.html>`_ extension (Native implementations of tkinter widgets)
-   * `Tix extension <https://docs.python.org/3/library/tkinter.tix.html>`_ set (Incomplete)
+   * Extension set (Incomplete)
    * Hoverset widget set (Incomplete)
 
 Features Description

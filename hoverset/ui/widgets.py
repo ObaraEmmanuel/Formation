@@ -11,17 +11,18 @@ All gui manifestation should strictly use hoverset widget set for easy maintenan
 
 import functools
 import logging
+import re
 import webbrowser
 import tkinter as tk
-import tkinter.tix as tix
 import tkinter.ttk as ttk
 from collections import namedtuple
 from tkinter import font
 
 from hoverset.data.images import load_image_to_widget
 from hoverset.data.utils import get_resource_path
+from hoverset.platform import platform_is, WINDOWS, LINUX, MAC
 from hoverset.ui.animation import Animate, Easing
-from hoverset.ui.icons import get_icon
+from hoverset.ui.icons import get_icon_image
 from hoverset.ui.styles import StyleDelegator
 from hoverset.ui.windows import DragWindow
 from hoverset.ui.menu import MenuUtils
@@ -369,6 +370,23 @@ class ScrollableInterface:
 
     def on_mousewheel(self, event):
         raise NotImplementedError("on_mousewheel method is required")
+    
+    def handle_wheel(self, widget, event):
+        # perform cross platform mousewheel handling
+        delta = 0
+        if platform_is(LINUX):
+            delta = 1 if event.num == 5 else -1
+        elif platform_is(MAC):
+            # For mac delta remains unmodified
+            delta = event.delta
+        elif platform_is(WINDOWS):
+            delta = -1 * (event.delta // 120)
+            
+        if event.state & EventMask.CONTROL:
+            # scroll horizontally when control is held down
+            widget.xview_scroll(delta, "units")
+        else:
+            widget.yview_scroll(delta, "units")
 
     def scroll_position(self):
         # Return the scroll position to determine if we have reach the end of scroll so we can
@@ -381,27 +399,50 @@ class ScrollableInterface:
 
 
 class CenterWindowMixin:
+    # match > digit x digit + signed digit + signed digit
+    #       > width x height + (-)x + (-)y
+    GEOMETRY_RGX = re.compile(
+        r"(\d+)x(\d+)\+(-?\d+)\+(-?\d+)"
+    )
 
     def enable_centering(self):
         self.centered = False
-        self.bind('<Configure>', lambda _: self.center())
-        self.event_generate('<Configure>')
+        self.bind('<Visibility>', self.center)
+        if platform_is(WINDOWS):
+            self.bind('<Configure>', self.center)
+            self.event_generate('<Configure>')
 
-    def center(self):
+    def center(self, *_):
         if not self.centered:
             self.update_idletasks()
-            x = int((self.position_ref.winfo_width() - self.winfo_width()) / 2) + self.position_ref.winfo_x()
-            y = int((self.position_ref.winfo_height() - self.winfo_height()) / 2) + self.position_ref.winfo_y()
+            ref_geometry = self.position_ref.get_geometry()
+            geometry = self.get_geometry()
+            if ref_geometry is None or geometry is None:
+                # log it since we don't expect it to happen
+                logging.error("Failed to fetch geometry")
+                return
+            r_width, r_height, r_x, r_y = ref_geometry
+            width, height, *_ = geometry
+            x = int((r_width - width) / 2) + r_x
+            y = int((r_height - height) / 2) + r_y
             self.geometry("+{}+{}".format(x, y))
             self.centered = True if self.winfo_width() != 1 else False
+        else:
+            # we no longer need the bindings
+            self.unbind("<Configure>")
+            self.unbind("<Visibility>")
 
-    def re_center(self):
-        self.centered = False
-        self.center()
+    def get_geometry(self):
+        """
+        Get window geometry parsed into a tuple
 
-    def force_center(self):
-        self.centered = False
-        self.center()
+        :return: tuple containing (width, height, x, y) in that order
+        """
+        search = self.GEOMETRY_RGX.search(self.geometry())
+        if search is None:
+            # not a valid geometry
+            return None
+        return tuple(map(int, search.groups()))
 
 
 class PositionMixin:
@@ -453,7 +494,7 @@ class PositionMixin:
             self.set_geometry((x_pos, y_pos))
 
 
-class _Tooltip(tix.Toplevel):
+class _Tooltip(tk.Toplevel):
     """
     Tooltip window class. It is not meant to be used directly; use the tooltip methods instead
     to create tooltips
@@ -1157,12 +1198,13 @@ class ScrolledFrame(ContainerMixin, Widget, ScrollableInterface, ContextMenuMixi
             self.body.unbind('<Configure>')
 
     def on_mousewheel(self, event):
-        # TODO Add specialised mousewheel behaviour for the various platforms
         # Enable the scrollbar to be scrolled using mouse wheel
         # Occasionally throws unpredictable errors so we better wrap it up in a try block
         try:
-            if self._scroll_y.winfo_ismapped():
-                self._canvas.yview_scroll(-1 * int(event.delta / 50), "units")
+            if event.state & EventMask.CONTROL and self._scroll_x.winfo_ismapped():
+                self.handle_wheel(self._canvas, event)
+            elif self._scroll_y.winfo_ismapped():
+                self.handle_wheel(self._canvas, event)
         except tk.TclError:
             pass
 
@@ -1195,7 +1237,7 @@ class Screen:
     This allows calculations for centering the window possible with reference to the whole screen
     """
 
-    def __init__(self, window: tix.Tk):
+    def __init__(self, window: tk.Tk):
         self.window = window
 
     def winfo_x(self):
@@ -1210,15 +1252,15 @@ class Screen:
     def winfo_height(self):
         return self.window.winfo_screenheight()
 
+    def get_geometry(self):
+        return self.winfo_width(), self.winfo_height(), 0, 0
 
-class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, ContextMenuMixin, tix.Tk):
+
+class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, ContextMenuMixin, tk.Tk):
     """
     The main toplevel widget for hoverset widgets. All hoverset widgets must
     be children or descendants of an :class:`hoverset.ui.widgets.Application` object.
     """
-
-    # We want to extend tix.Tk to broaden our widget scope because now we can use tix widgets!
-    # This is inconsequential to other widgets as tix.Tk subclasses tkinter.tk which is the base class here
     # This class needs no dependency injection since its the source of the dependencies after all!
 
     def __init__(self, *args, **kwargs):
@@ -1227,6 +1269,9 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
         self.position_ref = Screen(self)
         self.enable_centering()
         self.bind_all("<MouseWheel>", self._on_mousewheel, '+')
+        # linux bindings
+        self.bind_all("<Button-4>", self._on_mousewheel, '+')
+        self.bind_all("<Button-5>", self._on_mousewheel, '+')
         self.drag_context = None
         self.drag_window = None
         # Load default styles
@@ -1253,7 +1298,7 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
         return self._style
 
     def bind_all(self, sequence=None, func=None, add="+"):
-        return super(tix.Tk, self).bind_all(sequence, func, add)
+        return super(tk.Tk, self).bind_all(sequence, func, add)
 
     def unbind_all(self, sequence, func_id=None):
         """
@@ -1270,7 +1315,7 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
                 pass
 
 
-class Window(Widget, CenterWindowMixin, WindowMixin, tix.Toplevel):
+class Window(Widget, CenterWindowMixin, WindowMixin, tk.Toplevel):
 
     def __init__(self, master=None, content=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -1460,7 +1505,7 @@ class ToggleButton(Button):
         self._on_change = lambda value: func(value, *args, **kwargs)
 
 
-class Checkbutton(Widget, ttk.Checkbutton):
+class Checkbutton(Widget, ImageCacheMixin, tk.Checkbutton):
     """
     Hoverset wrapper for :py:class:`tkinter.ttk.Checkbutton`
     """
@@ -1468,15 +1513,10 @@ class Checkbutton(Widget, ttk.Checkbutton):
     def __init__(self, master=None, **cnf):
         self.setup(master)
         super().__init__(master)
-        cnf = {**self.style.dark_text, **cnf}
-        config_ttk(self, **cnf)
+        cnf = {**self.style.checkbutton, **cnf}
+        self.configure(**cnf)
         self._var = tk.BooleanVar()
         self.config(variable=self._var)
-
-    def config_all(self, cnf=None, **kwargs):
-        config_ttk(self, cnf, **kwargs)
-
-    config = config_all
 
     def set(self, value):
         """
@@ -1495,7 +1535,7 @@ class Checkbutton(Widget, ttk.Checkbutton):
         return self._var.get()
 
 
-class RadioButton(Widget, ttk.Radiobutton):
+class RadioButton(Widget, ImageCacheMixin, tk.Radiobutton):
     """
     Hoverset wrapper for :py:class:`tkinter.ttk.Radiobutton`
     """
@@ -1503,11 +1543,8 @@ class RadioButton(Widget, ttk.Radiobutton):
     def __init__(self, master, **cnf):
         self.setup(master)
         super().__init__(master)
-        cnf = {**self.style.dark_text, **cnf}
-        self.config_all(**cnf)
-
-    def config_all(self, cnf=None, **kwargs):
-        config_ttk(self, cnf, **kwargs)
+        cnf = {**self.style.radiobutton, **cnf}
+        self.configure(**cnf)
 
 
 class RadioButtonGroup(Frame):
@@ -1584,8 +1621,10 @@ class RadioButtonGroup(Frame):
         """
         value, desc = choice
         if len(self._pool):
+            # pool is not empty so get buttons from there
             button = self._pool.pop(0)
         else:
+            # create a new radio button since pool is empty
             button = RadioButton(self)
         button.config(value=value, text=desc, variable=self._var)
         button.pack(side=tk.TOP, fill=tk.X, padx=10)
@@ -1605,16 +1644,8 @@ class RadioButtonGroup(Frame):
         # move all radio buttons to the pool
         self._pool.extend(self._radio_buttons)
         self._radio_buttons.clear()
-        for value, desc in choices:
-            if len(self._pool):
-                # pool is not empty so get buttons from there
-                button = self._pool.pop(0)
-            else:
-                # create a new radio button since pool is empty
-                button = RadioButton(self)
-            button.config(value=value, text=desc, variable=self._var)
-            button.pack(side=tk.TOP, fill=tk.X, padx=10)
-            self._radio_buttons.append(button)
+        for choice in choices:
+            self.add_choice(choice)
 
     def get(self):
         """
@@ -1706,9 +1737,13 @@ class Popup(PositionMixin, Window):
         self.overrideredirect(True)
         self.attributes("-topmost", 1)
         self._grabbed = self.grab_current()  # Store the widget that currently has the grab
-        self.grab_set_global()  # Grab all events so we can tell whether someone is clicking outside the popup
+        # Grab all events so we can tell whether someone is clicking outside the popup
+        self.bind("<Visibility>", self._on_visibility)
         self.bind("<Button-1>", self._exit)
         self.body = self
+
+    def _on_visibility(self, _):
+        self.grab_set_global()
 
     def _exit(self, event):
         if not Widget.event_in(event, self):
@@ -2084,10 +2119,18 @@ class Spinner(Frame):
     """
     Combobox widget allowing easy customization of choice items
     """
+    __icons_loaded = False
+    EXPAND = None
+    COLLAPSE = None
 
     def __init__(self, master=None, **_):
         super().__init__(master)
-        self._button = Button(self, **self.style.dark_button, text=get_icon("triangle_down"), width=20, anchor="center")
+        self._load_images()
+        self._button = Button(
+            self, **self.style.dark_button,
+            image=self.EXPAND,
+            width=20, anchor="center"
+        )
         self._button.pack(side="right", fill="y")
         self._button.on_click(self._popup)
         self._entry = Frame(self, **self.style.dark)
@@ -2103,10 +2146,18 @@ class Spinner(Frame):
         self._item_cls = CompoundList.BaseItem
         self.dropdown_height = 150
 
+    @classmethod
+    def _load_images(cls):
+        if cls.__icons_loaded:
+            return
+        cls.EXPAND = get_icon_image("triangle_down", 14, 14)
+        cls.COLLAPSE = get_icon_image("triangle_up", 14, 14)
+        cls.__icons_loaded = True
+
     def _popup(self, _=None):
         if self._popup_window is not None:
             self._popup_window.destroy()
-            self._button.config(text=get_icon("triangle_down"))
+            self._button.config(image=self.EXPAND)
             self._popup_window = None
             return
         self.update_idletasks()
@@ -2149,14 +2200,14 @@ class Spinner(Frame):
 
         Animate(popup, 0, initial_height, update_popup,
                 easing=Easing.SLING_SHOT, dur=0.2)
-        self._button.config(text=get_icon("triangle_up"))
+        self._button.config(image=self.COLLAPSE)
         popup.on_close(self._close_popup)
 
     def _close_popup(self):
         # self._popup_window = None
         # This fails at times during program close up
         try:
-            self._button.config(text=get_icon("triangle_down"))
+            self._button.config(image=self.EXPAND)
         except tk.TclError:
             pass
 
@@ -2234,15 +2285,19 @@ class TreeView(ScrolledFrame):
             self.parent_node.deselect()
 
     class Node(Frame):
-        EXPANDED_ICON = get_icon("chevron_down")
-        COLLAPSED_ICON = get_icon("chevron_right")
+        # will be loaded later
+        EXPANDED_ICON = None
+        COLLAPSED_ICON = None
+        BLANK = None
+        __icons_loaded = False
         PADDING = 1
 
         def __init__(self, master=None, **config):
             super().__init__(master.body)
+            self._load_images()
             self.config(**self.style.dark)
             self.tree = master
-            self._icon = config.get("icon", get_icon("data"))
+            self._icon = config.get("icon", self.BLANK)
             self._name = config.get("name", "unknown")
             self.strip = f = TreeView.Strip(self, **self.style.dark, takefocus=True)
             f.pack(side="top", fill="x")
@@ -2254,7 +2309,7 @@ class TreeView(ScrolledFrame):
             self.strip.bind("<FocusIn>", self.select)
             self.strip.bind("<Up>", self.select_prev)
             self.strip.bind("<Down>", self.select_next)
-            self.icon_pad = Label(f, **self.style.dark_text, text=self._icon)
+            self.icon_pad = Label(f, **self.style.dark_text, image=self._icon)
             self.icon_pad.pack(side="left")
             self.name_pad = Label(f, **self.style.dark_text, text=self._name)
             self.name_pad.pack(side="left", fill="x")
@@ -2267,6 +2322,15 @@ class TreeView(ScrolledFrame):
             self._depth = 0  # Will be set on addition to a node or tree so this value is just placeholder
             self.parent_node = None
             self.nodes = []
+
+        @classmethod
+        def _load_images(cls):
+            if cls.__icons_loaded:
+                return
+            cls.EXPANDED_ICON = get_icon_image("chevron_down", 14, 14)
+            cls.COLLAPSED_ICON = get_icon_image("chevron_right", 14, 14)
+            cls.BLANK = get_icon_image("blank", 14, 14)
+            cls.__icons_loaded = True
 
         @property
         def depth(self):
@@ -2290,11 +2354,11 @@ class TreeView(ScrolledFrame):
             for child in self.strip.winfo_children():
                 child.bind(sequence, func, add)
 
-        def _set_expander(self, text):
-            if text:
-                self.expander.config(text=text)
+        def _set_expander(self, icon):
+            if icon:
+                self.expander.configure(image=icon)
             else:
-                self.expander.config(text=" " * 4)
+                self.expander.configure(image=self.BLANK)
 
         def is_descendant(self, node):
             if node.depth >= self.depth:
@@ -2436,7 +2500,7 @@ class TreeView(ScrolledFrame):
                     self.expand()
                 if len(self.nodes) == 0:
                     # remove the expansion icon
-                    self._set_expander(False)
+                    self._set_expander(self.BLANK)
 
         def expand(self):
             if len(self.nodes) == 0:

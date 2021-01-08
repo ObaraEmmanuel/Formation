@@ -2,7 +2,7 @@ import logging
 import math
 from tkinter import ttk, TclError
 
-from hoverset.ui.icons import get_icon_image, get_icon
+from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import Canvas, FontStyle, Frame, Entry, Button, Label, ScrollableInterface, EventMask
 from studio.ui import geometry
 
@@ -24,9 +24,13 @@ class CoordinateIndicator(Frame):
 
 
 class CollapseFrame(Frame):
+    __icons_loaded = False
+    EXPAND = None
+    COLLAPSE = None
 
     def __init__(self, master, **cnf):
         super().__init__(master, **cnf)
+        self._load_icons()
         self.config(**self.style.dark)
         self._label_frame = Frame(self, **self.style.bright, height=20)
         self._label_frame.pack(side="top", fill="x", padx=2)
@@ -34,7 +38,7 @@ class CollapseFrame(Frame):
         self._label = Label(self._label_frame, **self.style.bright, **self.style.text_bright)
         self._label.pack(side="left")
         self._collapse_btn = Button(self._label_frame, width=20, **self.style.bright, **self.style.text_bright)
-        self._collapse_btn.config(text=get_icon("triangle_up"))
+        self._collapse_btn.config(image=self.COLLAPSE)
         self._collapse_btn.pack(side="right", fill="y")
         self._collapse_btn.on_click(self.toggle)
         self.body = Frame(self, **self.style.dark)
@@ -43,13 +47,20 @@ class CollapseFrame(Frame):
         self.__ref.pack(side="top")
         self._collapsed = False
 
+    @classmethod
+    def _load_icons(cls):
+        if cls.__icons_loaded:
+            return
+        cls.EXPAND = get_icon_image("triangle_down", 14, 14)
+        cls.COLLAPSE = get_icon_image("triangle_up", 14, 14)
+
     def update_state(self):
         self.__ref.pack(side="top")
 
     def collapse(self, *_):
         if not self._collapsed:
             self.body.pack_forget()
-            self._collapse_btn.config(text=get_icon("triangle_down"))
+            self._collapse_btn.config(image=self.EXPAND)
             self.pack_propagate(0)
             self.config(height=20)
             self._collapsed = True
@@ -61,7 +72,7 @@ class CollapseFrame(Frame):
         if self._collapsed:
             self.body.pack(side="top", fill="both")
             self.pack_propagate(1)
-            self._collapse_btn.config(text=get_icon("triangle_up"))
+            self._collapse_btn.config(image=self.COLLAPSE)
             self._collapsed = False
 
     def toggle(self, *_):
@@ -189,9 +200,9 @@ class DesignPad(ScrollableInterface, Frame):
     def on_mousewheel(self, event):
         try:
             if event.state & EventMask.CONTROL and self._scroll_x.winfo_ismapped():
-                self._frame.xview_scroll(-1 * int(event.delta / 50), "units")
+                self.handle_wheel(self._frame, event)
             elif self._scroll_y.winfo_ismapped():
-                self._frame.yview_scroll(-1 * int(event.delta / 50), "units")
+                self.handle_wheel(self._frame, event)
         except TclError:
             pass
 
