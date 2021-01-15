@@ -2,6 +2,7 @@ import functools
 import tkinter as tk
 
 from hoverset.data.actions import Routine
+from hoverset.platform import platform_is, LINUX
 from hoverset.ui.styles import StyleDelegator
 
 
@@ -199,6 +200,9 @@ class MenuUtils:
         """
         try:
             menu.post(event.x_root, event.y_root)
+            if platform_is(LINUX):
+                menu.focus_set()
+                menu.bind("<FocusOut>", lambda e: menu.unpost())
         except tk.TclError:
             pass
         finally:
