@@ -10,10 +10,7 @@ from tkinter import filedialog, Toplevel
 sys.path.append('..')
 
 from studio.feature.design import Designer
-from studio.feature.component_tree import ComponentTree
-from studio.feature.stylepane import StylePane
-from studio.feature.components import ComponentPane
-from studio.feature.variablepane import VariablePane
+from studio.feature import FEATURES
 from studio.feature._base import BaseFeature
 from studio.tools import ToolManager
 from studio.ui.widgets import SideBar
@@ -174,10 +171,11 @@ class StudioApplication(Application):
 
         self.designer = Designer(self._center, self)
         self._center.add(self.designer, sticky='nswe')
-        self.install(ComponentPane)
-        self.install(ComponentTree)
-        self.install(StylePane)
-        self.install(VariablePane)
+
+        # install features
+        for feature in FEATURES:
+            self.install(feature)
+
         self._startup()
         self._restore_position()
 

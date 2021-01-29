@@ -58,7 +58,7 @@ class BaseFeature(Frame):
         self._header.pack(side="top", fill="x")
         self._header.pack_propagate(0)
         self._header.allow_drag = True
-        Label(self._header, **self.style.dark_text_passive, text=self.name).pack(side="left")
+        Label(self._header, **self.style.dark_text_accent, text=self.name).pack(side="left")
         self._min = Button(self._header, image=get_icon_image("close", 15, 15), **self.style.dark_button, width=25,
                            height=25)
         self._min.pack(side="right")

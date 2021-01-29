@@ -1883,7 +1883,7 @@ class CompoundList(ScrolledFrame):
             if not self._isolated:
                 self.bind("<Enter>", self._on_hover)
                 self.bind("<Leave>", self._on_hover_ended)
-                self.bind_all("<Button-1>", self.select_self)
+                self.bind_all("<Button-1>", self.select_self, add="+")
             self.config_all(**self.style.dark)
 
         def render(self):
