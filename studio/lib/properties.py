@@ -511,10 +511,6 @@ PROPERTY_TABLE = {
         "display_name": "variable",
         "type": "variable",
     },
-    "vcmd": {
-        "display_name": "vcmd",
-        "type": "color",
-    },
     "wrap": {
         "display_name": "wrap",
         "type": "number",
@@ -528,7 +524,25 @@ PROPERTY_TABLE = {
         "display_name": "mode",
         "type": "choice",
         "options": ("determinate", "indeterminate")
-    }
+    },
+    "xscrollcommand": {
+        "display_name": "xscrollcommand",
+        "type": "command",
+    },
+    "xscrollincrement": {
+        "display_name": "xscrollincrement",
+        "type": "dimension",
+        "units": "pixels"
+    },
+    "yscrollcommand": {
+        "display_name": "yscrollcommand",
+        "type": "command",
+    },
+    "yscrollincrement": {
+        "display_name": "yscrollincrement",
+        "type": "dimension",
+        "units": "pixels"
+    },
 }
 
 _unimplemented = {
@@ -591,22 +605,6 @@ _unimplemented = {
     },
     "_visual": {
         "display_name": "visual",
-        "type": "color",
-    },
-    "_xscrollcommand": {
-        "display_name": "xscrollcommand",
-        "type": "color",
-    },
-    "_xscrollincrement": {
-        "display_name": "xscrollincrement",
-        "type": "color",
-    },
-    "_yscrollcommand": {
-        "display_name": "yscrollcommand",
-        "type": "color",
-    },
-    "_yscrollincrement": {
-        "display_name": "yscrollincrement",
         "type": "color",
     },
 }
