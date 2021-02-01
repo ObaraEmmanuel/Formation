@@ -1,4 +1,4 @@
-from formation.handlers import image
+from formation.handlers import image, command
 
 
 class VariableHandler:
@@ -16,15 +16,20 @@ class VariableHandler:
             handle_method(**{prop: getattr(builder, properties[prop], '')})
 
 
+_common_redirect = {
+    "image": image,
+    "selectimage": image,
+    "tristateimage": image,
+    "textvariable": VariableHandler,
+    "variable": VariableHandler,
+    "listvariable": VariableHandler,
+    # extend with command types
+    **{prop: command for prop in command.command_props},
+}
+
+
 class MenuHandler:
-    _redirect = {
-        "image": image,
-        "selectimage": image,
-        "tristateimage": image,
-        "textvariable": VariableHandler,
-        "variable": VariableHandler,
-        "listvariable": VariableHandler
-    }
+    _redirect = _common_redirect
 
     namespaces = {
         "menu": "http://www.hoversetformationstudio.com/menu",
@@ -58,14 +63,7 @@ class AttrHandler:
         "layout", "menu"
     )
 
-    _redirect = {
-        "image": image,
-        "selectimage": image,
-        "tristateimage": image,
-        "textvariable": VariableHandler,
-        "variable": VariableHandler,
-        "listvariable": VariableHandler
-    }
+    _redirect = _common_redirect
 
     namespaces = {
         "attr": "http://www.hoversetformationstudio.com/styles/",
@@ -75,6 +73,8 @@ class AttrHandler:
     def handle(cls, widget, config, **kwargs):
         attributes = config.get("attr", {})
         handle_method = kwargs.get("handle_method", widget.config)
+        # update handle method just in case it was missing
+        kwargs.update(handle_method=handle_method)
         direct_config = {}
         for attr in attributes:
             if attr in cls._ignore:
