@@ -4,8 +4,8 @@ count = 0
 EventBinding = namedtuple("EventBinding", ["id", "sequence", "handler", "add"])
 
 
-def make_event(sequence, handler, add):
-    return EventBinding(generate_id(), sequence, handler, add)
+def make_event(*args, **kwargs):
+    return EventBinding(generate_id(), *args, **kwargs)
 
 
 def generate_id():

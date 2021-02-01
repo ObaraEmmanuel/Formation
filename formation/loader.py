@@ -4,7 +4,8 @@ Contains classes that load formation xml design files and generate user interfac
 # ======================================================================= #
 # Copyright (c) 2020 Hoverset Group.                                      #
 # ======================================================================= #
-
+import logging
+from collections import defaultdict
 from importlib import import_module
 
 from lxml import etree
@@ -12,6 +13,8 @@ from lxml import etree
 from formation import xml
 from formation.xml import ttk, tk
 from formation.handlers import dispatch_to_handlers
+
+logger = logging.getLogger(__name__)
 
 _preloaded = {"tkinter": tk, "Tkinter": tk, "ttk": ttk, "tkinter.ttk": ttk}
 
@@ -36,6 +39,14 @@ _containers = (
     ttk.LabelFrame,
     ttk.Sizegrip,
     tk.Toplevel,
+)
+
+_menu_item_types = (
+    tk.CASCADE,
+    tk.COMMAND,
+    tk.CHECKBUTTON,
+    tk.SEPARATOR,
+    tk.RADIOBUTTON,
 )
 
 
@@ -80,6 +91,9 @@ class BaseConverter(xml.BaseConverter):
         if name:
             # if name attribute is missing calling setattr will raise errors
             setattr(builder, name, obj)
+        for sub_node in node:
+            if sub_node.tag == "event":
+                builder._event_map[obj].append(dict(sub_node.attrib))
         return obj
 
 
@@ -95,6 +109,8 @@ class MenuConverter(BaseConverter):
     @classmethod
     def _menu_from_xml(cls, node, builder, menu=None, widget=None):
         for sub_node in node:
+            if sub_node.tag == "event":
+                continue
             attrib = cls.attrib(sub_node)
             kwargs = {
                 "parent_node": sub_node.getparent(),
@@ -147,11 +163,20 @@ class Builder:
         # Add custom converters here
     }
 
+    _ignore_tags = (
+        *_menu_item_types,
+        "event",
+    )
+
     def __init__(self, parent, **kwargs):
         self._parent = parent
         self._image_cache = (
             []
         )  # Cache for images to shield them from garbage collection
+        # stores event binding for deferred connection to methods
+        self._event_map = defaultdict(list)
+        # stores command names for deferred connection to methods
+        self._command_map = []
         self._root = None
 
         if kwargs.get("path"):
@@ -180,11 +205,99 @@ class Builder:
             # We dont need to load child tags of non-container widgets
             return widget
         for sub_node in node:
-            if BaseConverter._is_var(sub_node.tag):
-                # ignore variables
+            if BaseConverter._is_var(sub_node.tag) or sub_node.tag in self._ignore_tags:
+                # ignore variables and non widgets
                 continue
             self._load_widgets(sub_node, builder, widget)
         return widget
+
+    def connect_callbacks(self, object_or_dict):
+        """
+        Connect bindings and callbacks to user defined functions and
+        methods. It connects commands added through the various command
+        config options such ``command, yscrollcommand, xscrollcommand`` among
+        others. Callbacks added through bindings are connected as well.
+        Below are possible ways to connect global functions.
+
+        .. code-block:: python
+
+            ...
+
+            def on_click(event):
+                print("button clicked")
+
+            def on_keypress(event):
+                print("key pressed")
+
+            # method 1 ---------------------------
+
+            build = Builder(parent, path="my_design.xml")
+            build.connect_callbacks({
+                "on_click": on_click,
+                "on_keypress: on_keypress,
+            })
+
+            # method 2 ---------------------------
+
+            build = Builder(path="my_design.xml")
+            build.connect_callbacks(globals())
+
+            ...
+
+        To connect to object methods instead the code can be as shown below
+
+        .. code-block:: python
+
+            ...
+
+            class App(tkinter.Tk):
+
+                def __init__(self):
+                    self.build = Builder(self, path="my_design.xml")
+                    self.build.connect_callbacks(self)
+
+                def on_click(self, event):
+                    print("button clicked")
+
+                def on_keypress(self, event):
+                    print("key pressed")
+
+            app = App()
+            app.mainloop()
+
+            ...
+
+        :param object_or_dict: A dictionary containing function mappings
+            or an object defining all the callback methods. The callback
+            names have to exactly match what was entered in the studio.
+        """
+        if isinstance(object_or_dict, dict):
+            callback_map = object_or_dict
+        else:
+            callback_map = {
+                attr: getattr(object_or_dict, attr, None)
+                for attr in dir(object_or_dict)
+            }
+        for widget, events in self._event_map.items():
+            for event in events:
+                handler = callback_map.get(event.get("handler"))
+                if handler is not None:
+                    widget.bind(
+                        event.get("sequence"),
+                        handler,
+                        event.get("add")
+                    )
+                else:
+                    logger.warning("Callback '%s' not found", event.get("handler"))
+
+        for prop, val, handle_method in self._command_map:
+            handler = callback_map.get(val)
+            if handle_method is None:
+                raise ValueError("Handle method is None, unable to apply binding")
+            if handler is not None:
+                handle_method(**{prop: handler})
+            else:
+                logger.warning("Callback '%s' not found", val)
 
     def load_path(self, path):
         """

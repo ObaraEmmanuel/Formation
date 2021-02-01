@@ -13,8 +13,9 @@ from formation import xml
 from studio.feature.variablepane import VariablePane
 from studio.lib.variables import VariableItem
 from studio.lib import legacy, native
-from studio.lib.menu import menu_config
+from studio.lib.menu import menu_config, MENU_ITEM_TYPES
 from studio.lib.pseudo import Container, PseudoWidget
+from studio.lib.events import make_event
 
 
 def get_widget_impl(widget):
@@ -61,6 +62,16 @@ class BaseConverter(xml.BaseConverter):
         cls.load_attributes(attr, node, 'attr')
         layout_options = widget.layout.get_altered_options_for(widget)
         cls.load_attributes(layout_options, node, 'layout')
+
+        if hasattr(widget, "_event_map_"):
+            for binding in widget._event_map_.values():
+                bind_dict = binding._asdict()
+                # id is not needed and will be recreated on loading
+                bind_dict.pop("id")
+                # convert field values to string
+                bind_dict = {k: str(bind_dict[k]) for k in bind_dict}
+                event_node = cls.create_element(node, "event")
+                event_node.attrib.update(bind_dict)
         return node
 
     @classmethod
@@ -72,6 +83,12 @@ class BaseConverter(xml.BaseConverter):
                 styles.pop('orient')
         layout = cls.attrib(node).get("layout", {})
         obj = designer.load(obj_class, node.attrib.get("name"), parent, styles, layout, bounds)
+        for sub_node in node:
+            if sub_node.tag == "event":
+                binding = make_event(**sub_node.attrib)
+                if not hasattr(obj, "_event_map_"):
+                    obj._event_map_ = {}
+                obj._event_map_[binding.id] = binding
         return obj
 
     @staticmethod
@@ -110,6 +127,8 @@ class MenuConverter(BaseConverter):
     @classmethod
     def _menu_from_xml(cls, node, menu=None, widget=None):
         for sub_node in node:
+            if sub_node.tag == "event":
+                continue
             attrib = cls.attrib(sub_node)
             if sub_node.tag in MenuConverter._types and menu is not None:
                 menu.add(sub_node.tag)
@@ -172,6 +191,10 @@ class XMLForm:
             native.Menubutton: MenuConverter,
             # Add custom converters here
         }
+        self._ignore_tags = (
+            *MENU_ITEM_TYPES,
+            "event"
+        )
         self.designer = designer
         self.root = None
 
@@ -224,8 +247,8 @@ class XMLForm:
             # We dont need to load child tags of non-container widgets
             return widget
         for sub_node in node:
-            if BaseConverter._is_var(sub_node.tag):
-                # ignore variables
+            if BaseConverter._is_var(sub_node.tag) or sub_node.tag in self._ignore_tags:
+                # ignore variables and non widget nodes
                 continue
             self._load_widgets(sub_node, designer, widget)
         return widget

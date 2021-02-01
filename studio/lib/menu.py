@@ -33,6 +33,14 @@ MENU_PROPERTIES = (
     'bitmap', 'activeforeground', 'hidemargin', 'font', 'selectcolor', 'state',
 )
 
+MENU_ITEM_TYPES = (
+    tk.CASCADE,
+    tk.COMMAND,
+    tk.CHECKBUTTON,
+    tk.SEPARATOR,
+    tk.RADIOBUTTON,
+)
+
 
 class _ImageIntercept:
     _image_lookup = {}
