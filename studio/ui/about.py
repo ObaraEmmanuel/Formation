@@ -1,9 +1,8 @@
-import os
-
 from hoverset.ui.widgets import Frame, Label
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.data.images import load_tk_image
 from hoverset.data.utils import get_resource_path
+from hoverset.util import version_description
 
 import formation
 
@@ -15,7 +14,10 @@ class About(Frame):
         self.config(**self.style.dark)
         image = load_tk_image(get_resource_path('studio', 'resources/images/logo.png'), 400, 129)
         Label(self, image=image, **self.style.dark).pack(side="top", fill="y")
-        Label(self, text="Version {} alpha".format(formation.__version__),
+        Label(self,
+              text="Version {}".format(
+                  version_description(formation.__version__)
+              ),
               **self.style.dark_text).pack(side="top", fill="y", pady=15)
         Label(self, text="Make designing user interfaces in python a breeze!",
               **self.style.dark_text).pack(side="top", fill="y", pady=5)
