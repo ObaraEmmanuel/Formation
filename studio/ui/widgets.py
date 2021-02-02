@@ -111,8 +111,8 @@ class SideBar(Canvas):
             self.coords(indicator, 18, y)
 
     def add_feature(self, feature):
-        indicator = self.create_text(0, 0, angle=90, text=feature.name, fill=self.style.dark_on_hover.get("background"),
-                                     anchor="sw", activefill=self.style.dark_on_hover.get("background"))
+        indicator = self.create_text(0, 0, angle=90, text=feature.name, fill=self.style.colors.get("accent"),
+                                     anchor="sw", activefill=self.style.colors.get("primarydarkaccent"))
         font = FontStyle(self, self.itemconfig(indicator).get("font", "TkDefaultFont")[3])
         y = font.measure(feature.name) + self.bbox("all")[3] + 20
         self.coords(indicator, 18, y)
@@ -128,10 +128,10 @@ class SideBar(Canvas):
         new.indicator = old.indicator
 
     def deselect(self, feature):
-        self.itemconfig(feature.indicator, fill=self.style.dark_text.get("foreground"))
+        self.itemconfig(feature.indicator, fill=self.style.colors.get("primary"))
 
     def select(self, feature):
-        self.itemconfig(feature.indicator, fill=self.style.dark_on_hover.get("background"))
+        self.itemconfig(feature.indicator, fill=self.style.colors.get("accent"))
 
     def close_all(self):
         for feature in self.features:
