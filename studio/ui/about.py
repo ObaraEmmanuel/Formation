@@ -21,7 +21,7 @@ class About(Frame):
               **self.style.dark_text).pack(side="top", fill="y", pady=15)
         Label(self, text="Make designing user interfaces in python a breeze!",
               **self.style.dark_text).pack(side="top", fill="y", pady=5)
-        copy_right = "Copyright © 2019-2020 Hoverset group"
+        copy_right = "Copyright © 2019-2021 Hoverset group"
         Label(self, text=copy_right, **self.style.dark_text_passive).pack(side="top", fill="y")
         self.pack(fill="both", expand=True)
 
