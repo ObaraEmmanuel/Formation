@@ -33,7 +33,8 @@ class MalleableTree(TreeView):
             super().__init__(master, **config)
             # If set tp False the node accepts children and vice versa
             self._is_terminal = config.get("terminal", True)
-            self.strip.bind_all("<Motion>", self.begin_drag)
+            self.strip.bind_all("<Motion>", self.drag)
+            self.strip.bind_all("<Motion>", self.begin_drag, add='+')
             # use add='+' to avoid overriding the default event which selects nodes
             self.strip.bind_all("<ButtonRelease-1>", self.end_drag, add='+')
             self.strip.config(**self.style.dark_highlight)  # The highlight on a normal day
@@ -49,13 +50,18 @@ class MalleableTree(TreeView):
                 self._on_structure_change()
             self.tree._structure_changed()
 
-        # noinspection PyProtectedMember
         def begin_drag(self, event):
-            if not self.editable:
+            if not self.editable or not self.tree.selected_count() \
+                    or not event.state & EventMask.MOUSE_BUTTON_1:
                 return
-            # If cursor is moved while holding the left button down for the first time we begin drag
-            if event.state & EventMask.MOUSE_BUTTON_1 and not MalleableTree.drag_active and \
-                    self.tree.selected_count():
+            MalleableTree.drag_active = True
+
+        # noinspection PyProtectedMember
+        def drag(self, event):
+            if not self.editable or not MalleableTree.drag_active:
+                return
+            # only initialize if not initialized
+            if not MalleableTree.drag_popup:
                 MalleableTree.drag_popup = DragWindow(self.window).set_position(event.x_root, event.y_root + 20)
                 MalleableTree.drag_components = self.tree._selected
                 MalleableTree.drag_instance = self.tree
@@ -73,40 +79,38 @@ class MalleableTree(TreeView):
                           text=component.name, anchor='w',
                           **self.style.dark_text).pack(side="top", fill="x")
                     count += 1
-                MalleableTree.drag_active = True
-            elif MalleableTree.drag_active:
-                widget = self.winfo_containing(event.x_root, event.y_root)
-                # The widget can be a child to Node but not necessarily a node but we need a node so
-                # Resolve the node that is immediately under the cursor position by iteratively getting widget's parent
-                # For the sake of performance not more than 4 iterations
-                limit = 4
-                while not isinstance(widget, self.__class__):
-                    if widget is None:
-                        # This happens when someone hovers outside the current top level window
-                        break
-                    widget = self.nametowidget(widget.winfo_parent())
-                    limit -= 1
-                    if not limit:
-                        break
-                tree = self.event_first(event, self.tree, MalleableTree)
+            widget = self.winfo_containing(event.x_root, event.y_root)
+            # The widget can be a child to Node but not necessarily a node but we need a node so
+            # Resolve the node that is immediately under the cursor position by iteratively getting widget's parent
+            # For the sake of performance not more than 4 iterations
+            limit = 4
+            while not isinstance(widget, self.__class__):
+                if widget is None:
+                    # This happens when someone hovers outside the current top level window
+                    break
+                widget = self.nametowidget(widget.winfo_parent())
+                limit -= 1
+                if not limit:
+                    break
+            tree = self.event_first(event, self.tree, MalleableTree)
 
-                if isinstance(widget, MalleableTree.Node):
-                    # We can only react if we have resolved the widget to a Node object
-                    widget.react(event)
-                    # Store the currently reacting widget so we can apply actions to it on ButtonRelease/ drag_end
-                    MalleableTree.drag_select = widget
-                elif isinstance(tree, self.tree.__class__):
-                    # if the tree found is compatible to the current tree i.e belongs to same class or is subclass of
-                    # disallow incompatible trees from interacting as this may cause errors
-                    tree.react(event)
-                    MalleableTree.drag_select = tree
-                else:
-                    # No viable node found on resolution so clear all highlights and indicators
-                    if MalleableTree.drag_select:
-                        MalleableTree.drag_select.clear_indicators()
-                    MalleableTree.drag_select = None
+            if isinstance(widget, MalleableTree.Node):
+                # We can only react if we have resolved the widget to a Node object
+                widget.react(event)
+                # Store the currently reacting widget so we can apply actions to it on ButtonRelease/ drag_end
+                MalleableTree.drag_select = widget
+            elif isinstance(tree, self.tree.__class__):
+                # if the tree found is compatible to the current tree i.e belongs to same class or is subclass of
+                # disallow incompatible trees from interacting as this may cause errors
+                tree.react(event)
+                MalleableTree.drag_select = tree
+            else:
+                # No viable node found on resolution so clear all highlights and indicators
+                if MalleableTree.drag_select:
+                    MalleableTree.drag_select.clear_indicators()
+                MalleableTree.drag_select = None
 
-                MalleableTree.drag_popup.set_position(event.x_root, event.y_root + 20)
+            MalleableTree.drag_popup.set_position(event.x_root, event.y_root + 20)
 
         def end_drag(self, event):
             # Dragging is complete so we make the necessary insertions and repositions
@@ -125,14 +129,15 @@ class MalleableTree(TreeView):
                         # These actions means tree structure changed
                         self._change_structure()
                 # Reset all drag related attributes
-                MalleableTree.drag_select.clear_indicators()
-                MalleableTree.drag_popup.destroy()  # remove the drag popup window
-                MalleableTree.drag_popup = None
+                if MalleableTree.drag_popup is not None:
+                    MalleableTree.drag_select.clear_indicators()
+                    MalleableTree.drag_popup.destroy()  # remove the drag popup window
+                    MalleableTree.drag_popup = None
+                    MalleableTree.drag_components = []
+                    MalleableTree.drag_instance = None
+                    self.clear_indicators()
+                    MalleableTree.drag_highlight = None
                 MalleableTree.drag_active = False
-                MalleableTree.drag_components = []
-                MalleableTree.drag_instance = None
-                self.clear_indicators()
-                MalleableTree.drag_highlight = None
 
         def highlight(self):
             MalleableTree.drag_highlight = self
