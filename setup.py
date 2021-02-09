@@ -1,6 +1,11 @@
 from setuptools import setup
+from os import path
 
 import formation
+
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 requirements = ['lxml', 'Pillow', 'pyscreenshot', 'pywin32 ; sys_platform=="win32"']
 
@@ -12,6 +17,8 @@ setup(
     version=formation.__version__,
     license='MIT',
     description='Simplify GUI development in python',
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     author='Hoverset',
     author_email='emmanuelobarany@gmail.com',
     url='https://github.com/ObaraEmmanuel/Formation',
