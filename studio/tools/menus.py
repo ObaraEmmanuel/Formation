@@ -6,7 +6,6 @@ Menu editor for the studio widgets including menu functionality
 # ======================================================================= #
 
 import functools
-import logging
 import tkinter as tk
 
 from hoverset.ui.icons import get_icon_image
@@ -93,32 +92,33 @@ class MenuTree(MalleableTree):
             self._menu.entryconfigure(self.get_index(), menu=menu)
 
         def insert(self, index=None, *nodes):
-            # create a backup of node properties in case cloning takes place
-            properties = [node.get_altered_options() for node in nodes]
-            # get the nodes that have actually been inserted whether cloned or otherwise
+            for node in nodes:
+                # cache previous config which may be unobtainable after insert
+                node._prev_options = node.get_altered_options()
+            # get the nodes that have been inserted whether cloned or otherwise
             nodes = super().insert(index, *nodes)
             index = len(self.nodes) if index is None else index
-            for i, node in enumerate(nodes):
+            for i, node in enumerate(nodes, index):
                 node._menu = self.sub_menu
+                self.sub_menu.insert(i, node.type)
                 # apply node properties from backup
-                try:
-                    self.sub_menu.insert(index, node.type)
-                    menu_config(self.sub_menu, self.get_index(), **properties[i])
-                except tk.TclError:
-                    logging.error("Menu item insert failed")
-                finally:
-                    index += 1
+                menu_config(self.sub_menu, i, **node._prev_options)
 
         def clone(self, parent):
             # This values may have changed so update them
-            self.configuration['index'] = self.get_index()  # Index config should be updated first
-            self.configuration['menu'] = self._menu
-            self.configuration['sub_menu'] = self.sub_menu
+            # Index config should be updated first
+            self.configuration.update({
+                "index": self.get_index(),
+                "menu": self._menu,
+                "sub_menu": self.sub_menu
+            })
             # clone using updated config
             node = self.__class__(parent, **self.configuration)
             node.parent_node = self.parent_node
             node.label = self.label
             node._sub_menu = self.sub_menu
+            # store previous menu options needed when inserting to new menu
+            node._prev_options = self.get_altered_options()
             for sub_node in self.nodes:
                 # if node is a parent, clone sub-nodes recursively
                 sub_node_clone = sub_node.clone(parent)
@@ -140,14 +140,15 @@ class MenuTree(MalleableTree):
             super().remove(node)
 
     def insert(self, index=None, *nodes):
-        properties = [node.get_altered_options() for node in nodes]
+        for node in nodes:
+            # cache previous config which may be unobtainable after insert
+            node._prev_options = node.get_altered_options()
         nodes = super().insert(index, *nodes)
         index = len(self.nodes) if index is None else index
-        for i, node in enumerate(nodes):
+        for i, node in enumerate(nodes, index):
             node._menu = self._menu
-            self._menu.insert(index, node.type)
-            menu_config(self._menu, index, **properties[i])
-            index += 1
+            self._menu.insert(i, node.type)
+            menu_config(self._menu, i, **node._prev_options)
 
 
 class MenuEditor(BaseToolWindow):
