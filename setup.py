@@ -7,7 +7,7 @@ this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
-requirements = ['lxml', 'Pillow', 'pyscreenshot', 'pywin32 ; sys_platform=="win32"']
+requirements = ['lxml', 'Pillow', 'pyscreenshot; sys_platform != "win32"', 'pywin32 ; sys_platform=="win32"']
 
 setup(
     name='formation-studio',
