@@ -180,8 +180,12 @@ class ColorChooser(Frame):
 
 class ColorDialog(Popup):
 
-    def __init__(self, master, **cnf):
-        super().__init__(master, **cnf)
+    def __init__(self, master, widget=None, **cnf):
+        if widget:
+            rec = self.get_pos(widget, side="auto", padding=4, width=234, height=206)
+        else:
+            rec = (0, 0)
+        super().__init__(master, rec, **cnf)
         self.chooser = ColorChooser(self, **self.style.dark)
         self.chooser.pack()
 

@@ -451,6 +451,60 @@ class PositionMixin:
     the are visible from any point of the screen by providing a post method
     """
 
+    def get_pos(self, widget, **kwargs):
+        """
+        Get the position of a popup window anchored around a widget
+
+        :param widget: A tk widget to be used as an anchor point
+        :param kwargs:
+            -side: a string value "nw", "ne", "sw", "se", "auto" representing where the
+              dialog is to be position relative the anchor widget
+            -padding: an integer indicating how much space to allow between the popup and the
+              anchor widget
+            -width: prospected width of the popup which can be used even before the
+              popup is initialized by tkinter. If not provided its obtained
+              from the popup hence the popup must have been initialized by tkinter
+            -height: prospected height of the popup. Same rules on ``width``
+              apply here
+
+        :return: None
+        """
+        side = kwargs.get("side", "auto")
+        padding = kwargs.get("padding", 2)
+        if "width" in kwargs and "height" in kwargs:
+            w_width = kwargs.get("width")
+            w_height = kwargs.get("height")
+        else:
+            self.re_calibrate()
+            self.update_idletasks()
+            w_width = self.width
+            w_height = self.height
+        widget.update_idletasks()
+        x, y, width, height = widget.winfo_rootx(), widget.winfo_rooty(), widget.width, widget.height
+        right = x
+        left = x - w_width + width
+        top = y - w_height - padding
+        bottom = y + height + padding
+        if side == "nw":
+            return left, top
+        elif side == "ne":
+            return right, top
+        elif side == "sw":
+            return left, bottom
+        elif side == "se":
+            return right, bottom
+        else:
+            # i.e. side == "auto"
+            # set the screen size as the boundary
+            win_bounds = 0, 0, widget.winfo_screenwidth(), widget.winfo_screenheight()
+            offset_b = win_bounds[3] - bottom
+            offset_t = y - win_bounds[1]
+            offset_l = x - win_bounds[0]
+            offset_r = win_bounds[2] - right
+            x_pos = left if offset_l >= offset_r or offset_l > w_width else right
+            y_pos = bottom if offset_b >= offset_t or offset_b > w_height else top
+            return x_pos, y_pos
+
     def post(self, widget, **kwargs):
         """
         Display a popup window anchored around a widget
@@ -458,40 +512,18 @@ class PositionMixin:
         :param widget: A tk widget to be used as an anchor point
         :param kwargs:
             -side: a string value "nw", "ne", "sw", "se", "auto" representing where the
-            dialog is to be position relative the anchor widget
+              dialog is to be position relative the anchor widget
             -padding: an integer indicating how much space to allow between the popup and the
-            anchor widget
+              anchor widget
+            -width: prospected width of the popup which can be used even before the
+              popup is initialized by tkinter. If not provided its obtained
+              from the popup hence the popup must have been initialized by tkinter
+            -height: prospected height of the popup. Same rules on ``width``
+              apply here
+
         :return: None
         """
-        self.re_calibrate()
-        side = kwargs.get("side", "auto")
-        padding = kwargs.get("padding", 2)
-        widget.update_idletasks()
-        self.update_idletasks()
-        x, y, width, height = widget.winfo_rootx(), widget.winfo_rooty(), widget.width, widget.height
-        right = x
-        left = x - self.width + width
-        top = y - self.height - padding
-        bottom = y + height + padding
-        if side == "nw":
-            self.set_geometry((left, top))
-        elif side == "ne":
-            self.set_geometry((right, top))
-        elif side == "sw":
-            self.set_geometry((left, bottom))
-        elif side == "se":
-            self.set_geometry((right, bottom))
-        else:
-            # i.e. side == "auto"
-            # set the screen size as the boundary
-            win_bounds = 0, 0, self.winfo_screenwidth(), self.winfo_screenheight()
-            offset_b = win_bounds[3] - bottom
-            offset_t = y - win_bounds[1]
-            offset_l = x - win_bounds[0]
-            offset_r = win_bounds[2] - right
-            x_pos = left if offset_l >= offset_r or offset_l > self.width else right
-            y_pos = bottom if offset_b >= offset_t or offset_b > self.height else top
-            self.set_geometry((x_pos, y_pos))
+        self.set_geometry(self.get_pos(widget, **kwargs))
 
 
 class _Tooltip(tk.Toplevel):
@@ -512,12 +544,14 @@ class _Tooltip(tk.Toplevel):
         :param master: The parent window for the tooltip
         """
         super().__init__(master)
+        self.wm_attributes("-alpha", 0)
         self.style = style
         self.overrideredirect(True)
         self.lift(master)
         render(self)
         self.config(**style.bright_highlight)
         self._position(xy)  # Determine the best position for the window given cursor coordinates xy
+        self.wm_attributes("-alpha", 1)
 
     def _position(self, xy):
         self.update_idletasks()  # refresh to get the updated position values

@@ -68,7 +68,7 @@ class ColorPicker(Button):
         image_x = ImageTk.PhotoImage(image=self.image)
         self._window = Window(self.window)
         self._grabbed = self.grab_current()  # Store the widget that has event grab if any
-        self._window.grab_set()
+        self._window.bind("<Visibility>", lambda _: self._window.grab_set())
         self._window.wm_attributes("-fullscreen", True)
         self._body = Label(self._window, image=image_x, cursor="target")
         self._body.place(relwidth=1, relheight=1, x=0, y=0)
@@ -344,7 +344,7 @@ class FontPicker(Button):
         if self.active:
             return
         self._grabbed = self.grab_current()  # Store the widget that has event grab if any
-        self.grab_set()
+        self._window.bind("<Visibility>", lambda _: self._window.grab_set())
         self.active = True
         self._window = Window(self.window)
         self._window.geometry('0x0')
