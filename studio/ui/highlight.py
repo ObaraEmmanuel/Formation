@@ -38,6 +38,8 @@ class HighLight:
         self._on_resize = None
         self._on_release = None
         self._on_move = None
+        self._on_start = None
+        self._start_reported = False
         self.current_obj = None
         self.bind_ids = []
 
@@ -128,6 +130,9 @@ class HighLight:
     def on_move(self, listener, *args, **kwargs):
         self._on_move = lambda bounds: listener(bounds, *args, **kwargs)
 
+    def on_start(self, listener, *args, **kwargs):
+        self._on_start = lambda: listener(*args, **kwargs)
+
     def resize(self, event):
         # This method is called when the motion event is fired and dispatches the event to the registered resize method
         if self._resize_func:
@@ -137,6 +142,9 @@ class HighLight:
                 self._skip_var = 0
                 # get the latest limits from DesignPad
                 self.bounds = self.parent.bound_limits()
+                if not self._start_reported and self._on_start:
+                    self._on_start()
+                    self._start_reported = True
                 self._resize_func(event)
             else:
                 # Skip rendering frames
@@ -152,6 +160,8 @@ class HighLight:
         if self._on_release is not None:
             self._on_release(self._bbox_on_click)
         self._bbox_on_click = None
+        self._skip_var = 0
+        self._start_reported = False
 
     @property
     def is_active(self) -> bool:

@@ -10,9 +10,11 @@ from collections import defaultdict
 
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Button
+from hoverset.util.execution import Action
 from studio.feature._base import BaseFeature
 from studio.ui.editors import StyleItem
 from studio.ui.widgets import CollapseFrame
+from studio.lib.pseudo import Container
 
 
 class ReusableStyleItem(StyleItem):
@@ -69,8 +71,10 @@ class StyleGroup(CollapseFrame):
     Main subdivision of the Style pane
     """
 
-    def __init__(self, master, **cnf):
+    def __init__(self, master, pane, **cnf):
         super().__init__(master)
+        self.style_pane = pane
+        self.studio = self.style_pane.studio
         self.configure(**{**self.style.dark, **cnf})
         self._widget = None
         self._prev_widget = None
@@ -99,6 +103,12 @@ class StyleGroup(CollapseFrame):
     def _hide(self, item):
         item.pack_forget()
 
+    def _get_prop(self, prop, widget):
+        return widget.get_prop(prop)
+
+    def _set_prop(self, prop, value, widget):
+        widget.configure(**{prop: value})
+
     def on_widget_change(self, widget):
         self._widget = widget
         if widget is None:
@@ -118,16 +128,43 @@ class StyleGroup(CollapseFrame):
         self._has_initialized = True
         self._prev_widget = widget
 
-    def apply(self, prop, value):
-        if self.widget is None:
+    def _apply_action(self, prop, value, widget, data):
+        self.apply(prop, value, widget, True)
+
+    def _get_action_data(self, widget, prop):
+        return {}
+
+    def apply(self, prop, value, widget=None, silent=False):
+        is_external = widget is not None
+        widget = self.widget if widget is None else widget
+        if widget is None:
             return
         try:
-            self.widget.configure(**{prop: value})
+            prev_val = self._get_prop(prop, widget)
+            data = self._get_action_data(widget, prop)
+            self._set_prop(prop, value, widget)
+            new_data = self._get_action_data(widget, prop)
+            self.studio.widget_modified(widget, self.style_pane, None)
+            if is_external:
+                if widget == self.widget:
+                    self.items[prop].set_silently(value)
+            if silent:
+                return
+            key = f"{widget}:{self.__class__.__name__}:{prop}"
+            action = self.studio.last_action()
+            if action is None or action.key != key:
+                self.studio.new_action(Action(
+                    lambda _: self._apply_action(prop, prev_val, widget, data),
+                    lambda _: self._apply_action(prop, value, widget, new_data),
+                    key=key,
+                ))
+            else:
+                action.update_redo(lambda _: self._apply_action(prop, value, widget, new_data))
         except Exception as e:
             # Empty string values are too common to be useful in logger debug
             if value != '':
                 logging.error(e)
-                logging.error(f"Could not set style {prop} as {value}", )
+                logging.error(f"Could not set {self.__class__.__name__} {prop} as {value}", )
 
     def get_definition(self):
         return {}
@@ -146,8 +183,8 @@ class StyleGroup(CollapseFrame):
 
 class IdentityGroup(StyleGroup):
 
-    def __init__(self, master, **cnf):
-        super().__init__(master, **cnf)
+    def __init__(self, master, pane, **cnf):
+        super().__init__(master, pane, **cnf)
         self.label = "Widget identity"
 
     def get_definition(self):
@@ -161,8 +198,8 @@ class IdentityGroup(StyleGroup):
 
 class AttributeGroup(StyleGroup):
 
-    def __init__(self, master, **cnf):
-        super().__init__(master, **cnf)
+    def __init__(self, master, pane, **cnf):
+        super().__init__(master, pane, **cnf)
         self.label = "Attributes"
 
     def get_definition(self):
@@ -170,16 +207,35 @@ class AttributeGroup(StyleGroup):
             return self.widget.properties
         return {}
 
+    def _get_action_data(self, widget, prop):
+        if prop == "layout" and isinstance(widget, Container):
+            return widget.get_all_info()
+        super()._get_action_data(widget, prop)
+
+    def _apply_action(self, prop, value, widget, data):
+        self.apply(prop, value, widget, True)
+        if prop == "layout" and data and isinstance(widget, Container):
+            widget.config_all_widgets(data)
+            if self.widget in widget._children:
+                self.style_pane._layout_group.on_widget_change(self.widget)
+
     def can_optimize(self):
         return self._widget.__class__ == self._prev_widget.__class__ and self._has_initialized
 
 
 class LayoutGroup(StyleGroup):
 
-    def __init__(self, master, **cnf):
-        super().__init__(master, **cnf)
+    def __init__(self, master, pane, **cnf):
+        super().__init__(master, pane, **cnf)
         self.label = "Layout"
         self._prev_layout = None
+
+    def _get_prop(self, prop, widget):
+        info = widget.layout.layout_strategy.info(widget)
+        return info.get(prop)
+
+    def _set_prop(self, prop, value, widget):
+        widget.layout.apply(prop, value, widget)
 
     def on_widget_change(self, widget):
         super().on_widget_change(widget)
@@ -191,19 +247,18 @@ class LayoutGroup(StyleGroup):
 
     def can_optimize(self):
         layout_strategy = self.widget.layout.layout_strategy
-        return layout_strategy.__class__ == self._prev_layout.__class__ and self.widget == self._prev_widget
+        return layout_strategy.__class__ == self._prev_layout.__class__ \
+            and self._layout_equal(self.widget, self._prev_widget)
 
     def get_definition(self):
         if self.widget is not None:
             return self.widget.layout.definition_for(self.widget)
         return {}
 
-    def apply(self, prop, value):
-        try:
-            self.widget.layout.apply(prop, value, self.widget)
-        except Exception as e:
-            if value != '':
-                logging.log(logging.ERROR, f"{e} : Could not set layout {prop} as {value}", )
+    def _layout_equal(self, widget1, widget2):
+        def1 = widget1.layout.layout_strategy.get_def(widget1)
+        def2 = widget2.layout.layout_strategy.get_def(widget2)
+        return def1 == def2
 
 
 class StylePane(BaseFeature):
@@ -248,10 +303,23 @@ class StylePane(BaseFeature):
             ("command", "Collapse all", get_icon_image("chevron_up", 14, 14), self.collapse_all, {})
         )
 
+    def extern_apply(self, group_class, prop, value, widget=None, silent=False):
+        for group in self.groups:
+            if group.__class__ == group_class:
+                group.apply(prop, value, widget, silent)
+                return
+        raise ValueError(f"Class {group_class.__class__.__name__} not found")
+
+    def apply_style(self, prop, value, widget=None, silent=False):
+        self._attribute_group.apply(prop, value, widget, silent)
+
+    def apply_layout(self, prop, value, widget=None, silent=False):
+        self._layout_group.apply(prop, value, widget, silent)
+
     def add_group(self, group_class) -> StyleGroup:
         if not issubclass(group_class, StyleGroup):
             raise ValueError('type required.')
-        group = group_class(self.body.body)
+        group = group_class(self.body.body, self)
         self.groups.append(group)
         group.pack(side='top', fill='x', pady=4)
         return group
@@ -290,6 +358,8 @@ class StylePane(BaseFeature):
         self.styles_for(widget)
 
     def on_widget_change(self, old_widget, new_widget=None):
+        if new_widget is None:
+            new_widget = old_widget
         self.styles_for(new_widget)
 
     def on_widget_layout_change(self, widget):

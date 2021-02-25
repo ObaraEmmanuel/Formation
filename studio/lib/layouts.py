@@ -65,7 +65,6 @@ class BaseLayoutStrategy:
     def __init__(self, container):
         self.parent = container.parent
         self.container = container
-        self._restoration_data = {}  # Where we store information on removed widgets to allow restoration
 
     @property
     def level(self):
@@ -94,6 +93,9 @@ class BaseLayoutStrategy:
     def widget_released(self, widget):
         pass
 
+    def change_start(self, widget):
+        widget.recent_layout_info = self.get_restore(widget)
+
     def move_widget(self, widget, bounds):
         if widget in self.children:
             self.remove_widget(widget)
@@ -117,7 +119,7 @@ class BaseLayoutStrategy:
         self._move(widget, bounds)
 
     def restore_widget(self, widget, data=None):
-        pass
+        raise NotImplementedError("Layout should provide restoration method")
 
     def get_restore(self, widget):
         raise NotImplementedError("Layout should provide restoration data")
@@ -136,6 +138,17 @@ class BaseLayoutStrategy:
 
     def info(self, widget):  # noqa
         return {}
+
+    def get_all_info(self):
+        return {widget: self.info(widget) for widget in self.children}
+
+    def config_all_widgets(self, data):
+        for child in self.children:
+            if child in data:
+                self.config_widget(child, data[child])
+
+    def config_widget(self, widget, config):
+        raise NotImplementedError("Layout should provide configuration method")
 
     def get_def(self, widget):
         # May be overridden to return dynamic definitions based on the widget
@@ -230,18 +243,23 @@ class FrameLayoutStrategy(BaseLayoutStrategy):
 
     def remove_widget(self, widget):
         super().remove_widget(widget)
-        self._restoration_data[widget] = self.get_restore(widget)
         widget.place_forget()
 
+    def config_widget(self, widget, config):
+        widget.place_configure(**config)
+
     def restore_widget(self, widget, data=None):
-        data = self._restoration_data[widget] if data is None else data
+        data = widget.recent_layout_info if data is None else data
         self.children.append(widget)
         widget.layout = self.container
         widget.level = self.level + 1
-        widget.place(**data)
+        widget.place_configure(**data.get("info", {}))
 
     def get_restore(self, widget):
-        return widget.place_info()
+        return {
+            "info": widget.place_info(),
+            "container": self.container,
+        }
 
     def apply(self, prop, value, widget):
         widget.place_configure(**{prop: value})
@@ -298,23 +316,31 @@ class LinearLayoutStrategy(BaseLayoutStrategy):
         super().__init__(container)
         self._orientation = self.HORIZONTAL
         self.temp_info = {}
+        # Store for info on temporarily removed widgets to allow restoration
+        self._restoration_data = {}
 
     def add_widget(self, widget, bounds=None, **kwargs):
         super().remove_widget(widget)
-        if widget in self._restoration_data:
-            self.restore_widget(widget)
-            return
         super().add_widget(widget, bounds, **kwargs)
         if self._orientation == self.HORIZONTAL:
             widget.pack(in_=self.container)
         elif self._orientation == self.VERTICAL:
             widget.pack(in_=self.container, side="left")
-        self.config_widget(widget, **kwargs)
+        self.config_widget(widget, kwargs)
         self.children.append(widget)
 
     def redraw(self):
         for widget in self.children:
             widget.pack(**self._pack_info(widget))
+
+    def _redraw(self, start_index=0):
+        affected = self.children[start_index:]
+        cache = {}
+        for child in affected:
+            cache[child] = self._pack_info(child)
+            child.pack_forget()
+        for child in affected:
+            child.pack(**cache.get(child, {}))
 
     def resize_widget(self, widget, bounds):
         if not self.temp_info:
@@ -338,33 +364,32 @@ class LinearLayoutStrategy(BaseLayoutStrategy):
 
     def restore_widget(self, widget, data=None):
         # We need to be able to return a removed widget back to its initial position once removed
-        restoration_data = self._restoration_data.get(widget) if data is None else data
-        self.children.insert(restoration_data[1], widget)
+        restoration_data = widget.recent_layout_info if data is None else data
+        self.children.insert(restoration_data.get("index", -1), widget)
         widget.level = self.level + 1
         widget.layout = self.container
-        widget.pack(**restoration_data[0])
-        self.redraw()
+        widget.pack(in_=self.container)
+        self.config_widget(widget, restoration_data.get("info", {}))
+        self._redraw()
 
     def get_restore(self, widget):
-        # Restoration is sensitive to the position of the widget in the packing order therefore store
-        # the restoration data in the form of a tuple (pack_info, pack_index)
-        return widget.pack_info(), self.children.index(widget)
+        return {
+            "info": widget.pack_info(),
+            "container": self.container,
+            "index": self.children.index(widget)
+        }
 
     def set_orientation(self, orient):
         if orient == self.VERTICAL:
-            self.clear_children()
+            self.clear_all()
             for child in self.children:
                 child.pack(in_=self.container, side="left", fill="y")
         elif orient == self.HORIZONTAL:
-            self.clear_children()
+            self.clear_all()
             for child in self.children:
                 child.pack(in_=self.container, side="top", fill="x")
         else:
             raise ValueError("Value must be BaseLayoutStrategy.HORIZONTAL or BaseLayoutStrategy.VERTICAL")
-
-    def clear_children(self):
-        for child in self.children:
-            child.pack_forget()
 
     def apply(self, prop, value, widget):
         if prop in ("width", "height"):
@@ -372,13 +397,13 @@ class LinearLayoutStrategy(BaseLayoutStrategy):
         else:
             widget.pack_configure(**{prop: value})
 
-    def config_widget(self, widget, **kw):
+    def config_widget(self, widget, config):
         for prop in ("width", "height"):
-            if prop in kw:
-                widget.configure(**{prop: kw[prop]})
-                kw.pop(prop)
+            if prop in config:
+                widget.configure(**{prop: config[prop]})
+                config.pop(prop)
 
-        widget.pack_configure(**kw)
+        widget.pack_configure(**config)
 
     def get_def(self, widget):
         # Use copy since we are going to modify definition
@@ -416,10 +441,16 @@ class GenericLinearLayoutStrategy(BaseLayoutStrategy):
         self._orientation = self.HORIZONTAL
         self._children = []
 
+    def config_widget(self, widget, config):
+        pass
+
     def clear_all(self):
         pass
 
     def get_restore(self, widget):
+        pass
+
+    def restore_widget(self, widget, data=None):
         pass
 
     def get_last(self):
@@ -534,20 +565,23 @@ class GridLayoutStrategy(BaseLayoutStrategy):
 
     def __init__(self, master):
         super().__init__(master)
-        self._restoration_data = {}
         self._highlighter = WidgetHighlighter(self.container.parent)
         self._edge_indicator = EdgeIndicator(self.container.parent)
         self._temp = {}
 
     def get_restore(self, widget):
-        return widget.grid_info()
+        return {
+            "info": widget.grid_info(),
+            "container": self.container,
+        }
 
     def restore_widget(self, widget, data=None):
-        restoration_data = self._restoration_data.get(widget) if data is None else data
+        data = widget.recent_layout_info if data is None else data
         self.children.append(widget)
         widget.level = self.level + 1
         widget.layout = self.container
-        widget.grid(**restoration_data)
+        widget.grid(in_=self.container)
+        self.config_widget(widget, data.get("info", {}))
 
     def react_to(self, bounds):
         bounds = geometry.relative_bounds(bounds, self.container)
@@ -591,12 +625,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         self.clear_indicators()
         if not info:
             return
-        row, col, row_span, col_span = info["row"], info["column"], info["rowspan"], info["columnspan"]
         widget.grid_forget()
-        if not len(self.container.grid_slaves(row)):
-            self._adjust_rows(from_row=row)
-        if not len(self.container.grid_slaves(None, col)):
-            self._adjust_columns(from_col=col)
 
     def _grid_info(self, widget):
         info = widget.grid_info()
@@ -607,12 +636,12 @@ class GridLayoutStrategy(BaseLayoutStrategy):
             info.update({"in_": self.container})
             return info
 
-    def config_widget(self, widget, **kw):
+    def config_widget(self, widget, config):
         for prop in ("width", "height"):
-            if prop in kw:
-                widget.configure(**{prop: kw[prop]})
-                kw.pop(prop)
-        widget.grid_configure(**kw)
+            if prop in config:
+                widget.configure(**{prop: config[prop]})
+                config.pop(prop)
+        widget.grid_configure(**config)
 
     def widget_released(self, widget):
         self._redraw_widget(widget)
@@ -638,7 +667,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
             widget.grid(**kwargs)
         else:
             widget.grid(in_=self.container)
-            self.config_widget(widget, **kwargs)
+            self.config_widget(widget, kwargs)
         self.children.append(widget)
         self.clear_indicators()
 
@@ -782,8 +811,34 @@ class TabLayoutStrategy(BaseLayoutStrategy):
         self._current_tab = None
         self.container.bind("<<NotebookTabChanged>>", self._tab_switched)
 
+    def config_widget(self, widget, config):
+        self.container.tab(widget, **config)
+
+    def restore_widget(self, widget, data=None):
+        restoration_data = widget.recent_layout_info if data is None else data
+        self.children.insert(restoration_data.get("index", -1), widget)
+        widget.level = self.level + 1
+        widget.layout = self.container
+        self.container.add(widget)
+        self.container.tab(widget, **restoration_data.get("info", {}))
+        self._redraw(restoration_data.get("index", -1))
+
     def get_restore(self, widget):
-        pass
+        return {
+            "info": self.info(widget),
+            "container": self.container,
+            "index": self.children.index(widget),
+        }
+
+    def _redraw(self, start_index=0):
+        affected = self.children[start_index:]
+        cache = {}
+        for child in affected:
+            cache[child] = self.info(child)
+            self.container.forget(child)
+        for child in affected:
+            self.container.add(child)
+            self.container.tab(child, **cache.get(child, {}))
 
     def resize_widget(self, widget, bounds):
         pass
@@ -804,6 +859,7 @@ class TabLayoutStrategy(BaseLayoutStrategy):
         if "padding" in info:
             # use the first padding value until we can support full padding
             info["padding"] = info["padding"][0]
+        info["compound"] = info.get("compound", "") or "none"
         return info
 
     def apply(self, prop, value, widget):
@@ -852,7 +908,7 @@ class PanedLayoutStrategy(BaseLayoutStrategy):
             "type": "choice",
             "options": ["always", "first", "last", "middle", "never"],
             "default": "last",
-            "name": "strecth"
+            "name": "stretch"
         },
         "minsize": {
             "display_name": "minsize",
@@ -864,7 +920,33 @@ class PanedLayoutStrategy(BaseLayoutStrategy):
     }
 
     def get_restore(self, widget):
-        pass
+        return {
+            "info": self.info(widget),
+            "index": self.children.index(widget),
+            "container": self.container
+        }
+
+    def config_widget(self, widget, config):
+        self._config(widget, **config)
+
+    def restore_widget(self, widget, data=None):
+        restoration_data = widget.recent_layout_info if data is None else data
+        self.children.insert(restoration_data.get("index", -1), widget)
+        widget.level = self.level + 1
+        widget.layout = self.container
+        self.container.add(widget)
+        self._config(widget, **restoration_data.get("info", {}))
+        self._redraw(restoration_data.get("index", -1))
+
+    def _redraw(self, start_index=0):
+        affected = self.children[start_index:]
+        cache = {}
+        for child in affected:
+            cache[child] = self.info(child)
+            self.container.forget(child)
+        for child in affected:
+            self.container.add(child)
+            self._config(child, **cache.get(child, {}))
 
     def clear_all(self):
         pass

@@ -186,6 +186,11 @@ class Layout(Choice):
 
     def set(self, value):
         # Override default conversion of value to string by Choice class
+        if isinstance(value, str):
+            for opt in self.style_def.get("options"):
+                if opt.name == value:
+                    self._spinner.set(opt)
+                    return
         self._spinner.set(value)
 
 
@@ -568,6 +573,13 @@ class StyleItem(Frame):
 
     def set(self, value):
         self._editor.set(value)
+
+    def set_silently(self, value):
+        # disable ability to trigger on change before setting value
+        prev_callback = self._on_change
+        self._on_change = None
+        self.set(value)
+        self._on_change = prev_callback
 
 
 if __name__ == '__main__':

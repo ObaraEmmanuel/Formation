@@ -5,6 +5,7 @@ Drag drop designer for the studio
 # ======================================================================= #
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
+import time
 from tkinter import filedialog
 
 from hoverset.data import actions
@@ -25,6 +26,7 @@ from formation.xml import BaseConverter
 
 
 class DesignLayoutStrategy(FrameLayoutStrategy):
+    name = "DesignLayout"
 
     def add_new(self, widget, x, y):
         self.container.add(widget, x, y, layout=self.container)
@@ -56,14 +58,17 @@ class DesignLayoutStrategy(FrameLayoutStrategy):
         self.container.config_child(widget, **{prop: value})
 
     def restore_widget(self, widget, data=None):
-        data = self._restoration_data[widget] if data is None else data
+        data = widget.recent_layout_info if data is None else data
         self.children.append(widget)
         widget.layout = self.container
         widget.level = self.level + 1
-        self.container.place_child(widget, **data)
+        self.container.place_child(widget, **data.get("info", {}))
 
     def get_restore(self, widget):
-        return self.container.config_child(widget)
+        return {
+            "info": self.container.config_child(widget),
+            "container": self,
+        }
 
     def get_def(self, widget):
         definition = dict(self.DEFINITION)
@@ -91,9 +96,9 @@ class Designer(DesignPad, Container):
     def __init__(self, master, studio):
         super().__init__(master)
         self.id = None
+        self.studio = studio
         self.setup_widget()
         self.parent = self
-        self.studio = studio
         self.config(**self.style.bright, takefocus=True)
         self.objects = []
         self.root_obj = None
@@ -102,6 +107,7 @@ class Designer(DesignPad, Container):
         self.highlight.on_resize(self._on_size_changed)
         self.highlight.on_move(self._on_move)
         self.highlight.on_release(self._on_release)
+        self.highlight.on_start(self._on_start)
         self._update_throttling()
         self.studio.pref.add_listener(
             "designer::frame_skip",
@@ -110,8 +116,11 @@ class Designer(DesignPad, Container):
         self.current_obj = None
         self.current_container = None
         self.current_action = None
+        self._displace_active = False
+        self._last_displace = time.time()
         self._frame.bind("<Button-1>", lambda *_: self.focus_set())
         self._frame.bind('<Motion>', self.on_motion, '+')
+        self._frame.bind('<KeyRelease>', self._stop_displace, '+')
         self._padding = 30
         self.design_path = None
         self.xml = XMLForm(self)
@@ -136,6 +145,9 @@ class Designer(DesignPad, Container):
         )
         self._empty.config(**self.style.bright)
         self._show_empty(True)
+
+    def _get_designer(self):
+        return self
 
     def focus_set(self):
         self._frame.focus_force()
@@ -302,8 +314,8 @@ class Designer(DesignPad, Container):
         if not silently:
             self.studio.new_action(Action(
                 # Delete silently to prevent adding the event to the undo/redo stack
-                lambda: self.delete(obj, True),
-                lambda: self.restore(obj, restore_point, obj.layout)
+                lambda _: self.delete(obj, True),
+                lambda _: self.restore(obj, restore_point, obj.layout)
             ))
         return obj
 
@@ -395,8 +407,8 @@ class Designer(DesignPad, Container):
             if not silent:
                 self.studio.new_action(Action(
                     # Delete silently to prevent adding the event to the undo/redo stack
-                    lambda: self.delete(obj, True),
-                    lambda: self.restore(obj, restore_point, obj.layout)
+                    lambda _: self.delete(obj, True),
+                    lambda _: self.restore(obj, restore_point, obj.layout)
                 ))
         elif obj.layout is None:
             # This only happens when adding the main layout. We dont need to add this action to the undo/redo stack
@@ -430,8 +442,8 @@ class Designer(DesignPad, Container):
         if not silently:
             restore_point = widget.layout.get_restore(widget)
             self.studio.new_action(Action(
-                lambda: self.restore(widget, restore_point, widget.layout),
-                lambda: self.studio.delete(widget)
+                lambda _: self.restore(widget, restore_point, widget.layout),
+                lambda _: self.studio.delete(widget)
             ))
         else:
             self.studio.delete(widget, self)
@@ -505,9 +517,25 @@ class Designer(DesignPad, Container):
     def draw_highlight(self, obj):
         self.highlight.surround(obj)
 
+    def _stop_displace(self, _):
+        if self._displace_active:
+            # this ensures event is added to undo redo stack
+            self._on_release(geometry.bounds(self.current_obj))
+            # mark the latest action as designer displace
+            latest = self.studio.last_action()
+            if latest is not None:
+                latest.key = "designer_displace"
+            self._displace_active = False
+
     def displace(self, side):
         if not self.current_obj:
             return
+        if time.time() - self._last_displace < .5:
+            self.studio.pop_last_action("designer_displace")
+
+        self._on_start()
+        self._displace_active = True
+        self._last_displace = time.time()
         bounds = geometry.bounds(self.current_obj)
         x1, y1, x2, y2 = bounds
         if side == 'right':
@@ -519,7 +547,6 @@ class Designer(DesignPad, Container):
         elif side == 'down':
             bounds = x1, y1 + 1, x2, y2 + 1
         self._on_move(bounds)
-        self._on_release(bounds)
 
     def clear_obj_highlight(self):
         if self.highlight is not None:
@@ -528,6 +555,11 @@ class Designer(DesignPad, Container):
             if self.current_container is not None:
                 self.current_container.clear_highlight()
                 self.current_container = None
+
+    def _on_start(self):
+        obj = self.current_obj
+        if obj is not None:
+            obj.layout.change_start(obj)
 
     def _on_release(self, bound):
         obj = self.current_obj
@@ -545,16 +577,31 @@ class Designer(DesignPad, Container):
                 obj.layout.widget_released(obj)
             self.studio.widget_layout_changed(obj)
             self.current_action = None
+            self.create_restore(obj)
+        elif obj.layout == self and self.current_action == self.MOVE:
+            self.create_restore(obj)
         elif self.current_action == self.RESIZE:
             obj.layout.widget_released(obj)
             self.current_action = None
+            self.create_restore(obj)
 
     def create_restore(self, widget):
-        restore_point = widget.layout.get_restore()
-        self.studio.new_action(Action(
-            lambda: self.restore(widget, restore_point, widget.layout),
-            lambda: self.studio.delete(widget)
-        ))
+        prev_restore_point = widget.recent_layout_info
+        cur_restore_point = widget.layout.get_restore(widget)
+        if prev_restore_point == cur_restore_point:
+            return
+        prev_container = prev_restore_point["container"]
+        container = widget.layout
+
+        def undo(_):
+            container.remove_widget(widget)
+            prev_container.restore_widget(widget, prev_restore_point)
+
+        def redo(_):
+            prev_container.remove_widget(widget)
+            container.restore_widget(widget, cur_restore_point)
+
+        self.studio.new_action(Action(undo, redo))
 
     def _on_move(self, new_bound):
         obj = self.current_obj

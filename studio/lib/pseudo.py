@@ -91,6 +91,7 @@ class PseudoWidget:
     def setup_widget(self):
         self.level = 0
         self.layout = None
+        self.recent_layout_info = None
         self._properties = get_properties(self)
         self.set_name(self.id)
         self.node = None
@@ -198,7 +199,7 @@ class Container(PseudoWidget):
     LAYOUTS = layouts.layouts
 
     def setup_widget(self):
-        self.parent = self.master
+        self.parent = self.designer = self._get_designer()
         self._level = 0
         self._children = []
         self.temporal_children = []
@@ -209,6 +210,9 @@ class Container(PseudoWidget):
         self.layout_var = tkinter.StringVar()
         self.layout_var.set(self.layout_strategy.name)
         super().setup_widget()
+
+    def _get_designer(self):
+        return self.master
 
     def show_highlight(self, *_):
         self._highlighter.highlight(self)
@@ -283,10 +287,13 @@ class Container(PseudoWidget):
             kwargs.pop('layout')
         return super().configure(**kwargs)
 
+    def _set_layout(self, layout):
+        self.designer.studio.style_pane.apply_style("layout", layout, self)
+
     def _get_layouts_as_menu(self):
         layout_templates = [
             ("radiobutton", i.name, get_icon_image(i.icon, 14, 14),
-             functools.partial(self._switch_layout, i),
+             functools.partial(self._set_layout, i),
              {"value": i.name, "variable": self.layout_var}
              ) for i in self.LAYOUTS
         ]
@@ -309,7 +316,7 @@ class Container(PseudoWidget):
         }
 
     def position(self, widget, bounds):
-        widget.place(in_=self, **self.parse_bounds(bounds))
+        widget.place(in_=self, **self.parse_bounds(bounds), bordermode=tkinter.OUTSIDE)
 
     #  =========================================== Rerouting methods ==================================================
 
@@ -321,6 +328,9 @@ class Container(PseudoWidget):
 
     def widget_released(self, widget):
         self.layout_strategy.widget_released(widget)
+
+    def change_start(self, widget):
+        self.layout_strategy.change_start(widget)
 
     def move_widget(self, widget, bounds):
         self.layout_strategy.move_widget(widget, bounds)
@@ -352,6 +362,12 @@ class Container(PseudoWidget):
 
     def get_altered_options_for(self, widget):
         return self.layout_strategy.get_altered_options(widget)
+
+    def get_all_info(self):
+        return self.layout_strategy.get_all_info()
+
+    def config_all_widgets(self, data):
+        self.layout_strategy.config_all_widgets(data)
 
 
 class TabContainer(Container):
@@ -387,10 +403,12 @@ class TabContainer(Container):
             return config
         elif 'image' in kw:
             # load image at path before passing the image value
-            widget._tab_image_path = kw['image']
-            image = load_tk_image(kw['image'])
-            widget._tab_image = image  # shield from garbage collection
-            kw['image'] = image  # update value with actual image
+            # only load if value actually available
+            if kw['image']:
+                widget._tab_image_path = kw['image']
+                image = load_tk_image(kw['image'])
+                widget._tab_image = image  # shield from garbage collection
+                kw['image'] = image  # update value with actual image
         return super().tab(widget, **kw)
 
     def _switch_layout(self, layout_class):

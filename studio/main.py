@@ -10,7 +10,7 @@ from tkinter import filedialog, Toplevel
 sys.path.append('..')
 
 from studio.feature.design import Designer
-from studio.feature import FEATURES
+from studio.feature import FEATURES, StylePane
 from studio.feature._base import BaseFeature
 from studio.tools import ToolManager
 from studio.ui.widgets import SideBar
@@ -176,6 +176,9 @@ class StudioApplication(Application):
         for feature in FEATURES:
             self.install(feature)
 
+        # common feature references
+        self.style_pane = self.get_feature(StylePane)
+
         self._startup()
         self._restore_position()
 
@@ -233,6 +236,19 @@ class StudioApplication(Application):
         action = self._redo_stack.pop()
         action.redo()
         self._undo_stack.append(action)
+
+    def last_action(self):
+        if len(self._undo_stack):
+            return self._undo_stack[-1]
+        return None
+
+    def pop_last_action(self, key=None):
+        last = self.last_action()
+        if last is not None:
+            # verify action key first
+            if key is not None and last.key != key:
+                return
+            self._undo_stack.remove(last)
 
     def copy(self):
         if self.selected:
