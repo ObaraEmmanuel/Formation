@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from studio.lib.pseudo import PseudoWidget, Groups, Container, LabelFrameCorrection, PanedContainer
+from studio.lib.pseudo import PseudoWidget, Groups, Container, PanedContainer
 
 
 class Button(PseudoWidget, tk.Button):
@@ -102,7 +102,7 @@ class Label(PseudoWidget, tk.Label):
         self.config(text=name)
 
 
-class LabelFrame(LabelFrameCorrection, Container, tk.LabelFrame):
+class LabelFrame(Container, tk.LabelFrame):
     display_name = 'LabelFrame'
     group = Groups.container
     icon = "labelframe"

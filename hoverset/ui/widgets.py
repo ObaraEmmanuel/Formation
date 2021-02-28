@@ -407,9 +407,9 @@ class CenterWindowMixin:
 
     def enable_centering(self):
         self.centered = False
-        self.bind('<Visibility>', self.center)
+        self._vis_bind = self.bind('<Visibility>', self.center, '+')
         if platform_is(WINDOWS):
-            self.bind('<Configure>', self.center)
+            self._conf_bind = self.bind('<Configure>', self.center, '+')
             self.event_generate('<Configure>')
 
     def center(self, *_):
@@ -429,8 +429,10 @@ class CenterWindowMixin:
             self.centered = True if self.winfo_width() != 1 else False
         else:
             # we no longer need the bindings
-            self.unbind("<Configure>")
-            self.unbind("<Visibility>")
+            if hasattr(self, '_conf_bind'):
+                self.unbind(self._conf_bind)
+            if hasattr(self, '_vis_bind'):
+                self.unbind(self._vis_bind)
 
     def get_geometry(self):
         """

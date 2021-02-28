@@ -3,7 +3,7 @@ import tkinter as tk
 import tkinter.ttk as ttk
 
 from studio.lib.layouts import NPanedLayoutStrategy
-from studio.lib.pseudo import PseudoWidget, Groups, Container, LabelFrameCorrection, TabContainer, PanedContainer
+from studio.lib.pseudo import PseudoWidget, Groups, Container, TabContainer, PanedContainer
 
 
 class Button(PseudoWidget, ttk.Button):
@@ -99,7 +99,7 @@ class Label(PseudoWidget, ttk.Label):
         self.config(text=name)
 
 
-class Labelframe(LabelFrameCorrection, Container, ttk.Labelframe):
+class Labelframe(Container, ttk.Labelframe):
     display_name = 'Labelframe'
     group = Groups.container
     icon = "labelframe"

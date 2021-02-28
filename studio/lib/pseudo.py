@@ -430,23 +430,3 @@ class PanedContainer(TabContainer):
         # add a legacy frame as a child
         from studio.lib import legacy
         self.add_new(legacy.Frame, 0, 0)
-
-
-class LabelFrameCorrection:
-
-    def _set_correction(self):
-        if hasattr(self, '_corrected'):
-            return
-        self._ref_point = tkinter.Frame(self)
-        self._ref_point.lower()
-        self._ref_point.place(x=0, y=0)
-        self._corrected = True
-
-    def parse_bounds(self, bounds):
-        self._set_correction()
-        return {
-            "x": bounds[0] - self._ref_point.winfo_x(),
-            "y": bounds[1] - self._ref_point.winfo_y(),
-            "width": bounds[2] - bounds[0],
-            "height": bounds[3] - bounds[1]
-        }
