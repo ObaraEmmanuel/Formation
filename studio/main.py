@@ -181,6 +181,7 @@ class StudioApplication(Application):
 
         self._startup()
         self._restore_position()
+        self._exit_failures = 0
 
     def _startup(self):
         on_startup = pref.get("studio::on_startup")
@@ -520,14 +521,32 @@ class StudioApplication(Application):
         features = *self.features, self.designer
         return features
 
+    def _force_exit_prompt(self):
+        return MessageDialog.builder(
+            {"text": "Force exit", "value": True, "focus": True},
+            {"text": "Return to app", "value": False},
+            wait=True,
+            title="Exit Failure",
+            message="An internal failure is preventing the app from exiting. Force exit?",
+            parent=self,
+            icon=MessageDialog.ICON_ERROR
+        )
+
     def _on_close(self):
-        self._save_position()
-        # pass the on window close event to the features
-        for feature in self._all_features():
-            # if any feature returns false abort shut down
-            if not feature.on_app_close():
-                return
-        self.destroy()
+        try:
+            self._save_position()
+            # pass the on window close event to the features
+            for feature in self._all_features():
+                # if any feature returns false abort shut down
+                if not feature.on_app_close():
+                    return
+            self.destroy()
+        except Exception:
+            self._exit_failures += 1
+            if self._exit_failures >= 2:
+                force = self._force_exit_prompt()
+                if force:
+                    self.destroy()
 
     def get_help(self):
         # Entry point for studio help functionality
