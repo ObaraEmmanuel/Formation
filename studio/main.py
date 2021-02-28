@@ -160,7 +160,7 @@ class StudioApplication(Application):
             ("cascade", "Tools", None, None, {"menu": ToolManager.get_tools_as_menu(self)}),
             ("cascade", "Help", None, None, {"menu": (
                 ("command", "Help", icon('dialog_info', 14, 14), actions.get('STUDIO_HELP'), {}),
-                ("command", "Check for updates", icon("cloud", 14, 14), None, {}),
+                ("command", "Check for updates", icon("cloud", 14, 14), self._coming_soon, {}),
                 ("separator",),
                 ("command", "About Formation", icon("formation", 14, 14), lambda: about_window(self), {}),
             )})
@@ -550,10 +550,18 @@ class StudioApplication(Application):
 
     def get_help(self):
         # Entry point for studio help functionality
-        pass
+        self._coming_soon()
 
     def settings(self):
         open_preferences(self)
+
+    def _coming_soon(self):
+        MessageDialog.show_info(
+            parent=self,
+            title="Coming soon",
+            message="We are working hard to bring this feature to you. Hang in there.",
+            icon="clock"
+        )
 
     def _register_actions(self):
         CTRL, ALT, SHIFT = KeyMap.CONTROL, KeyMap.ALT, KeyMap.SHIFT
