@@ -128,7 +128,7 @@ class StudioApplication(Application):
                 ("command", "Save As", icon("save", 14, 14), actions.get('STUDIO_SAVE_AS'), {}),
                 ("separator",),
                 ("command", "Settings", icon("settings", 14, 14), actions.get('STUDIO_SETTINGS'), {}),
-                ("command", "Exit", icon("exit", 14, 14), actions.get('STUDIO_EXIT'), {}),
+                ("command", "Exit", icon("close", 14, 14), actions.get('STUDIO_EXIT'), {}),
             )}),
             ("cascade", "Edit", None, None, {"menu": (
                 EnableIf(lambda: len(self._undo_stack),
@@ -162,7 +162,7 @@ class StudioApplication(Application):
                 ("command", "Help", icon('dialog_info', 14, 14), actions.get('STUDIO_HELP'), {}),
                 ("command", "Check for updates", icon("cloud", 14, 14), None, {}),
                 ("separator",),
-                ("command", "About Studio", blank_img, lambda: about_window(self), {}),
+                ("command", "About Formation", icon("formation", 14, 14), lambda: about_window(self), {}),
             )})
         ), self, self.style, False)
         self.config(menu=self.menu_bar)
