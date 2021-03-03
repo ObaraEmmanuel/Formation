@@ -168,7 +168,7 @@
     width: 4;
 }
 
-.dark_text, .dark_text_medium {
+.dark_text, .dark_text_medium, .dark_text_small {
     background: #303030;
     foreground: #f7f7f7;
     font: TkDefaultFont 10;
@@ -180,6 +180,10 @@
     foreground: #3d8aff;
     font: TkDefaultFont 10;
     disabledforeground: #a0a0a0;
+}
+
+.dark_text_small{
+    font: TkDefaultFont 8;
 }
 
 .dark_text_medium{
@@ -198,6 +202,10 @@
 
 .bright {
     background: #3a3a3a;
+}
+
+.accent{
+    background: #3d8aff;
 }
 
 .text_bright{

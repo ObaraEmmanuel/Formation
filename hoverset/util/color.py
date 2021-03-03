@@ -34,14 +34,17 @@ def _enforce_tuple_format(*constraints):
     If the constraints are violated it throws a ValueError.
     The decorator can be used as follows:
 
+    .. code-block:: python
+
     @_enforce_tuple_format(255, 255, 255)
     def function(rgb: tuple):
         # Do your stuff with a validated rgb tuple
         return
+
     :param a:
     :param b:
     :param c:
-    :return:
+    :return: wrapped function
     """
     def decor(func):
         @functools.wraps(func)  # Pass the functions attributes to the returned wrapped function
@@ -63,8 +66,9 @@ def _enforce_hex_color_format(func):
     be the first argument in the function. If the format is #xxx it is expanded to #xxxxxx then passed to the function.
     This method is meant for use by hoverset authors
     and is discouraged for external use.
+
     :param func:
-    :return:
+    :return: wrapped function
     """
 
     @functools.wraps(func)  # Pass the functions attributes to the returned wrapped function
@@ -85,6 +89,7 @@ def to_hex(rgb: tuple) -> str:
     Takes in a rgb tuple (h, s, l) where h s and l lie between 0 and 255 or four bit hex color #xxx
     and returns a hex string that lies between #000000 and #ffffff
     It raises Value error if any of the values h s or l is not within 0 and 255
+
     :param rgb: rgb tuple (h, s, l) where h s and l lie between 0 and 255
     :return: hex string that lies between #000000 and #ffffff
     """
@@ -99,7 +104,8 @@ def _(hex_str: str) -> str:
     """
     Overloaded version of to_hex which expands four bit colour to 8 bit color
     If you pass a 8 bit color then the color is returned instead.
-    :param hex_str:
+
+    :param hex_str: 8 bit color string for instance ``#fff000fff``
     :return:
     """
     # If the format is short i.e #xxx we need to expand it to #xxxxxx format
@@ -111,12 +117,14 @@ def _(hex_str: str) -> str:
     hex_str = "#" + "".join(list(map(lambda x: x+x, match)))
     return hex_str
 
+
 # noinspection PyTypeChecker
 @_enforce_hex_color_format
 def to_rgb(hex_str: str) -> tuple:
     """
     Converts a hex color string like to #ffffff its rgb components. Raises Value error
     if the hex string is of an invalid format.
+
     :param hex_str: A hex color string that has the format #xxxxxx and x is a
     value within 0 and f
     :return: a tuple containing the rgb components of the color as a tuple
@@ -130,6 +138,7 @@ def to_grayscale(rgb: tuple) -> float:
     """
     Obtain the perceivable grayscale of a color (h, s, l) by analysing the ratio of the
     red green and blue components and how they are perceived by the human eye.
+
     :param rgb: rgb tuple (h, s, l) where h s and l lie between 0 and 255
     :return: float value within 0 and 255
     """
@@ -141,6 +150,7 @@ def to_fractional_rgb(rgb: tuple) -> tuple:
     """
     Convert color (h, s, l) to a fractional form (fr, foreground, fb) where fr foreground and fb are float values
     between 0 and 1. This is useful when interfacing with the in built python library colorsys
+
     :param rgb: rgb tuple (h, s, l) where h s and l lie between 0 and 255
     :return: rgb tuple (fr, foreground, fb) where h s and l are floats lying between 0 and 1
     """
@@ -152,6 +162,7 @@ def from_fractional_rgb(rgb: tuple) -> tuple:
     """
     Convert to color (h, s, l) from a fractional form (fr, foreground, fb) where fr foreground and fb are float values
     between 0 and 1. This is useful when interfacing with the in built python library colorsys
+
     :param rgb: rgb tuple (fr, foreground, fb) where h s and l are floats lying between 0 and 1
     :return: rgb tuple (h, s, l) where h s and l are integers lying between 0 and 255
     """
@@ -167,6 +178,7 @@ def to_hsl(rgb: tuple) -> tuple:
     """
     Convert color (h, s, l) to (Hue, Saturation, Luminosity) color model where Hue Luminosity and Saturation
     are values lying within 0 and 255
+
     :param rgb: rgb tuple (r, g, b) where r g and b are integers lying between 0 and 255
     :return: (h, s, l) where h s and l are integers lying between 0 and 360, 100 and 100 respectively
     """
@@ -185,6 +197,7 @@ def to_hsv(rgb: tuple) -> tuple:
     """
     Convert color (r, g, b) to (Hue, Saturation, Value) color model where Hue Saturation and Value
     are values lying within 0 and 360, 100, 100 respectively
+
     :param rgb: rgb tuple (h, s, l) where h s and l are integers lying between 0 and 255
     :return: (h, s, v) where h s and v are integers lying between 0 and 255
     """
@@ -198,6 +211,7 @@ def from_hsl(hsl: tuple) -> tuple:
     """
     Convert to color (h, s, l) from (Hue, Lightness Saturation) color model where Hue Lightness and Saturation
     are values lying within 0 and 255
+
     :param hsl: (h, s, l) where h s and l are integers lying between 0 and 360, 100 and 100 respectively
     :return: rgb tuple (r, g, b) where r g and b are integers lying between 0 and 255
     """
@@ -211,6 +225,7 @@ def from_hsv(hsv: tuple) -> tuple:
     """
     Convert to color (h, s, v) from (Hue, Lightness Value) color model where Hue Lightness and Value
     are values lying within between 0 and 360, 100 and 100 respectively
+
     :param hsv: (h, s, v) where h s and v are integers lying between 0 and 360, 100 and 100 respectively
     :return: rgb tuple (r, g, b) where r g and b are integers lying between 0 and 255
     """
@@ -219,5 +234,36 @@ def from_hsv(hsv: tuple) -> tuple:
     return from_fractional_rgb(colorsys.hsv_to_rgb(h/360, s/100, v/100))
 
 
+@_enforce_tuple_format(255, 255, 255, 255)
+def luminosity(rgba):
+    """
+    Get the luminosity value of a rgba color ranging from 0 to 255
+
+    :param rgba: a tuple representing rgba color (r, g, b, a) where each
+        ranges from 0 to 255
+    :return: a value ranging from 0 to 255 inclusive representing the brightness
+        of the color
+    """
+    return (RED_BRIGHTNESS * rgba[0] + GREEN_BRIGHTNESS * rgba[1] + BLUE_BRIGHTNESS * rgba[2]) * rgba[3] / 255
+
+
+def parse_color(color: str, tk_instance):
+    """
+    Parse any kind of color to rgb tuple
+
+    :param color: A string representing a color for instance
+        ``red``or ``#ff0000``
+    :param tk_instance: A tkinter object that can be used to parse color
+        names
+    :return: A tuple representing the color in rgb i.e. ``(r, g, b)`` where
+        each item ranges from 0 to 255
+    """
+    try:
+        color = tk_instance.winfo_rgb(color)
+        return tuple(map(lambda x: round(x * 255 / 65535), color))
+    except:
+        raise ValueError(f"Invalid color '{color}'")
+
+
 if __name__ == "__main__":
-    print(to_hex((0,0,253)))
+    print(to_hex((0, 0, 253)))

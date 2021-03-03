@@ -16,6 +16,7 @@ from studio.tools import ToolManager
 from studio.ui.widgets import SideBar
 from studio.ui.about import about_window
 from studio.preferences import Preferences, open_preferences
+from studio.resource_loader import ResourceLoader
 import studio
 
 from hoverset.ui.widgets import Application, Frame, PanedWindow, Button, ActionNotifier
@@ -36,11 +37,13 @@ pref = Preferences.acquire()
 
 class StudioApplication(Application):
     ICON_PATH = get_resource_path(studio, "resources/images/formation_icon.png")
+    THEME_PATH = pref.get("resource::theme")
 
     def __init__(self, master=None, **cnf):
         super().__init__(master, **cnf)
         # Load icon asynchronously to prevent issues which have been known to occur when loading it synchronously
         icon_image = load_tk_image(self.ICON_PATH)
+        self.load_styles(self.THEME_PATH)
         self.iconphoto(True, icon_image)
         self.pref = pref
         self._restore_position()
@@ -606,6 +609,8 @@ class StudioApplication(Application):
 
 
 def main():
+    # load resources first
+    ResourceLoader.load()
     StudioApplication().mainloop()
 
 

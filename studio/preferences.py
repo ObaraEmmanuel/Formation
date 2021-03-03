@@ -2,6 +2,7 @@ import os
 
 from hoverset.data.preferences import *
 from hoverset.data.keymap import ShortcutPane
+from hoverset.data.utils import get_resource_path
 
 defaults = {
     "studio": {
@@ -37,6 +38,10 @@ defaults = {
         "xml": {
             "pretty_print": True,
         }
+    },
+    "resource": {
+        "icon_cache_color": "#ffffff",
+        "theme": get_resource_path("hoverset.ui", "themes/default.css")
     }
 }
 
