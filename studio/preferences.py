@@ -47,6 +47,20 @@ defaults = {
 
 templates = {
     "General": {
+        "Appearance": (
+            {
+                "desc": "Theme",
+                "path": "resource::theme",
+                "element": RadioGroup,
+                "requires_restart": True,
+                "extra": {
+                    "choices": (
+                        (get_resource_path("hoverset.ui", "themes/default.css"), "Dark", ),
+                        (get_resource_path("hoverset.ui", "themes/light.css"), "Light", ),
+                    )
+                }
+            },
+        ),
         "Recent Files": (
             {
                 "desc": "Recent files limit",

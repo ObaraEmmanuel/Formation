@@ -10,6 +10,8 @@ from pathlib import Path
 from collections import defaultdict
 
 from hoverset.data.utils import make_path
+from hoverset.data.images import get_tk_image
+from hoverset.data.actions import get_routine
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.widgets import *
 
@@ -272,6 +274,7 @@ class Component:
         self.path = path
         self.set(pref.get(path))
         self._on_change = None
+        self.requires_restart = False
 
     def _change(self, *_):
         if self._on_change:
@@ -448,6 +451,8 @@ class PreferenceManager(MessageDialog):
         element = template["element"](
             parent, self.pref, template["path"],
             template["desc"], **template.get("extra", {}))
+        element.requires_restart = template.get("requires_restart", False)
+        element.on_change(self.update_state)
         element.pack(fill="x", pady=2)
         element.pack_configure(**template.get("layout", {}))
         self.components.add(element)
@@ -455,11 +460,11 @@ class PreferenceManager(MessageDialog):
 
     def update_state(self):
         for component in self.components:
-            if component.has_changes():
-                self.apply_btn.disabled(False)
+            if component.has_changes() and component.requires_restart:
+                self.show_restart_prompt(True)
                 break
         else:
-            self.apply_btn.disabled(True)
+            self.show_restart_prompt(False)
 
     def _load_category(self, category):
         if category in self._category_render:
@@ -501,6 +506,18 @@ class PreferenceManager(MessageDialog):
         self.apply()
         self.destroy()
 
+    def apply_and_restart(self, *_):
+        self.apply()
+        get_routine("STUDIO_RESTART").invoke()
+
+    def show_restart_prompt(self, flag):
+        if flag:
+            self._restart_label.pack(side="left")
+            self._restart_button.pack(side="left", padx=20)
+        else:
+            self._restart_label.pack_forget()
+            self._restart_button.pack_forget()
+
     def render(self, window):
         pane = PanedWindow(window, **self.style.surface, width=700, height=500)
         self.nav = CompoundList(pane)
@@ -511,7 +528,20 @@ class PreferenceManager(MessageDialog):
         self.pref_body = self.pref_frame.body
         pane.add(self.nav, width=250, minsize=250, sticky="nswe")
         pane.add(self.pref_frame, width=450, minsize=200, sticky="nswe")
-        self.apply_btn = self._add_button(text="Apply", command=self.apply)
+        self._make_button_bar()
+        warning_bar = Frame(self.bar, **self.style.surface)
+        warning_bar.pack(side="left")
+        self._restart_label = Label(
+            warning_bar, **self.style.text, compound="left",
+            image=get_tk_image("dialog_info", 20, 20),
+            text="Some changes require restart"
+        )
+        self._restart_button = Button(
+            warning_bar, **self.style.button, text="restart", height=25,
+        )
+        self._restart_button.configure(width=self._restart_button.measure_text("restart"))
+        self._restart_button.on_click(self.apply_and_restart)
+        self._restart_button.configure(**self.style.highlight_active)
         self.cancel_btn = self._add_button(text="Cancel", command=self.cancel)
         self.okay_btn = self._add_button(text="Okay", command=self.okay, focus=True)
         pane.pack(side="top", fill='both', expand=True)

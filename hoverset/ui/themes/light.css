@@ -1,0 +1,273 @@
+/* Write all styles here and access them from the style delegator using dot syntax */
+.colors {
+    primarydark: #f0f0f0;
+    primarydarkaccent: #707070;
+    primary: #202020;
+    primaryaccent: #e0e0e0;
+    accent: #228b22;
+
+}
+.spinbox{
+    background: #f0f0f0;
+    foreground: #202020;
+    buttonbackground: #f0f0f0;
+    buttonup: flat;
+    buttondownrelief: flat;
+    relief: flat;
+    highlightthickness: 1;
+    highlightcolor: #228b22;
+    highlightbackground: #707070;
+    font: consolas 11;
+    insertbackground: #202020;
+    insertwidth: 1;
+    disabledbackground: #f0f0f0;
+    disabledforeground: #707070;
+}
+
+.canvas{
+    background: #f0f0f0;
+    highlightthickness: 0;
+}
+
+.icon_large{
+    font: TkDefaultFont 30;
+    foreground: #202020;
+    background: #f0f0f0;
+}
+
+.icon_medium, .icon_medium_accent_1{
+    font: TkDefaultFont 20;
+    foreground: #202020;
+    background: #f0f0f0;
+}
+
+.icon_medium_accent_1{
+    foreground: #228b22;
+}
+
+.text_accent_1{
+    background: #f0f0f0;
+    foreground: #228b22;
+    font: TkDefaultFont 12;
+}
+
+.text_passive {
+    background: #f0f0f0;
+    foreground: #707070;
+    font: TkDefaultFont 10;
+}
+
+.button, .button_highlight {
+    background: #f0f0f0;
+    foreground: #202020;
+    relief: flat;
+    font: TkDefaultFont 10;
+    highlightthickness: 1;
+    highlightcolor: #228b22;
+    highlightbackground: #f0f0f0;
+    activebackground: #f0f0f0;
+    activeforeground: #202020;
+    borderwidth: 1;
+    cursor: hand2;
+    takefocus: 1;
+}
+
+.button_highlight {
+    background: #228b22;
+    foreground: #f0f0f0;
+}
+
+.checkbutton, .radiobutton {
+    background: #f0f0f0;
+    foreground: #202020;
+    activebackground: #e0e0e0;
+    activeforeground: #202020;
+    selectcolor: #f0f0f0;
+    highlightbackground: #f0f0f0;
+    highlightcolor: #228b22;
+    highlightthickness: 1;
+    anchor: w;
+    relief: flat;
+}
+
+.hover {
+    background: #e1e1e1;
+}
+
+.highlight{
+    highlightthickness: 1;
+    highlightcolor: #228b22;
+    highlightbackground: #f0f0f0;
+    takefocus:1;
+}
+
+.highlight_active, .highlight_active_heavy{
+    highlightthickness: 1;
+    highlightbackground: #6a6a6a;
+    highlightcolor: #228b22;
+    takefocus:1;
+}
+
+.highlight_active_heavy{
+    highlightthickness: 2;
+    highlightbackground: #228b22;
+}
+
+.highlight_bright{
+    highlightthickness: 1;
+    highlightbackground: #228b22;
+}
+
+.highlight_passive{
+    highlightthickness: 1;
+    highlightbackground: #707070;
+    highlightcolor: #f0f0f0;
+    takefocus:1;
+}
+
+.highlight_dim {
+    highlightthickness: 1;
+    highlightbackground: #e0e0e0;
+    highlightcolor: #e0e0e0;
+}
+
+.no_highlight{
+    highlightthickness: 0;
+}
+
+.border_highlight{
+    highlightthickness: 1;
+    highlightcolor: #707070;
+    highlightbackground: #707070;
+    takefocus:1;
+}
+
+.input{
+    background: #f0f0f0;
+    foreground: #202020;
+    disabledbackground: #f0f0f0;
+    disabledforeground: #202020;
+    relief: flat;
+    insertbackground: #202020;
+    font: TkDefaultFont 10;
+}
+
+.text, .text_medium, .text_small {
+    background: #f0f0f0;
+    foreground: #202020;
+    font: TkDefaultFont 10;
+    disabledforeground: #707070;
+}
+
+.text_accent {
+    background: #f0f0f0;
+    foreground: #228b22;
+    font: TkDefaultFont 10;
+    disabledforeground: #707070;
+}
+
+.text_small{
+    font: TkDefaultFont 8;
+}
+
+.text_medium{
+    font: TkDefaultFont 12;
+}
+
+.text_medium_accent{
+    font: TkDefaultFont 13;
+    background: #f0f0f0;
+    foreground: #228b22;
+}
+
+.surface{
+    background: #f0f0f0;
+}
+
+.bright {
+    background: #e0e0e0;
+}
+
+.accent{
+    background: #228b22;
+}
+
+.text_bright{
+    foreground: #202020;
+}
+
+.bright_text, .combobox{
+    foreground: #f0f0f0;
+    background: #202020;
+}
+
+.bright_highlight{
+    highlightthickness:1;
+    highlightbackground: #228b22;
+    highlightcolor: #228b22;
+}
+
+.context_menu{
+    background:#dddddd;
+    tearoff: 0;
+    foreground: #202020;
+    activebackground: #d0d0d0;
+    activeforeground: #202020;
+    activeborderwidth: 0;
+    borderwidth: 0;
+    relief: flat;
+    font: TkDefaultFont 10;
+    disabledforeground: #eeeeee;
+}
+
+.context_menu_disabled {
+    foreground: #6a6a6a;
+    activebackground: #dedede;
+    activeforeground: #6a6a6a;
+}
+
+.context_menu_item, .context_menu_selectable {
+
+}
+
+.context_menu_selectable {
+    selectcolor: #202020
+}
+
+.combobox {
+    selectbackground: #202020;
+    selectforeground: #f0f0f0;
+    font: TkDefaultFont 12;
+}
+
+.bright_background{
+    background: #228b22;
+}
+
+.pane_horizontal, .pane_vertical, .pane{
+    background: #f0f0f0;
+    showhandle: 0;
+    opaqueresize: 0;
+}
+
+.pane_horizontal {
+    orient: horizontal;
+}
+
+.pane_vertical {
+    orient: vertical;
+}
+
+.tooltip {
+    background: #f0f0f0;
+    foreground: #202020;
+    font: TkDefaultFont 8;
+}
+
+.labelframe {
+    borderwidth: 2;
+}
+
+.hyperlink{
+    foreground: #228b22;
+}
