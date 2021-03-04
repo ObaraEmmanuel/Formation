@@ -32,7 +32,7 @@ class ComponentTree(BaseFeature):
         self._tree.pack(side="top", fill="both", expand=True, pady=4)
         # self._tree.sample()
         self._tree.on_select(self._trigger_select)
-        self._toggle_btn = Button(self._header, image=get_icon_image("chevron_down", 15, 15), **self.style.dark_button,
+        self._toggle_btn = Button(self._header, image=get_icon_image("chevron_down", 15, 15), **self.style.button,
                                   width=25,
                                   height=25)
         self._toggle_btn.pack(side="right")

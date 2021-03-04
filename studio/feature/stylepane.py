@@ -75,7 +75,7 @@ class StyleGroup(CollapseFrame):
         super().__init__(master)
         self.style_pane = pane
         self.studio = self.style_pane.studio
-        self.configure(**{**self.style.dark, **cnf})
+        self.configure(**{**self.style.surface, **cnf})
         self._widget = None
         self._prev_widget = None
         self._has_initialized = False  # Flag to mark whether Style Items have been created
@@ -271,17 +271,17 @@ class StylePane(BaseFeature):
 
     def __init__(self, master, studio, **cnf):
         super().__init__(master, studio, **cnf)
-        self.body = ScrolledFrame(self, **self.style.dark)
+        self.body = ScrolledFrame(self, **self.style.surface)
         self.body.pack(side="top", fill="both", expand=True)
 
-        self._toggle_btn = Button(self._header, image=get_icon_image("chevron_down", 15, 15), **self.style.dark_button,
+        self._toggle_btn = Button(self._header, image=get_icon_image("chevron_down", 15, 15), **self.style.button,
                                   width=25,
                                   height=25)
         self._toggle_btn.pack(side="right")
         self._toggle_btn.on_click(self._toggle)
 
         self._search_btn = Button(self._header, image=get_icon_image("search", 15, 15), width=25, height=25,
-                                  **self.style.dark_button)
+                                  **self.style.button)
         self._search_btn.pack(side="right")
         self._search_btn.on_click(self.start_search)
 
@@ -328,7 +328,7 @@ class StylePane(BaseFeature):
         self.remove_empty()
         self._empty_frame.place(x=0, y=0, relheight=1, relwidth=1)
         Label(self._empty_frame, text="You have not selected any item",
-              **self.style.dark_text_passive).place(x=0, y=0, relheight=1, relwidth=1)
+              **self.style.text_passive).place(x=0, y=0, relheight=1, relwidth=1)
 
     def remove_empty(self):
         self._empty_frame.clear_children()
@@ -338,7 +338,7 @@ class StylePane(BaseFeature):
         self.remove_empty()
         self._empty_frame.place(x=0, y=0, relheight=1, relwidth=1)
         Label(self._empty_frame, text="Loading...",
-              **self.style.dark_text_passive).place(x=0, y=0, relheight=1, relwidth=1)
+              **self.style.text_passive).place(x=0, y=0, relheight=1, relwidth=1)
 
     def styles_for(self, widget):
         self._current = widget

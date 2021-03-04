@@ -33,23 +33,23 @@ class BindingsTable(CompoundList):
 
         def render(self):
             self.config(height=40)
-            seq_frame = Frame(self, **self.style.dark_highlight)
+            seq_frame = Frame(self, **self.style.highlight)
             seq_frame.grid(row=0, column=0, sticky="nsew")
             seq_frame.pack_propagate(False)
-            self.sequence = Entry(seq_frame, **self.style.dark_input)
+            self.sequence = Entry(seq_frame, **self.style.input)
             self.sequence.place(x=0, y=0, relwidth=1, relheight=1, width=-40)
             self.sequence.set(self.value.sequence)
             self.sequence.configure(**self.style.no_highlight)
             self.sequence.focus_set()
-            self.handler = Entry(self, **self.style.dark_input)
+            self.handler = Entry(self, **self.style.input)
             self.handler.grid(row=0, column=1, sticky="ew")
             self.handler.set(self.value.handler)
-            self.handler.config(**self.style.dark_highlight)
-            self.add_arg = Checkbutton(self, **self.style.dark_checkbutton)
+            self.handler.config(**self.style.highlight)
+            self.add_arg = Checkbutton(self, **self.style.checkbutton)
             self.add_arg.grid(row=0, column=2, sticky="ew")
             self.add_arg.set(self.value.add)
             del_btn = Label(
-                self, **self.style.dark_button,
+                self, **self.style.button,
                 image=get_icon_image("delete", 14, 14)
             )
             del_btn.grid(row=0, column=3, sticky='nswe')
@@ -157,11 +157,11 @@ class EventPane(BaseFeature):
 
     def __init__(self, master, studio, **cnf):
         super().__init__(master, studio, **cnf)
-        self.header = Frame(self, **self.style.dark)
+        self.header = Frame(self, **self.style.surface)
         self.header.pack(side="top", fill="x")
         for i, title in enumerate(("Sequence", "Handler", "Add", " " * 3)):
             Label(
-                self.header, **self.style.dark_text_passive, text=title,
+                self.header, **self.style.text_passive, text=title,
                 anchor="w",
             ).grid(row=0, column=i, sticky='ew')
 
@@ -175,7 +175,7 @@ class EventPane(BaseFeature):
         self.bindings.pack(fill="both", expand=True)
 
         self._add = Button(
-            self._header, **self.style.dark_button, width=25, height=25,
+            self._header, **self.style.button, width=25, height=25,
             image=get_icon_image("add", 15, 15)
         )
         self._add.pack(side="right")
@@ -183,13 +183,13 @@ class EventPane(BaseFeature):
         self._add.on_click(self.add_new)
 
         self._search_btn = Button(
-            self._header, **self.style.dark_button,
+            self._header, **self.style.button,
             image=get_icon_image("search", 15, 15), width=25, height=25,
         )
         self._search_btn.pack(side="right")
         self._search_btn.on_click(self.start_search)
 
-        self._empty_frame = Label(self.bindings, **self.style.dark_text_passive)
+        self._empty_frame = Label(self.bindings, **self.style.text_passive)
         self._show_empty(self.NO_SELECTION_MSG)
 
     def _show_empty(self, message):

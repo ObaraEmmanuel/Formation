@@ -141,7 +141,7 @@ class Designer(DesignPad, Container):
             self,
             image=get_tk_image("paint", 30, 30), compound="top",
             text="Drag a container here to start",
-            **self.style.dark_text_passive,
+            **self.style.text_passive,
         )
         self._empty.config(**self.style.bright)
         self._show_empty(True)

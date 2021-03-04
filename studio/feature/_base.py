@@ -54,16 +54,16 @@ class BaseFeature(Frame):
             self.__class__._side = side = StringVar(None, self.get_pref('side'))
             t.trace_add("write", lambda *_: self.set_pref('inactive_transparency', t.get()))
         self.studio = studio
-        self._header = Frame(self, **self.style.dark, **self.style.dark_highlight_dim, height=30)
+        self._header = Frame(self, **self.style.surface, **self.style.highlight_dim, height=30)
         self._header.pack(side="top", fill="x")
         self._header.pack_propagate(0)
         self._header.allow_drag = True
-        Label(self._header, **self.style.dark_text_accent, text=self.name).pack(side="left")
-        self._min = Button(self._header, image=get_icon_image("close", 15, 15), **self.style.dark_button, width=25,
+        Label(self._header, **self.style.text_accent, text=self.name).pack(side="left")
+        self._min = Button(self._header, image=get_icon_image("close", 15, 15), **self.style.button, width=25,
                            height=25)
         self._min.pack(side="right")
         self._min.on_click(self.minimize)
-        self._pref = MenuButton(self._header, **self.style.dark_button)
+        self._pref = MenuButton(self._header, **self.style.button)
         self._pref.configure(image=get_icon_image("settings", 15, 15))
         self._pref.pack(side="right")
         self._pref.tooltip("Options")
@@ -93,7 +93,7 @@ class BaseFeature(Frame):
         ), self._pref)
         self._pref.config(menu=menu)
         # self._pref.on_click(self.minimize)
-        self.config(**self.style.dark)
+        self.config(**self.style.surface)
         self.indicator = None
         self.window_handle = None
         self.on_focus(self._on_focus_get)

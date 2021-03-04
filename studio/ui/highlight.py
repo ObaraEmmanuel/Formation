@@ -45,23 +45,24 @@ class HighLight:
 
         # These are the handle widgets that acts as guides for resizing and moving objects
 
-        self.l = tk.Frame(parent, bg="#3d8aff", width=self.OUTLINE, cursor="fleur")
-        self.r = tk.Frame(parent, bg="#3d8aff", width=self.OUTLINE, cursor="fleur")
-        self.t = tk.Frame(parent, bg="#3d8aff", height=self.OUTLINE, cursor="fleur")
-        self.b = tk.Frame(parent, bg="#3d8aff", height=self.OUTLINE, cursor="fleur")
+        h_background = self.designer.style.colors["accent"]
+        self.l = tk.Frame(parent, bg=h_background, width=self.OUTLINE, cursor="fleur")
+        self.r = tk.Frame(parent, bg=h_background, width=self.OUTLINE, cursor="fleur")
+        self.t = tk.Frame(parent, bg=h_background, height=self.OUTLINE, cursor="fleur")
+        self.b = tk.Frame(parent, bg=h_background, height=self.OUTLINE, cursor="fleur")
 
         _cursors = resize_cursor()
-        self.nw = tk.Frame(parent, bg="#3d8aff", width=self.SIZER_LENGTH, height=self.SIZER_LENGTH, cursor=_cursors[0])
-        self.ne = tk.Frame(parent, bg="#3d8aff", width=self.SIZER_LENGTH, height=self.SIZER_LENGTH, cursor=_cursors[1])
-        self.sw = tk.Frame(parent, bg="#3d8aff", width=self.SIZER_LENGTH, height=self.SIZER_LENGTH, cursor=_cursors[1])
-        self.se = tk.Frame(parent, bg="#3d8aff", width=self.SIZER_LENGTH, height=self.SIZER_LENGTH, cursor=_cursors[0])
-        self.n = tk.Frame(parent, bg="#3d8aff", width=self.SIZER_LENGTH, height=self.SIZER_LENGTH,
+        self.nw = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH, cursor=_cursors[0])
+        self.ne = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH, cursor=_cursors[1])
+        self.sw = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH, cursor=_cursors[1])
+        self.se = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH, cursor=_cursors[0])
+        self.n = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH,
                           cursor="sb_v_double_arrow")
-        self.s = tk.Frame(parent, bg="#3d8aff", width=self.SIZER_LENGTH, height=self.SIZER_LENGTH,
+        self.s = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH,
                           cursor="sb_v_double_arrow")
-        self.e = tk.Frame(parent, bg="#3d8aff", width=self.SIZER_LENGTH, height=self.SIZER_LENGTH,
+        self.e = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH,
                           cursor="sb_h_double_arrow")
-        self.w = tk.Frame(parent, bg="#3d8aff", width=self.SIZER_LENGTH, height=self.SIZER_LENGTH,
+        self.w = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH,
                           cursor="sb_h_double_arrow")
 
         # bind all resizing corners to register their respective resize methods when pressed
@@ -311,7 +312,7 @@ class WidgetHighlighter:
     OUTLINE = 2
 
     def __init__(self, master):
-        color = master.winfo_toplevel().style.dark_on_hover.get("background", "#3d8aff")
+        color = master.winfo_toplevel().style.colors.get("accent")
         self.l = tk.Frame(master, bg=color, width=self.OUTLINE)
         self.r = tk.Frame(master, bg=color, width=self.OUTLINE)
         self.t = tk.Frame(master, bg=color, height=self.OUTLINE)

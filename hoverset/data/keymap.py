@@ -318,19 +318,19 @@ class ShortcutPicker(MessageDialog):
         return "break"
 
     def render(self, _):
-        self.detail = Label(self, **self.style.dark_text, text=self.message)
+        self.detail = Label(self, **self.style.text, text=self.message)
         self.detail.pack(fill="x")
-        warn_frame = Frame(self, **self.style.dark)
+        warn_frame = Frame(self, **self.style.surface)
         self._warning = Label(
             warn_frame,
-            **self.style.dark_text_passive,
+            **self.style.text_passive,
             padx=5,
             anchor='w',
             compound="left",
             image=get_tk_image("dialog_warning", 15, 15),
         )
         self.event_pad = Label(
-            self, **self.style.dark_text_accent)
+            self, **self.style.text_accent)
         self._add_button(text="Cancel", value=None)
         self._add_button(text="Okay", command=self.exit_with_key, focus=True)
         warn_frame.pack(side="bottom", fill="x")
@@ -370,17 +370,17 @@ class ShortcutPane(Component, Frame):
 
         def render(self):
             self.key_label = Label(
-                self, text=self.value[1].label, **self.style.dark_text_accent
+                self, text=self.value[1].label, **self.style.text_accent
             )
             self.key_label.pack(side="right")
             routine = actions.get_routine(self.value[0])
             self.desc = Label(
-                self, text=routine.desc, **self.style.dark_text
+                self, text=routine.desc, **self.style.text
             )
             self.desc.pack(side="left")
 
         def on_hover_ended(self, *_):
-            self.config_all(**self.style.dark)
+            self.config_all(**self.style.surface)
 
         def on_hover(self, *_):
             self.config_all(**self.style.bright)
@@ -388,15 +388,15 @@ class ShortcutPane(Component, Frame):
         def disable(self, flag):
             self.disabled(flag)
             if flag:
-                self.desc.config(**self.style.dark_text_passive)
-                self.key_label.config(**self.style.dark_text_passive)
+                self.desc.config(**self.style.text_passive)
+                self.key_label.config(**self.style.text_passive)
             else:
-                self.desc.config(**self.style.dark_text)
-                self.key_label.config(**self.style.dark_text_accent)
+                self.desc.config(**self.style.text)
+                self.key_label.config(**self.style.text_accent)
 
     def __init__(self, master, pref: SharedPreferences, path, _, **__):
         super().__init__(master)
-        self.config(**self.style.dark)
+        self.config(**self.style.surface)
         self.bindings = {}
         self.is_disabled = False
         self.load(pref, path)

@@ -11,11 +11,11 @@ class CoordinateIndicator(Frame):
 
     def __init__(self, master, **cnf):
         super().__init__(master, **cnf)
-        Label(self, **self.style.dark_text_accent_1, text="x: ", width=3).pack(side='left')
-        self._x = Label(self, **self.style.dark_text, width=5, anchor='w')
+        Label(self, **self.style.text_accent_1, text="x: ", width=3).pack(side='left')
+        self._x = Label(self, **self.style.text, width=5, anchor='w')
         self._x.pack(side='left')
-        Label(self, **self.style.dark_text_accent_1, text="y: ", width=3).pack(side='left')
-        self._y = Label(self, **self.style.dark_text, width=5, anchor='w')
+        Label(self, **self.style.text_accent_1, text="y: ", width=3).pack(side='left')
+        self._y = Label(self, **self.style.text, width=5, anchor='w')
         self._y.pack(side='left')
 
     def set_coord(self, x, y):
@@ -31,7 +31,7 @@ class CollapseFrame(Frame):
     def __init__(self, master, **cnf):
         super().__init__(master, **cnf)
         self._load_icons()
-        self.config(**self.style.dark)
+        self.config(**self.style.surface)
         self._label_frame = Frame(self, **self.style.bright, height=20)
         self._label_frame.pack(side="top", fill="x", padx=2)
         self._label_frame.pack_propagate(0)
@@ -41,9 +41,9 @@ class CollapseFrame(Frame):
         self._collapse_btn.config(image=self.COLLAPSE)
         self._collapse_btn.pack(side="right", fill="y")
         self._collapse_btn.on_click(self.toggle)
-        self.body = Frame(self, **self.style.dark)
+        self.body = Frame(self, **self.style.surface)
         self.body.pack(side="top", fill="both", pady=2)
-        self.__ref = Frame(self.body, height=0, width=0, **self.style.dark)
+        self.__ref = Frame(self.body, height=0, width=0, **self.style.surface)
         self.__ref.pack(side="top")
         self._collapsed = False
 
@@ -94,7 +94,7 @@ class SideBar(Canvas):
 
     def __init__(self, master):
         super().__init__(master)
-        self.config(**self.style.dark, **self.style.no_highlight, width=20)
+        self.config(**self.style.surface, **self.style.no_highlight, width=20)
         self.features = {}
 
     def remove(self, feature):
@@ -145,13 +145,13 @@ class SearchBar(Frame):
 
     def __init__(self, master=None, **cnf):
         super().__init__(master, **cnf)
-        self.config(**self.style.no_highlight, **self.style.dark)
-        self._entry = Entry(self, **self.style.dark_input)
+        self.config(**self.style.no_highlight, **self.style.surface)
+        self._entry = Entry(self, **self.style.input, **self.style.no_highlight)
         self._clear_btn = Button(self, image=get_icon_image("close", 15, 15),
-                                 **self.style.dark_button, width=25, height=25)
+                                 **self.style.button, width=25, height=25)
         self._clear_btn.pack(side="right", fill="y")
         self._clear_btn.on_click(self._clear)
-        Label(self, **self.style.dark_text, image=get_icon_image("search", 15, 15)).pack(side="left")
+        Label(self, **self.style.text, image=get_icon_image("search", 15, 15)).pack(side="left")
         self._entry.pack(side="left", fill="both", expand=True, padx=2)
         self._entry.on_entry(self._change)
         self._on_change = None
@@ -181,7 +181,7 @@ class DesignPad(ScrollableInterface, Frame):
 
     def __init__(self, master=None, **kwargs):
         super().__init__(master, **kwargs)
-        self._frame = Canvas(self, **kwargs, **self.style.no_highlight, **self.style.dark)
+        self._frame = Canvas(self, **kwargs, **self.style.no_highlight, **self.style.surface)
         self._frame.grid(row=0, column=0, sticky='nswe')
         self._scroll_y = ttk.Scrollbar(master, orient='vertical', command=self._y_scroll)
         self._scroll_x = ttk.Scrollbar(master, orient='horizontal', command=self._x_scroll)

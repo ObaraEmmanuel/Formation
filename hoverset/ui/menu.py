@@ -122,12 +122,12 @@ class MenuUtils:
                     command = command.invoke
                 if style:
                     config.update(
-                        {**style.dark_context_menu_selectable} if _type in ("radiobutton", "checkbutton")
-                        else {**style.dark_context_menu_item})
+                        {**style.context_menu_selectable} if _type in ("radiobutton", "checkbutton")
+                        else {**style.context_menu_item})
                     if config.get('state') == tk.DISABLED:
                         # We need to work around tkinter default disabled look if possible
                         # look which tends to render incorrectly
-                        config.update(**style.dark_context_menu_disabled, state=tk.NORMAL)
+                        config.update(**style.context_menu_disabled, state=tk.NORMAL)
                         command = None
                         # block the menu as well
                         if 'menu' in config:
@@ -173,7 +173,7 @@ class MenuUtils:
 
         """
         if style:
-            cnf.update(style.dark_context_menu)
+            cnf.update(style.context_menu)
         menu = tk.Menu(parent, **cnf)
 
         def on_post():

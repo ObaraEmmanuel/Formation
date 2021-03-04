@@ -17,7 +17,7 @@ class _FloatingColorWindow(Frame):
 
     def __init__(self, master=None, **cnf):
         super().__init__(master, **cnf)
-        self.label = Label(self, **self.style.dark)
+        self.label = Label(self, **self.style.surface)
         self.label.pack(fill="both", expand=True, padx=1, pady=1)
         self.pixel_access = None
         self.config(borderwidth=1)
@@ -100,7 +100,7 @@ class ColorInput(Frame):
 
     def __init__(self, master, **cnf):
         super().__init__(master, **cnf)
-        self.config(**self.style.dark)
+        self.config(**self.style.surface)
         self.callback = None
         self.models = {
             "RGB": _RgbModel(self),
@@ -110,7 +110,7 @@ class ColorInput(Frame):
         # Set the value as the first model
         self.current_model = self.models.get(list(self.models.keys())[0])
         # Initialize the hex_string which is needed for model initialization
-        self.hex_string = Entry(self, **self.style.dark_input, width=8)
+        self.hex_string = Entry(self, **self.style.input, **self.style.highlight_active, width=8)
         self.hex_string.grid(row=0, column=1)
         self.hex_string.on_entry(self.on_hex_string_changed)
         self.hex_string.set_validator(check_hex_color)
@@ -120,14 +120,14 @@ class ColorInput(Frame):
         self.model_select.set_values(list(self.models.keys()))
         self.model_select.set("RGB")
         self.model_select.grid(row=0, column=0, sticky='w')
-        self.model_select.config(**self.style.dark)
+        self.model_select.config(**self.style.surface)
         self.model_select.on_change(self.on_model_change)
         self.model_select.set(list(self.models.keys())[0])
-        self._picker = picker = ColorPicker(self, width=25, height=25, **self.style.dark_button)
+        self._picker = picker = ColorPicker(self, width=25, height=25, **self.style.button)
         picker.grid(row=1, column=2, padx=2, pady=2, sticky="n")
         picker.on_pick(self.set)
         clipboard = Button(self, width=25, height=25,
-                           image=get_icon_image("clipboard", 15, 15), **self.style.dark_button)
+                           image=get_icon_image("clipboard", 15, 15), **self.style.button)
         clipboard.grid(row=1, column=3, padx=2, pady=2, sticky="n")
         clipboard.on_click(self.pick_from_clipboard)
         clipboard.tooltip('Pick color from clipboard')
@@ -202,25 +202,26 @@ class _RgbModel(Frame):
     # Colors are manipulated by varying the ratios of red green and blue
     def __init__(self, master: ColorInput = None, **cnf):
         super().__init__(master, **cnf)
-        self.config(**self.style.dark)
-        self.r = SpinBox(self, **self.style.rgb_spinbox)
+        self.config(**self.style.surface)
+        rgb_spinbox = {**self.style.spinbox, "from": 0, "to": 255, "width": 4}
+        self.r = SpinBox(self, **rgb_spinbox)
         self.r.on_change(master.change, True)
         self.r.on_entry(master.change)
         self.r.set_validator(numeric_limit, 0, 255)
         self.r.grid(row=0, column=0, pady=1, padx=1)
-        self.g = SpinBox(self, **self.style.rgb_spinbox)
+        self.g = SpinBox(self, **rgb_spinbox)
         self.g.on_change(master.change, True)
         self.g.on_entry(master.change)
         self.g.set_validator(numeric_limit, 0, 255)
         self.g.grid(row=0, column=1, pady=1, padx=1)
-        self.b = SpinBox(self, **self.style.rgb_spinbox)
+        self.b = SpinBox(self, **rgb_spinbox)
         self.b.on_change(master.change, True)
         self.b.on_entry(master.change)
         self.b.set_validator(numeric_limit, 0, 255)
         self.b.grid(row=0, column=2, pady=1, padx=1)
-        Label(self, text="R", **self.style.rgb_label).grid(row=1, column=0)
-        Label(self, text="G", **self.style.rgb_label).grid(row=1, column=1)
-        Label(self, text="B", **self.style.rgb_label).grid(row=1, column=2)
+        Label(self, text="R", **self.style.text).grid(row=1, column=0, sticky="ew")
+        Label(self, text="G", **self.style.text).grid(row=1, column=1, sticky="ew")
+        Label(self, text="B", **self.style.text).grid(row=1, column=2, sticky="ew")
         self.initial = "#000000"
 
     def get(self) -> str:
@@ -244,10 +245,10 @@ class _HslModel(Frame):
     # Colors are manipulated by varying the ratios of hue saturation and luminosity
     def __init__(self, master: ColorInput = None, **cnf):
         super().__init__(master, **cnf)
-        self.config(**self.style.dark)
+        self.config(**self.style.surface)
         # ======== hue is a angular value ranging from 0 to 360 =========
 
-        self.h = SpinBox(self, **self.style.degree_spinbox)
+        self.h = SpinBox(self, **self.style.spinbox, width=4, from_=0, to=360)
         self.h.on_change(master.change, True)
         self.h.on_entry(master.change)
         self.h.set_validator(numeric_limit, 0, 360)
@@ -255,12 +256,13 @@ class _HslModel(Frame):
 
         # ========= saturation and luminosity are percentages ===========
 
-        self.s = SpinBox(self, **self.style.percent_spinbox)
+        percent_spinbox = {**self.style.spinbox, "from": 0, "to": 100, "width": 4}
+        self.s = SpinBox(self, **percent_spinbox)
         self.s.on_change(master.change, True)
         self.s.on_entry(master.change)
         self.s.set_validator(numeric_limit, 0, 100)
         self.s.grid(row=0, column=1, pady=1, padx=1)
-        self.l = SpinBox(self, **self.style.percent_spinbox)
+        self.l = SpinBox(self, **percent_spinbox)
         self.l.on_change(master.change, True)
         self.l.on_entry(master.change)
         self.l.set_validator(numeric_limit, 0, 100)
@@ -268,9 +270,9 @@ class _HslModel(Frame):
 
         # ===============================================================
 
-        Label(self, text="H", **self.style.rgb_label).grid(row=1, column=0)
-        Label(self, text="S", **self.style.rgb_label).grid(row=1, column=1)
-        Label(self, text="L", **self.style.rgb_label).grid(row=1, column=2)
+        Label(self, text="H", **self.style.text).grid(row=1, column=0, sticky="ew")
+        Label(self, text="S", **self.style.text).grid(row=1, column=1, sticky="ew")
+        Label(self, text="L", **self.style.text).grid(row=1, column=2, sticky="ew")
 
     def get(self) -> str:
         # return the hex color string
@@ -288,10 +290,10 @@ class _HsvModel(Frame):
     # Colors are manipulated by varying the ratios of hue saturation and value
     def __init__(self, master: ColorInput = None, **cnf):
         super().__init__(master, **cnf)
-        self.config(**self.style.dark)
+        self.config(**self.style.surface)
         # ======== hue is a angular value ranging from 0 to 360 =========
 
-        self.h = SpinBox(self, **self.style.degree_spinbox)
+        self.h = SpinBox(self, **self.style.spinbox, from_=0, to=360, width=4)
         self.h.on_change(master.change, True)
         self.h.on_entry(master.change)
         self.h.set_validator(numeric_limit, 0, 360)
@@ -299,12 +301,13 @@ class _HsvModel(Frame):
 
         # ========= saturation and value are percentages ===========
 
-        self.s = SpinBox(self, **self.style.percent_spinbox)
+        percent_spinbox = {**self.style.spinbox, "from": 0, "to": 100, "width": 4}
+        self.s = SpinBox(self, **percent_spinbox)
         self.s.on_change(master.change, True)
         self.s.on_entry(master.change)
         self.s.set_validator(numeric_limit, 0, 100)
         self.s.grid(row=0, column=1, pady=1, padx=1)
-        self.v = SpinBox(self, **self.style.percent_spinbox)
+        self.v = SpinBox(self, **percent_spinbox)
         self.v.on_change(master.change, True)
         self.v.on_entry(master.change)
         self.v.set_validator(numeric_limit, 0, 100)
@@ -312,9 +315,9 @@ class _HsvModel(Frame):
 
         # ===============================================================
 
-        Label(self, text="H", **self.style.rgb_label).grid(row=1, column=0)
-        Label(self, text="S", **self.style.rgb_label).grid(row=1, column=1)
-        Label(self, text="V", **self.style.rgb_label).grid(row=1, column=2)
+        Label(self, text="H", **self.style.text).grid(row=1, column=0, sticky="ew")
+        Label(self, text="S", **self.style.text).grid(row=1, column=1, sticky="ew")
+        Label(self, text="V", **self.style.text).grid(row=1, column=2, sticky="ew")
 
     def get(self) -> str:
         # return the hex color string
@@ -349,8 +352,8 @@ class FontPicker(Button):
         self._window = Window(self.window)
         self._window.geometry('0x0')
         self._window.overrideredirect(True)
-        self._window.config(**self.style.dark, **self.style.dark_highlight_passive)
-        self._indicator = Label(self._window, **self.style.dark_text_accent)
+        self._window.config(**self.style.surface, **self.style.highlight_passive)
+        self._indicator = Label(self._window, **self.style.text_accent)
         self._indicator.pack(fill="both", expand=True)
         self._window.pack_propagate(False)
 
@@ -406,15 +409,15 @@ class FontInput(Frame):
     class FontItem(CompoundList.BaseItem):
 
         def render(self):
-            label = Label(self, text=self.value, **self.style.dark_text, anchor="w")
+            label = Label(self, text=self.value, **self.style.text, anchor="w")
             # label.config(font=(self.value, ))
             label.pack(side="left")
 
     def __init__(self, master, **cnf):
         super().__init__(master, **cnf)
-        self.config(**self.style.dark)
+        self.config(**self.style.surface)
         self._on_change = None
-        self._font = Spinner(self, **self.style.dark_input, width=110)
+        self._font = Spinner(self, **self.style.input, width=110)
         self._font.config(**self.style.no_highlight)
         self._font.place(x=0, y=0, relwidth=0.7, height=24)
         self._font.set_item_class(FontInput.FontItem)
@@ -424,7 +427,7 @@ class FontInput(Frame):
         self._size.config(**self.style.no_highlight)
         self._size.place(relx=0.7, y=0, relwidth=0.3, height=24)
         self._size.on_change(self._change)
-        frame = Frame(self, **self.style.dark, height=25, width=150)
+        frame = Frame(self, **self.style.surface, height=25, width=150)
         frame.place(x=0, y=25, relwidth=1, height=24)
         self._bold = ToggleButton(frame, text="B", font=FontStyle(family="Times", size=12, weight='bold'),
                                   width=24, height=24)
@@ -443,7 +446,7 @@ class FontInput(Frame):
         self._strike.pack(side='left')
         self._strike.on_change(self._change)
 
-        self._picker = picker = FontPicker(frame, width=24, height=24, **self.style.dark_button)
+        self._picker = picker = FontPicker(frame, width=24, height=24, **self.style.button)
         picker.pack(side="right")
         picker.on_pick(self.pick)
 

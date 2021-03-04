@@ -301,9 +301,9 @@ class ComponentGroup(Frame):
     def __init__(self, master, label):
         super().__init__(master)
         Label(
-            self, **self.style.dark_text_accent, text=label, anchor='w'
+            self, **self.style.text_accent, text=label, anchor='w'
         ).pack(side="top", fill="x")
-        self.config(**self.style.dark)
+        self.config(**self.style.surface)
 
 
 class DependentGroup:
@@ -328,10 +328,10 @@ class Number(Component, Frame):
 
     def __init__(self, master, pref, path, desc, **extra):
         super().__init__(master)
-        self.config_all(**self.style.dark)
+        self.config_all(**self.style.surface)
         self._label = Label(
             self, text=desc,
-            **self.style.dark_text
+            **self.style.text
         )
         self._label.pack(side="left")
         self.editor = SpinBox(self, **{**self.style.spinbox, **extra})
@@ -353,15 +353,15 @@ class LabeledScale(Component, Frame):
 
     def __init__(self, master, pref, path, desc, **extra):
         super().__init__(master)
-        self._label = Label(self, **self.style.dark_text, text=desc)
+        self._label = Label(self, **self.style.text, text=desc)
         self._label.pack(side="left")
         self._var = tk.IntVar()
         self._scale = Scale(self, self._var, **extra)
         self._scale.pack(side="left", padx=5)
-        self._val = Label(self, **self.style.dark_text)
+        self._val = Label(self, **self.style.text)
         self._val.pack(side="left", padx=5)
         self.load(pref, path)
-        self.config_all(**self.style.dark)
+        self.config_all(**self.style.surface)
         self._scale.on_change(self._change)
 
     def _change(self, *_):
@@ -385,7 +385,7 @@ class Check(Component, Checkbutton):
     def __init__(self, master, pref, path, desc, **extra):
         super().__init__(master, **extra)
         self.load(pref, path)
-        self.config(text=desc, **self.style.dark_text)
+        self.config(text=desc, **self.style.text)
         self._var.trace("w", lambda *_: self._change())
 
     def disable(self, flag):
@@ -405,12 +405,12 @@ class PreferenceManager(MessageDialog):
         def render(self):
             Label(
                 self, text=self.value, padx=5,
-                pady=10, **self.style.dark_text,
+                pady=10, **self.style.text,
                 anchor='w'
             ).pack(fill="x")
 
         def on_hover(self, *_):
-            self.config_all(**self.style.dark)
+            self.config_all(**self.style.surface)
 
         def on_hover_ended(self, *_):
             self.config_all(**self.style.bright)
@@ -468,7 +468,7 @@ class PreferenceManager(MessageDialog):
                 fill="both", expand=True, padx=5, pady=5)
             return
         templates = self.templates[category]
-        body = Frame(self.pref_body, **self.style.dark)
+        body = Frame(self.pref_body, **self.style.surface)
         for comp in templates:
             if isinstance(templates[comp], tuple):
                 group = ComponentGroup(body, comp)
@@ -502,11 +502,11 @@ class PreferenceManager(MessageDialog):
         self.destroy()
 
     def render(self, window):
-        pane = PanedWindow(window, **self.style.dark, width=700, height=500)
+        pane = PanedWindow(window, **self.style.surface, width=700, height=500)
         self.nav = CompoundList(pane)
         self.nav.config_all(**self.style.bright)
         self.nav.set_item_class(PreferenceManager.NavItem)
-        self.pref_frame = ScrolledFrame(pane, **self.style.dark)
+        self.pref_frame = ScrolledFrame(pane, **self.style.surface)
         self.pref_frame.fill_y = True
         self.pref_body = self.pref_frame.body
         pane.add(self.nav, width=250, minsize=250, sticky="nswe")

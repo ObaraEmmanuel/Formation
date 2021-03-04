@@ -38,7 +38,7 @@ class BaseToolWindow(Window):
         super().__init__(master)
         self.widget = widget
         self.transient(master)
-        self.config(**self.style.dark)
+        self.config(**self.style.surface)
 
     @classmethod
     def close_all(cls):

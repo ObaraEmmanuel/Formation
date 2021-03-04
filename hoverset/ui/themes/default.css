@@ -7,7 +7,7 @@
     accent: #3d8aff;
 
 }
-.spinbox, .rgb_spinbox, .percent_spinbox, .degree_spinbox {
+.spinbox{
     background: #303030;
     foreground: #f7f7f7;
     buttonbackground: #303030;
@@ -24,40 +24,40 @@
     disabledforeground: #a0a0a0;
 }
 
-.dark_canvas{
+.canvas{
     background: #303030;
     highlightthickness: 0;
 }
 
-.dark_icon_large{
+.icon_large{
     font: TkDefaultFont 30;
     foreground: #f7f7f7;
     background: #303030;
 }
 
-.dark_icon_medium, .dark_icon_medium_accent_1{
+.icon_medium, .icon_medium_accent_1{
     font: TkDefaultFont 20;
     foreground: #f7f7f7;
     background: #303030;
 }
 
-.dark_icon_medium_accent_1{
+.icon_medium_accent_1{
     foreground: #3d8aff;
 }
 
-.dark_text_accent_1{
+.text_accent_1{
     background: #303030;
     foreground: #3d8aff;
     font: TkDefaultFont 12;
 }
 
-.dark_text_passive {
+.text_passive {
     background: #303030;
     foreground: #a0a0a0;
     font: TkDefaultFont 10;
 }
 
-.dark_button, .button_highlight {
+.button, .button_highlight {
     background: #303030;
     foreground: #f7f7f7;
     relief: flat;
@@ -77,7 +77,7 @@
     foreground: #101010;
 }
 
-.checkbutton, .radiobutton, .dark_checkbutton {
+.checkbutton, .radiobutton {
     background: #303030;
     foreground: #f7f7f7;
     activebackground: #3a3a3a;
@@ -90,46 +90,42 @@
     relief: flat;
 }
 
-.dark_on_hover {
+.hover {
     background: #4a4a4a;
 }
 
-.dark_on_hover_ended {
-    background: #303030;
-}
-
-.dark_highlight{
+.highlight{
     highlightthickness: 1;
     highlightcolor: #3d8aff;
     highlightbackground: #303030;
     takefocus:1;
 }
 
-.dark_highlight_active, .dark_highlight_active_heavy{
+.highlight_active, .highlight_active_heavy{
     highlightthickness: 1;
     highlightbackground: #6a6a6a;
     highlightcolor: #3d8aff;
     takefocus:1;
 }
 
-.dark_highlight_active_heavy{
+.highlight_active_heavy{
     highlightthickness: 2;
     highlightbackground: #3d8aff;
 }
 
-.dark_highlight_bright{
+.highlight_bright{
     highlightthickness: 1;
     highlightbackground: #3d8aff;
 }
 
-.dark_highlight_passive{
+.highlight_passive{
     highlightthickness: 1;
     highlightbackground: #a0a0a0;
     highlightcolor: #303030;
     takefocus:1;
 }
 
-.dark_highlight_dim {
+.highlight_dim {
     highlightthickness: 1;
     highlightbackground: #3a3a3a;
     highlightcolor: #3a3a3a;
@@ -139,14 +135,14 @@
     highlightthickness: 0;
 }
 
-.dark_border_highlight{
+.border_highlight{
     highlightthickness: 1;
     highlightcolor: #a0a0a0;
     highlightbackground: #a0a0a0;
     takefocus:1;
 }
 
-.dark_input{
+.input{
     background: #303030;
     foreground: #f7f7f7;
     disabledbackground: #303030;
@@ -156,47 +152,35 @@
     font: TkDefaultFont 10;
 }
 
-.percent_spinbox{
-    from_: 0;
-    to: 100;
-    width: 4;
-}
-
-.degree_spinbox{
-    from_: 0;
-    to: 360;
-    width: 4;
-}
-
-.dark_text, .dark_text_medium, .dark_text_small {
+.text, .text_medium, .text_small {
     background: #303030;
     foreground: #f7f7f7;
     font: TkDefaultFont 10;
     disabledforeground: #a0a0a0;
 }
 
-.dark_text_accent {
+.text_accent {
     background: #303030;
     foreground: #3d8aff;
     font: TkDefaultFont 10;
     disabledforeground: #a0a0a0;
 }
 
-.dark_text_small{
+.text_small{
     font: TkDefaultFont 8;
 }
 
-.dark_text_medium{
+.text_medium{
     font: TkDefaultFont 12;
 }
 
-.dark_text_medium_accent{
+.text_medium_accent{
     font: TkDefaultFont 13;
     background: #303030;
     foreground: #3d8aff;
 }
 
-.dark{
+.surface{
     background: #303030;
 }
 
@@ -223,20 +207,7 @@
     highlightcolor: #3d8aff;
 }
 
-.rgb_spinbox{
-    from_: 0;
-    to: 255;
-    width: 4;
-}
-
-.rgb_label{
-    background: #303030;
-    foreground: #A0A0A0;
-    font: consolas 10;
-    width: 4;
-}
-
-.dark_context_menu{
+.context_menu{
     background:#353535;
     tearoff: 0;
     foreground: #f7f7f7;
@@ -249,17 +220,17 @@
     disabledforeground: #6a6a6a;
 }
 
-.dark_context_menu_disabled {
+.context_menu_disabled {
     foreground: #6a6a6a;
     activebackground: #2a2a2a;
     activeforeground: #6a6a6a;
 }
 
-.dark_context_menu_item, .dark_context_menu_selectable {
+.context_menu_item, .context_menu_selectable {
 
 }
 
-.dark_context_menu_selectable {
+.context_menu_selectable {
     selectcolor: #f7f7f7
 }
 
@@ -273,17 +244,17 @@
     background: #3d8aff;
 }
 
-.dark_pane_horizontal, .dark_pane_vertical, .dark_pane{
+.pane_horizontal, .pane_vertical, .pane{
     background: #303030;
     showhandle: 0;
     opaqueresize: 0;
 }
 
-.dark_pane_horizontal {
+.pane_horizontal {
     orient: horizontal;
 }
 
-.dark_pane_vertical {
+.pane_vertical {
     orient: vertical;
 }
 

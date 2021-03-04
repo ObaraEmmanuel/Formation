@@ -52,23 +52,23 @@ class StudioApplication(Application):
         self.shortcuts = ShortcutManager(self, pref)
         self.shortcuts.bind_all()
         self._register_actions()
-        self._toolbar = Frame(self, **self.style.dark, height=30)
+        self._toolbar = Frame(self, **self.style.surface, height=30)
         self._toolbar.pack(side="top", fill="x")
         self._toolbar.pack_propagate(0)
-        self._statusbar = Frame(self, **self.style.dark, height=20)
+        self._statusbar = Frame(self, **self.style.surface, height=20)
         self._statusbar.pack(side="bottom", fill="x")
         self._statusbar.pack_propagate(0)
-        body = Frame(self, **self.style.dark)
+        body = Frame(self, **self.style.surface)
         body.pack(fill="both", expand=True, side="top")
         self._right_bar = SideBar(body)
         self._right_bar.pack(side="right", fill="y")
         self._left_bar = SideBar(body)
         self._left_bar.pack(side="left", fill="y")
-        self._pane = PanedWindow(body, **self.style.dark_pane_horizontal)
+        self._pane = PanedWindow(body, **self.style.pane_horizontal)
         self._pane.pack(side="left", fill="both", expand=True)
-        self._left = PanedWindow(self._pane, **self.style.dark_pane_vertical)
-        self._center = PanedWindow(self._pane, **self.style.dark_pane_vertical)
-        self._right = PanedWindow(self._pane, **self.style.dark_pane_vertical)
+        self._left = PanedWindow(self._pane, **self.style.pane_vertical)
+        self._center = PanedWindow(self._pane, **self.style.pane_vertical)
+        self._right = PanedWindow(self._pane, **self.style.pane_vertical)
 
         self._bin = []
         self._clipboard = None
@@ -290,7 +290,7 @@ class StudioApplication(Application):
                 Frame(self._toolbar, width=1, bg=self.style.colors.get("primarydarkaccent")).pack(
                     side='left', fill='y', pady=3, padx=5)
                 continue
-            btn = Button(self._toolbar, image=action[1], **self.style.dark_button, width=25, height=25)
+            btn = Button(self._toolbar, image=action[1], **self.style.button, width=25, height=25)
             btn.pack(side="left", padx=3)
             btn.tooltip(action[3])
             ActionNotifier.bind_event("<Button-1>", btn, action[2], text=action[3])
@@ -354,7 +354,7 @@ class StudioApplication(Application):
     def _create_recent_menu(self, menu):
         # Dynamically create recent file menu every time menu is posted
         menu.image = get_icon_image("close", 14, 14)
-        menu.config(**self.style.dark_context_menu)
+        menu.config(**self.style.context_menu)
         recent = pref.get_recent()
         for path, label in recent:
             menu.add_command(

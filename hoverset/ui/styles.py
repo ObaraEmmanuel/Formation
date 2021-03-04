@@ -131,7 +131,6 @@ class StyleDelegator:
         # We don't want to confuse the interpreter so we pick only qualified variable name from the selector
         # This is made possible using the string_selector pattern
         # we then assign the dictionary of rules to the generated attribute
-        # A taste of meta programming
         for selector in styles:
             identifier = re.search(patterns["string_selector"], selector)
             if identifier:
@@ -140,5 +139,4 @@ class StyleDelegator:
 
 if __name__ == '__main__':
     s = StyleDelegator("themes/default.css")
-    print(s.spinbox)
-    print(s.rgb_label)
+    assert hasattr(s, "colors")

@@ -33,7 +33,7 @@ class VariablePane(BaseFeature):
 
     def __init__(self, master, studio=None, **cnf):
         super().__init__(master, studio, **cnf)
-        f = Frame(self, **self.style.dark)
+        f = Frame(self, **self.style.surface)
         f.pack(side="top", fill="both", expand=True, pady=4)
         f.pack_propagate(0)
 
@@ -44,14 +44,14 @@ class VariablePane(BaseFeature):
         self._detail_pane.place(relx=0.4, y=0, relwidth=0.6, relheight=1, x=15, width=-20)
 
         self._search_btn = Button(self._header, image=get_icon_image("search", 15, 15), width=25, height=25,
-                                  **self.style.dark_button)
+                                  **self.style.button)
         self._search_btn.pack(side="right")
         self._search_btn.on_click(self.start_search)
-        self._add = MenuButton(self._header, **self.style.dark_button)
+        self._add = MenuButton(self._header, **self.style.button)
         self._add.configure(image=get_icon_image("add", 15, 15))
         self._add.pack(side="right")
         self._delete_btn = Button(self._header, image=get_icon_image("delete", 15, 15), width=25, height=25,
-                                  **self.style.dark_button)
+                                  **self.style.button)
         self._delete_btn.pack(side="right")
         self._delete_btn.on_click(self._delete)
         self._var_types_menu = self.make_menu(
@@ -60,7 +60,7 @@ class VariablePane(BaseFeature):
         self._add.config(menu=self._var_types_menu)
         self._selected = None
         self._links = {}
-        self._overlay = Label(f, **self.style.dark_text_passive, text="Add variables", compound="top")
+        self._overlay = Label(f, **self.style.text_passive, text="Add variables", compound="top")
         self._overlay.configure(image=get_icon_image("add", 25, 25))
         self._show_overlay(True)
         self._editors = []
@@ -167,17 +167,17 @@ class VariablePane(BaseFeature):
 
     def _detail_for(self, variable):
         self._detail_pane.clear_children()
-        Label(self._detail_pane.body, **self.style.dark_text_passive,
+        Label(self._detail_pane.body, **self.style.text_passive,
               text="Type", anchor="w").pack(fill="x", side="top")
-        Label(self._detail_pane.body, **self.style.dark_text,
+        Label(self._detail_pane.body, **self.style.text,
               text=variable.var_type_name, anchor="w").pack(fill="x", side="top")
-        Label(self._detail_pane.body, **self.style.dark_text_passive,
+        Label(self._detail_pane.body, **self.style.text_passive,
               text="Name", anchor="w").pack(fill="x", side="top")
         name = editors.get_editor(self._detail_pane.body, self._definitions["name"])
         name.pack(side="top", fill="x")
         name.set(variable.name)
         name.on_change(variable.set_name)
-        Label(self._detail_pane.body, **self.style.dark_text_passive,
+        Label(self._detail_pane.body, **self.style.text_passive,
               text="Value", anchor="w").pack(fill="x", side="top")
         value = editors.get_editor(self._detail_pane.body, variable.definition)
         value.set(variable.value)

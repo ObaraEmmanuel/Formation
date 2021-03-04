@@ -26,16 +26,16 @@ class ResourceLoader(Application):
         super().__init__()
         self.load_styles(pref.get("resource::theme"))
         self.wm_attributes("-type", "splash")
-        self.configure(**self.style.dark)
+        self.configure(**self.style.surface)
         image = load_tk_image(get_resource_path("studio", "resources/images/logo.png"), 240, 77)
         Label(
-            self, image=image, **self.style.dark
+            self, image=image, **self.style.surface
         ).pack(side="top", fill="y", padx=20, pady=20)
         self._progress = ProgressBar(self)
         self._progress.pack(side="top", fill="x", padx=20, pady=10)
         self._progress.set(0)
         self._progress_text = Label(
-            self, **self.style.dark_text_small, text="Loading icons",
+            self, **self.style.text_small, text="Loading icons",
             anchor="w"
         )
         self._progress_text.pack(side="top", fill="x", padx=20, pady=10)

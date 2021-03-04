@@ -1106,7 +1106,7 @@ class LabelFrame(ContainerMixin, Widget, ContextMenuMixin, tk.LabelFrame):
     def __init__(self, master=None, **kwargs):
         self.setup(master)
         super().__init__(master)
-        self.config(**{**self.style.dark_text, **kwargs})
+        self.config(**{**self.style.text, **kwargs})
         self._on_click = None
         self.body = self
 
@@ -1120,7 +1120,7 @@ class ScrolledFrame(ContainerMixin, Widget, ScrollableInterface, ContextMenuMixi
         self._style = self.winfo_toplevel().style
         self._canvas = tk.Canvas(self, highlightthickness=0)
         self._canvas.config(cnf)
-        self._canvas.config(self.style.dark)
+        self._canvas.config(self.style.surface)
         self._scroll_y = ttk.Scrollbar(self, orient='vertical', command=self._limit_y)  # use frame limiters
         self._scroll_x = ttk.Scrollbar(self, orient='horizontal', command=self._limit_x)
         self._canvas.grid(row=0, column=0, sticky='nswe')
@@ -1128,7 +1128,7 @@ class ScrolledFrame(ContainerMixin, Widget, ScrollableInterface, ContextMenuMixi
         self.rowconfigure(0, weight=1)  # Ensure the _canvas gets the rest of the left vertical space
         self._canvas.config(yscrollcommand=self._scroll_y.set, xscrollcommand=self._scroll_x.set)  # attach scrollbars
         self.body = Frame(self._canvas, **cnf)
-        self.body.config(self.style.dark)
+        self.body.config(self.style.surface)
         self._window = self._canvas.create_window(0, 0, anchor='nw', window=self.body)
         # TODO Handle scrollbar flag behaviour
         self._scrollbar_flag = tk.Y  # Enable vertical scrollbar by default
@@ -1392,10 +1392,10 @@ class ActionNotifier(Window):
 
     def __init__(self, master, event, command=None, **cnf):
         super().__init__(master)
-        self.config(self.style.dark)
+        self.config(self.style.surface)
         self.wm_overrideredirect(True)
         self.attributes("-alpha", 0)
-        Label(self, **{**self.style.dark_text, **cnf}).pack()
+        Label(self, **{**self.style.text, **cnf}).pack()
         self.current_opacity = 1
         self.initialized = False
         self.event = event
@@ -1460,7 +1460,7 @@ class Button(Frame):
 
     def __init__(self, master=None, **cnf):
         super().__init__(master)
-        cnf = cnf if len(cnf) else self.style.dark_button
+        cnf = cnf if len(cnf) else self.style.button
         # Use the hoverset Label which has additional automatic image caching capabilities
         self._label = Label(self)
         self._label.pack(fill="both", expand=True)
@@ -1504,7 +1504,7 @@ class ToggleButton(Button):
     def __init__(self, master=None, **cnf):
         super().__init__(master, **cnf)
         self.bind_all("<Button-1>", self.toggle)
-        self.config_all(**self.style.dark_button)
+        self.config_all(**self.style.button)
         self.config_all(**cnf)
         self._selected = False
         self._on_change = lambda x: x  # Place holder
@@ -1526,11 +1526,11 @@ class ToggleButton(Button):
             self.deselect()
 
     def select(self):
-        self.config_all(**self.style.dark_on_hover)
+        self.config_all(**self.style.hover)
         self._selected = True
 
     def deselect(self):
-        self.config_all(**self.style.dark_on_hover_ended)
+        self.config_all(**self.style.surface)
         self._selected = False
 
     def on_click(self, callback, *args, **kwargs):
@@ -1606,7 +1606,7 @@ class RadioButtonGroup(Frame):
 
     def __init__(self, master=None, choices=(), label='', **cnf):
         super().__init__(master)
-        cnf = {**self.style.dark_text, **cnf}
+        cnf = {**self.style.text, **cnf}
         self._pool = []
         self._radio_buttons = []
         self._var = tk.StringVar()
@@ -1718,7 +1718,7 @@ class Scale(Widget, ttk.Scale):
         self.setup(master)
         self._var = variable or tk.DoubleVar()
         super().__init__(master, variable=self._var)
-        cnf = {**self.style.dark, **cnf}
+        cnf = {**self.style.surface, **cnf}
         self.config_all(**cnf)
         self._on_change = None
         self._var.trace('w', self._change)
@@ -1769,7 +1769,7 @@ class Popup(PositionMixin, Window):
         if pos is not None:
             self.set_geometry(pos)
         self._close_func = None
-        self.config(**self.style.dark_highlight_active, **self.style.dark)
+        self.config(**self.style.highlight_active, **self.style.surface)
         self.overrideredirect(True)
         self.attributes("-topmost", 1)
         self._grabbed = self.grab_current()  # Store the widget that currently has the grab
@@ -1822,7 +1822,7 @@ class DrawOver(PositionMixin, Frame):
 
     def __init__(self, master, **cnf):
         super().__init__(master, **cnf)
-        self.config(**self.style.dark_highlight_active, **self.style.dark)
+        self.config(**self.style.highlight_active, **self.style.surface)
         self._close_func = None
         self._grabbed = self.grab_current()
         self.grab_set_global()
@@ -1920,7 +1920,7 @@ class CompoundList(ScrolledFrame):
                 self.bind("<Enter>", self._on_hover)
                 self.bind("<Leave>", self._on_hover_ended)
                 self.bind_all("<Button-1>", self.select_self, add="+")
-            self.config_all(**self.style.dark)
+            self.config_all(**self.style.surface)
 
         def render(self):
             """
@@ -1928,7 +1928,7 @@ class CompoundList(ScrolledFrame):
             method and add new widgets to the item. The default rendering
             is a label containing the value of the item
             """
-            self._text = Label(self, **self.style.dark_text, text=self._value, anchor="w")
+            self._text = Label(self, **self.style.text, text=self._value, anchor="w")
             self._text.pack(fill="both")
 
         @property
@@ -1983,13 +1983,13 @@ class CompoundList(ScrolledFrame):
             """
             Applies styles and config required when item is hovered
             """
-            self.config_all(**self.style.dark_on_hover)
+            self.config_all(**self.style.hover)
 
         def on_hover_ended(self, *_):
             """
             Revert the item config when no longer under hover
             """
-            self.config_all(**self.style.dark_on_hover_ended)
+            self.config_all(**self.style.surface)
 
         def get(self):
             """
@@ -2017,7 +2017,7 @@ class CompoundList(ScrolledFrame):
         self._current_indices = []
         self._items = []
         self._mode = CompoundList.SINGLE_MODE  # Default
-        self.config(self.style.dark)
+        self.config(self.style.surface)
         self._on_change = None
 
     @property
@@ -2163,17 +2163,17 @@ class Spinner(Frame):
         super().__init__(master)
         self._load_images()
         self._button = Button(
-            self, **self.style.dark_button,
+            self, **self.style.button,
             image=self.EXPAND,
             width=20, anchor="center"
         )
         self._button.pack(side="right", fill="y")
         self._button.on_click(self._popup)
-        self._entry = Frame(self, **self.style.dark)
+        self._entry = Frame(self, **self.style.surface)
         self._entry.body = self._entry
         self._entry.pack(side="left", fill="both", expand=True)
         # self._entry.pack_propagate(0)
-        self.config(**self.style.dark_highlight_active)
+        self.config(**self.style.highlight_active)
         self._popup_window = None
         self._on_create_func = None
         self._on_change = None
@@ -2331,27 +2331,27 @@ class TreeView(ScrolledFrame):
         def __init__(self, master=None, **config):
             super().__init__(master.body)
             self._load_images()
-            self.config(**self.style.dark)
+            self.config(**self.style.surface)
             self.tree = master
             self._icon = config.get("icon", self.BLANK)
             self._name = config.get("name", "unknown")
-            self.strip = f = TreeView.Strip(self, **self.style.dark, takefocus=True)
+            self.strip = f = TreeView.Strip(self, **self.style.surface, takefocus=True)
             f.pack(side="top", fill="x")
-            self._spacer = Frame(f, **self.style.dark, width=0)
+            self._spacer = Frame(f, **self.style.surface, width=0)
             self._spacer.pack(side="left")
-            self.expander = Label(f, **self.style.dark_text, text=" " * 4)
+            self.expander = Label(f, **self.style.text, text=" " * 4)
             self.expander.pack(side="left")
             self.expander.bind("<Button-1>", self.toggle)
             self.strip.bind("<FocusIn>", self.select)
             self.strip.bind("<Up>", self.select_prev)
             self.strip.bind("<Down>", self.select_next)
-            self.icon_pad = Label(f, **self.style.dark_text, image=self._icon)
+            self.icon_pad = Label(f, **self.style.text, image=self._icon)
             self.icon_pad.pack(side="left")
-            self.name_pad = Label(f, **self.style.dark_text, text=self._name)
+            self.name_pad = Label(f, **self.style.text, text=self._name)
             self.name_pad.pack(side="left", fill="x")
             self.name_pad.bind("<ButtonRelease-1>", self.select)
             self.strip.bind("<ButtonRelease-1>", self.select)
-            self.body = Frame(self, **self.style.dark)
+            self.body = Frame(self, **self.style.surface)
             self.body.pack(side="top", fill="x")
             self._expanded = False
             self._selected = False
@@ -2426,11 +2426,11 @@ class TreeView(ScrolledFrame):
             else:
                 self.tree.add_to_selection(self, silently)
 
-            self.strip.config_all(**self.style.dark_on_hover)
+            self.strip.config_all(**self.style.hover)
             self._selected = True
 
         def deselect(self, *_):
-            self.strip.config_all(**self.style.dark)
+            self.strip.config_all(**self.style.surface)
             self._selected = False
 
         def index(self):
@@ -2589,7 +2589,7 @@ class TreeView(ScrolledFrame):
 
     def __init__(self, master=None, **config):
         super().__init__(master, **config)
-        self.config(**self.style.dark)
+        self.config(**self.style.surface)
         self._selected = []
         self.nodes = []
         self._multi_select = False
@@ -2762,7 +2762,7 @@ class PanedWindow(Widget, tk.PanedWindow):
     def __init__(self, master=None, **cnf):
         self.setup(master)
         super().__init__(master, **cnf)
-        self.config(**self.style.dark_pane)
+        self.config(**self.style.pane)
 
 
 class ProgressBar(Widget, tk.Canvas):
@@ -2775,7 +2775,7 @@ class ProgressBar(Widget, tk.Canvas):
 
     def __init__(self, master, **kw):
         super().__init__(master, **kw)
-        self.configure(**self.style.dark_highlight_dim, height=3, **self.style.dark)
+        self.configure(**self.style.highlight_dim, height=3, **self.style.surface)
         self._bar_color = self.style.colors.get("accent")
         self._progress = 0
         self._bar = self.create_rectangle(0, 0, 0, 0)
@@ -2892,8 +2892,8 @@ if __name__ == "__main__":
     class CompoundItem(CompoundList.BaseItem):
 
         def render(self):
-            Label(self, **self.style.dark_text_accent_1, text=self.value).pack(side="top", anchor="w")
-            Label(self, **self.style.dark_text, text=len(self.value)).pack(side="top", anchor="w")
+            Label(self, **self.style.text_accent_1, text=self.value).pack(side="top", anchor="w")
+            Label(self, **self.style.text, text=len(self.value)).pack(side="top", anchor="w")
 
 
     box = CompoundList(frame)

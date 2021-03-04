@@ -98,7 +98,7 @@ class MessageDialog(Window):
 
     def __init__(self, master, render_routine=None, **kw):
         super().__init__(master)
-        self.configure(**self.style.dark)
+        self.configure(**self.style.surface)
         # ensure the dialog is above the parent window at all times
         self.transient(master)
         # prevent resizing by default
@@ -166,7 +166,7 @@ class MessageDialog(Window):
                 self._react(2)
 
     def _make_button_bar(self):
-        self.bar = Frame(self, **self.style.dark, **self.style.dark_highlight_dim)
+        self.bar = Frame(self, **self.style.surface, **self.style.highlight_dim)
         self.bar.pack(side="bottom", fill="x")
 
     def _add_button(self, **kw):
@@ -175,8 +175,8 @@ class MessageDialog(Window):
         # If a button bar does not already exist we need to create one
         if self.bar is None:
             self._make_button_bar()
-        btn = Button(self.bar, **self.style.dark_button, text=text, height=25)
-        btn.configure(**self.style.dark_highlight_active)
+        btn = Button(self.bar, **self.style.button, text=text, height=25)
+        btn.configure(**self.style.highlight_active)
         btn.pack(side="right", padx=5, pady=5)
         # ensure the buttons have a minimum width of _MIN_BUTTON_WIDTH
         btn.configure(width=max(self._MIN_BUTTON_WIDTH, btn.measure_text(text)))
@@ -190,7 +190,7 @@ class MessageDialog(Window):
         # set default icon to INFO
         if icon is None:
             icon = self.ICON_INFO
-        Label(self, **self.style.dark_text,
+        Label(self, **self.style.text,
               text=text, anchor="w", compound="left", wrap=600, justify="left",
               pady=5, padx=15, image=get_icon_image(icon, 50, 50)
               ).pack(side="top", fill="x")
@@ -234,7 +234,7 @@ class MessageDialog(Window):
         icon = None
         if kw.get('icon'):
             icon = get_icon_image(kw.get('icon'), 50, 50)
-        Label(self, **self.style.dark_text,
+        Label(self, **self.style.text,
               text=text, anchor="w", compound="left", wrap=600, justify="left",
               pady=5, padx=15, image=icon
               ).pack(side="top", fill="x")

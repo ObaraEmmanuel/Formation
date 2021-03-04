@@ -28,8 +28,8 @@ class _ColorStrip(Frame):
 
     def __init__(self, master=None, color_array=None, **cnf):
         super().__init__(master, **cnf)
-        self.config(**self.style.dark, **self.style.dark_highlight)
-        self.color_strip = Canvas(self, width=230, height=27, **self.style.dark, highlightthickness=0)
+        self.config(**self.style.surface, **self.style.highlight)
+        self.color_strip = Canvas(self, width=230, height=27, **self.style.surface, highlightthickness=0)
         self.color_strip.pack(pady=5)
         self.color_strip.tk.eval(_ColorStrip._RECOLOR_PROC)
         setattr(self.color_strip, "pos", 5)
@@ -115,7 +115,7 @@ class ColorChooser(Frame):
             *[(i, 255, 0) for i in range(256)],          # Yellow shift
             *[(255, 255 - i, 0) for i in range(256)],    # Red shift
         ]
-        self.configure(**self.style.dark)
+        self.configure(**self.style.surface)
         self.hue = hue = _ColorStrip(self, shifts)
         hue.pack()
         hue.on_change(self.adjust_strips)
@@ -186,7 +186,7 @@ class ColorDialog(Popup):
         else:
             rec = (0, 0)
         super().__init__(master, rec, **cnf)
-        self.chooser = ColorChooser(self, **self.style.dark)
+        self.chooser = ColorChooser(self, **self.style.surface)
         self.chooser.pack()
 
     def set(self, value):

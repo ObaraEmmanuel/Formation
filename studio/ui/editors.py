@@ -26,7 +26,7 @@ class Editor(Frame):
     def __init__(self, master, style_def=None):
         super().__init__(master)
         self.style_def = style_def
-        self.config(**self.style.dark, width=150, height=25)
+        self.config(**self.style.surface, width=150, height=25)
         self.pack_propagate(False)
         self.grid_propagate(0)
         self._on_change = None
@@ -53,13 +53,13 @@ class Choice(Editor):
 
         def render(self):
             if not self.value:
-                Label(self, **self.style.dark_text, text="select", anchor="w").pack(fill="both")
+                Label(self, **self.style.text, text="select", anchor="w").pack(fill="both")
                 return
-            Label(self, **self.style.dark_text, text=self._value, anchor="w").pack(fill="both")
+            Label(self, **self.style.text, text=self._value, anchor="w").pack(fill="both")
 
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
-        self._spinner = Spinner(self, **self.style.dark_input)
+        self._spinner = Spinner(self, **self.style.input)
         self._spinner.pack(fill="x")
         self._spinner.on_change(self.spinner_change)
         # initial set up is mandatory for all Choice subclasses
@@ -96,7 +96,7 @@ class Choice(Editor):
 class Boolean(Editor):
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
-        self.config(**self.style.dark, **self.style.dark_highlight_active)
+        self.config(**self.style.surface, **self.style.highlight_active)
         self._var = BooleanVar()
         self._var.trace('w', self.check_change)
         self._check = Checkbutton(self, text='')
@@ -123,11 +123,11 @@ class Relief(Choice):
 
         def render(self):
             if not self.value:
-                Label(self, width=2, **self.style.dark_text, bd=2).pack(side="left")
-                Label(self, text="select", **self.style.dark_text).pack(side="left", padx=4)
+                Label(self, width=2, **self.style.text, bd=2).pack(side="left")
+                Label(self, text="select", **self.style.text).pack(side="left", padx=4)
             else:
-                Label(self, relief=self.value, width=2, **self.style.dark_text, bd=2).pack(side="left")
-                Label(self, text=self.value, **self.style.dark_text).pack(side="left", padx=4)
+                Label(self, relief=self.value, width=2, **self.style.text, bd=2).pack(side="left")
+                Label(self, text=self.value, **self.style.text).pack(side="left", padx=4)
 
     def set_up(self):
         self._spinner.set_item_class(Relief.ReliefItem)
@@ -145,7 +145,7 @@ class Cursor(Choice):
             if not self.value:
                 super().render()
                 return
-            Label(self, **self.style.dark_text, cursor=self.value,
+            Label(self, **self.style.text, cursor=self.value,
                   text=self.value, anchor='w').pack(fill="both")
 
     def set_up(self):
@@ -160,11 +160,11 @@ class Bitmap(Choice):
 
         def render(self):
             if not self.value:
-                Label(self, **self.style.dark_text, width=2).pack(side="left")
-                Label(self, **self.style.dark_text, text="select").pack(side="left")
+                Label(self, **self.style.text, width=2).pack(side="left")
+                Label(self, **self.style.text, text="select").pack(side="left")
             else:
-                Label(self, **self.style.dark_text, bitmap=self.value).pack(side="left")
-                Label(self, **self.style.dark_text, text=self.value).pack(side="left")
+                Label(self, **self.style.text, bitmap=self.value).pack(side="left")
+                Label(self, **self.style.text, text=self.value).pack(side="left")
 
     def set_up(self):
         self._spinner.set_item_class(Bitmap.BitmapItem)
@@ -177,7 +177,7 @@ class Layout(Choice):
     class LayoutItem(Choice.ChoiceItem):
 
         def render(self):
-            Label(self, **self.style.dark_text, anchor="w", image=get_icon_image(self.value.icon, 14, 14),
+            Label(self, **self.style.text, anchor="w", image=get_icon_image(self.value.icon, 14, 14),
                   text=" " + self.value.name, compound='left').pack(fill="x")
 
     def set_up(self):
@@ -198,12 +198,12 @@ class Color(Editor):
 
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
-        self.config(**self.style.dark_highlight_active)
-        self._entry = Entry(self, **self.style.dark_input, **self.style.no_highlight)
+        self.config(**self.style.highlight_active)
+        self._entry = Entry(self, **self.style.input, **self.style.no_highlight)
         self._color_button = Label(self, relief='groove', bd=1)
         self._color_button.bind('<ButtonRelease-1>', self._chooser)
         self._color_button.place(x=2, y=2, width=20, height=20)
-        self._picker = ColorPicker(self, **self.style.dark_button)
+        self._picker = ColorPicker(self, **self.style.button)
         self._picker.place(relx=1, x=-22, y=0, width=20, height=20)
         self._picker.on_pick(self.set)
         self._entry.place(x=22, y=0, relheight=1, relwidth=1, width=-46)
@@ -270,8 +270,8 @@ class Text(TextMixin, Editor):
 
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
-        self.config(**self.style.dark_highlight_active)
-        self._entry = Entry(self, **self.style.dark_input)
+        self.config(**self.style.highlight_active)
+        self._entry = Entry(self, **self.style.input)
         self._entry.configure(**self.style.no_highlight)
         self._entry.pack(fill="x")
         self._entry.on_entry(self._change)
@@ -287,7 +287,7 @@ class Number(TextMixin, Editor):
 
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
-        self.config(**self.style.dark_highlight_active)
+        self.config(**self.style.highlight_active)
         self._entry = SpinBox(self, from_=-9999, to=9999, **self.style.spinbox)
         self._entry.config(**self.style.no_highlight)
         self._entry.set_validator(numeric_limit, -9999, 9999)
@@ -311,12 +311,12 @@ class Duration(TextMixin, Editor):
 
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
-        self.config(**self.style.dark_highlight_active)
+        self.config(**self.style.highlight_active)
         self._entry = SpinBox(self, from_=0, to=1e6, **self.style.spinbox)
         self._entry.config(**self.style.no_highlight)
         self._entry.set_validator(numeric_limit, 0, 1e6)
         self._entry.on_change(self._change)
-        self._unit = Spinner(self, **self.style.dark_input)
+        self._unit = Spinner(self, **self.style.input)
         self._unit.config(**self.style.no_highlight, width=50)
         self._unit.set_item_class(Choice.ChoiceItem)
         self._unit.set_values(Duration.UNITS)
@@ -343,7 +343,7 @@ class Font(Editor):
 
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
-        self.config(height=50, **self.style.dark_highlight_active)
+        self.config(height=50, **self.style.highlight_active)
         self._input = FontInput(self)
         self._input.pack(fill='both', expand=True)
         self.on_change = self._input.on_change
@@ -365,7 +365,7 @@ class Dimension(Number):
         self._entry.config(from_=0, to=1e6)
         self._entry.set_validator(numeric_limit, 0, 1e6)
         self._entry.pack_forget()
-        self._unit = Label(self, **self.style.dark_text_passive)
+        self._unit = Label(self, **self.style.text_passive)
         self._unit.pack(side="right")
         self.set_def(style_def)
         self._entry.pack(side="left", fill="x")
@@ -387,12 +387,12 @@ class Anchor(Editor):
         self.n.grid(row=0, column=0, columnspan=3, sticky='ns')
         self.w = ToggleButton(self, text='W', width=20, height=20)
         self.w.grid(row=1, column=0, sticky='ew')
-        self.pad = Frame(self, width=60, height=60, **self.style.dark, **self.style.dark_highlight_active)
+        self.pad = Frame(self, width=60, height=60, **self.style.surface, **self.style.highlight_active)
         self.pad.grid(row=1, column=1, padx=1, pady=1)
         self.pad.grid_propagate(0)
         self.pad.grid_columnconfigure(0, minsize=60)
         self.pad.grid_rowconfigure(0, minsize=60)
-        self.floating = Frame(self.pad, **self.style.dark_on_hover, width=20, height=20)
+        self.floating = Frame(self.pad, **self.style.accent, width=20, height=20)
         self.floating.grid(row=0, column=0, pady=1, padx=1)
         self.e = ToggleButton(self, text="E", width=20, height=20)
         self.e.grid(row=1, column=2, sticky='ew')
@@ -459,7 +459,7 @@ class Image(Text):
 
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
-        self._picker = Button(self, **self.style.dark_button, width=25, height=25, text="...")
+        self._picker = Button(self, **self.style.button, width=25, height=25, text="...")
         self._entry.pack_forget()
         self._picker.pack(side="right")
         self._entry.pack(side="left", fill="x")
@@ -491,7 +491,7 @@ class Variable(Choice):
                 item.pack(fill="both")
                 item.pack_propagate(0)
             else:
-                Label(self, text="", **self.style.dark_text).pack(fill="x")
+                Label(self, text="", **self.style.text).pack(fill="x")
 
     def set_up(self):
         VariableManager.editors.append(self)
@@ -544,11 +544,10 @@ class StyleItem(Frame):
         super().__init__(parent.body)
         self.definition = style_definition
         self.name = style_definition.get("name")
-        self.config(**self.style.dark)
-        self._label = Label(self, **parent.style.dark_text_passive, text=style_definition.get("display_name"),
+        self.config(**self.style.surface)
+        self._label = Label(self, **parent.style.text_passive, text=style_definition.get("display_name"),
                             anchor="w")
         self._label.grid(row=0, column=0, sticky='ew')
-        # self._label.config(**parent.style.dark_highlight_active)
         self._editor = get_editor(self, style_definition)
         self._editor.grid(row=0, column=1, sticky='ew')
         self.grid_columnconfigure(1, weight=1, uniform=1)

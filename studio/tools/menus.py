@@ -164,17 +164,17 @@ class MenuEditor(BaseToolWindow):
             menu = tk.Menu(widget, tearoff=False)
             widget.configure(menu=menu)
         self._base_menu = menu
-        self._tool_bar = Frame(self, **self.style.dark, **self.style.dark_highlight_dim, height=30)
+        self._tool_bar = Frame(self, **self.style.surface, **self.style.highlight_dim, height=30)
         self._tool_bar.pack(side="top", fill="x")
         self._tool_bar.pack_propagate(False)
-        self._pane = PanedWindow(self, **self.style.dark_pane_horizontal)
+        self._pane = PanedWindow(self, **self.style.pane_horizontal)
         self._tree = MenuTree(self._pane, widget, menu)
         self._tree.allow_multi_select(True)
         self._tree.on_select(self._refresh_styles)
         self._tree.on_structure_change(self._refresh_styles)
 
         self._editor_pane = ScrolledFrame(self._pane)
-        self._editor_pane_cover = Label(self._editor_pane, **self.style.dark_text_passive)
+        self._editor_pane_cover = Label(self._editor_pane, **self.style.text_passive)
         self._editor_pane.pack(side="top", fill="both", expand=True)
         self._menu_item_styles = CollapseFrame(self._editor_pane.body)
         self._menu_item_styles.pack(side="top", fill="x", pady=4)
@@ -186,7 +186,7 @@ class MenuEditor(BaseToolWindow):
         self._menu_style_ref = {}
         self._prev_selection = None
 
-        self._add = MenuButton(self._tool_bar, **self.style.dark_button)
+        self._add = MenuButton(self._tool_bar, **self.style.button)
         self._add.pack(side="left")
         self._add.configure(image=get_icon_image("add", 15, 15))
         _types = MenuTree.Node._type_def
@@ -200,13 +200,13 @@ class MenuEditor(BaseToolWindow):
             self._add)
         menu_types.configure(tearoff=True)
         self._add.config(menu=menu_types)
-        self._delete_btn = Button(self._tool_bar, image=get_icon_image("delete", 15, 15), **self.style.dark_button,
+        self._delete_btn = Button(self._tool_bar, image=get_icon_image("delete", 15, 15), **self.style.button,
                                   width=25,
                                   height=25)
         self._delete_btn.pack(side="left")
         self._delete_btn.on_click(self._delete)
 
-        self._preview_btn = Button(self._tool_bar, image=get_icon_image("play", 15, 15), **self.style.dark_button,
+        self._preview_btn = Button(self._tool_bar, image=get_icon_image("play", 15, 15), **self.style.button,
                                    width=25, height=25)
         self._preview_btn.pack(side="left")
         self._preview_btn.on_click(self._preview)

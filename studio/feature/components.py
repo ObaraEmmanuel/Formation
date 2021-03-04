@@ -19,10 +19,10 @@ class Component(Frame):
 
     def __init__(self, master, component: PseudoWidget.__class__):
         super().__init__(master)
-        self.config(**self.style.dark)
-        self._icon = Label(self, **self.style.dark_text_accent, image=get_icon_image(component.icon, 15, 15))
+        self.config(**self.style.surface)
+        self._icon = Label(self, **self.style.text_accent, image=get_icon_image(component.icon, 15, 15))
         self._icon.pack(side="left")
-        self._text = Label(self, **self.style.dark_text, anchor="w", text=component.display_name)
+        self._text = Label(self, **self.style.text, anchor="w", text=component.display_name)
         self._text.pack(side="left", fill="x")
         self.bind("<Enter>", self.select)
         self.bind("<Leave>", self.deselect)
@@ -32,10 +32,10 @@ class Component(Frame):
         self.bind_all("<ButtonRelease-1>", self.release)
 
     def select(self, *_):
-        self.config_all(**self.style.dark_on_hover)
+        self.config_all(**self.style.hover)
 
     def deselect(self, *_):
-        self.config_all(**self.style.dark)
+        self.config_all(**self.style.surface)
 
     def drag(self, event):
         # If cursor is moved while holding the left button down for the first time we begin drag
@@ -65,13 +65,13 @@ class Selector(Label):
     def __init__(self, master, **cnf):
         super().__init__(master, **cnf)
         self.name = cnf.get("text")
-        self.config(**self.style.dark_text, anchor="w")
+        self.config(**self.style.text, anchor="w")
 
     def select(self):
-        self.config(**self.style.dark_on_hover)
+        self.config(**self.style.hover)
 
     def deselect(self):
-        self.config(**self.style.dark_on_hover_ended)
+        self.config(**self.style.surface)
 
     def __eq__(self, other):
         if isinstance(other, Selector):
@@ -97,7 +97,7 @@ class ComponentPane(BaseFeature):
             self._init_var(studio)
         super().__init__(master, studio, **cnf)
 
-        f = Frame(self, **self.style.dark)
+        f = Frame(self, **self.style.surface)
         f.pack(side="top", fill="both", expand=True, pady=4)
         f.pack_propagate(0)
 
@@ -110,14 +110,14 @@ class ComponentPane(BaseFeature):
         self._select_pane.place(x=0, y=0, relwidth=0.4, relheight=1)
 
         self._search_btn = Button(self._header, image=get_icon_image("search", 15, 15), width=25, height=25,
-                                  **self.style.dark_button)
+                                  **self.style.button)
         self._search_btn.pack(side="right")
         self._search_btn.on_click(self.start_search)
-        self._search_selector = Label(self._select_pane.body, **self.style.dark_text, text="search", anchor="w")
-        self._search_selector.configure(**self.style.dark_on_hover)
+        self._search_selector = Label(self._select_pane.body, **self.style.text, text="search", anchor="w")
+        self._search_selector.configure(**self.style.hover)
 
         self._widget_pane = ScrolledFrame(f, width=150, bg="orange")
-        self._select_pane.body.config(**self.style.dark)
+        self._select_pane.body.config(**self.style.surface)
         self._widget_pane.place(relx=0.4, y=0, relwidth=0.6, relheight=1)
 
         self._pool = {}

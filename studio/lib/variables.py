@@ -50,7 +50,7 @@ class VariableItem(Label):
             self.var.handle = self
             self._name = name
         self._slave_items = []
-        self.configure(**self.style.dark_text, text=self._with_padding(self._name),
+        self.configure(**self.style.text, text=self._with_padding(self._name),
                        image=get_icon_image(self.icon, 15, 15),
                        compound="left",
                        anchor="w")
@@ -102,10 +102,10 @@ class VariableItem(Label):
         return self.var.__class__.__name__
 
     def select(self):
-        self.configure(**self.style.dark_on_hover)
+        self.configure(**self.style.hover)
 
     def deselect(self):
-        self.configure(**self.style.dark_on_hover_ended)
+        self.configure(**self.style.surface)
 
     def destroy(self):
         if self.var_handle:

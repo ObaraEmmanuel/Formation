@@ -37,7 +37,7 @@ class MalleableTree(TreeView):
             self.strip.bind_all("<Motion>", self.begin_drag, add='+')
             # use add='+' to avoid overriding the default event which selects nodes
             self.strip.bind_all("<ButtonRelease-1>", self.end_drag, add='+')
-            self.strip.config(**self.style.dark_highlight)  # The highlight on a normal day
+            self.strip.config(**self.style.highlight)  # The highlight on a normal day
             self._on_structure_change = None
             self.editable = False
             self.configuration = config
@@ -73,11 +73,11 @@ class MalleableTree(TreeView):
                         # Display the overflow information
                         Label(MalleableTree.drag_popup,
                               text=f"and {overflow} other{'' if overflow == 1 else 's'}...", anchor='w',
-                              **self.style.dark_text).pack(side="top", fill="x")
+                              **self.style.text).pack(side="top", fill="x")
                         break
                     Label(MalleableTree.drag_popup,
                           text=component.name, anchor='w',
-                          **self.style.dark_text).pack(side="top", fill="x")
+                          **self.style.text).pack(side="top", fill="x")
                     count += 1
             widget = self.winfo_containing(event.x_root, event.y_root)
             # The widget can be a child to Node but not necessarily a node but we need a node so
@@ -170,7 +170,7 @@ class MalleableTree(TreeView):
 
         def clear_highlight(self):
             # Remove the rectangular highlight around the node
-            self.strip.configure(**self.style.dark_highlight)
+            self.strip.configure(**self.style.highlight)
 
         def clear_indicators(self):
             # Remove any remaining node highlights and edge indicators
@@ -244,7 +244,7 @@ class MalleableTree(TreeView):
 
     def clear_highlight(self):
         # Remove the rectangular highlight around the node
-        self.configure(**self.style.dark_highlight)
+        self.configure(**self.style.highlight)
 
     def clear_indicators(self):
         # Remove any remaining node highlights and edge indicators
