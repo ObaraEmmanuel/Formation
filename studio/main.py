@@ -5,6 +5,7 @@
 import functools
 import os
 import sys
+import time
 from tkinter import filedialog, Toplevel
 
 sys.path.append('..')
@@ -21,13 +22,13 @@ import studio
 
 from hoverset.ui.widgets import Application, Frame, PanedWindow, Button, ActionNotifier
 from hoverset.ui.icons import get_icon_image
-from hoverset.data.images import load_tk_image
+from hoverset.data.images import load_tk_image, get_image
 from hoverset.util.execution import Action
 from hoverset.data.utils import get_resource_path
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.menu import MenuUtils, EnableIf, dynamic_menu, LoadLater
 from hoverset.data import actions
-from hoverset.data.keymap import ShortcutManager, CharKey, KeyMap
+from hoverset.data.keymap import ShortcutManager, CharKey, KeyMap, BlankKey
 from hoverset.platform import platform_is, WINDOWS
 
 from formation import AppBuilder
@@ -131,6 +132,7 @@ class StudioApplication(Application):
                 ("command", "Save As", icon("save", 14, 14), actions.get('STUDIO_SAVE_AS'), {}),
                 ("separator",),
                 ("command", "Settings", icon("settings", 14, 14), actions.get('STUDIO_SETTINGS'), {}),
+                ("command", "Restart", icon("blank", 14, 14), actions.get('STUDIO_RESTART'), {}),
                 ("command", "Exit", icon("close", 14, 14), actions.get('STUDIO_EXIT'), {}),
             )}),
             ("cascade", "Edit", None, None, {"menu": (
@@ -587,6 +589,7 @@ class StudioApplication(Application):
                     CTRL + SHIFT + CharKey('s')),
             routine(self.get_help, 'STUDIO_HELP', 'Show studio help', 'studio', KeyMap.F(12)),
             routine(self.settings, 'STUDIO_SETTINGS', 'Open studio settings', 'studio', ALT + CharKey('s')),
+            routine(restart, 'STUDIO_RESTART', 'Restart application', 'studio', BlankKey),
             routine(self._on_close, 'STUDIO_EXIT', 'Exit application', 'studio', CTRL + CharKey('q')),
             # ------------------------------
             routine(self.show_all_windows, 'FEATURE_SHOW_ALL', 'Show all feature windows', 'studio',
@@ -606,6 +609,15 @@ class StudioApplication(Application):
             routine(self.preview, 'STUDIO_PREVIEW', 'Show preview', 'studio', KeyMap.F(5)),
             routine(self.close_preview, 'STUDIO_PREVIEW_CLOSE', 'Close any preview', 'studio', ALT + KeyMap.F(5)),
         )
+
+
+def restart():
+    actions.get_routine("STUDIO_EXIT").invoke()
+    pref._release()
+    # allow some time before starting
+    time.sleep(2)
+    python = sys.executable
+    os.execl(python, python, sys.argv[0])
 
 
 def main():
