@@ -25,7 +25,12 @@ class ResourceLoader(Application):
     def __init__(self):
         super().__init__()
         self.load_styles(pref.get("resource::theme"))
-        self.wm_attributes("-type", "splash")
+        try:
+            self.wm_attributes("-type", "splash")
+        except:
+            self.enable_centering()
+            self.overrideredirect(1)
+
         self.configure(**self.style.surface)
         image = load_tk_image(get_resource_path("studio", "resources/images/logo.png"), 240, 77)
         Label(
@@ -35,10 +40,15 @@ class ResourceLoader(Application):
         self._progress.pack(side="top", fill="x", padx=20, pady=10)
         self._progress.set(0)
         self._progress_text = Label(
-            self, **self.style.text_small, text="Loading icons",
+            self, **self.style.text_small, text="Waiting for resource loader...",
             anchor="w"
         )
         self._progress_text.pack(side="top", fill="x", padx=20, pady=10)
+        self.update_idletasks()
+        # give the loader some time to render before starting load
+        self.after(200, self.start_load)
+
+    def start_load(self):
         self.check_resources()
         self.destroy()
 
@@ -50,26 +60,34 @@ class ResourceLoader(Application):
         self._progress_text["text"] = text
 
     @classmethod
+    def _cache_exists(cls, path):
+        if os.path.exists(path):
+            return True
+        else:
+            # for windows we may need the extension
+            return os.path.exists(path + ".dat")
+
+    @classmethod
     def load(cls):
         cache_color = pref.get("resource::icon_cache_color")
         style = StyleDelegator(pref.get("resource::theme"))
         cache_path = appdirs.AppDirs("formation", "hoverset").user_cache_dir
-        cls.cache_icons_path = os.path.join(cache_path, "image")
-        if style.colors["accent"] != cache_color or not os.path.exists(cls.cache_icons_path):
+        cls._cache_icon_path = os.path.join(cache_path, "image")
+        if style.colors["accent"] != cache_color or not cls._cache_exists(cls._cache_icon_path):
             if not os.path.exists(cache_path):
                 make_path(cache_path)
             cls().mainloop()
 
-        set_image_resource_path(cls.cache_icons_path)
+        set_image_resource_path(cls._cache_icon_path)
         pref.set("resource::icon_cache_color", style.colors["accent"])
 
     def check_resources(self):
 
         self._message("Preparing graphic resources...")
-        with shelve.open(self.cache_icons_path) as cache:
+        with shelve.open(self._cache_icon_path) as cache:
             with shelve.open(self._default_icon_path) as defaults:
                 color = parse_color(self.style.colors["accent"], self)
-                step = 1/len(defaults)*1
+                step = 1 / len(defaults) * 1
                 for image in defaults:
                     if not image.startswith("_"):
                         cache[image] = _recolor(defaults[image], color)

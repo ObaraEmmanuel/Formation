@@ -2,6 +2,7 @@ import errno
 import sys
 import os
 import pkgutil
+import pathlib
 
 
 def get_resource_path(package, resource):
@@ -13,7 +14,7 @@ def get_resource_path(package, resource):
     :return:
     """
     d = os.path.dirname(sys.modules[package if isinstance(package, str) else package.__name__].__file__)
-    return os.path.join(d, resource)
+    return os.path.join(pathlib.Path(d), pathlib.Path(resource))
 
 
 def make_path(path):
