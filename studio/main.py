@@ -8,8 +8,6 @@ import sys
 import time
 from tkinter import filedialog, Toplevel
 
-sys.path.append('..')
-
 from studio.feature.design import Designer
 from studio.feature import FEATURES, StylePane
 from studio.feature._base import BaseFeature
@@ -22,7 +20,7 @@ import studio
 
 from hoverset.ui.widgets import Application, Frame, PanedWindow, Button, ActionNotifier
 from hoverset.ui.icons import get_icon_image
-from hoverset.data.images import load_tk_image, get_image
+from hoverset.data.images import load_tk_image
 from hoverset.util.execution import Action
 from hoverset.data.utils import get_resource_path
 from hoverset.ui.dialogs import MessageDialog
