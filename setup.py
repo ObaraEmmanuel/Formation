@@ -7,13 +7,14 @@ this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
-requirements = ['lxml', 'Pillow', 'pyscreenshot; sys_platform != "win32"', 'pywin32 ; sys_platform=="win32"']
+with open(path.join(this_directory, "requirements.txt"), 'r', encoding='utf-8') as req:
+    requirements = [i.strip() for i in req.readlines()]
 
 setup(
     name='formation-studio',
     packages=['hoverset', 'hoverset.data', 'hoverset.platform', 'hoverset.ui', 'hoverset.util',
-              'formation',
-              'studio', 'studio.feature', 'studio.lib', 'studio.parsers', 'studio.ui'],
+              'formation', 'formation.handlers',
+              'studio', 'studio.feature', 'studio.lib', 'studio.parsers', 'studio.ui', 'studio.tools'],
     version=formation.__version__,
     license='MIT',
     description='Simplify GUI development in python',
