@@ -3,6 +3,7 @@
 # ======================================================================= #
 
 import functools
+import logging
 import os
 import sys
 import time
@@ -31,6 +32,8 @@ from hoverset.platform import platform_is, WINDOWS
 
 from formation import AppBuilder
 
+LOGGER = logging.getLogger(__name__)
+
 pref = Preferences.acquire()
 
 
@@ -41,6 +44,7 @@ class StudioApplication(Application):
     def __init__(self, master=None, **cnf):
         super().__init__(master, **cnf)
         # Load icon asynchronously to prevent issues which have been known to occur when loading it synchronously
+        LOGGER.info("Initializing %s", self.__class__.__name__)
         icon_image = load_tk_image(self.ICON_PATH)
         self.load_styles(self.THEME_PATH)
         self.iconphoto(True, icon_image)
@@ -620,6 +624,7 @@ def restart():
 
 def main():
     # load resources first
+    print("Running main()")
     ResourceLoader.load()
     StudioApplication().mainloop()
 
