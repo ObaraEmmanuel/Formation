@@ -9,7 +9,7 @@ from hoverset.platform import platform_is, WINDOWS, MAC
 
 
 def image_grab(bbox=None, childprocess=None, backend=None):
-    if platform_is(WINDOWS) or platform_is(MAC):
+    if platform_is(WINDOWS, MAC):
         from PIL import ImageGrab
         return ImageGrab.grab(bbox)
     else:

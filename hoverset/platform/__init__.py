@@ -15,11 +15,12 @@ FREEBSD = 'freebsd'
 OPENBSD = 'openbsd'
 
 
-def platform_is(platform) -> bool:
+def platform_is(*platforms) -> bool:
     """
     Check for the current operating system.
-    :param platform: if platform is the current operating system or belongs to operating system belongs
-    to the same family as platform True is returned and vice versa
+    :param platforms: if any platform provided here is the current
+    operating system `True` is returned else `False`
+
     :return: boolean
     """
-    return PLATFORM.startswith(platform)
+    return any(PLATFORM.startswith(p) for p in platforms)
