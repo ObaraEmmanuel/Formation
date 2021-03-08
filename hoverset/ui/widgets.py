@@ -1373,7 +1373,6 @@ class ToolWindow(Window):
         super().__init__(master, **cnf)
         self.wm_attributes('-alpha', 0.0)
         self.transient(master.window)
-        self.wm_attributes('-toolwindow', True)
 
     def set_geometry(self, rec):
         logging.debug(f"placing window at {rec}")
