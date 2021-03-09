@@ -44,6 +44,11 @@ class _PreferenceInstanceCreator(type):
 class SharedPreferences(metaclass=_PreferenceInstanceCreator):
     PATH_SEP = "::"
 
+    class ConfigFileInUseError(IOError):
+
+        def __init__(self, file_path):
+            super().__init__(f"Config file {file_path} currently in use")
+
     def __init__(self, app, author, file, defaults):
         self._file = file
         self._app_dir = appdirs.AppDirs(app, author)
@@ -80,10 +85,13 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
 
     def __del__(self):
         self._release()
-        atexit.unregister(self._release())
+        atexit.unregister(self._release)
 
     def _release(self):
-        self.data.close()
+        try:
+            self.data.close()
+        except:
+            pass
 
     def get_dir(self):
         return self._app_dir.user_config_dir
@@ -101,7 +109,14 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
         return files
 
     def _get_shelve(self):
-        return shelve.open(os.path.join(self.get_dir(), self._file), writeback=True)
+        path = os.path.join(self.get_dir(), self._file)
+        try:
+            return shelve.open(path, writeback=True)
+        except IOError as e:
+            if e.errno == 11:
+                raise SharedPreferences.ConfigFileInUseError(path)
+            else:
+                raise e from None
 
     def exists(self, path):
         """

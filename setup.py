@@ -33,6 +33,9 @@ setup(
     entry_points={
         'gui_scripts': [
             'formation-studio = studio.main:main',
+        ],
+        'console_scripts': [
+            'formation-cli = studio.cli:main'
         ]
     },
     classifiers=[
