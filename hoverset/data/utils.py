@@ -32,4 +32,17 @@ def make_path(path):
             raise
 
 
+def get_theme_path(theme):
+    if not theme.endswith(".css"):
+        theme += ".css"
+    # this just gets the last part of the path to allow
+    # older versions using full paths to work as well
+    theme = os.path.basename(theme)
+    base_path = get_resource_path("hoverset.ui", "themes")
+    theme_path = os.path.join(base_path, theme)
+    if os.path.exists(theme_path):
+        return theme_path
+    return os.path.join(base_path, "default.css")
+
+
 get_resource = pkgutil.get_data

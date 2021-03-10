@@ -2,7 +2,6 @@ import os
 
 from hoverset.data.preferences import *
 from hoverset.data.keymap import ShortcutPane
-from hoverset.data.utils import get_resource_path
 
 defaults = {
     "studio": {
@@ -41,7 +40,7 @@ defaults = {
     },
     "resource": {
         "icon_cache_color": "#ffffff",
-        "theme": get_resource_path("hoverset.ui", "themes/default.css")
+        "theme": "default.css"
     }
 }
 
@@ -55,8 +54,8 @@ templates = {
                 "requires_restart": True,
                 "extra": {
                     "choices": (
-                        (get_resource_path("hoverset.ui", "themes/default.css"), "Dark", ),
-                        (get_resource_path("hoverset.ui", "themes/light.css"), "Light", ),
+                        ("default.css", "Dark", ),
+                        ("light.css", "Light", ),
                     )
                 }
             },

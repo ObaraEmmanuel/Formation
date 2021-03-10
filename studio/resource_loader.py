@@ -9,7 +9,7 @@ from hoverset.data.images import (
     _primary_location,
     _recolor
 )
-from hoverset.data.utils import make_path
+from hoverset.data.utils import make_path, get_theme_path
 from hoverset.util.color import parse_color
 from hoverset.ui.widgets import Application, Label, ProgressBar
 from hoverset.ui.styles import StyleDelegator
@@ -70,7 +70,7 @@ class ResourceLoader(Application):
     @classmethod
     def load(cls):
         cache_color = pref.get("resource::icon_cache_color")
-        style = StyleDelegator(pref.get("resource::theme"))
+        style = StyleDelegator(get_theme_path(pref.get("resource::theme")))
         cache_path = appdirs.AppDirs("formation", "hoverset").user_cache_dir
         cls._cache_icon_path = os.path.join(cache_path, "image")
         if style.colors["accent"] != cache_color or not cls._cache_exists(cls._cache_icon_path):
