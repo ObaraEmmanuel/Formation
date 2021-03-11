@@ -1,6 +1,6 @@
 import tkinter as tk
 
-from hoverset.platform import platform_is, WINDOWS
+from hoverset.platform import platform_is, WINDOWS, LINUX
 from studio.ui import geometry
 from studio.ui.widgets import DesignPad
 
@@ -13,6 +13,8 @@ def resize_cursor() -> tuple:
     if platform_is(WINDOWS):
         # Windows provides corner resize cursors so use those
         return "size_nw_se", "size_ne_sw"
+    elif platform_is(LINUX):
+        return "bottom_right_corner", "bottom_left_corner"
     else:
         # Use circles for other platforms
         return ("circle",)*2
@@ -198,7 +200,7 @@ class HighLight:
 
     def redraw(self, widget, radius=None):
         # Redraw the highlight in the new bounding box
-        radius = self.SIZER_LENGTH // 2
+        radius = (self.SIZER_LENGTH - self.OUTLINE) // 2
         # border-mode has to be outside so the highlight covers the entire widget
         extra = dict(in_=widget, bordermode="outside")
 
