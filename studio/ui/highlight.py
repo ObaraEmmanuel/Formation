@@ -48,24 +48,29 @@ class HighLight:
         # These are the handle widgets that acts as guides for resizing and moving objects
 
         h_background = self.designer.style.colors["accent"]
-        self.l = tk.Frame(parent, bg=h_background, width=self.OUTLINE, cursor="fleur")
-        self.r = tk.Frame(parent, bg=h_background, width=self.OUTLINE, cursor="fleur")
-        self.t = tk.Frame(parent, bg=h_background, height=self.OUTLINE, cursor="fleur")
-        self.b = tk.Frame(parent, bg=h_background, height=self.OUTLINE, cursor="fleur")
+        h_force_visible = dict(relief="groove", bd=1)
+        self.l = tk.Frame(parent, bg=h_background, width=self.OUTLINE, cursor="fleur", **h_force_visible)
+        self.r = tk.Frame(parent, bg=h_background, width=self.OUTLINE, cursor="fleur", **h_force_visible)
+        self.t = tk.Frame(parent, bg=h_background, height=self.OUTLINE, cursor="fleur", **h_force_visible)
+        self.b = tk.Frame(parent, bg=h_background, height=self.OUTLINE, cursor="fleur", **h_force_visible)
 
         _cursors = resize_cursor()
-        self.nw = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH, cursor=_cursors[0])
-        self.ne = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH, cursor=_cursors[1])
-        self.sw = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH, cursor=_cursors[1])
-        self.se = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH, cursor=_cursors[0])
+        self.nw = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH,
+                           cursor=_cursors[0], **h_force_visible)
+        self.ne = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH,
+                           cursor=_cursors[1], **h_force_visible)
+        self.sw = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH,
+                           cursor=_cursors[1], **h_force_visible)
+        self.se = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH,
+                           cursor=_cursors[0], **h_force_visible)
         self.n = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH,
-                          cursor="sb_v_double_arrow")
+                          cursor="sb_v_double_arrow", **h_force_visible)
         self.s = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH,
-                          cursor="sb_v_double_arrow")
+                          cursor="sb_v_double_arrow", **h_force_visible)
         self.e = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH,
-                          cursor="sb_h_double_arrow")
+                          cursor="sb_h_double_arrow", **h_force_visible)
         self.w = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH,
-                          cursor="sb_h_double_arrow")
+                          cursor="sb_h_double_arrow", **h_force_visible)
 
         # bind all resizing corners to register their respective resize methods when pressed
         # Any movement events will then call this registered method to ensure the right resize approach
@@ -315,10 +320,11 @@ class WidgetHighlighter:
 
     def __init__(self, master):
         color = master.winfo_toplevel().style.colors.get("accent")
-        self.l = tk.Frame(master, bg=color, width=self.OUTLINE)
-        self.r = tk.Frame(master, bg=color, width=self.OUTLINE)
-        self.t = tk.Frame(master, bg=color, height=self.OUTLINE)
-        self.b = tk.Frame(master, bg=color, height=self.OUTLINE)
+        h_force_visible = dict(relief="groove", bd=1)
+        self.l = tk.Frame(master, bg=color, width=self.OUTLINE, **h_force_visible)
+        self.r = tk.Frame(master, bg=color, width=self.OUTLINE, **h_force_visible)
+        self.t = tk.Frame(master, bg=color, height=self.OUTLINE, **h_force_visible)
+        self.b = tk.Frame(master, bg=color, height=self.OUTLINE, **h_force_visible)
         self.master = master
         self.elements = (self.l, self.r, self.t, self.b)
 
@@ -352,7 +358,7 @@ class EdgeIndicator(tk.Frame):
     def __init__(self, master):
         super().__init__(master)
         style = self.winfo_toplevel().style
-        self.config(**style.bright_background, height=1)
+        self.config(**style.bright_background, height=1, relief="groove", bd=1)
 
     def bottom(self, bounds):
         x, y = bounds[0], bounds[3]
