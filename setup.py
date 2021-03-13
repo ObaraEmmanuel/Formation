@@ -7,14 +7,16 @@ this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
-with open(path.join(this_directory, "requirements.txt"), 'r', encoding='utf-8') as req:
+with open(path.join(this_directory, "requirements.txt"), encoding='utf-8') as req:
     requirements = [i.strip() for i in req.readlines()]
 
 setup(
     name='formation-studio',
-    packages=['hoverset', 'hoverset.data', 'hoverset.platform', 'hoverset.ui', 'hoverset.util',
-              'formation', 'formation.handlers',
-              'studio', 'studio.feature', 'studio.lib', 'studio.parsers', 'studio.ui', 'studio.tools'],
+    packages=[
+        'hoverset', 'hoverset.data', 'hoverset.platform', 'hoverset.ui', 'hoverset.util',
+        'formation', 'formation.handlers',
+        'studio', 'studio.feature', 'studio.lib', 'studio.parsers', 'studio.ui', 'studio.tools'
+    ],
     version=formation.__version__,
     license='MIT',
     description='Simplify GUI development in python',
@@ -35,6 +37,7 @@ setup(
             'formation-studio = studio.main:main',
         ]
     },
+    python_requires=">=3.6",
     classifiers=[
         'Development Status :: 4 - Beta',
         # Chose either "3 - Alpha", "4 - Beta" or "5 - Production/Stable"
