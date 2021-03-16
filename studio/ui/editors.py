@@ -243,13 +243,16 @@ class Color(Editor):
             self._color_button.config(bg="#000000")
 
     def _chooser(self, *_):
-        dialog = ColorDialog(self.window, self._color_button)
+        if self.get().startswith("#"):
+            colour = self.get()
+        elif self.get():
+            colour = self._parse_color(self.get())
+        else:
+            colour = "#000000"
+        dialog = ColorDialog(self.window, self._color_button, colour)
+        dialog.set(colour)
         dialog.update_idletasks()
         self.window.update_idletasks()
-        if self.get().startswith("#"):
-            dialog.set(self.get())
-        elif self.get():
-            dialog.set(self._parse_color(self.get()))
         dialog.on_change(self.adjust)
 
 
