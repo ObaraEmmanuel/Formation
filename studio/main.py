@@ -27,7 +27,6 @@ from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.menu import MenuUtils, EnableIf, dynamic_menu, LoadLater
 from hoverset.data import actions
 from hoverset.data.keymap import ShortcutManager, CharKey, KeyMap, BlankKey
-from hoverset.platform import platform_is, WINDOWS
 
 from formation import AppBuilder
 
@@ -196,6 +195,22 @@ class StudioApplication(Application):
                 self.open_file(latest)
         # if blank do nothing
 
+    def _get_window_state(self):
+        try:
+            if self.wm_attributes("-zoomed"):
+                return 'zoomed'
+            return 'normal'
+        except:
+            # works for windows and mac os
+            return self.state()
+
+    def _set_window_state(self, state):
+        try:
+            # works in windows and mac os
+            self.state(state)
+        except:
+            self.wm_attributes('-zoomed', state == 'zoomed')
+
     def _save_position(self):
         # self.update_idletasks()
         pref.set("studio::pos", dict(
@@ -203,19 +218,14 @@ class StudioApplication(Application):
             height=self.height,
             x=self.winfo_x(),
             y=self.winfo_y(),
-            state=self.state(),  # window state either zoomed or normal
+            state=self._get_window_state(),  # window state either zoomed or normal
         ))
 
     def _restore_position(self):
         pos = pref.get("studio::pos")
-        if pos.get("state") == 'zoomed':
-            if platform_is(WINDOWS):
-                self.state('zoomed')
-            else:
-                self.wm_attributes('-zoomed', True)
-            return
-        self.state('normal')
-        self.geometry('{width}x{height}+{x}+{y}'.format(**pos))
+        self._set_window_state(pos.get("state"))
+        if pos.get("state") == 'normal':
+            self.geometry('{width}x{height}+{x}+{y}'.format(**pos))
 
     def new_action(self, action: Action):
         """

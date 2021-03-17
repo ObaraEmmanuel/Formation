@@ -11,6 +11,7 @@ All gui manifestation should strictly use hoverset widget set for easy maintenan
 
 import functools
 import logging
+import os
 import re
 import webbrowser
 import tkinter as tk
@@ -19,7 +20,7 @@ from collections import namedtuple
 from tkinter import font
 
 from hoverset.data.images import load_image_to_widget
-from hoverset.data.utils import get_resource_path
+from hoverset.data.utils import get_resource_path, get_theme_path
 from hoverset.platform import platform_is, WINDOWS, LINUX, MAC
 from hoverset.ui.animation import Animate, Easing
 from hoverset.ui.icons import get_icon_image
@@ -1315,14 +1316,18 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
             hoverset.ui, "themes/default.css"
         ))
 
-    def load_styles(self, path):
+    def load_styles(self, theme):
         """
         Accepts a path to a cascading style sheet containing the styles used by the widgets. The style dependency is
         loaded here
 
-        :param path: path to the css file to be loaded
+        :param theme: name of the theme to be loaded with or without the .css extension
         :return: A :class:`hoverset.ui.styles.StyleDelegator` object
         """
+        if os.path.exists(theme):
+            path = theme
+        else:
+            path = get_theme_path(theme)
         self._style = StyleDelegator(path)
 
     @property
@@ -1373,7 +1378,6 @@ class ToolWindow(Window):
         super().__init__(master, **cnf)
         self.wm_attributes('-alpha', 0.0)
         self.transient(master.window)
-        self.wm_attributes('-toolwindow', True)
 
     def set_geometry(self, rec):
         logging.debug(f"placing window at {rec}")
