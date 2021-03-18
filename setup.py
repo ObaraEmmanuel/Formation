@@ -29,7 +29,7 @@ setup(
     install_requires=requirements,
     package_data={
         'hoverset.data': ['image.*'],
-        'hoverset.ui': ['themes/*'],
+        'hoverset.ui': ['themes/*', '*.tcl'],
         'studio': ['resources/*/*']
     },
     entry_points={

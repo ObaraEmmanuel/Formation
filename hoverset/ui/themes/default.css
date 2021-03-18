@@ -17,7 +17,7 @@
     highlightthickness: 1;
     highlightcolor: #3d8aff;
     highlightbackground: #a0a0a0;
-    font: consolas 11;
+    font: consolas 10;
     insertbackground: #f7f7f7;
     insertwidth: 1;
     disabledbackground: #303030;
@@ -237,7 +237,7 @@
 .combobox {
     selectbackground: #f7f7f7;
     selectforeground: #303030;
-    font: TkDefaultFont 12;
+    font: TkDefaultFont 10;
 }
 
 .bright_background{
