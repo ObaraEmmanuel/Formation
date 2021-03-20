@@ -2886,6 +2886,57 @@ class Hyperlink(Label):
             webbrowser.open(self['text'])
 
 
+class TabView(Frame):
+
+    class Tab(Frame):
+        def __init__(self, master, **cnf):
+            super().__init__(master.tab_control)
+            self._controller = master
+            tab_style = dict(self.style.text)
+            tab_style.update(cnf)
+            self._label = Label(self, **tab_style, padx=10)
+            self._label.pack(side="top", fill="x")
+            self._highlight = Frame(self, height=2, **self.style.surface)
+            self._highlight.pack(side="top", fill="x")
+            self._label.bind("<Button-1>", lambda e: self._controller.select(self))
+
+        def on_select(self):
+            self._highlight.config(**self.style.accent)
+            self._label.config(**self.style.hover)
+
+        def on_deselect(self):
+            self._highlight.config(**self.style.surface)
+            self._label.config(**self.style.surface)
+
+    def __init__(self, master):
+        super().__init__(master)
+        self.tab_control = Frame(self, **self.style.surface)
+        self.tab_control.pack(side="top", fill="x")
+        self.body = Frame(self, **self.style.surface)
+        self.body.pack(fill="both")
+        self._tabs = {}
+        self._selected = None
+
+    def _show(self, tab):
+        tab.pack(side="left", fill="y")
+
+    def add(self, widget, **cnf):
+        tab = self.Tab(self, **cnf)
+        self._show(tab)
+        self._tabs[tab] = widget
+        if len(self._tabs) == 1:
+            self.select(tab)
+        return tab
+
+    def select(self, tab):
+        if self._selected:
+            self._tabs[self._selected].pack_forget()
+            self._selected.on_deselect()
+        self._tabs[tab].pack(fill="both", expand=True)
+        tab.on_select()
+        self._selected = tab
+
+
 if __name__ == "__main__":
     r = Application()
     r.load_styles("themes/default.css")
