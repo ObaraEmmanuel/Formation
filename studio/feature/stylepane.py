@@ -9,12 +9,13 @@ import logging
 from collections import defaultdict
 
 from hoverset.ui.icons import get_icon_image
-from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Button
+from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Button, TabView
 from hoverset.util.execution import Action
 from studio.feature._base import BaseFeature
 from studio.ui.editors import StyleItem
 from studio.ui.widgets import CollapseFrame
 from studio.lib.pseudo import Container
+from studio.lib.layouts import GridLayoutStrategy
 
 
 class ReusableStyleItem(StyleItem):
@@ -70,6 +71,7 @@ class StyleGroup(CollapseFrame):
     """
     Main subdivision of the Style pane
     """
+    handles_layout = False
 
     def __init__(self, master, pane, **cnf):
         super().__init__(master)
@@ -223,12 +225,114 @@ class AttributeGroup(StyleGroup):
         return self._widget.__class__ == self._prev_widget.__class__ and self._has_initialized
 
 
+class ColumnConfig(StyleGroup):
+
+    handles_layout = True
+
+    def __init__(self, master, pane, **cnf):
+        super().__init__(master, pane, **cnf)
+        self.clear_children()
+        self._label_frame.pack_forget()
+        self._index = StyleItem(self, self._get_index_def())
+        self._show(self._index)
+
+    def _get_index_def(self):
+        definition = dict(GridLayoutStrategy.COLUMN_DEF)
+        column = self.widget.grid_info()["column"] if self.is_grid(self.widget) else 0
+        definition["value"] = column
+        return definition
+
+    def _get_prop(self, prop, widget):
+        info = widget.layout.columnconfigure(widget.grid_info()["column"])
+        return info.get(prop)
+
+    def _set_prop(self, prop, value, widget):
+        column = int(widget.grid_info()["column"])
+        widget.layout.columnconfigure(column, **{prop: value})
+        if not hasattr(widget.layout, "_column_conf"):
+            widget.layout._column_conf = {column}
+        else:
+            widget.layout._column_conf.add(column)
+
+    def is_grid(self, widget):
+        if not widget:
+            return False
+        return widget.layout.layout_strategy.__class__ == GridLayoutStrategy
+
+    def get_definition(self):
+        if not self.is_grid(self.widget):
+            return {}
+        return self.widget.layout.layout_strategy.get_column_def(self.widget)
+
+    def can_optimize(self):
+        return self._has_initialized
+
+    def clear_children(self):
+        for child in self.items:
+            self._hide(child)
+
+    def _update_index(self):
+        self._index.set(self.widget.grid_info()["column"])
+
+    def on_widget_change(self, widget):
+        if self.is_grid(widget):
+            super().on_widget_change(widget)
+            self._index._editor.set_def(self._get_index_def())
+            self._update_index()
+
+
+class RowConfig(ColumnConfig):
+
+    def _get_index_def(self):
+        definition = dict(GridLayoutStrategy.ROW_DEF)
+        row = self.widget.grid_info()["row"] if self.is_grid(self.widget) else 0
+        definition["value"] = row
+        return definition
+
+    def _get_prop(self, prop, widget):
+        info = widget.layout.rowconfigure(widget.grid_info()["row"])
+        return info.get(prop)
+
+    def _set_prop(self, prop, value, widget):
+        row = int(widget.grid_info()["row"])
+        widget.layout.rowconfigure(row, **{prop: value})
+        if not hasattr(widget.layout, "_row_conf"):
+            widget.layout._row_conf = {row}
+        else:
+            widget.layout._row_conf.add(row)
+
+    def _update_index(self):
+        self._index.set(self.widget.grid_info()["row"])
+
+    def get_definition(self):
+        if not self.is_grid(self.widget):
+            return {}
+        return self.widget.layout.layout_strategy.get_row_def(self.widget)
+
+
+class GridConfig(Frame):
+
+    def __init__(self, master, pane, **cnf):
+        super().__init__(master)
+        self._title = Label(self, **self.style.text_accent)
+        self._title.pack(side="top", fill="x")
+        self._tab_view = TabView(self)
+        self._tab_view.pack(fill="both")
+        self.column_config = ColumnConfig(self, pane, **cnf)
+        self.row_config = RowConfig(self, pane, **cnf)
+        self._tab_view.add(self.column_config, text="Column")
+        self._tab_view.add(self.row_config, text="Row")
+
+
 class LayoutGroup(StyleGroup):
+
+    handles_layout = True
 
     def __init__(self, master, pane, **cnf):
         super().__init__(master, pane, **cnf)
         self.label = "Layout"
         self._prev_layout = None
+        self._grid_config = GridConfig(self.body, pane)
 
     def _get_prop(self, prop, widget):
         info = widget.layout.layout_strategy.info(widget)
@@ -244,6 +348,13 @@ class LayoutGroup(StyleGroup):
             self.label = f"Layout ({widget.layout.layout_strategy.name})"
         else:
             self.label = "Layout"
+
+        if not self.can_optimize():
+            self._hide(self._grid_config)
+        if widget.layout.layout_strategy.__class__ == GridLayoutStrategy:
+            self._show(self._grid_config)
+        else:
+            self._hide(self._grid_config)
 
     def can_optimize(self):
         layout_strategy = self.widget.layout.layout_strategy
@@ -291,6 +402,9 @@ class StylePane(BaseFeature):
         self._layout_group = self.add_group(LayoutGroup)
         self._attribute_group = self.add_group(AttributeGroup)
 
+        self.add_group_instance(self._layout_group._grid_config.column_config)
+        self.add_group_instance(self._layout_group._grid_config.row_config)
+
         self._empty_frame = Frame(self.body)
         self.show_empty()
         self._current = None
@@ -321,8 +435,13 @@ class StylePane(BaseFeature):
             raise ValueError('type required.')
         group = group_class(self.body.body, self)
         self.groups.append(group)
-        group.pack(side='top', fill='x', pady=4)
+        group.pack(side='top', fill='x', pady=12)
         return group
+
+    def add_group_instance(self, group_instance):
+        if not isinstance(group_instance, StyleGroup):
+            raise ValueError('Expected object of type StyleGroup.')
+        self.groups.append(group_instance)
 
     def show_empty(self):
         self.remove_empty()
@@ -352,7 +471,9 @@ class StylePane(BaseFeature):
         self.body.update_idletasks()
 
     def layout_for(self, widget):
-        self._layout_group.on_widget_change(widget)
+        for group in self.groups:
+            if group.handles_layout:
+                group.on_widget_change(widget)
 
     def on_select(self, widget):
         self.styles_for(widget)

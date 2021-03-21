@@ -94,6 +94,13 @@ class BaseConverter(xml.BaseConverter):
         for sub_node in node:
             if sub_node.tag == "event":
                 builder._event_map[obj].append(dict(sub_node.attrib))
+            elif sub_node.tag == "grid":
+                if sub_node.attrib.get("column"):
+                    column = sub_node.attrib.pop("column")
+                    obj.columnconfigure(column, **sub_node.attrib)
+                elif sub_node.attrib.get("row"):
+                    row = sub_node.attrib.pop("row")
+                    obj.rowconfigure(row, **sub_node.attrib)
         return obj
 
 
@@ -166,6 +173,7 @@ class Builder:
     _ignore_tags = (
         *_menu_item_types,
         "event",
+        "grid"
     )
 
     def __init__(self, parent, **kwargs):

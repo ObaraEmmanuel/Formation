@@ -563,6 +563,49 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         },
     }
 
+    GRID_CONFIG_DEFINITION = {
+        "minsize": {
+            "display_name": "minsize",
+            "type": "dimension",
+            "units": "pixels",
+            "name": "minsize",
+            "default": 0,
+        },
+        "pad": {
+            "display_name": "pad",
+            "type": "dimension",
+            "units": "pixels",
+            "name": "pad",
+            "default": 0
+        },
+        "weight": {
+            "display_name": "weight",
+            "type": "number",
+            "name": "weight",
+            "default": 0
+        },
+        "uniform": {
+            "display_name": "uniform",
+            "type": "text",
+            "name": "uniform",
+            "default": None
+        }
+    }
+
+    COLUMN_DEF = {
+        "display_name": "column",
+        "type": "number",
+        "name": "column",
+        "readonly": True
+    }
+
+    ROW_DEF = {
+        "display_name": "row",
+        "type": "number",
+        "name": "row",
+        "readonly": True
+    }
+
     def __init__(self, master):
         super().__init__(master)
         self._highlighter = WidgetHighlighter(self.container.parent)
@@ -737,6 +780,20 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         for prop in ("width", "height"):
             if prop not in keys:
                 definition.pop(prop)
+        return definition
+
+    def get_row_def(self, widget=None, row=None):
+        definition = dict(self.GRID_CONFIG_DEFINITION)
+        row_info = self.container.rowconfigure(widget.grid_info()["row"] if row is None else row)
+        for key in definition:
+            definition[key]["value"] = row_info[key]
+        return definition
+
+    def get_column_def(self, widget=None, column=None):
+        definition = dict(self.GRID_CONFIG_DEFINITION)
+        column_info = self.container.columnconfigure(widget.grid_info()["column"] if column is None else column)
+        for key in definition:
+            definition[key]["value"] = column_info[key]
         return definition
 
     def copy_layout(self, widget, from_):

@@ -268,6 +268,13 @@ class TextMixin:
     def set(self, value):
         self._entry.set(value)
 
+    def set_def(self, definition):
+        if definition.get("readonly", False):
+            self._entry.config(state='disabled')
+        else:
+            self._entry.config(state="normal")
+        super().set_def(definition)
+
 
 class Text(TextMixin, Editor):
 
@@ -280,11 +287,6 @@ class Text(TextMixin, Editor):
         self._entry.on_entry(self._change)
         self.set_def(style_def)
 
-    def set_def(self, definition):
-        if definition.get("readonly", False):
-            self._entry.config(state='disabled')
-        super().set_def(definition)
-
 
 class Number(TextMixin, Editor):
 
@@ -296,6 +298,7 @@ class Number(TextMixin, Editor):
         self._entry.set_validator(numeric_limit, -9999, 9999)
         self._entry.pack(fill="x")
         self._entry.on_change(self._change)
+        super(Number, self).set_def(style_def)
 
 
 class Float(Number):
@@ -304,6 +307,7 @@ class Float(Number):
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
         self._entry.set_validator(Float.validator)
+        self.set_def(style_def)
 
 
 class Duration(TextMixin, Editor):

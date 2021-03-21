@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tkinter.Frame xmlns:attr="http://www.hoversetformationstudio.com/styles/" xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="frame" attr:layout="GridLayout" layout:width="616" layout:height="562" layout:x="30" layout:y="30">
+  <grid row="0" minsize="10" pad="10" weight="1" uniform="sample"/>
+  <grid column="0" minsize="30" pad="10" weight="2"/>
+  <grid column="1" weight="1"/>
+  <tkinter.ttk.Button name="btn1" attr:text="Button_1" layout:width="" layout:sticky="ew" layout:row="0" layout:column="0"/>
+  <tkinter.ttk.Button name="btn2" attr:text="Button_2" layout:width="" layout:sticky="ew" layout:row="0" layout:column="1"/>
+</tkinter.Frame>

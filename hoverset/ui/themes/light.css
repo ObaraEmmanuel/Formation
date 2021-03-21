@@ -146,7 +146,7 @@
     background: #f0f0f0;
     foreground: #202020;
     disabledbackground: #f0f0f0;
-    disabledforeground: #202020;
+    disabledforeground: #707070;
     relief: flat;
     insertbackground: #202020;
     font: TkDefaultFont 10;

@@ -16,6 +16,7 @@ from studio.lib import legacy, native
 from studio.lib.menu import menu_config, MENU_ITEM_TYPES
 from studio.lib.pseudo import Container, PseudoWidget
 from studio.lib.events import make_event
+from studio.lib.layouts import GridLayoutStrategy
 
 
 def get_widget_impl(widget):
@@ -72,16 +73,37 @@ class BaseConverter(xml.BaseConverter):
                 bind_dict = {k: str(bind_dict[k]) for k in bind_dict}
                 event_node = cls.create_element(node, "event")
                 event_node.attrib.update(bind_dict)
+
+        if isinstance(widget, Container) and widget.layout_strategy.__class__ == GridLayoutStrategy:
+            layout = widget.layout_strategy
+            if hasattr(widget, "_row_conf"):
+                for row in widget._row_conf:
+                    r_info = layout.get_row_def(None, row)
+                    modified = {i: str(r_info[i]["value"]) for i in r_info if r_info[i]["value"] != r_info[i]["default"]}
+                    row_node = cls.create_element(node, "grid")
+                    row_node.attrib["row"] = str(row)
+                    row_node.attrib.update(modified)
+            if hasattr(widget, "_column_conf"):
+                for column in widget._column_conf:
+                    c_info = layout.get_column_def(None, column)
+                    modified = {i: str(c_info[i]["value"]) for i in c_info if c_info[i]["value"] != c_info[i]["default"]}
+                    column_node = cls.create_element(node, "grid")
+                    column_node.attrib["column"] = str(column)
+                    column_node.attrib.update(modified)
+
         return node
 
     @classmethod
     def from_xml(cls, node, designer, parent, bounds=None):
         obj_class = cls._get_class(node)
-        styles = cls.attrib(node).get("attr", {})
+        attrib = cls.attrib(node)
+        styles = attrib.get("attr", {})
         if obj_class in (native.VerticalPanedWindow, native.HorizontalPanedWindow):
+            # use copy to maintain integrity of XMLForm on pop
+            styles = dict(styles)
             if 'orient' in styles:
                 styles.pop('orient')
-        layout = cls.attrib(node).get("layout", {})
+        layout = attrib.get("layout", {})
         obj = designer.load(obj_class, node.attrib.get("name"), parent, styles, layout, bounds)
         for sub_node in node:
             if sub_node.tag == "event":
@@ -89,6 +111,21 @@ class BaseConverter(xml.BaseConverter):
                 if not hasattr(obj, "_event_map_"):
                     obj._event_map_ = {}
                 obj._event_map_[binding.id] = binding
+            elif sub_node.tag == "grid":
+                # we may pop stuff so use a copy
+                sub_attrib = dict(sub_node.attrib)
+                if sub_attrib.get("column"):
+                    column = sub_attrib.pop("column")
+                    obj.columnconfigure(column, sub_attrib)
+                    if not hasattr(obj, "_column_conf"):
+                        obj._column_conf = set()
+                    obj._column_conf.add(int(column))
+                elif sub_attrib.get("row"):
+                    row = sub_attrib.pop("row")
+                    obj.rowconfigure(row, sub_attrib)
+                    if not hasattr(obj, "_row_conf"):
+                        obj._row_conf = set()
+                    obj._row_conf.add(int(row))
         return obj
 
     @staticmethod
@@ -193,7 +230,8 @@ class XMLForm:
         }
         self._ignore_tags = (
             *MENU_ITEM_TYPES,
-            "event"
+            "event",
+            "grid"
         )
         self.designer = designer
         self.root = None

@@ -146,7 +146,7 @@
     background: #303030;
     foreground: #f7f7f7;
     disabledbackground: #303030;
-    disabledforeground: #f7f7f7;
+    disabledforeground: #a0a0a0;
     relief: flat;
     insertbackground: #f7f7f7;
     font: TkDefaultFont 10;

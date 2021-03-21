@@ -66,6 +66,29 @@ class GridLayoutTestCase(unittest.TestCase):
         self.assertEqual(btn6.cget("height"), 1)
 
 
+class GridConfigTestCase(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.builder = AppBuilder(path=get_resource("grid_conf.xml"))
+
+    def test_row_conf(self):
+        row_inf = self.builder.frame.rowconfigure(0)
+        self.assertEqual(row_inf["minsize"], 10)
+        self.assertEqual(row_inf["pad"], 10)
+        self.assertEqual(row_inf["weight"], 1)
+        self.assertEqual(row_inf["uniform"], "sample")
+
+    def test_column_conf(self):
+        column_inf = self.builder.frame.columnconfigure(0)
+        self.assertEqual(column_inf["minsize"], 30)
+        self.assertEqual(column_inf["pad"], 10)
+        self.assertEqual(column_inf["weight"], 2)
+
+        column_inf = self.builder.frame.columnconfigure(1)
+        self.assertEqual(column_inf["weight"], 1)
+
+
 class PackLayoutTestCase(unittest.TestCase):
 
     @classmethod
