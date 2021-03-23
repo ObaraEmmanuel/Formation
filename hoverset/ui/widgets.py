@@ -1810,7 +1810,10 @@ class Popup(PositionMixin, Window):
     def destroy(self):
         self.grab_release()
         if self._grabbed:
-            self._grabbed.grab_set()  # Return the grab to whichever widget had it if any
+            try:
+                self._grabbed.grab_set()  # Return the grab to whichever widget had it if any
+            except tk.TclError:
+                pass
         super().destroy()
         if self._close_func is not None:
             self._close_func()
@@ -2276,6 +2279,8 @@ class Spinner(Frame):
             self._values.remove(value)
 
     def set(self, value):
+        if self.get() == value:
+            return
         if value in self._values:
             if self._value_item:
                 self._value_item.pack_forget()
@@ -2298,7 +2303,7 @@ class Spinner(Frame):
         self._entry.disabled(flag)
 
     def get(self):
-        if self._value_item.get() is None:
+        if self._value_item is None:
             return None
         return self._value_item.get()
 

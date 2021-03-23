@@ -104,9 +104,10 @@ class ComponentTree(BaseFeature):
     def on_widget_layout_change(self, widget):
         node = widget.node
         if widget.layout == self.studio.designer:
-            self._tree.insert(None, node)
+            parent = self._tree
         else:
             parent = widget.layout.node
+        if node.parent_node != parent:
             parent.insert(None, node)
 
     def on_session_clear(self):

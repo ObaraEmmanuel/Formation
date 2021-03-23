@@ -453,24 +453,18 @@ class StylePane(BaseFeature):
         self._empty_frame.clear_children()
         self._empty_frame.place_forget()
 
-    def show_loading(self):
-        self.remove_empty()
-        self._empty_frame.place(x=0, y=0, relheight=1, relwidth=1)
-        Label(self._empty_frame, text="Loading...",
-              **self.style.text_passive).place(x=0, y=0, relheight=1, relwidth=1)
-
     def styles_for(self, widget):
         self._current = widget
         if widget is None:
             self.show_empty()
             return
-        self.show_loading()
         for group in self.groups:
             group.on_widget_change(widget)
         self.remove_empty()
         self.body.update_idletasks()
 
     def layout_for(self, widget):
+        self.remove_empty()
         for group in self.groups:
             if group.handles_layout:
                 group.on_widget_change(widget)
