@@ -40,8 +40,8 @@ class ValidatorTestCase(unittest.TestCase):
 
     def test_test_limit(self):
         self.assertTrue(limit(20, 300)("25.6"))
-        self.assertFalse(limit(20, 300)("20"))
-        self.assertFalse(limit(20, 300)("300"))
+        self.assertTrue(limit(20, 300)("20"))
+        self.assertTrue(limit(20, 300)("300"))
         self.assertFalse(limit(20, 300)("2000"))
         self.assertFalse(limit(20, 300)("gkgllk"))
 

@@ -207,17 +207,17 @@ class _RgbModel(Frame):
         self.r = SpinBox(self, **rgb_spinbox)
         self.r.on_change(master.change, True)
         self.r.on_entry(master.change)
-        self.r.set_validator(numeric_limit, 0, 256)
+        self.r.set_validator(numeric_limit, 0, 255)
         self.r.grid(row=0, column=0, pady=1, padx=1)
         self.g = SpinBox(self, **rgb_spinbox)
         self.g.on_change(master.change, True)
         self.g.on_entry(master.change)
-        self.g.set_validator(numeric_limit, 0, 256)
+        self.g.set_validator(numeric_limit, 0, 255)
         self.g.grid(row=0, column=1, pady=1, padx=1)
         self.b = SpinBox(self, **rgb_spinbox)
         self.b.on_change(master.change, True)
         self.b.on_entry(master.change)
-        self.b.set_validator(numeric_limit, 0, 256)
+        self.b.set_validator(numeric_limit, 0, 255)
         self.b.grid(row=0, column=2, pady=1, padx=1)
         Label(self, text="R", **self.style.text).grid(row=1, column=0, sticky="ew")
         Label(self, text="G", **self.style.text).grid(row=1, column=1, sticky="ew")
@@ -228,7 +228,7 @@ class _RgbModel(Frame):
         # return the hex color string
         rgb = self.r.get(), self.g.get(), self.b.get()
         # we shield ourselves from errors raised when trying to parse empty values
-        if any([i == "" for i in rgb]):
+        if any(i == "" for i in rgb):
             return self.initial
         return to_hex(rgb)
 
@@ -251,7 +251,7 @@ class _HslModel(Frame):
         self.h = SpinBox(self, **self.style.spinbox, width=4, from_=0, to=360)
         self.h.on_change(master.change, True)
         self.h.on_entry(master.change)
-        self.h.set_validator(numeric_limit, 0, 361)
+        self.h.set_validator(numeric_limit, 0, 360)
         self.h.grid(row=0, column=0, pady=1, padx=1)
 
         # ========= saturation and luminosity are percentages ===========
@@ -260,12 +260,12 @@ class _HslModel(Frame):
         self.s = SpinBox(self, **percent_spinbox)
         self.s.on_change(master.change, True)
         self.s.on_entry(master.change)
-        self.s.set_validator(numeric_limit, 0, 101)
+        self.s.set_validator(numeric_limit, 0, 100)
         self.s.grid(row=0, column=1, pady=1, padx=1)
         self.l = SpinBox(self, **percent_spinbox)
         self.l.on_change(master.change, True)
         self.l.on_entry(master.change)
-        self.l.set_validator(numeric_limit, 0, 101)
+        self.l.set_validator(numeric_limit, 0, 100)
         self.l.grid(row=0, column=2, pady=1, padx=1)
 
         # ===============================================================
@@ -273,16 +273,21 @@ class _HslModel(Frame):
         Label(self, text="H", **self.style.text).grid(row=1, column=0, sticky="ew")
         Label(self, text="S", **self.style.text).grid(row=1, column=1, sticky="ew")
         Label(self, text="L", **self.style.text).grid(row=1, column=2, sticky="ew")
+        self.initial = "#000000"
 
     def get(self) -> str:
         # return the hex color string
-        return to_hex(from_hsl((self.h.get(), self.s.get(), self.l.get())))
+        hsl = self.h.get(), self.s.get(), self.l.get()
+        if any(i == "" for i in hsl):
+            return self.initial
+        return to_hex(from_hsl(hsl))
 
     def set(self, hex_str: str) -> None:
         h, s, l = to_hsl(to_rgb(hex_str))
         self.h.set(round(h))
         self.s.set(round(s))
         self.l.set(round(l))
+        self.initial = hex_str
 
 
 class _HsvModel(Frame):
@@ -296,7 +301,7 @@ class _HsvModel(Frame):
         self.h = SpinBox(self, **self.style.spinbox, from_=0, to=360, width=4)
         self.h.on_change(master.change, True)
         self.h.on_entry(master.change)
-        self.h.set_validator(numeric_limit, 0, 361)
+        self.h.set_validator(numeric_limit, 0, 360)
         self.h.grid(row=0, column=0, pady=1, padx=1)
 
         # ========= saturation and value are percentages ===========
@@ -305,12 +310,12 @@ class _HsvModel(Frame):
         self.s = SpinBox(self, **percent_spinbox)
         self.s.on_change(master.change, True)
         self.s.on_entry(master.change)
-        self.s.set_validator(numeric_limit, 0, 101)
+        self.s.set_validator(numeric_limit, 0, 100)
         self.s.grid(row=0, column=1, pady=1, padx=1)
         self.v = SpinBox(self, **percent_spinbox)
         self.v.on_change(master.change, True)
         self.v.on_entry(master.change)
-        self.v.set_validator(numeric_limit, 0, 101)
+        self.v.set_validator(numeric_limit, 0, 100)
         self.v.grid(row=0, column=2, pady=1, padx=1)
 
         # ===============================================================
@@ -318,17 +323,22 @@ class _HsvModel(Frame):
         Label(self, text="H", **self.style.text).grid(row=1, column=0, sticky="ew")
         Label(self, text="S", **self.style.text).grid(row=1, column=1, sticky="ew")
         Label(self, text="V", **self.style.text).grid(row=1, column=2, sticky="ew")
+        self.initial = "#000000"
 
     def get(self) -> str:
         # return the hex color string
         # remember s and v are percentages and underlying hsv converter works with values from 0 to 255
-        return to_hex(from_hsv((self.h.get(), self.s.get(), self.v.get())))
+        hsv = self.h.get(), self.s.get(), self.v.get()
+        if any(i == "" for i in hsv):
+            return self.initial
+        return to_hex(from_hsv(hsv))
 
     def set(self, hex_str: str) -> None:
         h, s, v = to_hsv(to_rgb(hex_str))
         self.h.set(round(h))
         self.s.set(round(s))
         self.v.set(round(v))
+        self.initial = hex_str
 
 
 class FontPicker(Button):
@@ -495,7 +505,7 @@ class FontInput(Frame):
 if __name__ == "__main__":
     root = Application()
     root.load_styles("themes/default.css")
-    input = ColorInput(root)
-    input.set("#5a5a5a")
-    input.pack()
+    c_input = ColorInput(root)
+    c_input.set("#5a5a5a")
+    c_input.pack()
     root.mainloop()

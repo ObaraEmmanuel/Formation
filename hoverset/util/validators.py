@@ -93,7 +93,7 @@ check_hex_color = validate_any(is_empty, is_hex_color)
 
 def limit(lower, upper):
     """
-    validator that ensures a floating point value is within the stated lower and upper bounds
+    validator that ensures a floating point value is within the stated lower and upper bounds inclusive
     :param lower: An int value representing the lower bound below which the number is considered invalid
     :param upper:  An int value representing the upper bound above which the number is considered invalid
     :return: a validator function for the given bounds
@@ -102,13 +102,13 @@ def limit(lower, upper):
     # No need to fear using int here since @is_numeric shields us from any non numeric values
     def validator(number):
         if is_floating_numeric(number):
-            return lower < float(number) < upper
+            return lower <= float(number) <= upper
         return False
 
     return validator
 
 
-def numeric_limit(value, upper, lower):
+def numeric_limit(value, lower, upper):
     """
     A limit validator adjusted to allow for leniency during typing by the user
     while restricting the user to whole numbers
@@ -117,4 +117,4 @@ def numeric_limit(value, upper, lower):
     :param upper:  An int value representing the upper bound above which the number is considered invalid
     :return: true if number lies within bounds
     """
-    return validate_any(is_empty, validate_all(is_numeric, limit(upper, lower)))(value)
+    return validate_any(is_empty, validate_all(is_numeric, limit(lower, upper)))(value)
