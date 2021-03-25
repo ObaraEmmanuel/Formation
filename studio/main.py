@@ -358,7 +358,12 @@ class StudioApplication(Application):
 
     def set_path(self, path):
         if path:
-            self.title("Formation studio" + " - " + path)
+            file_dir = os.path.dirname(path)
+            if os.path.exists(file_dir):
+                # change working directory
+                os.chdir(file_dir)
+        path = path or "untitled"
+        self.title("Formation studio" + " - " + str(path))
 
     @dynamic_menu
     def _create_recent_menu(self, menu):
@@ -388,8 +393,8 @@ class StudioApplication(Application):
             )
             return
         if path:
-            self.designer.open_xml(path)
             self.set_path(path)
+            self.designer.open_xml(path)
             pref.update_recent(path)
 
     def open_recent(self, path):
@@ -397,7 +402,7 @@ class StudioApplication(Application):
 
     def open_new(self):
         self.designer.open_new()
-        self.set_path('untitled')
+        self.set_path(None)
 
     def save(self):
         path = self.designer.save()

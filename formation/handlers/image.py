@@ -1,5 +1,7 @@
 import itertools
 import math
+import os
+import pathlib
 
 from PIL import ImageTk, Image
 
@@ -68,5 +70,8 @@ def handle(widget, config, **kwargs):
     handle_method = kwargs.get("handle_method")
     builder = kwargs.get("builder")
     for prop in props:
-        image = Image.open(props[prop])
+        path = pathlib.Path(props[prop])
+        if not path.is_absolute() and builder.path is not None:
+            path = pathlib.Path(os.path.dirname(builder.path), path)
+        image = Image.open(path)
         load_image_to_widget(widget, image, prop, builder, handle_method)

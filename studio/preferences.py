@@ -36,7 +36,8 @@ defaults = {
         "frame_skip": 4,
         "xml": {
             "pretty_print": True,
-        }
+        },
+        "image_path": 'mixed'
     },
     "resource": {
         "icon_cache_color": "#ffffff",
@@ -54,8 +55,8 @@ templates = {
                 "requires_restart": True,
                 "extra": {
                     "choices": (
-                        ("default.css", "Dark", ),
-                        ("light.css", "Light", ),
+                        ("default.css", "Dark",),
+                        ("light.css", "Light",),
                     )
                 }
             },
@@ -122,6 +123,20 @@ templates = {
                 "desc": "Pretty print output xml",
                 "path": "designer::xml::pretty_print",
                 "element": Check,
+            },
+        ),
+        "Image options": (
+            {
+                "desc": "When selecting image",
+                "path": "designer::image_path",
+                "element": RadioGroup,
+                "extra": {
+                    "choices": (
+                        ("mixed", "Use relative paths when in same directory as design file"),
+                        ("relative", "Always use path relative to design file if possible"),
+                        ("absolute", "Always use absolute paths")
+                    )
+                }
             },
         )
     },

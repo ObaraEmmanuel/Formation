@@ -6,6 +6,7 @@ Contains all the widget representations used in the designer and specifies all t
 # ======================================================================= #
 
 import os
+import pathlib
 import re
 import sys
 from tkinter import BooleanVar, filedialog, StringVar
@@ -19,6 +20,7 @@ from hoverset.util.color import to_hex
 from hoverset.util.validators import numeric_limit, validate_any, is_empty, is_floating_numeric, is_signed
 from studio.lib.properties import all_supported_cursors, BUILTIN_BITMAPS
 from studio.lib.variables import VariableManager, VariableItem
+from studio.preferences import Preferences
 
 
 class Editor(Frame):
@@ -482,6 +484,26 @@ class Image(Text):
     def _pick(self, *_):
         path = filedialog.askopenfilename(parent=self)
         if path:
+            try:
+                pref = Preferences.acquire()
+                path_opt = pref.get("designer::image_path")
+            except:
+                path_opt = "absolute"
+
+            if path_opt == "absolute":
+                # use path as is (absolute)
+                pass
+            else:
+                path = pathlib.Path(path)
+                current = pathlib.Path(os.getcwd())
+                if (current in path.parents and path_opt == "mixed") or path_opt == "relative":
+                    # use relative path
+                    try:
+                        # use relative path if possible
+                        path = os.path.relpath(path, current)
+                    except ValueError:
+                        pass
+                path = str(path)
             self._entry.set(path)
             if self._on_change:
                 self._on_change(path)

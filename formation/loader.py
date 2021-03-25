@@ -5,6 +5,7 @@ Contains classes that load formation xml design files and generate user interfac
 # Copyright (c) 2020 Hoverset Group.                                      #
 # ======================================================================= #
 import logging
+import os
 from collections import defaultdict
 from importlib import import_module
 
@@ -186,6 +187,7 @@ class Builder:
         # stores command names for deferred connection to methods
         self._command_map = []
         self._root = None
+        self._path = None
 
         if kwargs.get("path"):
             self.load_path(kwargs.get("path"))
@@ -218,6 +220,16 @@ class Builder:
                 continue
             self._load_widgets(sub_node, builder, widget)
         return widget
+
+    @property
+    def path(self):
+        """
+        Get absolute path to loaded xml file if available
+
+        :return: path to currently loaded xml file if builder was loaded
+            from path else ``None``
+        """
+        return self._path
 
     def connect_callbacks(self, object_or_dict):
         """
@@ -315,6 +327,7 @@ class Builder:
         :return: root widget
         """
         with open(path, "rb") as stream:
+            self._path = os.path.abspath(path)
             tree = etree.parse(stream)
             node = tree.getroot()
         self._root = self._load_xml(node)
