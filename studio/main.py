@@ -564,7 +564,8 @@ class StudioApplication(Application):
             if self._exit_failures >= 2:
                 force = self._force_exit_prompt()
                 if force:
-                    self.destroy()
+                    # exit by all means necessary
+                    sys.exit(1)
 
     def get_help(self):
         # Entry point for studio help functionality
