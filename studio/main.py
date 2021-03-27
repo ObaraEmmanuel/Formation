@@ -146,7 +146,7 @@ class StudioApplication(Application):
                     ("command", "close preview", icon("close", 14, 14), actions.get('STUDIO_PREVIEW_CLOSE'), {})
                 )
             )}),
-            ("cascade", "Window", None, None, {"menu": (
+            ("cascade", "View", None, None, {"menu": (
                 ("command", "show all", blank_img, actions.get('FEATURE_SHOW_ALL'), {}),
                 ("command", "close all", icon("close", 14, 14), actions.get('FEATURE_CLOSE_ALL'), {}),
                 ("command", "close all on the right", blank_img, actions.get('FEATURE_CLOSE_RIGHT'), {}),
@@ -423,10 +423,10 @@ class StudioApplication(Application):
     def get_features_as_menu(self):
         # For each feature we create a menu template
         # The command value is the self.maximize method which will reopen the feature
-        return [("command",  # Type
-                 f.name, get_icon_image(f.icon, 14, 14),  # Label, image
+        return [("checkbutton",  # Type
+                 f.name, None,  # Label, image
                  functools.partial(f.toggle),  # Command built from feature
-                 {}) for f in self.features]
+                 {"variable": f.is_visible}) for f in self.features]
 
     def save_window_positions(self):
         for feature in self.features:

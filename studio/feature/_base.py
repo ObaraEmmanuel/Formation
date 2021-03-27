@@ -51,7 +51,8 @@ class BaseFeature(Frame):
         if not self.__class__._view_mode:
             self.__class__._view_mode = StringVar(None, self.get_pref('mode'))
             self.__class__._transparency_flag = t = BooleanVar(None, self.get_pref('inactive_transparency'))
-            self.__class__._side = side = StringVar(None, self.get_pref('side'))
+            self.__class__._side = StringVar(None, self.get_pref('side'))
+            self.is_visible = BooleanVar(None, self.get_pref('visible'))
             t.trace_add("write", lambda *_: self.set_pref('inactive_transparency', t.get()))
         self.studio = studio
         self._header = Frame(self, **self.style.surface, **self.style.highlight_dim, height=30)
@@ -221,6 +222,7 @@ class BaseFeature(Frame):
             return
         self.studio.minimize(self)
         self.set_pref("visible", False)
+        self.is_visible.set(False)
 
     def maximize(self):
         if self.get_pref("mode") == "window":
@@ -229,6 +231,7 @@ class BaseFeature(Frame):
         else:
             self.studio.maximize(self)
         self.set_pref("visible", True)
+        self.is_visible.set(True)
 
     def toggle(self):
         if self.get_pref("visible"):
