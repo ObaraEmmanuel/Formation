@@ -15,7 +15,7 @@ from hoverset.ui.icons import get_icon_image
 from hoverset.ui.panels import FontInput, ColorPicker
 from hoverset.ui.pickers import ColorDialog
 from hoverset.ui.widgets import (CompoundList, Entry, SpinBox, Spinner, Frame, Application,
-                                 Label, ToggleButton, Button, Checkbutton)
+                                 Label, ToggleButton, Button, Checkbutton, suppress_change)
 from hoverset.ui import widgets
 from hoverset.util.color import to_hex
 from hoverset.util.validators import numeric_limit, validate_any, is_empty, is_floating_numeric, is_signed
@@ -111,6 +111,7 @@ class Boolean(Editor):
         if self._on_change is not None:
             self._on_change(self._var.get())
 
+    @suppress_change
     def set(self, value):
         self._var.set(bool(value))
         self._check.config(text=str(self._var.get()))
@@ -208,7 +209,7 @@ class Color(Editor):
         self._color_button.place(x=2, y=2, width=20, height=20)
         self._picker = ColorPicker(self, **self.style.button)
         self._picker.place(relx=1, x=-22, y=0, width=20, height=20)
-        self._picker.on_pick(self.set)
+        self._picker.on_pick(self._pick)
         self._entry.place(x=22, y=0, relheight=1, relwidth=1, width=-46)
         self._entry.on_change(self._change)
 
@@ -219,6 +220,10 @@ class Color(Editor):
             self._color_button.config(bg=value)
             if self._on_change:
                 self._on_change(value)
+
+    def _pick(self, value):
+        self.set(value)
+        self._change(value)
 
     def _parse_color(self, value):
         try:
@@ -231,6 +236,7 @@ class Color(Editor):
     def get(self):
         return self._entry.get()
 
+    @suppress_change
     def set(self, value):
         self.adjust(value)
 
@@ -268,6 +274,7 @@ class TextMixin:
     def get(self):
         return self._entry.get()
 
+    @suppress_change
     def set(self, value):
         self._entry.set(value)
 
@@ -631,6 +638,8 @@ if __name__ == '__main__':
     root.load_styles("../../hoverset/ui/themes/default.css")
     boolean = Boolean(root)
     boolean.pack(side="top")
+    boolean.on_change(lambda x: print(x))
+    boolean.set(True)
 
     relief = Relief(root)
     relief.pack(side="top")
@@ -654,12 +663,12 @@ if __name__ == '__main__':
     color.on_change(lambda x: print(x))
     color.set("#dfdf45")
 
-    text = Text(root)
+    text = Textarea(root, {})
     text.pack(side="top")
     text.on_change(lambda x: print(x))
     text.set("This is a sample")
 
-    number = Number(root)
+    number = Number(root, {})
     number.pack(side="top")
     number.on_change(lambda x: print(x))
     number.set(456)

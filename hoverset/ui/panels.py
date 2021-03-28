@@ -357,7 +357,6 @@ class FontPicker(Button):
         if self.active:
             return
         self._grabbed = self.grab_current()  # Store the widget that has event grab if any
-        self._window.bind("<Visibility>", lambda _: self._window.grab_set())
         self.active = True
         self._window = Window(self.window)
         self._window.geometry('0x0')
@@ -366,6 +365,7 @@ class FontPicker(Button):
         self._indicator = Label(self._window, **self.style.text_accent)
         self._indicator.pack(fill="both", expand=True)
         self._window.pack_propagate(False)
+        self._window.bind("<Visibility>", lambda _: self.grab_set())
 
     def on_pick(self, callback, *args, **kwargs):
         self._on_pick = lambda color: callback(color, *args, **kwargs)
@@ -484,6 +484,7 @@ class FontInput(Frame):
         extra = ' '.join(extra)
         return f"{{{self._font.get()}}} {abs(self._size.get() or 0)} {{{extra}}}"
 
+    @suppress_change
     def set(self, value):
         if not value:
             for i in (self._italic, self._bold, self._underline, self._strike):

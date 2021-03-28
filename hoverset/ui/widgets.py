@@ -76,6 +76,7 @@ __all__ = (
     "clean_styles",
     "set_ttk_style",
     "system_fonts",
+    "suppress_change",
 )
 
 
@@ -249,6 +250,23 @@ def system_fonts():
     fonts = sorted(list(font.families()))
     fonts = list(filter(lambda x: not x.startswith("@"), fonts))
     return fonts
+
+
+def suppress_change(func):
+    """
+    Wraps a method to prevent it from emitting an on change event. Works with
+    the hoverset architecture where objects contain a _on_change attribute
+    for the callback fired on change
+    """
+
+    @functools.wraps(func)
+    def inner(self, *args, **kwargs):
+        temp = self._on_change
+        self._on_change = None
+        func(self, *args, **kwargs)
+        self._on_change = temp
+
+    return inner
 
 
 class EditableMixin:
