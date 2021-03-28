@@ -271,3 +271,11 @@
 .hyperlink{
     foreground: #228b22;
 }
+
+.textarea {
+    background: #f0f0f0;
+    foreground: #202020;
+    relief: flat;
+    insertbackground: #202020;
+    font: TkDefaultFont 10;
+}

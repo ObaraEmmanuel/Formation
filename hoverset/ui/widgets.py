@@ -63,9 +63,11 @@ __all__ = (
     "ScrolledFrame",
     "SpinBox",
     "Spinner",
+    "TabView",
     "ToggleButton",
     "ToolWindow",
     "TreeView",
+    "Text",
     "Widget",
     "WidgetError",
     "Window",
@@ -2940,6 +2942,43 @@ class TabView(Frame):
         self._tabs[tab].pack(fill="both", expand=True)
         tab.on_select()
         self._selected = tab
+
+
+class Text(Widget, tk.Text):
+
+    def __init__(self, master, **cnf):
+        self.setup(master)
+        super().__init__(master)
+        default = self.style.textarea
+        default.update(cnf)
+        self.configure(**default)
+        self._on_change = None
+        self._last_edit_implicit = False
+        self.bind("<<Modified>>", self._mod)
+
+    def get_all(self):
+        return str(self.get("1.0", tk.END)).strip()
+
+    def on_change(self, callback, *args, **kwargs):
+        self._on_change = lambda: callback(*args, **kwargs)
+
+    def _mod(self, *_):
+        flag = self.edit_modified()
+        # skip possible implicit modifications
+        if flag and not self._last_edit_implicit:
+            if self._on_change:
+                self._on_change()
+        self.edit_modified(False)
+        self._last_edit_implicit = False
+
+    def clear(self):
+        self.delete("1.0", tk.END)
+
+    def set(self, value):
+        self.clear()
+        super().insert("1.0", value)
+        # this will suppress the next <<Modified>> event fired as a result
+        self._last_edit_implicit = True
 
 
 if __name__ == "__main__":
