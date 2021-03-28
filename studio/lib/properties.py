@@ -455,7 +455,7 @@ PROPERTY_TABLE = {
     },
     "text": {
         "display_name": "text",
-        "type": "text",
+        "type": "textarea",
     },
     "textvariable": {
         "display_name": "textvariable",

@@ -16,6 +16,7 @@ from hoverset.ui.panels import FontInput, ColorPicker
 from hoverset.ui.pickers import ColorDialog
 from hoverset.ui.widgets import (CompoundList, Entry, SpinBox, Spinner, Frame, Application,
                                  Label, ToggleButton, Button, Checkbutton)
+from hoverset.ui import widgets
 from hoverset.util.color import to_hex
 from hoverset.util.validators import numeric_limit, validate_any, is_empty, is_floating_numeric, is_signed
 from studio.lib.properties import all_supported_cursors, BUILTIN_BITMAPS
@@ -288,6 +289,21 @@ class Text(TextMixin, Editor):
         self._entry.pack(fill="x")
         self._entry.on_entry(self._change)
         self.set_def(style_def)
+
+
+class Textarea(TextMixin, Editor):
+
+    def __init__(self, master, style_def=None):
+        super().__init__(master, style_def)
+        self.config(**self.style.highlight_active, height=60)
+        self._entry = widgets.Text(self, **self.style.textarea)
+        self._entry.configure(**self.style.no_highlight)
+        self._entry.pack(fill="x")
+        self._entry.on_change(self._change)
+        self.set_def(style_def)
+
+    def get(self):
+        return self._entry.get_all()
 
 
 class Number(TextMixin, Editor):

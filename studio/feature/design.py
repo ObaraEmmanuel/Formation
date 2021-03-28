@@ -6,12 +6,12 @@ Drag drop designer for the studio
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
 import time
-from tkinter import filedialog
+from tkinter import filedialog, ttk
 
 from hoverset.data import actions
 from hoverset.data.keymap import KeyMap
 from hoverset.data.images import get_tk_image
-from hoverset.ui.widgets import Label
+from hoverset.ui.widgets import Label, Text
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.menu import MenuUtils, LoadLater
 from hoverset.util.execution import Action, as_thread
@@ -145,6 +145,9 @@ class Designer(DesignPad, Container):
         )
         self._empty.config(**self.style.bright)
         self._show_empty(True)
+        self._text_editor = Text(self, wrap="word")
+        self._text_editor.on_change(self._text_change)
+        self._text_editor.bind("<FocusOut>", self._text_hide)
 
     def _get_designer(self):
         return self
@@ -347,6 +350,8 @@ class Designer(DesignPad, Container):
         obj.bind('<Shift-ButtonPress-1>', lambda e: self.highlight.set_function(self.highlight.move, e), add='+')
         obj.bind('<Motion>', self.on_motion, '+')
         obj.bind('<ButtonRelease>', self.highlight.clear_resize, '+')
+        if "text" in obj.keys():
+            obj.bind("<Double-Button-1>", lambda _: self._show_text_editor(obj))
         self.objects.append(obj)
         if self.root_obj is None:
             self.root_obj = obj
@@ -637,6 +642,38 @@ class Designer(DesignPad, Container):
 
         if obj.layout.layout_strategy.realtime_support:
             self.studio.widget_layout_changed(obj)
+
+    def _text_change(self):
+        self.studio.style_pane.apply_style("text", self._text_editor.get_all(), self.current_obj)
+
+    def _show_text_editor(self, widget):
+        assert widget == self.current_obj
+        self._text_editor.lift(widget)
+        cnf = self._collect_text_config(widget)
+        self._text_editor.config(**cnf)
+        self._text_editor.place(in_=widget, relwidth=1, relheight=1, x=0, y=0)
+        self._text_editor.clear()
+        self._text_editor.focus_set()
+        self._text_editor.insert("1.0", widget["text"])
+
+    def _collect_text_config(self, widget):
+        s = ttk.Style()
+        config = dict(
+            background="#ffffff",
+            foreground="#000000",
+            font="TkDefaultFont"
+        )
+        keys = widget.keys()
+        for opt in config:
+            if opt in keys:
+                config[opt] = (widget[opt] or config[opt])
+            else:
+                config[opt] = (s.lookup(widget.winfo_class(), opt) or config[opt])
+        config["insertbackground"] = config["foreground"]
+        return config
+
+    def _text_hide(self, *_):
+        self._text_editor.place_forget()
 
     def on_select(self, widget):
         self.select(widget)
