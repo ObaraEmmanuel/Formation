@@ -280,7 +280,6 @@ class Designer(DesignPad, Container):
                 progress.destroy()
 
     def save(self, new_path=False):
-        self.xml.generate()
         if not self.design_path or new_path:
             path = filedialog.asksaveasfilename(parent=self, filetypes=[("XML", "*.xml")],
                                                 defaultextension='.xml')
@@ -288,6 +287,7 @@ class Designer(DesignPad, Container):
                 return None
             self.design_path = path
         with open(self.design_path, 'w') as dump:
+            self.xml.generate()
             dump.write(self.xml.to_xml(
                 self.studio.pref.get("designer::xml::pretty_print")
             ))
@@ -688,7 +688,9 @@ class Designer(DesignPad, Container):
         if self.has_changed():
             save = self.save_prompt()
             if save:
-                self.save()
+                save_to = self.save()
+                if save_to is None:
+                    return False
             elif save is None:
                 return False
         return True
