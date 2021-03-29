@@ -124,7 +124,6 @@ class Designer(DesignPad, Container):
         self._padding = 30
         self.design_path = None
         self.xml = XMLForm(self)
-        self._load_progress = None
         self._shortcut_mgr = KeyMap(self._frame)
         self._set_shortcuts()
         self._last_click_pos = None
@@ -244,7 +243,12 @@ class Designer(DesignPad, Container):
         self.studio.on_session_clear(self)
         if path:
             self.xml = XMLForm(self)
-            self._load_design(path)
+            progress = MessageDialog.show_progress(
+                mode=MessageDialog.INDETERMINATE,
+                message='Loading design file to studio...',
+                parent=self.studio
+            )
+            self._load_design(path, progress)
         else:
             # if no path is supplied the default behaviour is to open a blank design
             self._open_default()
@@ -261,26 +265,19 @@ class Designer(DesignPad, Container):
         self.root_obj = None
 
     @as_thread
-    def _load_design(self, path):
+    def _load_design(self, path, progress=None):
         # Loading designs is elaborate so better do it on its own thread
-        self._load_progress = MessageDialog.show_progress(
-            mode=MessageDialog.INDETERMINATE,
-            message='Loading design file to studio...',
-            parent=self.studio
-        )
         # Capture any errors that occur while loading
         # This helps the user single out syntax errors and other value errors
         try:
             with open(path, 'rb') as dump:
                 self.root_obj = self.xml.load_xml(dump, self)
-                # store the file hash so we can check for changes later
                 self.design_path = path
         except Exception as e:
             MessageDialog.show_error(parent=self.studio, title='Error loading design', message=str(e))
         finally:
-            if self._load_progress:
-                self._load_progress.destroy()
-                self._load_progress = None
+            if progress:
+                progress.destroy()
 
     def save(self, new_path=False):
         self.xml.generate()
