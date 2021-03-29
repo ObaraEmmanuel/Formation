@@ -1,59 +1,68 @@
-![Formation logo](docs/_static/logo.png)
+![Formation logo](https://raw.githubusercontent.com/obaraemmanuel/Formation/master/docs/_static/logo.png)
 
 ![license](https://img.shields.io/github/license/ObaraEmmanuel/Formation)
 ![tests](https://github.com/ObaraEmmanuel/Formation/workflows/build/badge.svg)
 [![pypi version](https://img.shields.io/pypi/v/formation-studio.svg)](https://pypi.org/project/formation-studio/)
 ![python version](https://img.shields.io/badge/python-3.6+-blue.svg)
-![platforms](https://img.shields.io/badge/Platforms-Linux%20Windows-purple.svg)
+![platforms](https://img.shields.io/badge/Platforms-Linux%20|%20Windows%20|%20Mac%20(partial)-purple.svg)
 [![Documentation Status](https://readthedocs.org/projects/formation-studio/badge/?version=latest)](https://formation-studio.readthedocs.io/en/latest/?badge=latest)
 
 ## Introduction
 
-`Formation studio` is a tool that makes developing User interfaces in python a breeze. It allows developers 
-to focus on product functionality by doing the heavy lifting in terms of writing the interface code.
-Using a set of powerful tools, developers can quickly design interfaces, save them as 
-[XML](https://en.wikipedia.org/wiki/XML) files
-and load them into their code. Formation studio draws inspiration from other 
-[RAD](https://en.wikipedia.org/wiki/Rapid_application_development) tools such as 
+**Formation studio** is a tool that makes developing User interfaces in python a breeze. It allows developers to focus
+on product functionality by doing the heavy lifting in terms of writing the interface code. Using a set of powerful
+tools, developers can quickly design interfaces, save them as
+[XML](https://en.wikipedia.org/wiki/XML) files and load them into their code. Formation studio draws inspiration from
+other
+[RAD](https://en.wikipedia.org/wiki/Rapid_application_development) tools such as
 [Android Studio's](https://developer.android.com/studio) visual layout editor,
-[PAGE](http://page.sourceforge.net). The XML format used is largely similar to one used by
-android layout files. It currently support both tkinter and it's ttk extension.
+[PAGE](http://page.sourceforge.net). The XML format used is largely similar to one used by android layout files. It
+currently support both tkinter and it's ttk extension.
 
 ## Getting started
+
 ### Installation
-To use formation studio you will need to have installed python version 3.6 or higher. You can
-download and install python from [here](https://www.python.org/downloads/)
-.Proceed then and install formation using pip 
->**Note**: for some linux distributions you will need
-to have installed pip separately, follow [these](http://www.techmint.com/install-pip-in-linux/amp/) instructions)
+
+To use formation studio you will need to have installed python version 3.6 or higher. You can download and install
+python from [here](https://www.python.org/downloads/)
+.Proceed then and install formation using pip. This will install the latest stable version.
 
 ```bash
 pip install formation-studio
 ```
-if you have multiple python versions installed, to install for say python 3.7, use its pip tool
+
+If you want to install the development version directly from the master branch, the following command should suffice.
+> **note**: You will need to have installed git on your system as well as the stable formation studio release as shown above
+
 ```bash
-pip3.7 install formation-studio
+pip install --upgrade git+https://github.com/obaraemmanuel/Formation@master
 ```
 
 ### Launching
-After a successful installation you can launch the studio from the command line using the command
+
+After a successful installation, you can launch the studio from the command line using the command
+
 ```bash
 formation-studio
 ```
-The studio will open with a blank design as shown below
 
-![Formation window](docs/_static/formation-window.png)
+The studio will open with a blank design (This can be modified in the preferences). Below is a sample of the studio in
+action. With detachable tool windows, the studio is able to provide the flexibility required to get things done quickly.
 
-You can select widgets from the _**Components**_ pane at the top and drag them onto the stage. Click to
-select widgets on the workspace and customize them on _**Stylepane**_ to the right. You can view
-your widget hierarchies from the _**Component tree**_ at the bottom left. 
-To preview the the design, use the preview ("run button") on the toolbar.
-After you are satisfied with the design, save by heading to the menubar _File > Save_. 
-Below is a sample studio preview saved as `hello.xml`
+![Formation window](https://raw.githubusercontent.com/obaraemmanuel/Formation/master/docs/_static/showcase.png)
 
-![Sample design](docs/_static/hello.png)
+You can select widgets from the _**Components**_ pane at the top and drag them onto the stage. Click to select widgets
+on the workspace and customize them on _**Stylepane**_ to the right. You can view your widget hierarchies from the _**
+Component tree**_ at the bottom left. To preview the the design, use the preview ("run button") on the toolbar. After
+you are satisfied with the design, save by heading to the menubar _File > Save_. Below is a sample studio preview saved
+as `hello.xml`
+
+<p align="center">
+    <img alt="sample design" src="https://raw.githubusercontent.com/obaraemmanuel/Formation/master/docs/_static/hello.png"/>
+</p>
 
 The underlying xml uses namespaces and is as shown below:
+
 ```xml
 <tkinter.Frame 
     xmlns:attr="http://www.hoversetformationstudio.com/styles/" 
@@ -74,7 +83,8 @@ The underlying xml uses namespaces and is as shown below:
         layout:x="41" 
         layout:y="41"/>
     <tkinter.ttk.Button 
-        name="myButton" 
+        name="myButton"
+        attr:command="on_click"
         attr:text="Click me" 
         layout:width="95" 
         layout:height="30" 
@@ -83,9 +93,10 @@ The underlying xml uses namespaces and is as shown below:
 </tkinter.Frame>
 
 ```
->Note: this xml file has been manually formated to make it more legible but the actual xml file
->is minimally formatted since it's not expected that the developer will need to modify the xml
->file manually
+
+> Note: this xml file has been manually formatted to make it more legible. The actual xml file
+> is minimally formatted since it's not expected that the developer will need to modify the xml
+> file manually
 
 To load the design in your python code is as simple as:
 
@@ -93,7 +104,12 @@ To load the design in your python code is as simple as:
 # import the formation library which loads the design for you
 from formation import AppBuilder
 
+def on_click(event):
+    print("Button clicked")
+
 app = AppBuilder(path="hello.xml")
+
+app.connect_callbacks(globals()) # clicking the button will trigger the on_click function
 
 print(app.myLabel["text"]) # outputs text in the label 'Hello world!'
 print(app.myButton["text"]) # outputs text in the button 'Click me'
