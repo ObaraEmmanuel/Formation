@@ -101,7 +101,7 @@ class StyleGroup(CollapseFrame):
         self._hide(style_item)
 
     def _show(self, item):
-        item.pack(fill="x", pady=1)
+        item.pack(side="top", fill="x", pady=1)
 
     def _hide(self, item):
         item.pack_forget()
@@ -351,17 +351,22 @@ class LayoutGroup(StyleGroup):
         else:
             self.label = "Layout"
 
-        if not self.can_optimize():
-            self._hide(self._grid_config)
         if widget.layout.layout_strategy.__class__ == GridLayoutStrategy:
-            self._show(self._grid_config)
+            self._show_grid_conf(True)
         else:
-            self._hide(self._grid_config)
+            self._show_grid_conf(False)
+
+    def _show_grid_conf(self, flag):
+        if flag:
+            if not self._grid_config.winfo_ismapped():
+                self._grid_config.pack(side="bottom", fill="x", pady=1)
+        else:
+            self._grid_config.pack_forget()
 
     def can_optimize(self):
         layout_strategy = self.widget.layout.layout_strategy
         return layout_strategy.__class__ == self._prev_layout.__class__ \
-            and self._layout_equal(self.widget, self._prev_widget)
+               and self._layout_equal(self.widget, self._prev_widget)
 
     def get_definition(self):
         if self.widget is not None:
