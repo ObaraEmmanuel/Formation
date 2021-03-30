@@ -11,6 +11,7 @@ from collections import defaultdict
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Button, TabView
 from hoverset.util.execution import Action
+from hoverset.platform import platform_is, LINUX
 from studio.feature._base import BaseFeature
 from studio.ui.editors import StyleItem
 from studio.ui.widgets import CollapseFrame
@@ -121,6 +122,7 @@ class StyleGroup(CollapseFrame):
             for prop in definitions:
                 self.items[prop]._re_purposed(definitions[prop])
         else:
+            self.style_pane.show_loading()
             # this unmaps all style items returning them to the pool for reuse
             self.clear_children()
             self.items.clear()
@@ -409,6 +411,7 @@ class StylePane(BaseFeature):
         self.show_empty()
         self._current = None
         self._expanded = False
+        self._is_loading = False
 
     def create_menu(self):
         return (
@@ -453,6 +456,21 @@ class StylePane(BaseFeature):
         self._empty_frame.clear_children()
         self._empty_frame.place_forget()
 
+    def show_loading(self):
+        if platform_is(LINUX) or self._is_loading:
+            # render transitions in linux as very fast and glitch free
+            # for other platforms or at least for windows we need to hide the glitching
+            return
+        self.remove_empty()
+        self._empty_frame.place(x=0, y=0, relheight=1, relwidth=1)
+        Label(self._empty_frame, text="Loading...",
+              **self.style.text_passive).place(x=0, y=0, relheight=1, relwidth=1)
+        self._is_loading = True
+
+    def remove_loading(self):
+        self.remove_empty()
+        self._is_loading = False
+
     def styles_for(self, widget):
         self._current = widget
         if widget is None:
@@ -460,14 +478,14 @@ class StylePane(BaseFeature):
             return
         for group in self.groups:
             group.on_widget_change(widget)
-        self.remove_empty()
+        self.remove_loading()
         self.body.update_idletasks()
 
     def layout_for(self, widget):
-        self.remove_empty()
         for group in self.groups:
             if group.handles_layout:
                 group.on_widget_change(widget)
+        self.remove_loading()
 
     def on_select(self, widget):
         self.styles_for(widget)
