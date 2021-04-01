@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 from os import path
 
 import formation
@@ -12,11 +12,7 @@ with open(path.join(this_directory, "requirements.txt"), encoding='utf-8') as re
 
 setup(
     name='formation-studio',
-    packages=[
-        'hoverset', 'hoverset.data', 'hoverset.platform', 'hoverset.ui', 'hoverset.util',
-        'formation', 'formation.handlers',
-        'studio', 'studio.feature', 'studio.lib', 'studio.parsers', 'studio.ui', 'studio.tools'
-    ],
+    packages=find_packages(exclude=["*.test*"]),
     version=formation.__version__,
     license='MIT',
     description='Simplify GUI development in python',
