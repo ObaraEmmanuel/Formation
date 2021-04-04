@@ -248,6 +248,9 @@
     background: #303030;
     showhandle: 0;
     opaqueresize: 0;
+    proxybackground: #3d8aff;
+    proxyborderwidth: 1;
+    proxyrelief: flat;
 }
 
 .pane_horizontal {
