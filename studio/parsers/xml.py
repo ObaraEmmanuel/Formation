@@ -189,7 +189,7 @@ class MenuConverter(BaseConverter):
         size = menu.index(tk.END)
         if size is None:
             # menu is empty
-            return
+            size = -1
         menu_node = cls.create_element(node, get_widget_impl(menu))
         cls.load_attributes(cls.get_altered_options(menu), menu_node, 'attr')
         cls.load_attributes(item_opt, menu_node, 'menu')
