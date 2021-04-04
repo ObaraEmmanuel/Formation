@@ -333,6 +333,19 @@ PROPERTY_TABLE = {
         "display_name": "postcommand",
         "type": "callback",
     },
+    "proxybackground": {
+        "display_name": "proxy background",
+        "type": "color",
+    },
+    "proxyborderwidth": {
+        "display_name": "proxy border width",
+        "type": "dimension",
+        "units": "pixels",
+    },
+    "proxyrelief": {
+        "display_name": "proxy relief",
+        "type": "relief",
+    },
     "readonlybackground": {
         "display_name": "readonly background",
         "type": "color",
@@ -569,19 +582,6 @@ _unimplemented = {
     "_offset": {
         "display_name": "offset",
         "type": "color",
-    },
-    "_proxybackground": {
-        "display_name": "proxybackground",
-        "type": "color",
-    },
-    "_proxyborderwidth": {
-        "display_name": "proxyborderwidth",
-        "type": "dimension",
-        "units": "pixels",
-    },
-    "_proxyrelief": {
-        "display_name": "proxyrelief",
-        "type": "relief",
     },
     "_startline": {
         "display_name": "startline",
