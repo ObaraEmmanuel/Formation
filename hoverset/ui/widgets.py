@@ -567,14 +567,13 @@ class _Tooltip(tk.Toplevel):
         :param master: The parent window for the tooltip
         """
         super().__init__(master)
-        self.wm_attributes("-alpha", 0)
+        self.geometry(f"+{self.winfo_screenwidth() + 1000}+{self.winfo_screenheight() + 1000}")
         self.style = style
         self.overrideredirect(True)
         self.lift(master)
         render(self)
         self.config(**style.bright_highlight)
         self._position(xy)  # Determine the best position for the window given cursor coordinates xy
-        self.wm_attributes("-alpha", 1)
 
     def _position(self, xy):
         self.update_idletasks()  # refresh to get the updated position values
