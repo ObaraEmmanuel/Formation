@@ -56,7 +56,8 @@ class VariablePane(BaseFeature):
         self._delete_btn.on_click(self._delete)
         self._var_types_menu = self.make_menu(
             self._get_add_menu(),
-            self._add)
+            self._add, title="Add variable")
+        self._var_types_menu.configure(tearoff=True)
         self._add.config(menu=self._var_types_menu)
         self._selected = None
         self._links = {}

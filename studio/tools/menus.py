@@ -197,7 +197,7 @@ class MenuEditor(BaseToolWindow):
                 get_icon_image(_types[i][0], 14, 14),
                 functools.partial(self.add_item, i), {}
             ) for i in _types],
-            self._add)
+            self._add, title="Add menu item")
         menu_types.configure(tearoff=True)
         self._add.config(menu=menu_types)
         self._delete_btn = Button(self._tool_bar, image=get_icon_image("delete", 15, 15), **self.style.button,
