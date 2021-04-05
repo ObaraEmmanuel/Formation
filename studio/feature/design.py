@@ -13,7 +13,8 @@ from hoverset.data.keymap import KeyMap
 from hoverset.data.images import get_tk_image
 from hoverset.ui.widgets import Label, Text
 from hoverset.ui.dialogs import MessageDialog
-from hoverset.ui.menu import MenuUtils, LoadLater
+from hoverset.ui.icons import get_icon_image as icon
+from hoverset.ui.menu import MenuUtils, LoadLater, EnableIf
 from hoverset.util.execution import Action, as_thread
 from studio.lib.layouts import FrameLayoutStrategy
 from studio.lib.pseudo import PseudoWidget, Container, Groups
@@ -118,7 +119,8 @@ class Designer(DesignPad, Container):
         self.current_action = None
         self._displace_active = False
         self._last_displace = time.time()
-        self._frame.bind("<Button-1>", lambda *_: self.focus_set())
+        self._frame.bind("<Button-1>", lambda _: self.focus_set(), '+')
+        self._frame.bind("<Button-1>", self.set_pos, '+')
         self._frame.bind('<Motion>', self.on_motion, '+')
         self._frame.bind('<KeyRelease>', self._stop_displace, '+')
         self._padding = 30
@@ -134,6 +136,13 @@ class Designer(DesignPad, Container):
             (LoadLater(lambda: self.current_obj.create_menu() if self.current_obj else ()),),
             self.studio,
             self.style
+        )
+        self.set_up_context(
+            EnableIf(
+                lambda: self.studio._clipboard is not None,
+                ("command", "paste", icon("clipboard", 14, 14),
+                 lambda: self.paste(self.studio._clipboard, paste_to=self), {})
+            ),
         )
         self._coord_indicator = self.studio.install_status_widget(CoordinateIndicator)
         self._empty = Label(
@@ -153,6 +162,10 @@ class Designer(DesignPad, Container):
 
     def focus_set(self):
         self._frame.focus_force()
+
+    def set_pos(self, event):
+        # store the click position for effective widget pasting
+        self._last_click_pos = event.x_root, event.y_root
 
     def _update_throttling(self, *_):
         self.highlight.set_skip_max(self.studio.pref.get("designer::frame_skip"))
@@ -299,10 +312,12 @@ class Designer(DesignPad, Container):
             xml = XMLForm(self)
         return xml.to_xml_tree(widget)
 
-    def paste(self, node, silently=False):
-        if not self.current_obj:
+    def paste(self, node, silently=False, paste_to=None):
+        if paste_to is None:
+            paste_to = self.current_obj
+        if paste_to is None:
             return
-        layout = self.current_obj if isinstance(self.current_obj, Container) else self.current_obj.layout
+        layout = paste_to if isinstance(paste_to, Container) else paste_to.layout
         width = int(BaseConverter.get_attr(node, "width", "layout") or 0)
         height = int(BaseConverter.get_attr(node, "height", "layout") or 0)
         x, y = self._last_click_pos or (self.winfo_rootx() + 50, self.winfo_rooty() + 50)
