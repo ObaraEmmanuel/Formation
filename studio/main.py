@@ -113,7 +113,10 @@ class StudioApplication(Application):
             lambda: self.selected,
             ("separator",),
             ("command", "copy", icon("copy", 14, 14), actions.get('STUDIO_COPY'), {}),
-            ("command", "paste", icon("clipboard", 14, 14), actions.get('STUDIO_PASTE'), {}),
+            EnableIf(
+                lambda: self._clipboard is not None,
+                ("command", "paste", icon("clipboard", 14, 14), actions.get('STUDIO_PASTE'), {})
+            ),
             ("command", "cut", icon("cut", 14, 14), actions.get('STUDIO_CUT'), {}),
             ("separator",),
             ("command", "delete", icon("delete", 14, 14), actions.get('STUDIO_DELETE'), {}),
