@@ -2811,7 +2811,6 @@ class ProgressBar(Widget, tk.Canvas):
         self._step_var = 0
         self._direction = 1
         self._interval = self.DEFAULT_INTERVAL
-        self._draw()
         self.bind("<Configure>", self._draw)
 
     def _draw(self, event=None):
