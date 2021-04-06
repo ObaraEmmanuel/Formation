@@ -20,9 +20,17 @@ setup(
     long_description_content_type='text/markdown',
     author='Hoverset',
     author_email='emmanuelobarany@gmail.com',
+    maintainer='Emmanuel Obara',
+    maintainer_email='emmanuelobarany@gmail.com',
     url='https://github.com/ObaraEmmanuel/Formation',
+    project_urls={
+        'Documentation': 'https://formation-studio.readthedocs.io/en/latest/',
+        'Source': 'https://github.com/ObaraEmmanuel/Formation',
+        'Tracker': 'https://github.com/ObaraEmmanuel/Formation/issues',
+    },
     keywords=['formation', 'gui', 'graphical-user-interface', 'drag drop', 'tkinter', 'hoverset', 'python'],
     install_requires=requirements,
+    platform=['any'],
     package_data={
         'hoverset.data': ['image.*'],
         'hoverset.ui': ['themes/*', '*.tcl'],
