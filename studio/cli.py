@@ -5,6 +5,8 @@ import logging
 import shutil
 import os
 
+from hoverset.util.execution import elevate
+
 import studio
 from studio.preferences import Preferences
 
@@ -43,6 +45,15 @@ def get_parser():
         metavar=("KEY", "VALUES"),
         help="""
             Get or set studio configuration values.
+        """,
+    )
+
+    parser.add_argument(
+        "-u",
+        "--upgrade",
+        default=None,
+        help="""
+            Upgrade formation studio to latest version
         """,
     )
 
@@ -145,9 +156,19 @@ def handle_config(args):
     sys.exit(1)
 
 
+def upgrade(args):
+    # elevate process to run in admin mode
+    elevate()
+    ver = f"=={args.upgrade}" if args.upgrade else ""
+    sys.exit(os.system(f"{sys.executable} -m pip install --upgrade formation-studio{ver}"))
+
+
 def cli(args):
     parser = get_parser()
     args = parser.parse_args(args)
+
+    if args.upgrade is not None:
+        upgrade(args)
 
     if args.remove is not None:
         remove(args)
@@ -158,3 +179,7 @@ def cli(args):
 
 def main():
     cli(sys.argv[1:])
+
+
+if __name__ == "__main__":
+    main()
