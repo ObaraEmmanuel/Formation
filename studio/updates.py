@@ -1,5 +1,6 @@
 import json
 import subprocess
+import sys
 from urllib.request import urlopen
 from urllib.error import URLError
 
@@ -98,24 +99,24 @@ class Updater(Frame):
             )
 
     @as_thread
-    def upgrade(self, version=None):
+    def upgrade(self, version):
         try:
+            # run formation cli upgrade command
             proc_info = subprocess.run(
-                ["formation-cli", "-u", version or ""],
+                [sys.executable, "-m", "studio", "-u"],
                 capture_output=True
             )
             if proc_info.returncode != 0 or proc_info.stderr:
                 self.show_error("Something went wrong. Failed upgrade formation-studio")
-                self.extra_info.config(state="normal")
-                self.extra_info.pack(side="top", fill="x", padx=20, pady=10)
-                self.extra_info.clear()
-                self.extra_info.set(str(proc_info.stderr))
-                self.extra_info.config(state="disabled")
+                if proc_info.stderr:
+                    self.extra_info.config(state="normal")
+                    self.extra_info.pack(side="top", fill="x", padx=20, pady=10)
+                    self.extra_info.clear()
+                    self.extra_info.set(str(proc_info.stderr))
+                    self.extra_info.config(state="disabled")
             else:
-                self.show_info("Upgrade successful. Restart to complete the upgrade")
+                self.show_info("Upgrade successful. Restart to complete installation")
                 return
-        except FileNotFoundError:
-            self.show_error("Could not locate formation-cli.")
         except Exception as e:
             self.show_error(e)
 

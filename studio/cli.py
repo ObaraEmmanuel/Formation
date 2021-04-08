@@ -6,6 +6,7 @@ import shutil
 import os
 
 from hoverset.util.execution import elevate
+from hoverset.platform import platform_is, WINDOWS
 
 import studio
 from studio.preferences import Preferences
@@ -51,7 +52,7 @@ def get_parser():
     parser.add_argument(
         "-u",
         "--upgrade",
-        default=None,
+        action="store_true",
         help="""
             Upgrade formation studio to latest version
         """,
@@ -158,16 +159,20 @@ def handle_config(args):
 
 def upgrade(args):
     # elevate process to run in admin mode
-    elevate()
-    ver = f"=={args.upgrade}" if args.upgrade else ""
-    sys.exit(os.system(f"{sys.executable} -m pip install --upgrade formation-studio{ver}"))
+    command = f"\"{sys.executable}\" -m pip install --upgrade formation-studio"
+    if platform_is(WINDOWS):
+        # run command directly in elevated mode
+        elevate(command)
+    else:
+        elevate()
+        sys.exit(os.system(command))
 
 
 def cli(args):
     parser = get_parser()
     args = parser.parse_args(args)
 
-    if args.upgrade is not None:
+    if args.upgrade:
         upgrade(args)
 
     if args.remove is not None:
