@@ -16,6 +16,7 @@ from studio.ui.widgets import SideBar
 from studio.ui.about import about_window
 from studio.preferences import Preferences, open_preferences
 from studio.resource_loader import ResourceLoader
+from studio.updates import Updater
 import studio
 
 from hoverset.ui.widgets import Application, Frame, PanedWindow, Button, ActionNotifier
@@ -165,7 +166,7 @@ class StudioApplication(Application):
             ("cascade", "Tools", None, None, {"menu": ToolManager.get_tools_as_menu(self)}),
             ("cascade", "Help", None, None, {"menu": (
                 ("command", "Help", icon('dialog_info', 14, 14), actions.get('STUDIO_HELP'), {}),
-                ("command", "Check for updates", icon("cloud", 14, 14), self._coming_soon, {}),
+                ("command", "Check for updates", icon("cloud", 14, 14), self._check_updates, {}),
                 ("separator",),
                 ("command", "About Formation", icon("formation", 14, 14), lambda: about_window(self), {}),
             )})
@@ -584,6 +585,9 @@ class StudioApplication(Application):
             message="We are working hard to bring this feature to you. Hang in there.",
             icon="clock"
         )
+
+    def _check_updates(self):
+        Updater.check(self)
 
     def _register_actions(self):
         CTRL, ALT, SHIFT = KeyMap.CONTROL, KeyMap.ALT, KeyMap.SHIFT
