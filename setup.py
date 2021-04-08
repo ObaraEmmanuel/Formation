@@ -37,10 +37,9 @@ setup(
         'studio': ['resources/*/*']
     },
     entry_points={
-        'gui_scripts': [
-            'formation-studio = studio.main:main',
-        ],
         'console_scripts': [
+            # this needs to run as console_script despite being a GUI entry point
+            'formation-studio = studio.launcher:main',
             'formation-cli = studio.cli:main'
         ]
     },
