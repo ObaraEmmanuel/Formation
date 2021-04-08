@@ -143,10 +143,12 @@ def _elevate_posix():
                 sys.exit(1)
 
 
-def _elevate_win():
-    if windll.shell32.IsUserAnAdmin():
+def _elevate_win(args=None):
+    if windll.shell32.IsUserAnAdmin() and args is None:
         return
     # Constant definitions
+
+    args = args.split(" ") if args is not None else sys.argv
 
     SEE_MASK_NOCLOSEPROCESS = 0x00000040
     SEE_MASK_NO_CONSOLE = 0x00008000
@@ -195,8 +197,8 @@ def _elevate_win():
         fMask=SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NO_CONSOLE,
         hwnd=None,
         lpVerb=b'runas',
-        lpFile=sys.executable.encode('cp1252'),
-        lpParameters=subprocess.list2cmdline(sys.argv).encode('cp1252'),
+        lpFile=args[0].encode('cp1252'),
+        lpParameters=subprocess.list2cmdline(args[1:]).encode('cp1252'),
         nShow=0)
 
     if not ShellExecuteEx(ctypes.byref(params)):
@@ -213,16 +215,20 @@ def _elevate_win():
     sys.exit(ret.value)
 
 
-def elevate():
+def elevate(args=None):
     """
     Runs the current process with root privileges. In posix systems, the current
     process is swapped while in Windows UAC creates a new process and the return
     code of the spawned process is chained back to the process that initiated
     the elevation. In case of elevation failures the process will terminate
     with a non zero exit code
+
+    :param args: A list of commandline arguments to be used in creating the
+        command to be run directly in elevated mode. If not provided current
+        process is elevated instead. Only available in windows.
     """
     if platform_is(WINDOWS):
-        _elevate_win()
+        _elevate_win(args)
     else:
         _elevate_posix()
 
