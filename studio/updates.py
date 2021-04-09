@@ -8,6 +8,7 @@ from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.widgets import Frame, ProgressBar, Label, Button, Text
 from hoverset.ui.icons import get_icon_image
 from hoverset.util.execution import as_thread
+from hoverset.data.actions import get_routine
 
 import formation
 
@@ -29,19 +30,17 @@ class Updater(Frame):
             anchor="w", compound="left", wrap=400, justify="left",
             pady=5, padx=5,
         )
-        self._retry_btn = Button(
+        self._action_btn = Button(
             self, text="Retry", **self.style.button_highlight, width=80, height=25
         )
-        self._install_btn = Button(
-            self, text="Install", **self.style.button_highlight, width=80, height=25
-        )
         self.extra_info = Text(self, width=40, height=6, state='disabled', font='consolas 10')
-        self._retry_btn.on_click(self.check_for_update)
         self.pack(fill="both", expand=True)
         self.check_for_update()
 
-    def show_button(self, button):
-        button.pack(side="bottom", anchor="e", pady=5, padx=5)
+    def show_button(self, text, func):
+        self._action_btn.config(text=text)
+        self._action_btn.on_click(func)
+        self._action_btn.pack(side="bottom", anchor="e", pady=5, padx=5)
 
     def show_progress(self, message):
         self.clear_children()
@@ -49,17 +48,16 @@ class Updater(Frame):
         self._progress.pack(side="top", fill="x", padx=20, pady=20)
         self._progress_text.pack(side="top", fill="x", padx=20, pady=10)
 
-    def show_error(self, message):
+    def show_error(self, message, retry_func):
         self.show_error_plain(message)
-        self.show_button(self._retry_btn)
+        self.show_button("Retry", retry_func)
 
     def show_error_plain(self, message):
         self.show_message(message, MessageDialog.ICON_ERROR)
 
     def update_found(self, version):
         self.show_info(f"New version formation-studio {version} found. Do you want to install?")
-        self.show_button(self._install_btn)
-        self._install_btn.on_click(lambda _: self.install(version))
+        self.show_button("Install", lambda _: self.install(version))
 
     def show_info(self, message):
         self.show_message(message, MessageDialog.ICON_INFO)
@@ -95,7 +93,8 @@ class Updater(Frame):
         except URLError:
             self.show_error(
                 "Failed to connect. Check your internet connection"
-                " and try again."
+                " and try again.",
+                self.check_for_update
             )
 
     @as_thread
@@ -107,7 +106,11 @@ class Updater(Frame):
                 capture_output=True
             )
             if proc_info.returncode != 0 or proc_info.stderr:
-                self.show_error("Something went wrong. Failed upgrade formation-studio")
+                self.show_error_plain(
+                    "Something went wrong. Failed to upgrade formation-studio"
+                    f" to version {version} ,"
+                    f" Exited with code: {proc_info.returncode}"
+                )
                 if proc_info.stderr:
                     self.extra_info.config(state="normal")
                     self.extra_info.pack(side="top", fill="x", padx=20, pady=10)
@@ -116,8 +119,9 @@ class Updater(Frame):
                     self.extra_info.config(state="disabled")
             else:
                 self.show_info("Upgrade successful. Restart to complete installation")
+                self.show_button("Restart", lambda _: get_routine("STUDIO_RESTART").invoke())
                 return
         except Exception as e:
-            self.show_error(e)
+            self.show_error_plain(e)
 
-        self._retry_btn.on_click(lambda _: self.install(version))
+        self.show_button("Retry", lambda _: self.install(version))
