@@ -10,7 +10,7 @@ from tkinter import filedialog, Toplevel
 
 from studio.feature.design import Designer
 from studio.feature import FEATURES, StylePane
-from studio.feature._base import BaseFeature
+from studio.feature._base import BaseFeature, FeaturePane
 from studio.tools import ToolManager
 from studio.ui.widgets import SideBar
 from studio.ui.about import about_window
@@ -65,9 +65,9 @@ class StudioApplication(Application):
         self._left_bar.pack(side="left", fill="y")
         self._pane = PanedWindow(body, **self.style.pane_horizontal)
         self._pane.pack(side="left", fill="both", expand=True)
-        self._left = PanedWindow(self._pane, **self.style.pane_vertical)
+        self._left = FeaturePane(self._pane, **self.style.pane_vertical)
         self._center = PanedWindow(self._pane, **self.style.pane_vertical)
-        self._right = PanedWindow(self._pane, **self.style.pane_vertical)
+        self._right = FeaturePane(self._pane, **self.style.pane_vertical)
 
         self._bin = []
         self._clipboard = None
@@ -329,7 +329,7 @@ class StudioApplication(Application):
             feature.pane = pane
             bar.add_feature(feature)
             if feature.get_pref("mode") == "docked":
-                pane.add(feature, minsize=100, height=300, sticky='nswe')
+                pane.add(feature, minsize=100)
             feature.set_pref("side", side)
 
     def install(self, feature) -> BaseFeature:
@@ -450,7 +450,7 @@ class StudioApplication(Application):
         self._adjust_pane(feature.pane)
 
     def maximize(self, feature):
-        feature.pane.add(feature, height=300, sticky='nswe')
+        feature.pane.add(feature, minsize=100)
         feature.bar.select(feature)
         self._adjust_pane(feature.pane)
 
@@ -560,6 +560,7 @@ class StudioApplication(Application):
             # pass the on window close event to the features
             for feature in self._all_features():
                 # if any feature returns false abort shut down
+                feature.save_window_pos()
                 if not feature.on_app_close():
                     return
             self.destroy()

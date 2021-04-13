@@ -699,6 +699,9 @@ class Designer(DesignPad, Container):
     def show_highlight(self, *_):
         pass
 
+    def save_window_pos(self):
+        pass
+
     def on_app_close(self):
         if self.has_changed():
             save = self.save_prompt()

@@ -1,8 +1,9 @@
 import logging
+import copy
 from tkinter import StringVar, BooleanVar, TkVersion
 
 from hoverset.ui.icons import get_icon_image
-from hoverset.ui.widgets import Frame, Label, Button, MenuButton
+from hoverset.ui.widgets import Frame, Label, Button, MenuButton, PanedWindow
 from hoverset.ui.menu import EnableIf
 from studio.ui.geometry import absolute_position
 from studio.ui.widgets import SearchBar
@@ -27,6 +28,10 @@ class BaseFeature(Frame):
         "position": "left",
         "visible": True,
         "side": "left",
+        "pane": {
+            "height": 300,
+            "index": 1000,  # setting 1000 allows the feature pane to pick an index
+        },
         "pos": {
             "initialized": False,
             "x": 20,
@@ -40,7 +45,7 @@ class BaseFeature(Frame):
     def update_defaults(cls):
         path = "features::{}".format(cls.name)
         if not pref.exists(path):
-            pref.set(path, dict(**cls._defaults))
+            pref.set(path, copy.deepcopy(cls._defaults))
         else:
             pref.update_defaults(path, dict(**cls._defaults))
 
@@ -298,6 +303,8 @@ class BaseFeature(Frame):
 
     def save_window_pos(self):
         if not self.window_handle:
+            if self.winfo_ismapped():
+                self.set_pref("pane::height", self.height)
             return
         self.set_pref("pos", dict(
             x=self.winfo_x(),
@@ -315,3 +322,40 @@ class BaseFeature(Frame):
             self.window_handle = None
             self.studio.minimize(self)
             self.set_pref("visible", False)
+
+
+class FeaturePane(PanedWindow):
+    """
+    Specialised Paned window for use with studio feature windows. It
+    maintains an index of its children
+    """
+    # I don't expect anything close to 1000 features in a single pane
+    MAX_PANES = 1000
+
+    def add(self, child: BaseFeature, **kw):
+        kw["height"] = child.get_pref("pane::height") if kw.get("height") is None else kw.get("height")
+        insert_index = child.get_pref("pane::index")
+        # no need for binary search the list will rarely be greater than 10
+        for pane in self._panes():
+            index = pane.get_pref("pane::index")
+            if index > insert_index:
+                # insert before pane with greater index
+                kw['before'] = pane
+                break
+        else:
+            if insert_index >= self.MAX_PANES:
+                child.set_pref("pane::index", len(self.panes()))
+        super().add(child, **kw)
+        child.update_idletasks()
+
+    def remove(self, child: BaseFeature):
+        super().remove(child)
+        for i, pane in enumerate(self._panes()):
+            pane.set_pref("pane::index", i)
+        child.set_pref("pane::index", self.MAX_PANES)
+
+    forget = remove
+
+    def _panes(self):
+        # return resolved feature objects
+        return list(map(lambda x: self.nametowidget(str(x)), self.panes()))
