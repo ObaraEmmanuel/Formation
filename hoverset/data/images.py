@@ -135,7 +135,7 @@ def load_image_to_widget(widget, image, prop):
         # store a reference to shield from garbage collection
         setattr(widget, prop, image)
         return
-    if not image.is_animated:
+    if not hasattr(image, "is_animated") or not image.is_animated:
         image = to_tk_image(image)
         widget.config(**{prop: image})
         # store a reference to shield from garbage collection

@@ -34,7 +34,7 @@ def load_image_to_widget(widget, image, prop, builder, handle_method=None):
         # store a reference to shield from garbage collection
         builder._image_cache.append(image)
         return
-    if not image.is_animated:
+    if not hasattr(image, "is_animated") or not image.is_animated:
         image = to_tk_image(image)
         handle_method(**{prop: image})
         # store a reference to shield from garbage collection
