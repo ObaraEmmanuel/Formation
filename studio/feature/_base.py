@@ -47,7 +47,7 @@ class BaseFeature(Frame):
         if not pref.exists(path):
             pref.set(path, copy.deepcopy(cls._defaults))
         else:
-            pref.update_defaults(path, dict(**cls._defaults))
+            pref.update_defaults(path, copy.deepcopy(cls._defaults))
 
     def __init__(self, master, studio=None, **cnf):
         super().__init__(master, **cnf)
@@ -334,6 +334,7 @@ class FeaturePane(PanedWindow):
 
     def add(self, child: BaseFeature, **kw):
         kw["height"] = child.get_pref("pane::height") if kw.get("height") is None else kw.get("height")
+        print(kw["height"])
         insert_index = child.get_pref("pane::index")
         # no need for binary search the list will rarely be greater than 10
         for pane in self._panes():
