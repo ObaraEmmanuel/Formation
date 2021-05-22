@@ -147,6 +147,7 @@ class StyleGroup(CollapseFrame):
             self.items.clear()
             add = self.add
             list(map(lambda p: add(ReusableStyleItem.acquire(self, definitions[p], self.apply), ), definitions))
+            self.style_pane.body.scroll_to_start()
 
         self._has_initialized = True
         self._prev_widget = widget
