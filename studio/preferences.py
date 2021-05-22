@@ -37,7 +37,8 @@ defaults = {
         "xml": {
             "pretty_print": True,
         },
-        "image_path": 'mixed'
+        "image_path": 'mixed',
+        "descriptive_names": False
     },
     "resource": {
         "icon_cache_color": "#ffffff",
@@ -137,6 +138,13 @@ templates = {
                         ("absolute", "Always use absolute paths")
                     )
                 }
+            },
+        ),
+        "Style pane options": (
+            {
+                "desc": "Use descriptive names for style attributes",
+                "path": "designer::descriptive_names",
+                "element": Check
             },
         )
     },

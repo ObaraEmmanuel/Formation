@@ -23,6 +23,14 @@ from studio.lib.properties import all_supported_cursors, BUILTIN_BITMAPS
 from studio.lib.variables import VariableManager, VariableItem
 from studio.preferences import Preferences
 
+pref = Preferences.acquire()
+
+
+def get_display_name(style_def):
+    if pref.get("designer::descriptive_names"):
+        return style_def.get("display_name")
+    return style_def.get("name")
+
 
 class Editor(Frame):
 
@@ -508,7 +516,6 @@ class Image(Text):
         path = filedialog.askopenfilename(parent=self)
         if path:
             try:
-                pref = Preferences.acquire()
                 path_opt = pref.get("designer::image_path")
             except:
                 path_opt = "absolute"
@@ -597,7 +604,8 @@ class StyleItem(Frame):
         self.definition = style_definition
         self.name = style_definition.get("name")
         self.config(**self.style.surface)
-        self._label = Label(self, **parent.style.text_passive, text=style_definition.get("display_name"),
+        display = get_display_name(style_definition)
+        self._label = Label(self, **parent.style.text_passive, text=display,
                             anchor="w")
         self._label.grid(row=0, column=0, sticky='ew')
         self._editor = get_editor(self, style_definition)
@@ -611,6 +619,9 @@ class StyleItem(Frame):
     def _change(self, value):
         if self._on_change:
             self._on_change(self.name, value)
+
+    def set_label(self, name):
+        self._label.configure(text=name)
 
     def on_change(self, callback, *args, **kwargs):
         self._on_change = lambda name, val: callback(name, val, *args, **kwargs)

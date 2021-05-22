@@ -13,10 +13,11 @@ from hoverset.ui.widgets import PanedWindow, Frame, MenuButton, Button, Scrolled
 from hoverset.ui.menu import EnableIf
 from studio.lib.properties import PROPERTY_TABLE, get_properties
 from studio.lib.menu import menu_config, MENU_PROPERTY_TABLE, MENU_PROPERTIES
-from studio.ui.editors import StyleItem
+from studio.ui.editors import StyleItem, get_display_name
 from studio.ui.tree import MalleableTree
 from studio.ui.widgets import CollapseFrame
 from studio.tools._base import BaseToolWindow, BaseTool
+from studio.preferences import Preferences
 
 
 class MenuTree(MalleableTree):
@@ -172,6 +173,11 @@ class MenuEditor(BaseToolWindow):
         self._tree.allow_multi_select(True)
         self._tree.on_select(self._refresh_styles)
         self._tree.on_structure_change(self._refresh_styles)
+        self._prefs = Preferences.acquire()
+        self._prefs.add_listener(
+            "designer::descriptive_names",
+            self._update_display_names
+        )
 
         self._editor_pane = ScrolledFrame(self._pane)
         self._editor_pane_cover = Label(self._editor_pane, **self.style.text_passive)
@@ -301,6 +307,11 @@ class MenuEditor(BaseToolWindow):
         for style_item in self._menu_style_ref.values():
             # styles for the menu
             style_item.set(node._menu.cget(style_item.name))
+
+    def _update_display_names(self, _):
+        key = "display_name" if self._prefs.get("designer::descriptive_names") else "name"
+        for style_item in tuple(self._style_item_ref.values()) + tuple(self._menu_style_ref.values()):
+            style_item.set_label(style_item.definition[key])
 
     def _preview(self, *_):
         self.widget.event_generate("<Button-1>")

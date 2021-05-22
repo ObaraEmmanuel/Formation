@@ -13,10 +13,11 @@ from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Button, TabView
 from hoverset.util.execution import Action
 from hoverset.platform import platform_is, LINUX
 from studio.feature._base import BaseFeature
-from studio.ui.editors import StyleItem
+from studio.ui.editors import StyleItem, get_display_name
 from studio.ui.widgets import CollapseFrame
 from studio.lib.pseudo import Container
 from studio.lib.layouts import GridLayoutStrategy
+from studio.preferences import Preferences
 
 
 class ReusableStyleItem(StyleItem):
@@ -44,7 +45,7 @@ class ReusableStyleItem(StyleItem):
         self._editor.set_def(style_definition)
         self._editor.set(style_definition.get("value"))
         self._editor.on_change(self._change)
-        self._label.configure(text=style_definition.get("display_name"))
+        self._label.configure(text=get_display_name(style_definition))
         self._on_change = temp
         return self
 
@@ -175,7 +176,7 @@ class StyleGroup(CollapseFrame):
 
     def on_search_query(self, query):
         for item in self.items.values():
-            if query in item.definition.get("display_name"):
+            if query in item.definition.get("display_name") or query in item.definition.get("name"):
                 self._show(item)
             else:
                 self._hide(item)
@@ -417,6 +418,9 @@ class StylePane(BaseFeature):
         self._current = None
         self._expanded = False
         self._is_loading = False
+
+        pref: Preferences = Preferences.acquire()
+        pref.add_listener("designer::descriptive_names", lambda _: self.styles_for(self._current))
 
     def create_menu(self):
         return (
