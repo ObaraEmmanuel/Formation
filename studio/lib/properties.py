@@ -526,7 +526,7 @@ PROPERTY_TABLE = {
     },
     "wrap": {
         "display_name": "wrap",
-        "type": "number",
+        "type": "boolean",
     },
     "wraplength": {
         "display_name": "wraplength",

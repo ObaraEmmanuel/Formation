@@ -247,6 +247,13 @@ class Text(PseudoWidget, tk.Text):
     icon = "text"
     impl = tk.Text
 
+    DEF_OVERRIDES = {
+        "wrap": {
+            "type": "choice",
+            "options": ("char", "word", "none")
+        }
+    }
+
     def __init__(self, master, id_):
         super().__init__(master)
         self.id = id_
