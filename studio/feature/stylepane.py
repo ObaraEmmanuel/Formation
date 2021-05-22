@@ -13,7 +13,7 @@ from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Button, TabView
 from hoverset.util.execution import Action
 from hoverset.platform import platform_is, LINUX
 from studio.feature._base import BaseFeature
-from studio.ui.editors import StyleItem, get_display_name
+from studio.ui.editors import StyleItem, get_display_name, get_editor
 from studio.ui.widgets import CollapseFrame
 from studio.lib.pseudo import Container
 from studio.lib.layouts import GridLayoutStrategy
@@ -22,6 +22,7 @@ from studio.preferences import Preferences
 
 class ReusableStyleItem(StyleItem):
     _pool = defaultdict(dict)
+    _editor_pool = set()
 
     def __init__(self, parent, style_definition, on_change=None):
         super().__init__(parent, style_definition, on_change)
@@ -33,6 +34,21 @@ class ReusableStyleItem(StyleItem):
         self.bind("<Unmap>", lambda e: self._make_available(True))
         self.bind("<Map>", lambda e: self._make_available(False))
 
+    def set_editor(self, style_def):
+        if style_def["type"] == self._editor.style_def["type"]:
+            return
+        self._editor_pool.add(self._editor)
+        self._editor.grid_forget()
+        # fetch editor from pool
+        for e in self._editor_pool:
+            if e.style_def["type"] == style_def["type"]:
+                self._editor = e
+                self._editor_pool.remove(e)
+                break
+        else:
+            self._editor = get_editor(self, style_def)
+        self._editor.grid(row=0, column=1, sticky='ew')
+
     def _re_purposed(self, style_definition, on_change=None):
         if on_change is not None:
             self._on_change = on_change
@@ -42,6 +58,8 @@ class ReusableStyleItem(StyleItem):
         self._on_change = None
         self.name = style_definition.get("name")
         # allow editor to adjust to the new definition
+        # change the editor widget if necessary
+        self.set_editor(style_definition)
         self._editor.set_def(style_definition)
         self._editor.set(style_definition.get("value"))
         self._editor.on_change(self._change)
