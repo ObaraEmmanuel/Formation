@@ -1282,7 +1282,6 @@ class ScrolledFrame(ContainerMixin, Widget, ScrollableInterface, ContextMenuMixi
         return bbox[3] - bbox[1] + 3
 
     def scroll_to_start(self):
-        print("scrolling to start")
         self._canvas.yview_moveto(0.0)
         self._canvas.xview_moveto(0.0)
 
