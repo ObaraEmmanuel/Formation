@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='utf-8'?>
 <tkinter.Frame xmlns:attr="http://www.hoversetformationstudio.com/styles/"
                xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="place_frame"
-               attr:layout="FrameLayout" layout:width="498" layout:height="380" layout:x="30" layout:y="30">
-    <tkinter.Frame name="grid_frame" attr:background="#9356fb" attr:layout="GridLayout" layout:width="397"
+               attr:layout="place" layout:width="498" layout:height="380" layout:x="30" layout:y="30">
+    <tkinter.Frame name="grid_frame" attr:background="#9356fb" attr:layout="grid" layout:width="397"
                    layout:height="250" layout:x="14" layout:y="11">
         <tkinter.Button name="button_1" attr:text="Button_1" layout:width="0" layout:height="0" layout:row="0"
                         layout:column="0"/>
@@ -17,7 +17,7 @@
                         layout:column="0"/>
         <tkinter.Button name="button_5" attr:text="Button_5" layout:width="0" layout:height="0" layout:row="2"
                         layout:column="2"/>
-        <tkinter.Frame name="pack_frame" attr:background="#ff8817" attr:layout="LinearLayout" layout:width="0"
+        <tkinter.Frame name="pack_frame" attr:background="#ff8817" attr:layout="pack" layout:width="0"
                        layout:height="0" layout:ipadx="30" layout:ipady="30" layout:row="1" layout:column="3">
             <tkinter.Button name="button_7" attr:text="Button_7" layout:width="0" layout:height="0" layout:anchor="se"
                             layout:side="right"/>

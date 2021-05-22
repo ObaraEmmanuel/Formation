@@ -1,5 +1,5 @@
 <tkinter.Frame xmlns:attr="http://www.hoversetformationstudio.com/styles/"
-               xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="Frame_1" attr:layout="FrameLayout"
+               xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="Frame_1" attr:layout="place"
                layout:width="397" layout:height="281" layout:x="42" layout:y="35">
     <tkinter.Button name="button_tk_3" attr:background="#e6e6e6" attr:borderwidth="0" attr:highlightthickness="0"
                     attr:relief="groove" attr:text="Button_1" layout:width="290" layout:height="30" layout:x="45"

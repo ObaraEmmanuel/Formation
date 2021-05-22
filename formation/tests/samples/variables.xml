@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <tkinter.Frame xmlns:attr="http://www.hoversetformationstudio.com/styles/"
-               xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="Frame_1" attr:layout="GridLayout"
+               xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="Frame_1" attr:layout="grid"
                layout:width="404" layout:height="140" layout:x="86" layout:y="50">
     <tkinter.ttk.Entry name="str_1" attr:textvariable="string_var" layout:width="30"
                        layout:padx="10" layout:pady="10" layout:row="0" layout:column="0"/>

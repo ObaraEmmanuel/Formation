@@ -39,12 +39,18 @@ def set_pane(widget, parent, **options):
 
 
 _layout_handlers = {
+    "place": set_place,
+    "pack": set_pack,
+    "grid": set_grid,
+    "TabLayout": set_tab,
+    "PanedLayout": set_pane,
+    "NativePanedLayout": set_pane,
+
+    # backward compatibility for old layout names
+
     "FrameLayout": set_place,
     "LinearLayout": set_pack,
     "GridLayout": set_grid,
-    "TabLayout": set_tab,
-    "PanedLayout": set_pane,
-    "NativePanedLayout": set_pane
 }
 
 

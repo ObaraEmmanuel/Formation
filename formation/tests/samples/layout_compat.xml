@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tkinter.Frame xmlns:attr="http://www.hoversetformationstudio.com/styles/" xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="Frame_1" attr:layout="FrameLayout" layout:width="455" layout:height="245" layout:x="105" layout:y="93">
+  <tkinter.Frame name="grid_f" attr:background="#5f965a" attr:layout="GridLayout" layout:width="168" layout:height="82" layout:x="29" layout:y="36" layout:bordermode="outside">
+    <tkinter.Button name="grid_btn" attr:text="grid_btn" layout:width="0" layout:height="0" layout:row="0" layout:column="0"/>
+  </tkinter.Frame>
+  <tkinter.Frame name="pack_f" attr:background="#5ea89a" attr:layout="LinearLayout" layout:width="166" layout:height="85" layout:x="246" layout:y="33" layout:bordermode="outside">
+    <tkinter.Button name="pack_btn" attr:text="pack_btn" layout:width="0" layout:height="0" layout:fill="x" layout:expand="1"/>
+  </tkinter.Frame>
+  <tkinter.Button name="place_btn" attr:text="place_btn" layout:width="117" layout:height="30" layout:x="170" layout:y="170" layout:bordermode="outside"/>
+</tkinter.Frame>

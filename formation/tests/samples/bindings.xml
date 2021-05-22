@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <tkinter.Frame xmlns:attr="http://www.hoversetformationstudio.com/styles/"
                xmlns:layout="http://www.hoversetformationstudio.com/layouts/"
-               xmlns:menu="http://www.hoversetformationstudio.com/menu" name="Frame_1" attr:layout="FrameLayout"
+               xmlns:menu="http://www.hoversetformationstudio.com/menu" name="Frame_1" attr:layout="place"
                layout:width="470" layout:height="361" layout:x="30" layout:y="30">
   <tkinter.ttk.Scrollbar name="Scrollbar_1" layout:width="18" layout:height="103" layout:x="9" layout:y="13"/>
   <tkinter.ttk.Button name="b1" attr:command="on_clk" attr:text="Button_1" layout:width="121" layout:height="30"
@@ -20,7 +20,7 @@
       <command menu:command="on_clk" menu:compound="none" menu:label="Command" menu:state="normal"/>
     </tkinter.Menu>
   </tkinter.ttk.Menubutton>
-  <tkinter.ttk.Frame name="f1" attr:borderwidth="1" attr:relief="groove" attr:layout="FrameLayout" layout:width="212"
+  <tkinter.ttk.Frame name="f1" attr:borderwidth="1" attr:relief="groove" attr:layout="place" layout:width="212"
                      layout:height="148" layout:x="248" layout:y="15">
     <event sequence="&lt;Button-1&gt;" handler="on_clk" add="False"/>
     <tkinter.ttk.Menubutton name="m1" attr:text="Menubutton_1" layout:width="139" layout:height="30" layout:x="40"
@@ -45,7 +45,7 @@
                  layout:width="135" layout:height="30" layout:x="41" layout:y="309">
     <event sequence="&lt;Button-1&gt;" handler="on_clk" add="False"/>
   </tkinter.Entry>
-  <tkinter.LabelFrame name="f2" attr:text="LabelFrame_1" attr:layout="FrameLayout" layout:width="209"
+  <tkinter.LabelFrame name="f2" attr:text="LabelFrame_1" attr:layout="place" layout:width="209"
                       layout:height="139" layout:x="247" layout:y="193">
     <event sequence="&lt;Button-1&gt;" handler="on_clk" add="False"/>
     <tkinter.Menubutton name="m2" attr:padx="5" attr:pady="4" attr:text="Menubutton_2" layout:width="131"

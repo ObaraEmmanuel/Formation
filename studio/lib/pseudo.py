@@ -206,7 +206,7 @@ class Container(PseudoWidget):
         self._highlighter = WidgetHighlighter(self.master)
         if len(self.LAYOUTS) == 0:
             raise ValueError("No layouts have been defined")
-        self.layout_strategy = layouts.FrameLayoutStrategy(self)
+        self.layout_strategy = layouts.PlaceLayoutStrategy(self)
         self.layout_var = tkinter.StringVar()
         self.layout_var.set(self.layout_strategy.name)
         super().setup_widget()
@@ -263,7 +263,13 @@ class Container(PseudoWidget):
         return prop
 
     def get_layout_by_name(self, name):
-        layout = list(filter(lambda l: l.name == name, self.LAYOUTS))
+        layout = list(
+            filter(
+                lambda l: l.name == name or l.name == layouts.aliases.get(name),
+                self.LAYOUTS
+            )
+        )
+
         if len(layout) == 1:
             return layout[0]
         elif len(layout) == 0:

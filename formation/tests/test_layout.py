@@ -123,3 +123,25 @@ class PackLayoutTestCase(unittest.TestCase):
 
         btn8native = self.builder.button_n8
         self.assertEqual(btn8native.cget("width"), 9)
+
+
+class OldLayoutCompatTestCase(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.builder = AppBuilder(path=get_resource("layout_compat.xml"))
+
+    def test_place(self):
+        info = self.builder.place_btn.place_info()
+        self.assertEqual(int(info["x"]), 170)
+        self.assertEqual(int(info["y"]), 170)
+
+    def test_grid(self):
+        info = self.builder.grid_btn.grid_info()
+        self.assertEqual(int(info["row"]), 0)
+        self.assertEqual(int(info["column"]), 0)
+
+    def test_pack(self):
+        info = self.builder.pack_btn.pack_info()
+        self.assertEqual(info["fill"], "x")
+        self.assertTrue(info["expand"])

@@ -1,15 +1,15 @@
 <tkinter.Frame xmlns:attr="http://www.hoversetformationstudio.com/styles/"
-               xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="Frame_1" attr:layout="FrameLayout"
+               xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="Frame_1" attr:layout="place"
                layout:width="616" layout:height="571" layout:x="31" layout:y="31">
   <tkinter.Canvas name="Canvas_1" attr:background="#c2c2c2" layout:height="45" layout:width="76" layout:x="15"
                   layout:y="23"/>
-  <tkinter.Frame name="Frame_2" attr:background="#e3e3e3" attr:layout="FrameLayout" layout:width="262"
+  <tkinter.Frame name="Frame_2" attr:background="#e3e3e3" attr:layout="place" layout:width="262"
                  layout:height="145" layout:x="125" layout:y="23"/>
-  <tkinter.LabelFrame name="LabelFrame_1" attr:text="LabelFrame_1" attr:layout="FrameLayout" layout:width="191"
+  <tkinter.LabelFrame name="LabelFrame_1" attr:text="LabelFrame_1" attr:layout="place" layout:width="191"
                       layout:height="124" layout:x="411" layout:y="24"/>
   <tkinter.Listbox name="Listbox_1" layout:width="88" layout:height="80" layout:x="16" layout:y="81"/>
   <tkinter.PanedWindow name="PanedWindow_1" layout:width="360" layout:height="163" layout:x="18" layout:y="191">
-    <tkinter.Frame name="Frame_3" attr:layout="FrameLayout" layout:width="" layout:height="" layout:sticky="nesw">
+    <tkinter.Frame name="Frame_3" attr:layout="place" layout:width="" layout:height="" layout:sticky="nesw">
       <tkinter.Message name="Message_1" attr:text="Message_1" layout:width="55" layout:height="30" layout:x="181"
                        layout:y="25"/>
       <tkinter.Radiobutton name="Radiobutton_1" attr:text="Radiobutton_1" layout:width="106" layout:height="30"

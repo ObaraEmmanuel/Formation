@@ -57,7 +57,7 @@ class BaseLayoutStrategy:
             "default": None
         },
     }
-    name = "Layout"  # A default name just in case
+    name = "base"  # A default name just in case
     icon = "frame"
     manager = "place"  # Default layout manager in use
     realtime_support = False  # dictates whether strategy supports realtime updates to its values, most do not
@@ -197,7 +197,7 @@ class BaseLayoutStrategy:
         raise NotImplementedError("Clear all procedure required")
 
 
-class FrameLayoutStrategy(BaseLayoutStrategy):
+class PlaceLayoutStrategy(BaseLayoutStrategy):
     # TODO Add support for anchor
     DEFINITION = {
         **BaseLayoutStrategy.DEFINITION,
@@ -223,7 +223,7 @@ class FrameLayoutStrategy(BaseLayoutStrategy):
             "default": "inside",
         }
     }
-    name = "FrameLayout"
+    name = "place"
     icon = "frame"
     manager = "place"
     realtime_support = True
@@ -276,7 +276,7 @@ class FrameLayoutStrategy(BaseLayoutStrategy):
         super().add_widget(widget, (0, 0, 0, 0))
 
 
-class LinearLayoutStrategy(BaseLayoutStrategy):
+class PackLayoutStrategy(BaseLayoutStrategy):
     DEFINITION = {
         **BaseLayoutStrategy.DEFINITION,
         **COMMON_DEFINITION,
@@ -308,7 +308,7 @@ class LinearLayoutStrategy(BaseLayoutStrategy):
             "default": "top"
         },
     }
-    name = "LinearLayout"
+    name = "pack"
     icon = "frame"
     manager = "pack"
 
@@ -513,7 +513,7 @@ class GenericLinearLayoutStrategy(BaseLayoutStrategy):
             child.place_forget()
 
 
-class VerticalLinearLayout(LinearLayoutStrategy):
+class VerticalLinearLayout(PackLayoutStrategy):
 
     def __init__(self, master=None):
         super().__init__(master)
@@ -521,7 +521,7 @@ class VerticalLinearLayout(LinearLayoutStrategy):
 
 
 class GridLayoutStrategy(BaseLayoutStrategy):
-    name = 'GridLayout'
+    name = "grid"
     icon = "grid"
     manager = "grid"
     EXPAND = 0x1
@@ -1088,5 +1088,12 @@ class NPanedLayoutStrategy(PanedLayoutStrategy):
 # Do not include tab layout since it requires special widgets like notebooks
 # to function and this list is displayed in the layout options menu for containers
 layouts = (
-    FrameLayoutStrategy, LinearLayoutStrategy, GridLayoutStrategy
+    PlaceLayoutStrategy, PackLayoutStrategy, GridLayoutStrategy
 )
+
+# enable backward compatibility for designs using old layout names
+aliases = {
+    "GridLayout": "grid",
+    "LinearLayout": "pack",
+    "FrameLayout": "place"
+}

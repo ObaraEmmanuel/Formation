@@ -16,7 +16,7 @@ from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.icons import get_icon_image as icon
 from hoverset.ui.menu import MenuUtils, LoadLater, EnableIf
 from hoverset.util.execution import Action, as_thread
-from studio.lib.layouts import FrameLayoutStrategy
+from studio.lib.layouts import PlaceLayoutStrategy
 from studio.lib.pseudo import PseudoWidget, Container, Groups
 from studio.parsers.xml import XMLForm
 from studio.ui import geometry
@@ -26,7 +26,7 @@ from studio.tools import ToolManager
 from formation.xml import BaseConverter
 
 
-class DesignLayoutStrategy(FrameLayoutStrategy):
+class DesignLayoutStrategy(PlaceLayoutStrategy):
     name = "DesignLayout"
 
     def add_new(self, widget, x, y):
@@ -36,8 +36,8 @@ class DesignLayoutStrategy(FrameLayoutStrategy):
         self.container.position(widget, self.container.canvas_bounds(bounds))
 
     def add_widget(self, widget, bounds=None, **kwargs):
-        super(FrameLayoutStrategy, self).add_widget(widget, bounds=None, **kwargs)
-        super(FrameLayoutStrategy, self).remove_widget(widget)
+        super(PlaceLayoutStrategy, self).add_widget(widget, bounds=None, **kwargs)
+        super(PlaceLayoutStrategy, self).remove_widget(widget)
         if bounds is None:
             x = kwargs.get("x", 10)
             y = kwargs.get("y", 10)

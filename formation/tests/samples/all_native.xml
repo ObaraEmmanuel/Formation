@@ -1,13 +1,13 @@
 <tkinter.Frame xmlns:attr="http://www.hoversetformationstudio.com/styles/"
-               xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="Frame" attr:layout="FrameLayout"
+               xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="Frame" attr:layout="place"
                layout:width="616" layout:height="571" layout:x="33" layout:y="37">
-    <tkinter.ttk.Frame name="Frame_1" attr:relief="groove" attr:layout="FrameLayout" layout:width="72"
+    <tkinter.ttk.Frame name="Frame_1" attr:relief="groove" attr:layout="place" layout:width="72"
                        layout:height="54" layout:x="19" layout:y="14"/>
     <tkinter.ttk.Panedwindow name="Panedwindow_1" attr:orient="horizontal" layout:width="161" layout:height="49"
                              layout:x="106" layout:y="17"/>
     <tkinter.ttk.Panedwindow name="Panedwindow_2" attr:orient="vertical" layout:width="161" layout:height="59"
                              layout:x="106" layout:y="17"/>
-    <tkinter.ttk.Labelframe name="Labelframe_1" attr:text="Labelframe_1" attr:layout="FrameLayout" layout:width="236"
+    <tkinter.ttk.Labelframe name="Labelframe_1" attr:text="Labelframe_1" attr:layout="place" layout:width="236"
                             layout:height="85" layout:x="22" layout:y="81"/>
     <tkinter.ttk.Notebook name="Notebook_1" layout:width="290" layout:height="145" layout:x="275" layout:y="16"/>
     <tkinter.ttk.Treeview name="Treeview_1" layout:width="223" layout:height="59" layout:x="28" layout:y="179"/>
