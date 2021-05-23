@@ -68,7 +68,7 @@ The underlying xml uses namespaces and is as shown below:
     xmlns:attr="http://www.hoversetformationstudio.com/styles/" 
     xmlns:layout="http://www.hoversetformationstudio.com/layouts/" 
     name="Frame_1" 
-    attr:layout="FrameLayout" 
+    attr:layout="place" 
     layout:width="616" 
     layout:height="287" 
     layout:x="33" 

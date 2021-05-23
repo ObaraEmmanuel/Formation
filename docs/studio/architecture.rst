@@ -23,9 +23,9 @@ file. Below are core features implemented in the formation studio:
       screen display to allow focus on design. The designer allows widgets to be moved from parent to parent as needed to
       simplify the design process. The designer supports manipulation using the following layout strategies:
 
-       - LinearLayout (Pack)
-       - GridLayout (Grid)
-       - FrameLayout (Place)
+       - pack (formerly LinearLayout)
+       - grid (formerly GridLayout)
+       - place (formerly FrameLayout)
        - TabLayout (for py:class:`tkinter.ttk.Notebook`)
        - PaneLayout (for PanedWindows)
 
