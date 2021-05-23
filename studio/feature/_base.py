@@ -334,7 +334,6 @@ class FeaturePane(PanedWindow):
 
     def add(self, child: BaseFeature, **kw):
         kw["height"] = child.get_pref("pane::height") if kw.get("height") is None else kw.get("height")
-        print(kw["height"])
         insert_index = child.get_pref("pane::index")
         # no need for binary search the list will rarely be greater than 10
         for pane in self._panes():
