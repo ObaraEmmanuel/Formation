@@ -77,6 +77,10 @@ class ReusableStyleItem(StyleItem):
         super().destroy()
 
     @classmethod
+    def free_all(cls, items):
+        list(map(lambda x: x._make_available(True), items))
+
+    @classmethod
     def acquire(cls, parent, style_definition, on_change=None):
         pool = cls._pool.get(parent)
         if pool:
@@ -112,7 +116,14 @@ class StyleGroup(CollapseFrame):
 
     def add(self, style_item):
         self.items[style_item.name] = style_item
-        self._show(style_item)
+        if self.style_pane._search_query is not None:
+            if self._match_query(style_item.definition, self.style_pane._search_query):
+                self._show(style_item)
+            # make sure item is not available for reuse whether it
+            # is displayed or not
+            style_item._make_available(False)
+        else:
+            self._show(style_item)
 
     def remove(self, style_item):
         if style_item.name in self.items:
@@ -131,6 +142,9 @@ class StyleGroup(CollapseFrame):
     def _set_prop(self, prop, value, widget):
         widget.configure(**{prop: value})
 
+    def _match_query(self, definition, query):
+        return query in definition["name"] or query in definition["display_name"]
+
     def on_widget_change(self, widget):
         self._widget = widget
         if widget is None:
@@ -144,6 +158,8 @@ class StyleGroup(CollapseFrame):
             self.style_pane.show_loading()
             # this unmaps all style items returning them to the pool for reuse
             self.clear_children()
+            # make all items held by group available for reuse
+            ReusableStyleItem.free_all(self.items.values())
             self.items.clear()
             add = self.add
             list(map(lambda p: add(ReusableStyleItem.acquire(self, definitions[p], self.apply), ), definitions))
@@ -195,13 +211,14 @@ class StyleGroup(CollapseFrame):
 
     def on_search_query(self, query):
         for item in self.items.values():
-            if query in item.definition.get("display_name") or query in item.definition.get("name"):
+            if self._match_query(item.definition, query):
                 self._show(item)
             else:
                 self._hide(item)
 
     def on_search_clear(self):
         # Calling search query with empty query ensures all items are displayed
+        self.clear_children()
         self.on_search_query("")
 
 
@@ -290,7 +307,7 @@ class ColumnConfig(StyleGroup):
         return self._has_initialized
 
     def clear_children(self):
-        for child in self.items:
+        for child in self.items.values():
             self._hide(child)
 
     def _update_index(self):
@@ -437,6 +454,7 @@ class StylePane(BaseFeature):
         self._current = None
         self._expanded = False
         self._is_loading = False
+        self._search_query = None
 
         pref: Preferences = Preferences.acquire()
         pref.add_listener("designer::descriptive_names", lambda _: self.styles_for(self._current))
@@ -561,9 +579,12 @@ class StylePane(BaseFeature):
         for group in self.groups:
             group.on_search_query(query)
         self.__update_frames()
+        self.body.scroll_to_start()
+        self._search_query = query
 
     def on_search_clear(self):
         for group in self.groups:
             group.on_search_clear()
         # The search bar is being closed and we need to bring everything back
         super().on_search_clear()
+        self._search_query = None
