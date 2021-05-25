@@ -6,6 +6,7 @@ import functools
 import os
 import sys
 import time
+import webbrowser
 from tkinter import filedialog, Toplevel
 
 from studio.feature.design import Designer
@@ -574,7 +575,7 @@ class StudioApplication(Application):
 
     def get_help(self):
         # Entry point for studio help functionality
-        self._coming_soon()
+        webbrowser.open("https://formation-studio.readthedocs.io/en/latest/")
 
     def settings(self):
         open_preferences(self)
