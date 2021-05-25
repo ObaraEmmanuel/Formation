@@ -40,7 +40,7 @@ class Routine:
         return ''
 
     def invoke(self, *args, **kwargs):
-        self._func(*args, **kwargs)
+        return self._func(*args, **kwargs)
 
 
 _all_actions = {}
