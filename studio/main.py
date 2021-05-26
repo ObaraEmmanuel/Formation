@@ -556,6 +556,7 @@ class StudioApplication(Application):
         )
 
     def _on_close(self):
+        """ Return ``True`` if exit successful otherwise ``False`` """
         try:
             self._save_position()
             # pass the on window close event to the features
@@ -563,8 +564,9 @@ class StudioApplication(Application):
                 # if any feature returns false abort shut down
                 feature.save_window_pos()
                 if not feature.on_app_close():
-                    return
+                    return False
             self.destroy()
+            return True
         except Exception:
             self._exit_failures += 1
             if self._exit_failures >= 2:
@@ -572,6 +574,7 @@ class StudioApplication(Application):
                 if force:
                     # exit by all means necessary
                     sys.exit(1)
+            return False
 
     def get_help(self):
         # Entry point for studio help functionality
@@ -635,7 +638,9 @@ class StudioApplication(Application):
 
 
 def restart():
-    actions.get_routine("STUDIO_EXIT").invoke()
+    exit_success = actions.get_routine("STUDIO_EXIT").invoke()
+    if not exit_success:
+        return
     pref._release()
     # allow some time before starting
     time.sleep(2)
