@@ -38,6 +38,22 @@ If you want to install the development version directly from the master branch, 
 pip install --upgrade git+https://github.com/obaraemmanuel/Formation@master
 ```
 
+### Installation on Linux
+
+Formation studio uses tkinter and depending on the distro you are using it may or may not
+be installed by default. If you are using tkinter for the first time on your machine you
+might want to first install `tkinter` and `imagetk` after completing the installation procedure above. 
+For debian based distros it should be something like
+
+```bash
+sudo apt-get install python3-tk, python3-pil.imagetk
+```
+
+> Note: These are instructions for Debian based distros and is only assured to work on Ubuntu. For
+> other distros, sub the installation command with the right one. Also, these commands install
+> to ``python 3`` installations. Formation studio does not support python 2 so ensure you install 
+> python 3 packages only.
+
 ### Launching
 
 After a successful installation, you can launch the studio from the command line using the command
