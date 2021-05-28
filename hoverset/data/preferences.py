@@ -99,6 +99,8 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
     def _get_files(self):
         # possible .dat extension
         files = glob.glob(os.path.join(self.get_dir(), f"{self._file}.dat"))
+        # possible .db extension on mac
+        files.extend(glob.glob(os.path.join(self.get_dir(), f"{self._file}.db")))
         # possible no extension
         files.extend(glob.glob(os.path.join(self.get_dir(), f"{self._file}")))
         return files
