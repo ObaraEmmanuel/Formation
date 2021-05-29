@@ -1,5 +1,6 @@
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import Button
+from hoverset.ui.menu import MenuUtils
 from studio.feature._base import BaseFeature
 from studio.lib.pseudo import PseudoWidget
 from studio.ui.tree import MalleableTree
@@ -73,8 +74,10 @@ class ComponentTree(BaseFeature):
             node = parent.add_as_node(widget=widget)
 
         # let the designer render the menu for us
-        node.bind_all('<Button-3>',
-                      lambda e: self.studio.designer.show_menu(e, widget) if self.studio.designer else None)
+        MenuUtils.bind_all_context(
+            node,
+            lambda e: self.studio.designer.show_menu(e, widget) if self.studio.designer else None
+        )
 
     def _trigger_select(self):
         if self._selected and self._selected.widget == self._tree.get().widget:

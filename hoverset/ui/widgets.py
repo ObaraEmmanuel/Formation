@@ -360,7 +360,11 @@ class ContextMenuMixin:
         :param cnf: config for menu
         """
         self.context_menu = self.make_menu(templates, **cnf)
-        self.bind_all("<Button-3>", lambda event: ContextMenuMixin.popup(event, self.context_menu), add='+')
+        MenuUtils.bind_all_context(
+            self,
+            lambda event: ContextMenuMixin.popup(event, self.context_menu),
+            add='+'
+        )
 
     @staticmethod
     def popup(event, menu):
@@ -380,7 +384,9 @@ class ContextMenuMixin:
         :param menu: menu to be set up as context
         :param widget: widget to context menu on
         """
-        widget.bind("<Button-3>", lambda event: ContextMenuMixin.popup(event, menu), add="+")
+        MenuUtils.bind_context(
+            widget, lambda event: ContextMenuMixin.popup(event, menu), add='+'
+        )
 
 
 class ScrollableInterface:

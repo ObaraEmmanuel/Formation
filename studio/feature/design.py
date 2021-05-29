@@ -358,7 +358,7 @@ class Designer(DesignPad, Container):
         # bind events for context menu and object selection
         # all widget additions call this method so clear empty message
         self._show_empty(False)
-        obj.bind("<Button-3>", lambda e: self.show_menu(e, obj), add='+')
+        MenuUtils.bind_context(obj, lambda e: self.show_menu(e, obj), add='+')
         obj.bind('<Shift-ButtonPress-1>', lambda e: self.highlight.set_function(self.highlight.move, e), add='+')
         obj.bind('<Motion>', self.on_motion, '+')
         obj.bind('<ButtonRelease>', self.highlight.clear_resize, '+')

@@ -5,6 +5,7 @@ from enum import Enum
 
 from hoverset.data.images import load_tk_image, load_image, load_image_to_widget
 from hoverset.ui.icons import get_icon_image
+from hoverset.ui.menu import MenuUtils
 from studio.lib import layouts
 from studio.lib.variables import VariableManager
 from studio.lib.properties import get_properties
@@ -97,7 +98,7 @@ class PseudoWidget:
         self.node = None
         self.__on_context = None
         self.last_menu_position = (0, 0)
-        self.bind("<Button-3>", self.__handle_context_menu, add='+')
+        MenuUtils.bind_context(self, self.__handle_context_menu, add='+')
 
     def set_name(self, name):
         pass

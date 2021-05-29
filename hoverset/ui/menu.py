@@ -2,7 +2,7 @@ import functools
 import tkinter as tk
 
 from hoverset.data.actions import Routine
-from hoverset.platform import platform_is, LINUX
+from hoverset.platform import platform_is, windowing_is, LINUX, AQUA
 from hoverset.ui.styles import StyleDelegator
 
 
@@ -97,6 +97,22 @@ class MenuUtils:
         else:
             raw_templates.append(template)
         return raw_templates
+
+    @classmethod
+    def bind_context(cls, widget, callback, add=None):
+        if windowing_is(widget, AQUA):
+            widget.bind("<Button-2>", callback, add)
+            widget.bind("<Control-1>", callback, add)
+        else:
+            widget.bind("<Button-3>", callback, add)
+
+    @classmethod
+    def bind_all_context(cls, widget, callback, add=None):
+        if windowing_is(widget, AQUA):
+            widget.bind_all("<Button-2>", callback, add)
+            widget.bind_all("<Control-1>", callback, add)
+        else:
+            widget.bind_all("<Button-3>", callback, add)
 
     @classmethod
     def _make_menu(cls, templates, menu, style: StyleDelegator = None):
