@@ -2,7 +2,7 @@ import functools
 import tkinter as tk
 
 from hoverset.data.actions import Routine
-from hoverset.platform import platform_is, windowing_is, LINUX, AQUA
+from hoverset.platform import platform_is, windowing_is, LINUX, AQUA, MAC
 from hoverset.ui.styles import StyleDelegator
 
 
@@ -188,7 +188,8 @@ class MenuUtils:
         :return: dynamic menu
 
         """
-        if style:
+        if style and not platform_is(MAC):
+            # styles are not applied consistently on macOS so just suppress them
             cnf.update(style.context_menu)
         menu = tk.Menu(parent, **cnf)
 
