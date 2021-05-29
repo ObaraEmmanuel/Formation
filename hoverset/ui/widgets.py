@@ -594,6 +594,7 @@ class _Tooltip(tk.Toplevel):
         x -= max(0, (x + w) - self.winfo_screenwidth())
         x = max(0, x)
         self.geometry('+{}+{}'.format(x, y))
+        self.lift()
 
 
 # noinspection PyTypeChecker
