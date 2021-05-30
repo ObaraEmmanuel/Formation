@@ -18,6 +18,7 @@ class DragWindow(tix.Toplevel):
         # self.transient(master.window)
         self.overrideredirect(True)
         self.attributes("-alpha", 0.6)  # Default transparency
+        self.lift()
 
     def set_geometry(self, rec):
         self.geometry("{}x{}+{}+{}".format(*rec))
