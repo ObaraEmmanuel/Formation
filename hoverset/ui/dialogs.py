@@ -7,7 +7,7 @@ Common dialogs customised for hoverset platform
 
 from hoverset.ui.widgets import Frame, Label, Window, Button, Application, ProgressBar
 from hoverset.ui.icons import get_icon_image
-from hoverset.platform import platform_is, WINDOWS
+from hoverset.platform import platform_is, WINDOWS, MAC
 
 
 class MessageDialog(Window):
@@ -122,7 +122,9 @@ class MessageDialog(Window):
             render_routine(self)
         self.enable_centering()
         self.value = None
-        self.bind('<Visibility>', lambda _: self._get_focus())
+        # quirk that prevents explicit window centering on linux for best results
+        add = "+" if platform_is(WINDOWS, MAC) else None
+        self.bind('<Visibility>', lambda _: self._get_focus(), add=add)
         if platform_is(WINDOWS):
             # This special case fixes a windows specific issue which blocks
             # application from retuning from a withdrawn state
