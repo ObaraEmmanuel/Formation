@@ -1801,7 +1801,9 @@ class Popup(PositionMixin, Window):
         self.config(**self.style.highlight_active, **self.style.surface)
         self.overrideredirect(True)
         self.attributes("-topmost", 1)
-        self.lift()
+        if platform_is(MAC):
+            # needed for proper positioning in mac
+            self.lift(master)
         self._grabbed = self.grab_current()  # Store the widget that currently has the grab
         # Grab all events so we can tell whether someone is clicking outside the popup
         self.bind("<Visibility>", self._on_visibility)

@@ -6,6 +6,7 @@ Top level widgets and window implementations
 # ======================================================================= #
 
 import tkinter.tix as tix
+from hoverset.platform import platform_is, MAC
 
 
 class DragWindow(tix.Toplevel):
@@ -18,7 +19,9 @@ class DragWindow(tix.Toplevel):
         # self.transient(master.window)
         self.overrideredirect(True)
         self.attributes("-alpha", 0.6)  # Default transparency
-        self.lift()
+        if platform_is(MAC):
+            # needed for macos to make window visible
+            self.lift()
 
     def set_geometry(self, rec):
         self.geometry("{}x{}+{}+{}".format(*rec))
