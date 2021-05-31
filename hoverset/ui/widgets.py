@@ -405,7 +405,7 @@ class ScrollableInterface:
             delta = 1 if event.num == 5 else -1
         elif platform_is(MAC):
             # For mac delta remains unmodified
-            delta = event.delta
+            delta = -1 * event.delta
         elif platform_is(WINDOWS):
             delta = -1 * (event.delta // 120)
             
