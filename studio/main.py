@@ -29,6 +29,7 @@ from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.menu import MenuUtils, EnableIf, dynamic_menu, LoadLater
 from hoverset.data import actions
 from hoverset.data.keymap import ShortcutManager, CharKey, KeyMap, BlankKey
+from hoverset.platform import platform_is, MAC
 
 from formation import AppBuilder
 
@@ -124,55 +125,69 @@ class StudioApplication(Application):
             ("command", "delete", icon("delete", 14, 14), actions.get('STUDIO_DELETE'), {}),
         ),)
 
-        self.menu_bar = MenuUtils.make_dynamic((
-            ("cascade", "File", None, None, {"menu": (
-                ("command", "New", icon("add", 14, 14), actions.get('STUDIO_NEW'), {}),
-                ("command", "Open", icon("folder", 14, 14), actions.get('STUDIO_OPEN'), {}),
-                ("cascade", "Recent", icon("clock", 14, 14), None, {"menu": self._create_recent_menu()}),
-                ("separator",),
-                ("command", "Save", icon("save", 14, 14), actions.get('STUDIO_SAVE'), {}),
-                ("command", "Save As", icon("save", 14, 14), actions.get('STUDIO_SAVE_AS'), {}),
-                ("separator",),
-                ("command", "Settings", icon("settings", 14, 14), actions.get('STUDIO_SETTINGS'), {}),
-                ("command", "Restart", icon("blank", 14, 14), actions.get('STUDIO_RESTART'), {}),
-                ("command", "Exit", icon("close", 14, 14), actions.get('STUDIO_EXIT'), {}),
-            )}),
-            ("cascade", "Edit", None, None, {"menu": (
-                EnableIf(lambda: len(self._undo_stack),
-                         ("command", "undo", icon("undo", 14, 14), actions.get('STUDIO_UNDO'), {})),
-                EnableIf(lambda: len(self._redo_stack),
-                         ("command", "redo", icon("redo", 14, 14), actions.get('STUDIO_REDO'), {})),
-                *self.menu_template,
-            )}),
-            ("cascade", "Code", None, None, {"menu": (
-                EnableIf(
-                    lambda: self.designer and self.designer.root_obj,
-                    ("command", "Preview design", icon("play", 14, 14), actions.get('STUDIO_PREVIEW'), {}),
-                    ("command", "close preview", icon("close", 14, 14), actions.get('STUDIO_PREVIEW_CLOSE'), {})
-                )
-            )}),
-            ("cascade", "View", None, None, {"menu": (
-                ("command", "show all", blank_img, actions.get('FEATURE_SHOW_ALL'), {}),
-                ("command", "close all", icon("close", 14, 14), actions.get('FEATURE_CLOSE_ALL'), {}),
-                ("command", "close all on the right", blank_img, actions.get('FEATURE_CLOSE_RIGHT'), {}),
-                ("command", "close all on the left", blank_img, actions.get('FEATURE_CLOSE_LEFT'), {}),
-                ("separator",),
-                ("command", "Undock all windows", blank_img, actions.get('FEATURE_UNDOCK_ALL'), {}),
-                ("command", "Dock all windows", blank_img, actions.get('FEATURE_DOCK_ALL'), {}),
-                ("separator",),
-                LoadLater(self.get_features_as_menu),
-                ("separator",),
-                ("command", "Save window positions", blank_img, actions.get('FEATURE_SAVE_POS'), {})
-            )}),
-            ("cascade", "Tools", None, None, {"menu": ToolManager.get_tools_as_menu(self)}),
-            ("cascade", "Help", None, None, {"menu": (
-                ("command", "Help", icon('dialog_info', 14, 14), actions.get('STUDIO_HELP'), {}),
-                ("command", "Check for updates", icon("cloud", 14, 14), self._check_updates, {}),
-                ("separator",),
-                ("command", "About Formation", icon("formation", 14, 14), lambda: about_window(self), {}),
-            )})
-        ), self, self.style, False)
+        self.menu_bar = MenuUtils.make_dynamic(
+            ((
+                 ("cascade", "formation", None, None, {"menu": (
+                     ("command", "Restart", None, actions.get('STUDIO_RESTART'), {}),
+                     ("separator", ),
+                     ("command", "About Formation", icon("formation", 14, 14), lambda: about_window(self), {}),
+                 ), "name": "apple"}),
+             ) if platform_is(MAC) else ()) +
+            (
+                ("cascade", "File", None, None, {"menu": (
+                    ("command", "New", icon("add", 14, 14), actions.get('STUDIO_NEW'), {}),
+                    ("command", "Open", icon("folder", 14, 14), actions.get('STUDIO_OPEN'), {}),
+                    ("cascade", "Recent", icon("clock", 14, 14), None, {"menu": self._create_recent_menu()}),
+                    ("separator",),
+                    ("command", "Save", icon("save", 14, 14), actions.get('STUDIO_SAVE'), {}),
+                    ("command", "Save As", icon("save", 14, 14), actions.get('STUDIO_SAVE_AS'), {}),
+                    ("separator",),
+                    ("command", "Settings", icon("settings", 14, 14), actions.get('STUDIO_SETTINGS'), {}),
+                    ("command", "Restart", icon("blank", 14, 14), actions.get('STUDIO_RESTART'), {}),
+                    ("command", "Exit", icon("close", 14, 14), actions.get('STUDIO_EXIT'), {}),
+                )}),
+                ("cascade", "Edit", None, None, {"menu": (
+                    EnableIf(lambda: len(self._undo_stack),
+                             ("command", "undo", icon("undo", 14, 14), actions.get('STUDIO_UNDO'), {})),
+                    EnableIf(lambda: len(self._redo_stack),
+                             ("command", "redo", icon("redo", 14, 14), actions.get('STUDIO_REDO'), {})),
+                    *self.menu_template,
+                )}),
+                ("cascade", "Code", None, None, {"menu": (
+                    EnableIf(
+                        lambda: self.designer and self.designer.root_obj,
+                        ("command", "Preview design", icon("play", 14, 14), actions.get('STUDIO_PREVIEW'), {}),
+                        ("command", "close preview", icon("close", 14, 14), actions.get('STUDIO_PREVIEW_CLOSE'), {})
+                    )
+                )}),
+                ("cascade", "View", None, None, {"menu": (
+                    ("command", "show all", blank_img, actions.get('FEATURE_SHOW_ALL'), {}),
+                    ("command", "close all", icon("close", 14, 14), actions.get('FEATURE_CLOSE_ALL'), {}),
+                    ("command", "close all on the right", blank_img, actions.get('FEATURE_CLOSE_RIGHT'), {}),
+                    ("command", "close all on the left", blank_img, actions.get('FEATURE_CLOSE_LEFT'), {}),
+                    ("separator",),
+                    ("command", "Undock all windows", blank_img, actions.get('FEATURE_UNDOCK_ALL'), {}),
+                    ("command", "Dock all windows", blank_img, actions.get('FEATURE_DOCK_ALL'), {}),
+                    ("separator",),
+                    LoadLater(self.get_features_as_menu),
+                    ("separator",),
+                    ("command", "Save window positions", blank_img, actions.get('FEATURE_SAVE_POS'), {})
+                )}),
+                ("cascade", "Tools", None, None, {"menu": ToolManager.get_tools_as_menu(self)}),
+                ("cascade", "Help", None, None, {"menu": (
+                    ("command", "Help", icon('dialog_info', 14, 14), actions.get('STUDIO_HELP'), {}),
+                    ("command", "Check for updates", icon("cloud", 14, 14), self._check_updates, {}),
+                    ("separator",),
+                    ("command", "About Formation", icon("formation", 14, 14), lambda: about_window(self), {}),
+                )})
+            ), self, self.style, False)
+
         self.config(menu=self.menu_bar)
+
+        if platform_is(MAC):
+            self.createcommand("tk::mac::ShowPreferences", lambda: actions.get('STUDIO_SETTINGS').invoke())
+            self.createcommand("tk::mac::ShowHelp", lambda: actions.get('STUDIO_HELP').invoke())
+            self.createcommand("tk::mac::Quit", lambda: actions.get('STUDIO_EXIT').invoke())
 
         self.features = []
 

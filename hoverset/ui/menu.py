@@ -155,7 +155,10 @@ class MenuUtils:
                     if config.get('menu') is None:
                         pass
                     elif not isinstance(config.get('menu'), tk.Menu):
-                        config["menu"] = cls.make_dynamic(config.get("menu"), menu, style)
+                        name = None
+                        if "name" in config:
+                            name = config.pop("name")
+                        config["menu"] = cls.make_dynamic(config.get("menu"), menu, style, name=name)
                     menu.add_cascade(label=label, image=icon, command=command, compound='left', **config)
                     cls.image_cache.add(icon)
                 else:
