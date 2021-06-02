@@ -1467,16 +1467,6 @@ class Canvas(Widget, ContextMenuMixin, tk.Canvas):
         super().__init__(master, **kwargs)
 
 
-class MenuButton(Widget, ImageCacheMixin, tk.Menubutton):
-    """
-    Hoverset wrapper for :class:`tkinter.Menubutton`
-    """
-
-    def __init__(self, master=None, **kwargs):
-        self.setup(master)
-        super().__init__(master, **kwargs)
-
-
 class Button(Frame):
     """
     Completely custom Hoverset widget built on top of :class:`hoverset.ui.widgets.Frame`
@@ -1523,6 +1513,56 @@ class Button(Frame):
             return super().config()
         super().configure(clean_styles(self, cnf))
         self._label.configure(clean_styles(self._label, cnf))
+
+
+class _MacMenuButton(tk.Label):
+    """
+    Customisable MenuButton alternative for macOS
+    """
+    def __init__(self, master, cnf=None, **kw):
+        super(_MacMenuButton, self).__init__(master)
+        self.bind("<Button-1>", self._show_menu, add="+")
+        self._menu = None
+        self.configure(cnf, **kw)
+
+    def _show_menu(self, event):
+        if self._menu:
+            MenuUtils.popup(event, self._menu)
+
+    def configure(self, cnf=None, **kw):
+        cnf = cnf or {}
+        cnf.update(kw)
+        if "menu" in cnf:
+            self._menu = cnf.pop("menu")
+        return super().configure(cnf)
+
+    config = configure
+
+    def __setitem__(self, key, value):
+        if key == "menu":
+            self._menu = value
+        else:
+            super(_MacMenuButton, self).__setitem__(key, value)
+
+    def __getitem__(self, item):
+        if item == "menu":
+            return self._menu
+        else:
+            return super(_MacMenuButton, self).__getitem__(item)
+
+
+class MenuButton(
+    Widget,
+    ImageCacheMixin,
+    _MacMenuButton if platform_is(MAC) else tk.Menubutton
+):
+    """
+    Hoverset wrapper for :class:`tkinter.Menubutton`
+    """
+
+    def __init__(self, master=None, **kwargs):
+        self.setup(master)
+        super().__init__(master, **kwargs)
 
 
 class ToggleButton(Button):
