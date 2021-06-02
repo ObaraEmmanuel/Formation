@@ -767,7 +767,7 @@ class Widget:
     @staticmethod
     def event_first(event, widget, class_: type, ignore=None):
         """
-        Gets the first widget belonging to `class\_` at the event position. This widget
+        Gets the first widget belonging to `class\\_` at the event position. This widget
         may be the top widget or it's parents and grandparents deep down the hierarchy.
         Useful when you want to ignore widgets and cascade the event to a specific lower
         level widget.
@@ -776,7 +776,7 @@ class Widget:
         :param widget: any widget preferably the toplevel widget
         :param class_: the class of the widget we are interested in
         :param ignore: widget to be ignored if any
-        :return: the first widget belonging to `class\_`, if no widget is found None is returned
+        :return: the first widget belonging to `class\\_`, if no widget is found None is returned
         """
         check = widget.winfo_containing(event.x_root, event.y_root)
         while not isinstance(check, Application) and check is not None:
