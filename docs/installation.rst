@@ -3,16 +3,18 @@
 Installation
 *************
 
-To use formation studio you will need to have installed python version 3.6 or higher. You can
-`download and install python <https://www.python.org/downloads/>`_ first. Proceed then and install formation using pip
+To use Formation studio, python 3.6 or higher is required. You can download and install python
+`here <https://www.python.org/downloads/>`_. 
 
-.. note:: For some linux distributions you will need to have installed pip separately, follow `these instructions <http://www.techmint.com/install-pip-in-linux/amp/>`_ instructions
+Formation studio can be installed using pip:
 
 .. code-block:: bash
 
     pip install formation-studio
 
-if you have multiple python versions installed, to install for say python 3.7, use its pip tool
+.. note:: Some linux distributions do not include pip and require you to install it separately. You can follow `these instructions <https://pip.pypa.io/en/stable/installing/>`_ to do so.
+
+If you are using multiple versions of python, pip can install Formation studio on a per version basis. For example, if you wanted to specify python 3.7:
 
 .. code-block:: bash
 
@@ -22,10 +24,10 @@ if you have multiple python versions installed, to install for say python 3.7, u
 Installation on Linux
 ======================
 
-Formation studio uses tkinter and depending on the distro you are using it may or may not
-be installed by default. If you are using tkinter for the first time on your machine you
-might want to first install ``tkinter`` and ``imagetk`` after completing the installation procedure above.
-For debian based distros it should be something like
+Formation studio uses tkinter that (depending on your distribution) may or may not
+be included by default. If you are using tkinter for the first time it is advised to install ``tkinter`` and ``imagetk``.
+
+For Debian based distributions (i.e. Ubuntu) you would use the following:
 
 .. code-block:: bash
 
@@ -33,14 +35,11 @@ For debian based distros it should be something like
 
 .. note::
 
-    These are instructions for Debian based distros and is only assured to work on Ubuntu. For
-    other distros, sub the installation command with the right one. Also, these commands install
-    to ``python 3`` installations. Formation studio does **not** support ``python 2`` so ensure you install
-    ``python 3`` packages only.
+    If your distribution is not Debian based you will need to subsitute the appropriate installation commands as per your distribution. Furthermore, Formation studio does **not** support ``python 2``. Please ensure you install ``python 3`` packages only.
 
-Launching
-=========
-After a successful installation you can launch the studio from the command line using the command
+Launching Formation studio
+==========================
+Once installed you can launch Formation studio from the command line using the following command:
 
 .. code-block:: bash
 
