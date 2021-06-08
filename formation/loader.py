@@ -8,11 +8,10 @@ import logging
 import os
 from collections import defaultdict
 from importlib import import_module
+import tkinter as tk
+import tkinter.ttk as ttk
 
-from lxml import etree
-
-from formation import xml
-from formation.xml import ttk, tk
+from formation.formats import Node, BaseAdapter, infer_format
 from formation.handlers import dispatch_to_handlers
 
 logger = logging.getLogger(__name__)
@@ -51,17 +50,18 @@ _menu_item_types = (
 )
 
 
-class BaseConverter(xml.BaseConverter):
+class BaseLoaderAdapter(BaseAdapter):
     required_fields = ["layout"]
 
     @classmethod
+    def _load_required_fields(cls, node):
+        for key in cls.required_fields:
+            if key not in node.attrib:
+                node.attrib[key] = {}
+
+    @classmethod
     def _get_class(cls, node):
-        tag = node.tag
-        match = xml.tag_rgx.search(tag)
-        if match:
-            module, impl = match.groups()
-        else:
-            raise SyntaxError("Malformed tag {}".format(tag))
+        module, impl = node.get_mod_impl()
         if module in _preloaded:
             module = _preloaded[module]
         else:
@@ -72,15 +72,16 @@ class BaseConverter(xml.BaseConverter):
         raise AttributeError("class {} not found in module {}".format(impl, module))
 
     @classmethod
-    def from_xml(cls, node, builder, parent):
+    def load(cls, node, builder, parent):
         obj_class = cls._get_class(node)
-        config = cls.attrib(node)
+        cls._load_required_fields(node)
+        config = node.attrib
         if obj_class == ttk.PanedWindow and "orient" in config.get("attr", {}):
             orient = config["attr"].pop("orient")
             obj = obj_class(parent, orient=orient)
         else:
             obj = obj_class(parent)
-        parent_node = node.getparent()
+        parent_node = node.parent
         kwargs = {
             "parent_node": parent_node,
             "parent": parent,
@@ -93,9 +94,9 @@ class BaseConverter(xml.BaseConverter):
             # if name attribute is missing calling setattr will raise errors
             setattr(builder, name, obj)
         for sub_node in node:
-            if sub_node.tag == "event":
+            if sub_node.type == "event":
                 builder._event_map[obj].append(dict(sub_node.attrib))
-            elif sub_node.tag == "grid":
+            elif sub_node.type == "grid":
                 if sub_node.attrib.get("column"):
                     column = sub_node.attrib.pop("column")
                     obj.columnconfigure(column, **sub_node.attrib)
@@ -105,28 +106,29 @@ class BaseConverter(xml.BaseConverter):
         return obj
 
 
-class MenuConverter(BaseConverter):
+class MenuLoaderAdapter(BaseLoaderAdapter):
     _types = [tk.COMMAND, tk.CHECKBUTTON, tk.RADIOBUTTON, tk.SEPARATOR, tk.CASCADE]
 
     @classmethod
-    def from_xml(cls, node, builder, parent):
-        widget = BaseConverter.from_xml(node, builder, parent)
-        cls._menu_from_xml(node, builder, None, widget)
+    def load(cls, node, builder, parent):
+        cls._load_required_fields(node)
+        widget = BaseLoaderAdapter.load(node, builder, parent)
+        cls._menu_load(node, builder, None, widget)
         return widget
 
     @classmethod
-    def _menu_from_xml(cls, node, builder, menu=None, widget=None):
+    def _menu_load(cls, node, builder, menu=None, widget=None):
         for sub_node in node:
-            if sub_node.tag == "event":
+            if sub_node.type == "event":
                 continue
-            attrib = cls.attrib(sub_node)
+            attrib = sub_node.attrib
             kwargs = {
-                "parent_node": sub_node.getparent(),
+                "parent_node": sub_node.parent,
                 "node": sub_node,
                 "builder": builder,
             }
-            if sub_node.tag in MenuConverter._types and menu is not None:
-                menu.add(sub_node.tag)
+            if sub_node.type in MenuLoaderAdapter._types and menu is not None:
+                menu.add(sub_node.type)
                 index = menu.index(tk.END)
                 dispatch_to_handlers(menu, attrib, **kwargs, menu=menu, index=index)
             elif cls._get_class(sub_node) == tk.Menu:
@@ -141,15 +143,16 @@ class MenuConverter(BaseConverter):
                     dispatch_to_handlers(
                         menu_obj, attrib, **kwargs, menu=menu, index=index
                     )
-                cls._menu_from_xml(sub_node, builder, menu_obj)
+                cls._menu_load(sub_node, builder, menu_obj)
 
 
-class VariableConverter(BaseConverter):
+class VariableLoaderAdapter(BaseLoaderAdapter):
+
     @classmethod
-    def from_xml(cls, node, builder, __=None):
+    def load(cls, node, builder, __=None):
         # we do not need the designer and parent attributes hence the _ and __
         obj_class = cls._get_class(node)
-        attributes = cls.attrib(node).get("attr", {})
+        attributes = node.attrib.get("attr", {})
         _id = attributes.pop("name")
         obj = obj_class(**attributes)
         setattr(builder, _id, obj)
@@ -162,13 +165,23 @@ class Builder:
     To access a widget use its name as set in the designer
 
     :param parent: The parent window where the design widgets are to be loaded
-    :param path: The path to the xml file containing the design
+    :param kwargs: Options used in loading
+        * **path**: Path to file of supported format from which to load the design
+        * **string**: String of supported format to be used in loading the design
+        * **node**: an instance of :py:class:`~formation.formats.Node` from which to load the design directly
+        * **format**: an instance of :py:class:`~formation.formats.BaseFormat` to be used in loading the string
+            contents provided by the **string** option
+
+    .. note::
+        if the **string** option is used, not providing the **format** option will
+        raise a :class:ValueError
+
     """
 
-    _conversion_map = {
-        tk.Menubutton: MenuConverter,
-        ttk.Menubutton: MenuConverter,
-        # Add custom converters here
+    _adapter_map = {
+        tk.Menubutton: MenuLoaderAdapter,
+        ttk.Menubutton: MenuLoaderAdapter,
+        # Add custom adapters here
     }
 
     _ignore_tags = (
@@ -192,12 +205,15 @@ class Builder:
         if kwargs.get("path"):
             self.load_path(kwargs.get("path"))
         elif kwargs.get("string"):
-            self.load_string(kwargs.get("string"))
+            format_ = kwargs.get("format")
+            if format_ is None:
+                raise ValueError("format not provided, cannot infer format from string")
+            self.load_string(kwargs.get("string"), format_)
         elif kwargs.get("node") is not None:
             self.load_node(kwargs.get("node"))
 
-    def _get_converter(self, widget_class):
-        return self._conversion_map.get(widget_class, BaseConverter)
+    def _get_adapter(self, widget_class):
+        return self._adapter_map.get(widget_class, BaseLoaderAdapter)
 
     def _load_xml(self, root_node):
         # load variables first
@@ -205,17 +221,18 @@ class Builder:
         return self._load_widgets(root_node, self, self._parent)
 
     def _load_variables(self, node, builder):
-        for var in node.iter(*_variable_types):
-            VariableConverter.from_xml(var, builder)
+        for sub_node in node:
+            if sub_node.is_var():
+                VariableLoaderAdapter.load(sub_node, builder)
 
     def _load_widgets(self, node, builder, parent):
-        converter = self._get_converter(BaseConverter._get_class(node))
-        widget = converter.from_xml(node, builder, parent)
+        adapter = self._get_adapter(BaseLoaderAdapter._get_class(node))
+        widget = adapter.load(node, builder, parent)
         if widget.__class__ not in _containers:
             # We dont need to load child tags of non-container widgets
             return widget
         for sub_node in node:
-            if BaseConverter._is_var(sub_node.tag) or sub_node.tag in self._ignore_tags:
+            if sub_node.is_var() or sub_node.type in self._ignore_tags:
                 # ignore variables and non widgets
                 continue
             self._load_widgets(sub_node, builder, widget)
@@ -326,29 +343,30 @@ class Builder:
         :param path: Path to xml file to be loaded
         :return: root widget
         """
-        with open(path, "rb") as stream:
-            self._path = os.path.abspath(path)
-            tree = etree.parse(stream)
-            node = tree.getroot()
-        self._root = self._load_xml(node)
+        self._path = os.path.abspath(path)
+        tree = infer_format(path)(path=path)
+        tree.load()
+        self._root = self._load_xml(tree.root)
         return self._root
 
-    def load_string(self, xml_string):
+    def load_string(self, xml_string, format_):
         """
         Load the builder from a string
 
         :param xml_string: string containing xml to be loaded
+        :param format_: the format class sub-classing :py:class:`~formation.formats.BaseFormat` to be used
         :return: root widget
         """
-        node = etree.fromstring(xml_string)
-        self._root = self._load_xml(node)
+        tree = format_(xml_string)
+        tree.load()
+        self._root = self._load_xml(tree.root)
         return self._root
 
-    def load_node(self, node: etree._Element):
+    def load_node(self, node: Node):
         """
-        Load the builder from :class:lxml._Element node
+        Load the builder from a :py:class:`~formation.formats.Node` instance
 
-        :param node: :class:lxml._Element node to be loaded
+        :param node: :py:class:`~formation.formats.Node` to be loaded
         :return: root widget
         """
         self._root = self._load_xml(node)
@@ -395,7 +413,7 @@ class AppBuilder(Builder):
         super().__init__(self._app, **kwargs)
 
     def _load_xml(self, root_node):
-        layout = BaseConverter.attrib(root_node).get("layout", {})
+        layout = root_node.attrib.get("layout", {})
         # Adjust toplevel window size to that of the root widget
         self._app.geometry(
             "{}x{}".format(layout.get("width", 200), layout.get("height", 200))

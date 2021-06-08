@@ -32,6 +32,7 @@ from hoverset.data.keymap import ShortcutManager, CharKey, KeyMap, BlankKey
 from hoverset.platform import platform_is, MAC
 
 from formation import AppBuilder
+from formation.formats import get_file_types
 
 pref = Preferences.acquire()
 
@@ -286,8 +287,8 @@ class StudioApplication(Application):
 
     def copy(self):
         if self.selected:
-            # store the current object as an xml node in the clipboard
-            self._clipboard = self.designer.as_xml_node(self.selected)
+            # store the current object as  node in the clipboard
+            self._clipboard = self.designer.as_node(self.selected)
 
     def install_status_widget(self, widget_class, *args, **kwargs):
         widget = widget_class(self._statusbar, *args, **kwargs)
@@ -404,7 +405,7 @@ class StudioApplication(Application):
 
     def open_file(self, path=None):
         if path is None:
-            path = filedialog.askopenfilename(parent=self, filetypes=[('XML', '*.xml')])
+            path = filedialog.askopenfilename(parent=self, filetypes=get_file_types())
         elif not os.path.exists(path):
             MessageDialog.show_error(
                 parent=self,
@@ -414,7 +415,7 @@ class StudioApplication(Application):
             return
         if path:
             self.set_path(path)
-            self.designer.open_xml(path)
+            self.designer.open_file(path)
             pref.update_recent(path)
 
     def open_recent(self, path):
@@ -509,7 +510,7 @@ class StudioApplication(Application):
             return
         if self.selected == widget:
             self.select(None)
-        self._clipboard = self.designer.as_xml_node(widget)
+        self._clipboard = self.designer.as_node(widget)
         if source != self.designer:
             self.designer.delete(widget, True)
         for feature in self.features:
@@ -542,7 +543,7 @@ class StudioApplication(Application):
         self.close_preview()
         window = self.current_preview = Toplevel(self)
         window.wm_transient(self)
-        window.build = AppBuilder(window, node=self.designer.to_xml())
+        window.build = AppBuilder(window, node=self.designer.to_tree())
         name = self.designer.design_path if self.designer.design_path is not None else "Untitled"
         window.build._app.title(os.path.basename(name))
 

@@ -7,9 +7,7 @@ Conversions of design to xml and back
 
 import tkinter as tk
 
-from lxml import etree
-
-from formation import xml
+from formation.formats import infer_format, BaseAdapter, Node
 from studio.feature.variablepane import VariablePane
 from studio.lib.variables import VariableItem
 from studio.lib import legacy, native
@@ -17,6 +15,9 @@ from studio.lib.menu import menu_config, MENU_ITEM_TYPES
 from studio.lib.pseudo import Container, PseudoWidget
 from studio.lib.events import make_event
 from studio.lib.layouts import GridLayoutStrategy
+from studio.preferences import Preferences
+
+pref = Preferences.acquire()
 
 
 def get_widget_impl(widget):
@@ -25,7 +26,7 @@ def get_widget_impl(widget):
     return widget.impl.__module__ + "." + widget.impl.__name__
 
 
-class BaseConverter(xml.BaseConverter):
+class BaseStudioAdapter(BaseAdapter):
     _designer_alternates = {
         'tkinter': legacy,
         'tkinter.ttk': native,
@@ -35,12 +36,7 @@ class BaseConverter(xml.BaseConverter):
 
     @classmethod
     def _get_class(cls, node):
-        tag = node.tag
-        match = xml.tag_rgx.search(tag)
-        if match:
-            module, impl = match.groups()
-        else:
-            raise SyntaxError("Malformed tag {}".format(tag))
+        module, impl = node.get_mod_impl()
         if module in cls._designer_alternates:
             module = cls._designer_alternates.get(module)
         else:
@@ -48,7 +44,7 @@ class BaseConverter(xml.BaseConverter):
         if hasattr(module, impl):
             return getattr(module, impl)
         elif impl == 'Panedwindow' and module == native:
-            orient = cls.attrib(node).get("attr", {}).get("orient")
+            orient = node.attrib.get("attr", {}).get("orient")
             if orient == tk.HORIZONTAL:
                 return native.HorizontalPanedWindow
             else:
@@ -56,13 +52,13 @@ class BaseConverter(xml.BaseConverter):
         raise NotImplementedError("class {} does not have a designer implementation variant in {}".format(impl, module))
 
     @classmethod
-    def to_xml(cls, widget: PseudoWidget, parent=None):
-        node = cls.create_element(parent, get_widget_impl(widget))
+    def generate(cls, widget: PseudoWidget, parent=None):
         attr = widget.get_altered_options()
+        node = Node(parent, get_widget_impl(widget))
         node.attrib['name'] = widget.id
-        cls.load_attributes(attr, node, 'attr')
+        node["attr"] = attr
         layout_options = widget.layout.get_altered_options_for(widget)
-        cls.load_attributes(layout_options, node, 'layout')
+        node["layout"] = layout_options
 
         if hasattr(widget, "_event_map_"):
             for binding in widget._event_map_.values():
@@ -71,7 +67,7 @@ class BaseConverter(xml.BaseConverter):
                 bind_dict.pop("id")
                 # convert field values to string
                 bind_dict = {k: str(bind_dict[k]) for k in bind_dict}
-                event_node = cls.create_element(node, "event")
+                event_node = Node(node, "event")
                 event_node.attrib.update(bind_dict)
 
         if isinstance(widget, Container) and widget.layout_strategy.__class__ == GridLayoutStrategy:
@@ -80,23 +76,23 @@ class BaseConverter(xml.BaseConverter):
                 for row in widget._row_conf:
                     r_info = layout.get_row_def(None, row)
                     modified = {i: str(r_info[i]["value"]) for i in r_info if r_info[i]["value"] != r_info[i]["default"]}
-                    row_node = cls.create_element(node, "grid")
+                    row_node = Node(node, "grid")
                     row_node.attrib["row"] = str(row)
                     row_node.attrib.update(modified)
             if hasattr(widget, "_column_conf"):
                 for column in widget._column_conf:
                     c_info = layout.get_column_def(None, column)
                     modified = {i: str(c_info[i]["value"]) for i in c_info if c_info[i]["value"] != c_info[i]["default"]}
-                    column_node = cls.create_element(node, "grid")
+                    column_node = Node(node, "grid")
                     column_node.attrib["column"] = str(column)
                     column_node.attrib.update(modified)
 
         return node
 
     @classmethod
-    def from_xml(cls, node, designer, parent, bounds=None):
+    def load(cls, node, designer, parent, bounds=None):
         obj_class = cls._get_class(node)
-        attrib = cls.attrib(node)
+        attrib = node.attrib
         styles = attrib.get("attr", {})
         if obj_class in (native.VerticalPanedWindow, native.HorizontalPanedWindow):
             # use copy to maintain integrity of XMLForm on pop
@@ -104,14 +100,14 @@ class BaseConverter(xml.BaseConverter):
             if 'orient' in styles:
                 styles.pop('orient')
         layout = attrib.get("layout", {})
-        obj = designer.load(obj_class, node.attrib.get("name"), parent, styles, layout, bounds)
+        obj = designer.load(obj_class, attrib["name"], parent, styles, layout, bounds)
         for sub_node in node:
-            if sub_node.tag == "event":
+            if sub_node.type == "event":
                 binding = make_event(**sub_node.attrib)
                 if not hasattr(obj, "_event_map_"):
                     obj._event_map_ = {}
                 obj._event_map_[binding.id] = binding
-            elif sub_node.tag == "grid":
+            elif sub_node.type == "grid":
                 # we may pop stuff so use a copy
                 sub_attrib = dict(sub_node.attrib)
                 if sub_attrib.get("column"):
@@ -136,7 +132,7 @@ class BaseConverter(xml.BaseConverter):
         return {key: keys[key][-1] for key in keys if keys[key][-1] != keys[key][-2] and len(keys[key]) > 2}
 
 
-class MenuConverter(BaseConverter):
+class MenuStudioAdapter(BaseStudioAdapter):
     _types = [tk.COMMAND, tk.CHECKBUTTON, tk.RADIOBUTTON, tk.SEPARATOR, tk.CASCADE]
 
     @staticmethod
@@ -147,28 +143,28 @@ class MenuConverter(BaseConverter):
         return {key: keys[key][-1] for key in keys if keys[key][-1] != keys[key][-2]}
 
     @classmethod
-    def to_xml(cls, widget: PseudoWidget, parent=None):
-        node = BaseConverter.to_xml(widget, parent)
-        cls.drop_attr(node, 'menu', 'attr')
+    def generate(cls, widget: PseudoWidget, parent=None):
+        node = BaseStudioAdapter.generate(widget, parent)
+        node.remove_attrib('menu', 'attr')
         if widget.configure().get('menu')[-1]:
             menu = widget.nametowidget(widget['menu'])
             cls._menu_to_xml(node, menu)
         return node
 
     @classmethod
-    def from_xml(cls, node, designer, parent, bounds=None):
-        widget = BaseConverter.from_xml(node, designer, parent, bounds)
+    def load(cls, node, designer, parent, bounds=None):
+        widget = BaseStudioAdapter.load(node, designer, parent, bounds)
         cls._menu_from_xml(node, None, widget)
         return widget
 
     @classmethod
     def _menu_from_xml(cls, node, menu=None, widget=None):
         for sub_node in node:
-            if sub_node.tag == "event":
+            if sub_node.type == "event":
                 continue
-            attrib = cls.attrib(sub_node)
-            if sub_node.tag in MenuConverter._types and menu is not None:
-                menu.add(sub_node.tag)
+            attrib = sub_node.attrib
+            if sub_node.type in MenuStudioAdapter._types and menu is not None:
+                menu.add(sub_node.type)
                 menu_config(menu, menu.index(tk.END), **attrib.get("menu", {}))
                 continue
 
@@ -190,42 +186,44 @@ class MenuConverter(BaseConverter):
         if size is None:
             # menu is empty
             size = -1
-        menu_node = cls.create_element(node, get_widget_impl(menu))
-        cls.load_attributes(cls.get_altered_options(menu), menu_node, 'attr')
-        cls.load_attributes(item_opt, menu_node, 'menu')
+        menu_node = Node(node, get_widget_impl(menu))
+        menu_node["attr"] = cls.get_altered_options(menu)
+        menu_node["menu"] = item_opt
         for i in range(size + 1):
             if menu.type(i) == tk.CASCADE:
                 cls._menu_to_xml(menu_node,
                                  menu.nametowidget(menu.entrycget(i, 'menu')), **cls.get_item_options(menu, i))
             elif menu.type(i) != 'tearoff':
-                sub_node = cls.create_element(menu_node, menu.type(i))
-                cls.load_attributes(cls.get_item_options(menu, i), sub_node, 'menu')
+                sub_node = Node(menu_node, menu.type(i))
+                sub_node["menu"] = cls.get_item_options(menu, i)
         return menu_node
 
 
-class VariableConverter(BaseConverter):
+class VariableStudioAdapter(BaseStudioAdapter):
 
     @classmethod
-    def to_xml(cls, variable: VariableItem, parent=None):
-        node = cls.create_element(parent, get_widget_impl(variable.var))
-        attributes = {'name': variable.name, 'value': variable.value}
-        cls.load_attributes(attributes, node, 'attr')
+    def generate(cls, variable: VariableItem, parent=None):
+        node = Node(
+            parent,
+            get_widget_impl(variable.var),
+            {"attr":  {'name': variable.name, 'value': variable.value}}
+        )
         return node
 
     @classmethod
-    def from_xml(cls, node, *_):
+    def load(cls, node, *_):
         # we only need the node argument; ignore the rest
         var_manager: VariablePane = VariablePane.get_instance()
-        attributes = cls.attrib(node).get("attr", {})
-        var_manager.add_var(VariableItem.supported_types.get(node.tag, tk.StringVar), **attributes)
+        attributes = node.attrib.get("attr", {})
+        var_manager.add_var(VariableItem.supported_types.get(node.type, tk.StringVar), **attributes)
 
 
-class XMLForm:
+class DesignBuilder:
 
     def __init__(self, designer):
-        self._conversion_map = {
-            legacy.Menubutton: MenuConverter,
-            native.Menubutton: MenuConverter,
+        self._adapter_map = {
+            legacy.Menubutton: MenuStudioAdapter,
+            native.Menubutton: MenuStudioAdapter,
             # Add custom converters here
         }
         self._ignore_tags = (
@@ -242,24 +240,21 @@ class XMLForm:
         the root widget and its child widgets are converted to xml
         :return:
         """
-        self.root = self.to_xml_tree(self.designer.root_obj)
-        self._variables_to_xml(self.root)
+        self.root = self.to_tree(self.designer.root_obj)
+        self._variables_to_tree(self.root)
 
-    def get_converter(self, widget_class):
-        return self._conversion_map.get(widget_class, BaseConverter)
+    def get_adapter(self, widget_class):
+        return self._adapter_map.get(widget_class, BaseStudioAdapter)
 
-    def load_xml(self, stream, designer):
-        if isinstance(stream, str):
-            tree = etree.fromstring(stream)
-        else:
-            tree = etree.parse(stream)
-        self.root = tree.getroot()
+    def load(self, path, designer):
+        self.root = infer_format(path)(path=path).load()
         self._load_variables(self.root)
         return self._load_widgets(self.root, designer, designer)
 
     def _load_variables(self, node):
-        for var in node.iter(*VariableItem.supported_types):
-            VariableConverter.from_xml(var)
+        for sub_node in node:
+            if sub_node.is_var():
+                VariableStudioAdapter.load(sub_node)
 
     def load_section(self, node, parent, bounds=None):
         """
@@ -274,10 +269,10 @@ class XMLForm:
         return self._load_widgets(node, self.designer, parent, bounds)
 
     def _load_widgets(self, node, designer, parent, bounds=None):
-        line_info = BaseConverter.get_source_line_info(node)
+        line_info = node.get_source_line_info()
         try:
-            converter = self.get_converter(BaseConverter._get_class(node))
-            widget = converter.from_xml(node, designer, parent, bounds)
+            adapter = self.get_adapter(BaseStudioAdapter._get_class(node))
+            widget = adapter.load(node, designer, parent, bounds)
         except Exception as e:
             # Append line number causing error before re-raising for easier debugging by user
             raise e.__class__("{}{}".format(line_info, e)) from e
@@ -285,48 +280,49 @@ class XMLForm:
             # We dont need to load child tags of non-container widgets
             return widget
         for sub_node in node:
-            if BaseConverter._is_var(sub_node.tag) or sub_node.tag in self._ignore_tags:
+            if sub_node.is_var() or sub_node.type in self._ignore_tags:
                 # ignore variables and non widget nodes
                 continue
             self._load_widgets(sub_node, designer, widget)
         return widget
 
-    def to_xml_tree(self, widget, parent=None):
+    def to_tree(self, widget, parent=None):
         """
-        Convert a PseudoWidget widget and its children to an xml tree/node
+        Convert a PseudoWidget widget and its children to a node
         :param widget: widget to be converted to an xml node
         :param parent: The intended xml node to act as parent to the created
         xml node
-        :return: the widget converted to an xml node.
+        :return: the widget converted to a :class:Node instance.
         """
-        converter = self.get_converter(widget.__class__)
-        node = converter.to_xml(widget, parent)
+        adapter = self.get_adapter(widget.__class__)
+        node = adapter.generate(widget, parent)
         if isinstance(widget, Container):
             for child in widget._children:
-                self.to_xml_tree(child, node)
+                self.to_tree(child, node)
         return node
 
-    def _variables_to_xml(self, parent):
+    def _variables_to_tree(self, parent):
         variables = VariablePane.get_instance().variables
         for var_item in variables:
-            VariableConverter.to_xml(var_item, parent)
+            VariableStudioAdapter.generate(var_item, parent)
 
-    def to_xml_bytes(self, pretty_print=True):
-        etree.cleanup_namespaces(self.root, top_nsmap=xml.namespaces)
-        return etree.tostring(self.root, pretty_print=pretty_print, encoding='utf-8',
-                              xml_declaration=True)
-
-    def to_xml(self, pretty_print=True):
+    def write(self, path):
         """
-        Gets the xml text representing the contents of the designer
-        :param pretty_print: boolean flag indicating whether the text is to be indented and prettified
+        Writes contents of the designer to a file specified by path
+        :param path: Path to file to be written to
         :return: String
         """
-        return self.to_xml_bytes(pretty_print).decode('utf-8')
+        file_loader = infer_format(path)
+        pref_path = f"designer::{file_loader.name.lower()}"
+        pref.set_default(pref_path, {})
+        with open(path, 'w') as dump:
+            # generate an upto-date tree first
+            self.generate()
+            dump.write(file_loader(node=self.root).generate(**pref.get(pref_path)))
 
     def __eq__(self, other):
-        if isinstance(other, XMLForm):
-            return BaseConverter.is_equal(self.root, other.root)
+        if isinstance(other, DesignBuilder):
+            return self.root == other.root
         return False
 
     def __ne__(self, other):

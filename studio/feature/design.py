@@ -18,12 +18,13 @@ from hoverset.ui.menu import MenuUtils, LoadLater, EnableIf
 from hoverset.util.execution import Action, as_thread
 from studio.lib.layouts import PlaceLayoutStrategy
 from studio.lib.pseudo import PseudoWidget, Container, Groups
-from studio.parsers.xml import XMLForm
+from studio.parsers.loader import DesignBuilder
 from studio.ui import geometry
 from studio.ui.highlight import HighLight
 from studio.ui.widgets import DesignPad, CoordinateIndicator
 from studio.tools import ToolManager
-from formation.xml import BaseConverter
+
+from formation.formats import get_file_types
 
 
 class DesignLayoutStrategy(PlaceLayoutStrategy):
@@ -125,7 +126,7 @@ class Designer(DesignPad, Container):
         self._frame.bind('<KeyRelease>', self._stop_displace, '+')
         self._padding = 30
         self.design_path = None
-        self.xml = XMLForm(self)
+        self.builder = DesignBuilder(self)
         self._shortcut_mgr = KeyMap(self._frame)
         self._set_shortcuts()
         self._last_click_pos = None
@@ -202,7 +203,7 @@ class Designer(DesignPad, Container):
             legacy.Frame, self._padding, self._padding,
             width=width, height=height
         )
-        self.xml.generate()
+        self.builder.generate()
         self.design_path = None
 
     @property
@@ -211,21 +212,21 @@ class Designer(DesignPad, Container):
 
     def has_changed(self):
         # check if design has changed since last save or loading so we can prompt user to save changes
-        xml = self.xml
+        builder = self.builder
         if self.root_obj:
-            xml = XMLForm(self)
-            xml.generate()
-        return xml != self.xml
+            builder = DesignBuilder(self)
+            builder.generate()
+        return builder != self.builder
 
     def open_new(self):
         # open a blank design
-        self.open_xml(None)
+        self.open_file(None)
 
-    def to_xml(self):
-        """ Generate xml form of current design state without needing to save"""
-        xml = XMLForm(self)
-        xml.generate()
-        return xml.root
+    def to_tree(self):
+        """ Generate node form of current design state without needing to save"""
+        builder = DesignBuilder(self)
+        builder.generate()
+        return builder.root
 
     def save_prompt(self):
         return MessageDialog.builder(
@@ -239,7 +240,7 @@ class Designer(DesignPad, Container):
             icon=MessageDialog.ICON_INFO
         )
 
-    def open_xml(self, path=None):
+    def open_file(self, path=None):
         if self.has_changed():
             save = self.save_prompt()
             if save:
@@ -255,7 +256,7 @@ class Designer(DesignPad, Container):
         # inform the studio about the session clearing
         self.studio.on_session_clear(self)
         if path:
-            self.xml = XMLForm(self)
+            self.builder = DesignBuilder(self)
             progress = MessageDialog.show_progress(
                 mode=MessageDialog.INDETERMINATE,
                 message='Loading design file to studio...',
@@ -283,9 +284,8 @@ class Designer(DesignPad, Container):
         # Capture any errors that occur while loading
         # This helps the user single out syntax errors and other value errors
         try:
-            with open(path, 'rb') as dump:
-                self.root_obj = self.xml.load_xml(dump, self)
-                self.design_path = path
+            self.root_obj = self.builder.load(path, self)
+            self.design_path = path
         except Exception as e:
             MessageDialog.show_error(parent=self.studio, title='Error loading design', message=str(e))
         finally:
@@ -294,23 +294,19 @@ class Designer(DesignPad, Container):
 
     def save(self, new_path=False):
         if not self.design_path or new_path:
-            path = filedialog.asksaveasfilename(parent=self, filetypes=[("XML", "*.xml")],
+            path = filedialog.asksaveasfilename(parent=self, filetypes=get_file_types(),
                                                 defaultextension='.xml')
             if not path:
                 return None
             self.design_path = path
-        with open(self.design_path, 'w') as dump:
-            self.xml.generate()
-            dump.write(self.xml.to_xml(
-                self.studio.pref.get("designer::xml::pretty_print")
-            ))
+        self.builder.write(self.design_path)
         return self.design_path
 
-    def as_xml_node(self, widget):
-        xml = self.xml
-        if xml is None:
-            xml = XMLForm(self)
-        return xml.to_xml_tree(widget)
+    def as_node(self, widget):
+        builder = self.builder
+        if builder is None:
+            builder = DesignBuilder(self)
+        return builder.to_tree(widget)
 
     def paste(self, node, silently=False, paste_to=None):
         if paste_to is None:
@@ -318,12 +314,12 @@ class Designer(DesignPad, Container):
         if paste_to is None:
             return
         layout = paste_to if isinstance(paste_to, Container) else paste_to.layout
-        width = int(BaseConverter.get_attr(node, "width", "layout") or 0)
-        height = int(BaseConverter.get_attr(node, "height", "layout") or 0)
+        width = int(node["layout"]["width"] or 0)
+        height = int(node["layout"]["height"] or 0)
         x, y = self._last_click_pos or (self.winfo_rootx() + 50, self.winfo_rooty() + 50)
         self._last_click_pos = x + 5, y + 5  # slightly displace click position so multiple pastes are still visible
         bounds = geometry.resolve_bounds((x, y, x + width, y + height), self)
-        obj = self.xml.load_section(node, layout, bounds)
+        obj = self.builder.load_section(node, layout, bounds)
         restore_point = layout.get_restore(obj)
         # Create an undo redo point if add is not silent
         if not silently:

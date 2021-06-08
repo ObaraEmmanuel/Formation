@@ -1,7 +1,7 @@
 import unittest
-from lxml import etree
 
 from formation import AppBuilder
+from formation.formats import XMLFormat
 from formation.tests.support import tk_supported, ttk_supported, tk, ttk, get_resource
 
 
@@ -41,26 +41,27 @@ class XMLLoadingTextCase(unittest.TestCase):
         self.assertEqual(builder.Frame_2["background"], "#e3e3e3")
 
     def test_load_string_implicit(self):
-        builder = AppBuilder(string=self.xml_string)
+        builder = AppBuilder(string=self.xml_string, format=XMLFormat)
         self.assertIsInstance(builder.Frame_1, tk.Frame)
         self.assertEqual(builder.Frame_2["background"], "#e3e3e3")
 
+    def test_load_string_implicit_format_requirement(self):
+        self.assertRaises(ValueError, lambda: AppBuilder(string=self.xml_string))
+
     def test_load_string_explicit(self):
         builder = AppBuilder()
-        builder.load_string(self.xml_string)
+        builder.load_string(self.xml_string, XMLFormat)
         self.assertIsInstance(builder.Frame_1, tk.Frame)
         self.assertEqual(builder.Frame_2["background"], "#e3e3e3")
 
     def test_load_node_implicit(self):
-        with open(get_resource("all_legacy.xml"), 'rb') as stream:
-            node = etree.parse(stream).getroot()
+        node = XMLFormat(path=get_resource("all_legacy.xml")).load()
         builder = AppBuilder(node=node)
         self.assertIsInstance(builder.Frame_1, tk.Frame)
         self.assertEqual(builder.Frame_2["background"], "#e3e3e3")
 
     def test_load_node_explicit(self):
-        with open(get_resource("all_legacy.xml"), 'rb') as stream:
-            node = etree.parse(stream).getroot()
+        node = XMLFormat(path=get_resource("all_legacy.xml")).load()
         builder = AppBuilder()
         builder.load_node(node)
         self.assertIsInstance(builder.Frame_1, tk.Frame)

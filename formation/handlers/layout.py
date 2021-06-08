@@ -1,4 +1,6 @@
-from formation.xml import ttk, tk, BaseConverter
+import tkinter as tk
+import tkinter.ttk as ttk
+
 from formation.handlers import image
 
 namespaces = {
@@ -55,7 +57,7 @@ _layout_handlers = {
 
 
 def get_layout_handler(parent_node, parent):
-    layout = None if parent_node is None else BaseConverter.get_attr(parent_node, "layout", "attr")
+    layout = None if parent_node is None else parent_node["attr"].get("layout")
     if layout is not None:
         return _layout_handlers.get(layout)
     if parent.__class__ == ttk.Notebook:
