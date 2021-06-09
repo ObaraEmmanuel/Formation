@@ -4,9 +4,11 @@
 
 from formation.formats._base import *
 from formation.formats._xml import XMLFormat
+from formation.formats._json import JSONFormat
 
 FORMATS = (
     XMLFormat,
+    JSONFormat
 )
 
 
