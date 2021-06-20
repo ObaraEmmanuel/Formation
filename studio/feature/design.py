@@ -185,6 +185,7 @@ class Designer(DesignPad, Container):
             actions.get('STUDIO_CUT'),
             actions.get('STUDIO_DELETE'),
             actions.get('STUDIO_PASTE'),
+            actions.get('STUDIO_DUPLICATE'),
         )
         # allow control of widget position using arrow keys
         shortcut_mgr.add_shortcut(

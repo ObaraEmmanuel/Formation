@@ -117,6 +117,7 @@ class StudioApplication(Application):
             lambda: self.selected,
             ("separator",),
             ("command", "copy", icon("copy", 14, 14), actions.get('STUDIO_COPY'), {}),
+            ("command", "duplicate", icon("copy", 14, 14), actions.get('STUDIO_DUPLICATE'), {}),
             EnableIf(
                 lambda: self._clipboard is not None,
                 ("command", "paste", icon("clipboard", 14, 14), actions.get('STUDIO_PASTE'), {})
@@ -516,6 +517,10 @@ class StudioApplication(Application):
         for feature in self.features:
             feature.on_widget_delete(widget, True)
 
+    def duplicate(self):
+        if self.selected:
+            self.designer.paste(self.designer.as_node(self.selected))
+
     def on_restore(self, widget):
         for feature in self.features:
             feature.on_widget_restore(widget)
@@ -619,6 +624,7 @@ class StudioApplication(Application):
             routine(self.copy, 'STUDIO_COPY', 'Copy selected widget', 'studio', CTRL + CharKey('c')),
             routine(self.paste, 'STUDIO_PASTE', 'Paste selected widget', 'studio', CTRL + CharKey('v')),
             routine(self.delete, 'STUDIO_DELETE', 'Delete selected widget', 'studio', KeyMap.DELETE),
+            routine(self.duplicate, 'STUDIO_DUPLICATE', 'Duplicate selected widget', 'studio', CTRL + CharKey('d')),
         )
         self.shortcuts.add_routines(
             routine(self.undo, 'STUDIO_UNDO', 'Undo last action', 'studio', CTRL + CharKey('Z')),
