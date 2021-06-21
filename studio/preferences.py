@@ -37,6 +37,14 @@ defaults = {
         "xml": {
             "pretty_print": True,
         },
+        "json": {
+            "compact": False,
+            "pretty_print": True,
+            "indent": "",
+            "indent_count": 4,
+            "sort_keys": True,
+            "stringify_values": True
+        },
         "image_path": 'mixed',
         "descriptive_names": False
     },
