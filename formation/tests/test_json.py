@@ -125,7 +125,7 @@ class EqualityTestCase(unittest.TestCase):
                     "type": "tag2",
                     "attrib": {
                         "attr": {
-                            "height": "50",
+                            "height": "50"
                         }
                     }
                 },
@@ -136,7 +136,7 @@ class EqualityTestCase(unittest.TestCase):
                             "width": "40"
                         }
                     }
-                },
+                }
             ]
         }
         """
