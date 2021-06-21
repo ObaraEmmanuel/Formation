@@ -126,6 +126,57 @@ templates = {
                 "element": Check,
             },
         ),
+        "JSON options": (
+            {
+                "desc": "Compact output",
+                "path": "designer::json::compact",
+                "element": Check
+            },
+            {
+                "desc": "Sort json keys",
+                "path": "designer::json::sort_keys",
+                "element": Check
+            },
+            {
+                "desc": "Stringify json values",
+                "path": "designer::json::stringify_values",
+                "element": Check
+            },
+            DependentGroup({
+                "controller": {
+                    "desc": "Pretty print output json",
+                    "path": "designer::json::pretty_print",
+                    "element": Check
+                },
+                "allow": [True, ],
+                "children": (
+                    DependentGroup({
+                        "controller": {
+                            "desc": "For indentation use",
+                            "path": "designer::json::indent",
+                            "element": RadioGroup,
+                            "extra": {
+                                "choices": (
+                                    ("\t", "Tabs"),
+                                    ("", "Spaces")
+                                )
+                            }
+                        },
+                        "allow": [""],
+                        "children": (
+                            {
+                                "desc": "number of indent spaces",
+                                "path": "designer::json::indent_count",
+                                "element": Number,
+                                "extra": {
+                                    "width": 4
+                                }
+                            },
+                        )
+                    }),
+                )
+            })
+        ),
         "Image options": (
             {
                 "desc": "When selecting image",
@@ -149,27 +200,36 @@ templates = {
         )
     },
     "Key Map": {
-        "hotkeys": DependentGroup({
-            "controller": {
-                "desc": "Allow shortcut keys",
-                "path": "allow_hotkeys",
-                "element": Check,
+        "_scroll": False,
+        "hotkeys": {
+            "layout": {
+                "fill": "both",
+                "expand": True,
             },
-            "allow": [True, ],  # Allow only when controller value is True
             "children": (
-                {
-                    "desc": "Configure shortcut keys",
-                    "path": "hotkeys",
-                    "element": ShortcutPane,
-                    "layout": {
-                        "fill": "both",
-                        "expand": True,
-                        "padx": 5,
-                        "pady": 5
-                    }
-                },
+                DependentGroup({
+                    "controller": {
+                        "desc": "Allow shortcut keys",
+                        "path": "allow_hotkeys",
+                        "element": Check,
+                    },
+                    "allow": [True, ],  # Allow only when controller value is True
+                    "children": (
+                        {
+                            "desc": "Configure shortcut keys",
+                            "path": "hotkeys",
+                            "element": ShortcutPane,
+                            "layout": {
+                                "fill": "both",
+                                "expand": True,
+                                "padx": 5,
+                                "pady": 5
+                            }
+                        },
+                    )
+                }),
             )
-        })
+        }
     }
 }
 

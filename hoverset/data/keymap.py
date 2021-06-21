@@ -463,6 +463,7 @@ class ShortcutPane(Component, Frame):
         pass
 
     def disable(self, flag):
+        super().disable(flag)
         self.is_disabled = flag
         for item in self.shortcut_list.items:
             item.disable(flag)

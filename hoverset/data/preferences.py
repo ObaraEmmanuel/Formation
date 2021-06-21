@@ -287,6 +287,8 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
 class Component:
 
     def load(self, pref: SharedPreferences, path):
+        self.allowed_values = []
+        self.dependents = []
         self.pref = pref
         self.path = path
         self.set(pref.get(path))
@@ -296,6 +298,12 @@ class Component:
     def _change(self, *_):
         if self._on_change:
             self._on_change()
+        self._update_states()
+
+    def _update_states(self):
+        should_disable = self.get() not in self.allowed_values
+        for comp in self.dependents:
+            comp.disable(should_disable)
 
     def commit(self):
         self.pref.set(self.path, self.get())
@@ -309,11 +317,16 @@ class Component:
     def disable(self, flag):
         """
         Change the state of component, whether disable or enabled.
-        All components must implement this method
+        All components must not completely override this method but
+        should instead just extend it with their specific disabling routines.
 
         :param flag: set to ``True`` to disable and ``False`` to enable
         """
-        raise NotImplementedError()
+        if flag:
+            for comp in self.dependents:
+                comp.disable(True)
+        else:
+            self._update_states()
 
 
 class ComponentGroup(Frame):
@@ -341,7 +354,12 @@ class RadioGroup(Component, RadioButtonGroup):
         self.load(pref, path)
 
     def disable(self, flag):
+        super(RadioGroup, self).disable(flag)
         self.disabled(flag)
+
+    def _change(self, *_):
+        if not self._blocked:
+            super(RadioGroup, self)._change()
 
 
 class Number(Component, Frame):
@@ -359,6 +377,7 @@ class Number(Component, Frame):
         self.load(pref, path)
 
     def disable(self, flag):
+        super(Number, self).disable(flag)
         self.editor.disabled(flag)
         self._label.disabled(flag)
 
@@ -389,6 +408,7 @@ class LabeledScale(Component, Frame):
         self._val.config(text=self.get())
 
     def disable(self, flag):
+        super(LabeledScale, self).disable(flag)
         self._scale.disabled(flag)
         self._label.disabled(flag)
 
@@ -409,6 +429,7 @@ class Check(Component, Checkbutton):
         self._var.trace("w", lambda *_: self._change())
 
     def disable(self, flag):
+        super(Check, self).disable(flag)
         if flag:
             self.config(state='disabled')
         else:
@@ -416,6 +437,8 @@ class Check(Component, Checkbutton):
 
 
 class PreferenceManager(MessageDialog):
+    _ignore = ("_layout",  "_scroll")
+
     class NavItem(CompoundList.BaseItem):
 
         def __init__(self, master, value, index, isolated=False):
@@ -439,6 +462,7 @@ class PreferenceManager(MessageDialog):
         super().__init__(master, self.render)
         self.title("Preferences")
         self.resizable(1, 1)
+        self.minsize(700, 500)
         self.nav.on_change(self._change_category)
         self.templates = templates
         self.pref = pref
@@ -452,17 +476,11 @@ class PreferenceManager(MessageDialog):
     def _add_component(self, parent, template) -> Component:
         if isinstance(template, DependentGroup):
             controller = self._add_component(parent, template.controller)
-            dependents = []
-            for child in template.children:
-                dependents.append(self._add_component(parent, child))
-
-            def set_state():
-                for comp in dependents:
-                    comp.disable(controller.get() not in template.allowed_values)
-
-            controller.on_change(set_state)
-            # call set state to initialize the right state
-            set_state()
+            controller.dependents = [
+                self._add_component(parent, child) for child in template.children
+            ]
+            controller.allowed_values = list(template.allowed_values)
+            controller._update_states()
             return controller
 
         element = template["element"](
@@ -485,24 +503,38 @@ class PreferenceManager(MessageDialog):
 
     def _load_category(self, category):
         if category in self._category_render:
-            self.pref_body.clear_children()
-            self._category_render[category].pack(
-                fill="both", expand=True, padx=5, pady=5)
+            self.pref_frame.clear_children()
+            body = self._category_render[category]
+            body.pack(body._layout_opt)
             return
         templates = self.templates[category]
-        body = Frame(self.pref_body, **self.style.surface)
+        body = ScrolledFrame(self.pref_frame, **self.style.surface)
+        body._layout_opt = dict(fill="both", padx=5, pady=5, expand=True)
+        body._layout_opt.update(templates.get("_layout", {}))
+        if not templates.get("_scroll", True):
+            # disable scrolling
+            body.fill_y = True
         for comp in templates:
-            if isinstance(templates[comp], tuple):
-                group = ComponentGroup(body, comp)
+            if comp in self._ignore:
+                # ignore special keys
+                continue
+            elif isinstance(templates[comp], tuple):
+                group = ComponentGroup(body.body, comp)
                 for sub_comp in templates[comp]:
                     self._add_component(group, sub_comp)
                 group.pack(fill="x", pady=10)
+            elif isinstance(templates[comp], dict):
+                group = ComponentGroup(body.body, comp)
+                for sub_comp in templates[comp].get("children", ()):
+                    self._add_component(group, sub_comp)
+                group.pack(fill="x", pady=10)
+                group.pack_configure(templates[comp].get("layout", {}))
             else:
-                self._add_component(body, templates[comp])
+                self._add_component(body.body, templates[comp])
 
         self._category_render[category] = body
-        self.pref_body.clear_children()
-        body.pack(fill="both", expand=True, padx=5, pady=5)
+        self.pref_frame.clear_children()
+        body.pack(body._layout_opt)
 
     def _load_template(self, template):
         keys = list(template.keys())
@@ -536,13 +568,11 @@ class PreferenceManager(MessageDialog):
             self._restart_button.pack_forget()
 
     def render(self, window):
-        pane = PanedWindow(window, **self.style.surface, width=700, height=500)
+        pane = PanedWindow(window, **self.style.surface)
         self.nav = CompoundList(pane)
         self.nav.config_all(**self.style.bright)
         self.nav.set_item_class(PreferenceManager.NavItem)
-        self.pref_frame = ScrolledFrame(pane, **self.style.surface)
-        self.pref_frame.fill_y = True
-        self.pref_body = self.pref_frame.body
+        self.pref_frame = Frame(pane, **self.style.surface)
         pane.add(self.nav, width=250, minsize=250, sticky="nswe")
         pane.add(self.pref_frame, width=450, minsize=200, sticky="nswe")
         self._make_button_bar()
