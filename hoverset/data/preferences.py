@@ -183,6 +183,7 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
         *dicts, prop = path.split(SharedPreferences.PATH_SEP)
         ref_dict = self.get_dict(dicts)
         ref_dict[prop] = value
+        self.data.sync()
         # call all listeners associated to path
         for listener in self._listeners.get(path, []):
             listener(value)
@@ -200,6 +201,7 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
                 ref_dict[d] = {}
             ref_dict = ref_dict[d]
         ref_dict[key] = ref_dict.get(key)
+        self.data.sync()
 
     def set_default(self, path, value):
         """
@@ -211,6 +213,7 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
         """
         if not self.exists(path):
             self.set(path, value)
+            self.data.sync()
 
     def append(self, path, *values):
         """
