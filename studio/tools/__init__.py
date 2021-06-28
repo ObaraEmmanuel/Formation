@@ -1,7 +1,14 @@
+from functools import partial
+
 from hoverset.ui.menu import ShowIf, EnableIf
 from hoverset.ui.icons import get_icon_image
 from studio.tools.menus import MenuTool
 from studio.tools._base import BaseTool
+
+
+TOOLS = (
+    MenuTool,
+)
 
 
 class ToolManager:
@@ -9,25 +16,34 @@ class ToolManager:
     This class manages all tools dynamically exposing tool functions through toplevel and
     context menus. Add in built tools here
     """
-    _tools = {
-        MenuTool,
-    }
+    _instance = None
 
-    @classmethod
-    def get_tool_menu(cls, studio=None, hide_unsupported=True):
+    def __init__(self, studio):
+        self._tools = []
+        self.studio = studio
+        ToolManager._instance = self
+
+    def initialize(self):
+        self._tools = [tool(self.studio, self) for tool in TOOLS]
+        self._templates = self.get_tool_menu(False)
+
+    @property
+    def templates(self):
+        return self._templates
+
+    def get_tool_menu(self, hide_unsupported=True):
         """
         Get all tools functionality as a dynamic menu template that
         adjusts to expose only tool functionality available based current
         studio state such as selected widget.
-        :param studio:
         :param hide_unsupported: Set to false to to disable and not hide unavailable
         tool functionality
         :return: tuple of menu templates
         """
         templates = ()
         manipulator = ShowIf if hide_unsupported else EnableIf
-        for tool in cls._tools:
-            template = tool.get_menu(studio)
+        for tool in self._tools:
+            template = tool.get_menu(self.studio)
             # If tool does not provide a menu ignore it
             if len(template) < 1:
                 continue
@@ -39,25 +55,56 @@ class ToolManager:
             else:
                 template = template[0]
             templates += (
-                manipulator(lambda: tool.supports(studio.selected), template),
+                manipulator(partial(tool.supports, self.studio.selected), template),
             )
         # prepend a separator for context menus
         if len(templates) and hide_unsupported:
             templates = (('separator',),) + templates
         return tuple(templates)
 
-    @classmethod
-    def get_tools_as_menu(cls, studio=None):
+    def get_tools_as_menu(self):
         """
         Return menu template for tools. Based on currently selected widget and other
         parameters, tools that cannot be invoked are disabled
-        :param studio: A StudioApplication object
         :return: tuple of menu templates
         """
-        return cls.get_tool_menu(studio, False)
+        return self._templates
+
+    def install(self, tool):
+        if not issubclass(tool, BaseTool):
+            raise ValueError(f'Tool {tool} does not extend class BaseTool')
+        self._tools = tool(self.studio, self)
+        # recompute templates
+        self._templates = self.get_tool_menu()
+
+    def acquire_tool(self, tool):
+        if not issubclass(tool, BaseTool):
+            raise ValueError(f'Tool {tool} does not extend class BaseTool')
+        for t in self._tools:
+            if isinstance(t, tool):
+                return tool
+
+    def on_select(self, widget):
+        pass
+
+    def on_widget_delete(self, widget, silently=False):
+        pass
+
+    def on_app_close(self):
+        return True
+
+    def on_session_clear(self):
+        pass
+
+    def on_widget_add(self, widget, parent):
+        pass
+
+    def on_widget_change(self, old_widget, new_widget):
+        pass
+
+    def on_widget_layout_change(self, widget):
+        pass
 
     @classmethod
-    def install(cls, tool):
-        if not isinstance(tool, BaseTool):
-            raise ValueError('Tool does not extend class BaseTool')
-        cls._tools.add(tool)
+    def acquire(cls):
+        return cls._instance

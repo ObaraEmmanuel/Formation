@@ -368,44 +368,38 @@ class MenuTool(BaseTool):
     name = 'Menu'
     icon = 'menubutton'
 
-    @classmethod
-    def close_editors(cls):
+    def close_editors(self):
         MenuEditor.close_all()
 
-    @classmethod
-    def edit(cls, widget):
+    def edit(self, widget):
         MenuEditor.acquire(widget.winfo_toplevel(), widget, widget.nametowidget(widget.cget("menu")))
 
-    @classmethod
-    def remove(cls, widget):
+    def remove(self, widget):
         # store menu for restoration
-        cls._deleted[widget] = widget.nametowidget(widget.cget("menu"))
+        self._deleted[widget] = widget.nametowidget(widget.cget("menu"))
         widget.configure(menu='')
 
-    @classmethod
-    def restore(cls, widget):
-        if widget in cls._deleted:
-            widget.configure(menu=cls._deleted.get(widget))
-            cls._deleted.pop(widget)
+    def restore(self, widget):
+        if widget in self._deleted:
+            widget.configure(menu=self._deleted.get(widget))
+            self._deleted.pop(widget)
 
-    @classmethod
-    def supports(cls, widget):
+    def supports(self, widget):
         if widget is None:
             return widget
         return 'menu' in widget.keys()
 
-    @classmethod
-    def get_menu(cls, studio):
+    def get_menu(self, studio):
         icon = get_icon_image
         return (
-            ('command', 'Edit', icon('edit', 14, 14), lambda: cls.edit(studio.selected), {}),
+            ('command', 'Edit', icon('edit', 14, 14), lambda: self.edit(studio.selected), {}),
             EnableIf(
                 lambda: studio.selected and studio.selected['menu'] != '',
-                ('command', 'Remove', icon('delete', 14, 14), lambda: cls.remove(studio.selected), {})),
+                ('command', 'Remove', icon('delete', 14, 14), lambda: self.remove(studio.selected), {})),
             EnableIf(
-                lambda: studio.selected and studio.selected in cls._deleted,
-                ('command', 'Restore', icon('undo', 14, 14), lambda: cls.restore(studio.selected), {})),
+                lambda: studio.selected and studio.selected in self._deleted,
+                ('command', 'Restore', icon('undo', 14, 14), lambda: self.restore(studio.selected), {})),
             EnableIf(
                 lambda: MenuEditor._tool_map,
-                ('command', 'Close all editors', icon('close', 14, 14), lambda: cls.close_editors(), {}))
+                ('command', 'Close all editors', icon('close', 14, 14), lambda: self.close_editors(), {}))
         )

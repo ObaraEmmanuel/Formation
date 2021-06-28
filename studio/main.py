@@ -112,6 +112,8 @@ class StudioApplication(Application):
         # set the image option to blank if there is no image for the menu option
         self.blank_img = blank_img = icon("blank", 14, 14)
 
+        self.tool_manager = ToolManager(self)
+
         # -------------------------------------------- menu definition ------------------------------------------------
         self.menu_template = (EnableIf(
             lambda: self.selected,
@@ -175,7 +177,7 @@ class StudioApplication(Application):
                     ("separator",),
                     ("command", "Save window positions", blank_img, actions.get('FEATURE_SAVE_POS'), {})
                 )}),
-                ("cascade", "Tools", None, None, {"menu": ToolManager.get_tools_as_menu(self)}),
+                ("cascade", "Tools", None, None, {"menu": (LoadLater(self.tool_manager.get_tools_as_menu), )}),
                 ("cascade", "Help", None, None, {"menu": (
                     ("command", "Help", icon('dialog_info', 14, 14), actions.get('STUDIO_HELP'), {}),
                     ("command", "Check for updates", icon("cloud", 14, 14), self._check_updates, {}),
@@ -202,6 +204,9 @@ class StudioApplication(Application):
 
         # common feature references
         self.style_pane = self.get_feature(StylePane)
+
+        # initialize tools with everything ready
+        self.tool_manager.initialize()
 
         self._startup()
         self._restore_position()

@@ -22,7 +22,6 @@ from studio.parsers.loader import DesignBuilder
 from studio.ui import geometry
 from studio.ui.highlight import HighLight
 from studio.ui.widgets import DesignPad, CoordinateIndicator
-from studio.tools import ToolManager
 
 from formation.formats import get_file_types
 
@@ -133,7 +132,7 @@ class Designer(DesignPad, Container):
         # create the dynamic menu
         self._context_menu = MenuUtils.make_dynamic(
             self.studio.menu_template +
-            ToolManager.get_tool_menu(self.studio) +
+            (LoadLater(self.studio.tool_manager.get_tool_menu), ) +
             (LoadLater(lambda: self.current_obj.create_menu() if self.current_obj else ()),),
             self.studio,
             self.style

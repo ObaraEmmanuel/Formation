@@ -8,8 +8,11 @@ class BaseTool:
     name = ''
     icon = 'blank'
 
-    @classmethod
-    def get_menu(cls, studio):
+    def __init__(self, studio, manager):
+        self.studio = studio
+        self.manager = manager
+
+    def get_menu(self, studio):
         """
         Override this method to return menu template for your tool
         Set up templates as follows
@@ -21,8 +24,7 @@ class BaseTool:
         # default behaviour is to return an empty template
         return ()
 
-    @classmethod
-    def supports(cls, widget):
+    def supports(self, widget):
         """
         Checks whether the tool can work on a given widget. This information is
         useful for the studio to allow it render dropdown menus correctly
