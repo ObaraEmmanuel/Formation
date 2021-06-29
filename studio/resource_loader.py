@@ -68,12 +68,22 @@ class ResourceLoader(Application):
             return os.path.exists(path + ".dat")
 
     @classmethod
+    def _cache_is_stale(cls):
+        # check whether cache is outdated
+        with shelve.open(cls._cache_icon_path) as cache:
+            with shelve.open(cls._default_icon_path) as defaults:
+                # return false if all keys in default are in cache
+                return len(defaults.keys() - cache.keys())
+
+    @classmethod
     def load(cls):
         cache_color = pref.get("resource::icon_cache_color")
         style = StyleDelegator(get_theme_path(pref.get("resource::theme")))
         cache_path = appdirs.AppDirs("formation", "hoverset").user_cache_dir
         cls._cache_icon_path = os.path.join(cache_path, "image")
-        if style.colors["accent"] != cache_color or not cls._cache_exists(cls._cache_icon_path):
+        if style.colors["accent"] != cache_color \
+                or not cls._cache_exists(cls._cache_icon_path)\
+                or cls._cache_is_stale():
             if not os.path.exists(cache_path):
                 make_path(cache_path)
             cls().mainloop()
