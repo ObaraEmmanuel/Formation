@@ -465,7 +465,6 @@ class PreferenceManager(MessageDialog):
         super().__init__(master, self.render)
         self.title("Preferences")
         self.resizable(1, 1)
-        self.minsize(700, 500)
         self.nav.on_change(self._change_category)
         self.templates = templates
         self.pref = pref
@@ -571,6 +570,7 @@ class PreferenceManager(MessageDialog):
             self._restart_button.pack_forget()
 
     def render(self, window):
+        self.minsize(700, 500)
         pane = PanedWindow(window, **self.style.surface)
         self.nav = CompoundList(pane)
         self.nav.config_all(**self.style.bright)
