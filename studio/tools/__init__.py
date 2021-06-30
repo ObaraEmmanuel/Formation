@@ -84,26 +84,35 @@ class ToolManager:
             if isinstance(t, tool):
                 return tool
 
-    def on_select(self, widget):
-        pass
+    def dispatch(self, action, *args):
+        # dispatch action to all tools connected
+        for tool in self._tools:
+            getattr(tool, action)(*args)
 
-    def on_widget_delete(self, widget, silently=False):
-        pass
+    def on_select(self, widget):
+        self.dispatch("on_select", widget)
+
+    def on_widget_delete(self, widget):
+        self.dispatch("on_widget_delete", widget)
 
     def on_app_close(self):
+        for tool in self._tools:
+            # block app close if any tool returns false
+            if not tool.on_app_close():
+                return False
         return True
 
     def on_session_clear(self):
-        pass
+        self.dispatch("on_session_clear")
 
     def on_widget_add(self, widget, parent):
-        pass
+        self.dispatch("on_widget_add", widget, parent)
 
     def on_widget_change(self, old_widget, new_widget):
-        pass
+        self.dispatch("on_widget_change", old_widget, new_widget)
 
     def on_widget_layout_change(self, widget):
-        pass
+        self.dispatch("on_widget_layout_change", widget)
 
     @classmethod
     def acquire(cls):

@@ -32,6 +32,27 @@ class BaseTool:
         :return: True if tool can work on the widget otherwise false
         """
 
+    def on_select(self, widget):
+        pass
+
+    def on_widget_delete(self, widget):
+        pass
+
+    def on_app_close(self):
+        return True
+
+    def on_session_clear(self):
+        pass
+
+    def on_widget_add(self, widget, parent):
+        pass
+
+    def on_widget_change(self, old_widget, new_widget):
+        pass
+
+    def on_widget_layout_change(self, widget):
+        pass
+
 
 class BaseToolWindow(Window):
     _tool_map = {}

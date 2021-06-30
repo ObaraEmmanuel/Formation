@@ -487,19 +487,23 @@ class StudioApplication(Application):
         for feature in self.features:
             if feature != source:
                 feature.on_select(widget)
+        self.tool_manager.on_select(widget)
 
     def add(self, widget, parent=None):
         for feature in self.features:
             feature.on_widget_add(widget, parent)
+        self.tool_manager.on_widget_add(widget, parent)
 
     def widget_modified(self, widget1, source=None, widget2=None):
         for feature in self._all_features():
             if feature != source:
                 feature.on_widget_change(widget1, widget2)
+        self.tool_manager.on_widget_change(widget1, widget2)
 
     def widget_layout_changed(self, widget):
         for feature in self.features:
             feature.on_widget_layout_change(widget)
+        self.tool_manager.on_widget_layout_change(widget)
 
     def delete(self, widget=None, source=None):
         widget = self.selected if widget is None else widget
@@ -511,6 +515,7 @@ class StudioApplication(Application):
             self.designer.delete(widget)
         for feature in self.features:
             feature.on_widget_delete(widget)
+        self.tool_manager.on_widget_delete(widget)
 
     def cut(self, widget=None, source=None):
         widget = self.selected if widget is None else widget
@@ -523,6 +528,7 @@ class StudioApplication(Application):
             self.designer.delete(widget, True)
         for feature in self.features:
             feature.on_widget_delete(widget, True)
+        self.tool_manager.on_widget_delete(widget)
 
     def duplicate(self):
         if self.selected:
@@ -542,6 +548,7 @@ class StudioApplication(Application):
         for feature in self._all_features():
             if feature != source:
                 feature.on_session_clear()
+        self.tool_manager.on_session_clear()
 
     def preview(self):
         if self.designer.root_obj is None:
@@ -593,6 +600,8 @@ class StudioApplication(Application):
                 feature.save_window_pos()
                 if not feature.on_app_close():
                     return False
+            if not self.tool_manager.on_app_close():
+                return False
             self.destroy()
             return True
         except Exception:
