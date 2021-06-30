@@ -17,7 +17,7 @@ class Component(Frame):
     drag_popup = None
     drag_active = None
 
-    def __init__(self, master, component: PseudoWidget.__class__):
+    def __init__(self, master, component: PseudoWidget.__class__, _=None):
         super().__init__(master)
         self.config(**self.style.surface)
         self._icon = Label(self, **self.style.text_accent, image=get_icon_image(component.icon, 15, 15))
@@ -49,15 +49,55 @@ class Component(Frame):
                 widget.react(event)
             self.drag_popup.set_position(event.x_root, event.y_root)
 
-    def release(self, event):
+    def _release(self):
         if not self.drag_active:
             return
         self.drag_active = False
         self.drag_popup.destroy()
         self.drag_popup = None
+
+    def release(self, event):
+        self._release()
         widget = self.event_first(event, self, Container)
         if isinstance(widget, Container):
             widget.add_new(self.component, event.x_root, event.y_root)
+
+
+class SelectableComponent(Component):
+
+    def __init__(self, master, component: PseudoWidget.__class__, controller):
+        super(SelectableComponent, self).__init__(master, component)
+        self.selected = False
+        self.controller = controller
+        self.on_click(self.select)
+        self.bind("<Leave>", self._on_leave)
+        self.bind("<Enter>", self._on_enter)
+
+    def _on_leave(self, _):
+        if not self.selected:
+            self.deselect()
+
+    def _on_enter(self, _):
+        super(SelectableComponent, self).select()
+
+    def select(self, *_):
+        if self.selected:
+            self.deselect()
+            return
+        super(SelectableComponent, self).select()
+        self.selected = True
+        self.controller.select(self)
+
+    def deselect(self, silently=False):
+        super(SelectableComponent, self).deselect()
+        self.selected = False
+        self.controller.deselect(self, silently)
+
+    def drag(self, event):
+        pass
+
+    def release(self, event):
+        pass
 
 
 class Selector(Label):
@@ -65,6 +105,7 @@ class Selector(Label):
     def __init__(self, master, **cnf):
         super().__init__(master, **cnf)
         self.name = cnf.get("text")
+        self.group = None
         self.config(**self.style.text, anchor="w")
 
     def select(self):
@@ -78,6 +119,55 @@ class Selector(Label):
             return self.name == other.name
         else:
             super().__eq__(other)
+
+
+class ComponentGroup:
+    name = None
+
+    def __init__(self, master, name, items, evaluator=None, component_class=None):
+        self.name = name
+        self.items = items
+        self.selector = None
+        self._evaluator = evaluator
+        self.component_class = component_class or Component
+        self.components = [self.component_class(master, i, self) for i in items]
+
+    def supports(self, widget):
+        if self._evaluator:
+            return self._evaluator(widget)
+        return False
+
+
+class SelectToDrawGroup(ComponentGroup):
+
+    def __init__(self, master, name, items, evaluator=None, component_class=None):
+        component_class = component_class or SelectableComponent
+        super(SelectToDrawGroup, self).__init__(master, name, items, evaluator, component_class)
+        self._selected = None
+        # actual selected component to be drawn
+        self.selected = None
+        self._on_selection_change = None
+
+    def on_select(self, func, *args, **kwargs):
+        self._on_selection_change = lambda component: func(component, *args, **kwargs)
+
+    def select(self, component):
+        if self._selected == component:
+            return
+        if self._selected is not None:
+            # deselect silently without triggering selection change
+            self._selected.deselect(True)
+        self._selected = component
+        self.selected = component.component
+        if self._on_selection_change:
+            self._on_selection_change(self.selected)
+
+    def deselect(self, component, silently=False):
+        if self._selected == component:
+            self._selected = None
+            self.selected = None
+            if self._on_selection_change and not silently:
+                self._on_selection_change(self.selected)
 
 
 class ComponentPane(BaseFeature):
@@ -124,6 +214,8 @@ class ComponentPane(BaseFeature):
         self._selectors = []
         self._selected = None
         self._component_cache = None
+        self._extern_groups = []
+        self._widget = None
         self.collect_groups(self.get_pref("widget_set"))
 
     def _init_var(self, master=None):
@@ -186,20 +278,51 @@ class ComponentPane(BaseFeature):
         selector.select()
         self._selected = selector
         self._widget_pane.clear_children()
-        for component in self._pool[selector.name]:
+
+        if isinstance(selector.group, ComponentGroup):
+            components = selector.group.components
+        else:
+            components = self._pool[selector.name]
+
+        for component in components:
             component.pack(side="top", pady=2, fill="x")
+
+    def _auto_select(self):
+        # automatically pick a selector when no groups have
+        # been explicitly selected and the pane is in limbo
+        if len(self._selectors):
+            self.select(self._selectors[0])
+        else:
+            self._widget_pane.clear_children()
+            self._selected = None
 
     def render_groups(self):
         self._selectors = []
         for group in self._pool:
             self.add_selector(Selector(self._select_pane.body, text=group))
-        if len(self._selectors):
-            self.select(self._selectors[0])
+        self._auto_select()
+        self.render_extern_groups()
+
+    def render_extern_groups(self):
+        for group in self._extern_groups:
+            if group.supports(self._widget):
+                self.add_selector(group.selector)
+            else:
+                self.remove_selector(group.selector)
+                if self._selected == group.selector:
+                    self._auto_select()
 
     def add_selector(self, selector):
+        if selector in self._selectors:
+            return
         self._selectors.append(selector)
         selector.bind("<Button-1>", lambda *_: self.select(selector))
         selector.pack(side="top", pady=2, fill="x")
+
+    def remove_selector(self, selector):
+        if selector in self._selectors:
+            self._selectors.remove(selector)
+        selector.pack_forget()
 
     def hide_selectors(self):
         for selector in self._selectors:
@@ -208,6 +331,19 @@ class ComponentPane(BaseFeature):
     def show_selectors(self):
         for selector in self._selectors:
             selector.pack(side="top", pady=2, fill="x")
+
+    def register_group(self, name, items, group_class, evaluator=None, component_class=None):
+        group = group_class(self._widget_pane.body, name, items, evaluator, component_class)
+        self._extern_groups.append(group)
+        # link up selector and group
+        group.selector = Selector(self._select_pane.body, text=group.name)
+        group.selector.group = group
+        self.render_extern_groups()
+        return group
+
+    def on_select(self, widget):
+        self._widget = widget
+        self.render_extern_groups()
 
     def start_search(self, *_):
         super().start_search()
