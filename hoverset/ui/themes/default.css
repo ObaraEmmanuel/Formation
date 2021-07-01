@@ -5,6 +5,7 @@
     primary: #f7f7f7;
     primaryaccent: #3a3a3a;
     accent: #3d8aff;
+    secondary1: #3dff3d;
 
 }
 .spinbox{
@@ -152,11 +153,15 @@
     font: TkDefaultFont 10;
 }
 
-.text, .text_medium, .text_small {
+.text, .text_medium, .text_small, .text_italic {
     background: #303030;
     foreground: #f7f7f7;
     font: TkDefaultFont 10;
     disabledforeground: #a0a0a0;
+}
+
+.text_italic{
+    font: TkDefaultFont 10 italic;
 }
 
 .text_accent {
@@ -164,6 +169,10 @@
     foreground: #3d8aff;
     font: TkDefaultFont 10;
     disabledforeground: #a0a0a0;
+}
+
+.text_secondary1{
+    foreground: #3dff3d;
 }
 
 .text_small{
