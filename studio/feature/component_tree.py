@@ -3,12 +3,12 @@ from hoverset.ui.widgets import Button
 from hoverset.ui.menu import MenuUtils
 from studio.feature._base import BaseFeature
 from studio.lib.pseudo import PseudoWidget
-from studio.ui.tree import MalleableTree
+from studio.ui.tree import MalleableTreeView
 
 
-class ComponentTreeView(MalleableTree):
+class ComponentTreeView(MalleableTreeView):
 
-    class Node(MalleableTree.Node):
+    class Node(MalleableTreeView.Node):
 
         def __init__(self, master=None, **config):
             super().__init__(master, **config)

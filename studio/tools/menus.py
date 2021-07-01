@@ -14,14 +14,14 @@ from hoverset.ui.menu import EnableIf
 from studio.lib.properties import PROPERTY_TABLE, get_properties
 from studio.lib.menu import menu_config, MENU_PROPERTY_TABLE, MENU_PROPERTIES
 from studio.ui.editors import StyleItem, get_display_name
-from studio.ui.tree import MalleableTree
+from studio.ui.tree import MalleableTreeView
 from studio.ui.widgets import CollapseFrame
 from studio.tools._base import BaseToolWindow, BaseTool
 from studio.preferences import Preferences
 
 
-class MenuTree(MalleableTree):
-    class Node(MalleableTree.Node):
+class MenuTree(MalleableTreeView):
+    class Node(MalleableTreeView.Node):
         _type_def = {
             tk.CASCADE: ("menubutton",),
             tk.COMMAND: ("play",),
@@ -30,8 +30,8 @@ class MenuTree(MalleableTree):
             tk.RADIOBUTTON: ("radiobutton",),
         }
 
-        def __init__(self, master=None, **config):
-            super().__init__(master, **config)
+        def __init__(self, tree, **config):
+            super().__init__(tree, **config)
             self._menu = config.get("menu")
             self.name_pad.config(text=config.get("label"))
             icon = self._type_def.get(config.get("type"))[0]

@@ -5,17 +5,18 @@ Widget tree for the studio
 # ======================================================================= #
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
+from abc import ABC
 
-from hoverset.ui.widgets import EventMask, TreeView, Label
+from hoverset.ui.widgets import EventMask, ScrolledFrame, Label, Tree
 from hoverset.ui.windows import DragWindow
 from studio.ui.geometry import bounds, upscale_bounds
 from studio.ui.highlight import EdgeIndicator
 
 
-class MalleableTree(TreeView):
+class MalleableTree(Tree, ABC):
     """
-    Sub class of TreeView that allows rearrangement of Nodes which useful in repositioning components in the
-    various studio features. For any tree view that allows rearrangement, subclass MalleableTree.
+    Abstract Sub class of Tree that allows rearrangement of Nodes which useful in repositioning components in the
+    various studio features. For any tree that allows rearrangement, subclass MalleableTree.
     """
     drag_components = []  # All objects that were selected when dragging began
     drag_active = False  # Flag showing whether we are currently dragging stuff
@@ -25,12 +26,12 @@ class MalleableTree(TreeView):
     drag_display_limit = 3  # The maximum number of items the drag popup can display
     drag_instance = None  # The current tree that is performing a drag
 
-    class Node(TreeView.Node):
+    class Node(Tree.Node):
         PADDING = 0
 
-        def __init__(self, master=None, **config):
+        def __init__(self, tree, **config):
             # Master is always a TreeView object unless you tamper with the add_as_node method
-            super().__init__(master, **config)
+            super().__init__(tree, **config)
             # If set tp False the node accepts children and vice versa
             self._is_terminal = config.get("terminal", True)
             self.strip.bind_all("<Motion>", self.drag)
@@ -207,11 +208,11 @@ class MalleableTree(TreeView):
                 node.insert(None, sub_node_clone)
             return node
 
-    def __init__(self, master, **config):
-        super().__init__(master, **config)
+    def initialize_tree(self):
+        super(MalleableTree, self).initialize_tree()
         self._on_structure_change = None
         self.is_terminal = False
-        self.edge_indicator = EdgeIndicator(self)  # A line that shows where an insertion can occur
+        self.edge_indicator = EdgeIndicator(self.get_body())  # A line that shows where an insertion can occur
 
     def on_structure_change(self, callback, *args, **kwargs):
         self._on_structure_change = lambda: callback(*args, **kwargs)
@@ -240,14 +241,30 @@ class MalleableTree(TreeView):
 
     def highlight(self):
         MalleableTree.drag_highlight = self
-        self.config(**self.style.bright_highlight)
+        self.get_body().config(**self.get_body().style.bright_highlight)
 
     def clear_highlight(self):
         # Remove the rectangular highlight around the node
-        self.configure(**self.style.highlight)
+        self.get_body().configure(**self.get_body().style.highlight)
 
     def clear_indicators(self):
         # Remove any remaining node highlights and edge indicators
         if MalleableTree.drag_highlight is not None:
             MalleableTree.drag_highlight.clear_highlight()
             self.edge_indicator.clear()
+
+
+class MalleableTreeView(MalleableTree, ScrolledFrame):
+    """
+    Malleable TreeView that allows rearrangement of Nodes which useful in
+    repositioning components in the various studio features.
+    For any tree view that allows rearrangement, subclass MalleableTreeView.
+    """
+
+    def __init__(self, master=None, **config):
+        super().__init__(master, **config)
+        self.config(**self.style.surface)
+        self.initialize_tree()
+
+    def get_body(self):
+        return self.body

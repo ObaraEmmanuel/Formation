@@ -8,7 +8,7 @@ All gui manifestation should strictly use hoverset widget set for easy maintenan
 # ======================================================================= #
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
-
+import abc
 import functools
 import logging
 import os
@@ -66,6 +66,7 @@ __all__ = (
     "TabView",
     "ToggleButton",
     "ToolWindow",
+    "Tree",
     "TreeView",
     "Text",
     "Widget",
@@ -2394,10 +2395,15 @@ class Spinner(Frame):
         return self._value_item.get()
 
 
-class TreeView(ScrolledFrame):
+class Tree(abc.ABC):
     """
-    Custom tree view implementation that is way more flexible for hoverset applications. Can be easily
-    modified and works well with hoverset themes.
+    Tree Abstraction for management of tree_views and similar
+    tree-like widgets in hoverset. To use this class, subclass it and
+    implement the :py:meth:`Tree.get_body` method to specify the container widget.
+
+    .. note::
+        Remember to call :py:meth:`Tree.initialize_tree` in your constructor before
+        performing any operations on the tree.
     """
 
     class Strip(Frame):
@@ -2423,11 +2429,11 @@ class TreeView(ScrolledFrame):
         __icons_loaded = False
         PADDING = 1
 
-        def __init__(self, master=None, **config):
-            super().__init__(master.body)
+        def __init__(self, tree, **config):
+            super().__init__(tree.get_body())
             self._load_images()
             self.config(**self.style.surface)
-            self.tree = master
+            self.tree = tree
             self._icon = config.get("icon", self.BLANK)
             self._name = config.get("name", "unknown")
             self.strip = f = TreeView.Strip(self, **self.style.surface, takefocus=True)
@@ -2456,10 +2462,10 @@ class TreeView(ScrolledFrame):
                 i.bind("<ButtonRelease-1>", self.select)
                 i.bind("<Return>", self.select)
 
-        @classmethod
-        def _load_images(cls):
-            if cls.__icons_loaded:
+        def _load_images(self):
+            if self.__icons_loaded:
                 return
+            cls = self.__class__
             cls.EXPANDED_ICON = get_icon_image("chevron_down", 14, 14)
             cls.COLLAPSED_ICON = get_icon_image("chevron_right", 14, 14)
             cls.BLANK = get_icon_image("blank", 14, 14)
@@ -2671,18 +2677,40 @@ class TreeView(ScrolledFrame):
             for node in nodes:
                 self.remove(node)
 
-    # ============================================= TreeView ================================================
+    # =========================== Tree =================================
 
-    def __init__(self, master=None, **config):
-        super().__init__(master, **config)
-        self.config(**self.style.surface)
+    def initialize_tree(self):
+        """
+        Initialize tree properties. Make sure its called before any
+        operations are performed on the tree.
+        """
+        if getattr(self, "_has_init", False):
+            # safety to ensure tree is not initialized twice
+            return
         self._selected = []
         self.nodes = []
         self._multi_select = False
         self._on_select = None
-        self.depth = 0
+        self._depth = 0
         self._parent_node = None  # This value should never be changed
-        # self.fill_x = False
+        self._has_init = True
+
+    @abc.abstractmethod
+    def get_body(self):
+        """
+        Return the tkinter container like a Frame where the nodes are
+        packed. This method must be implemented and must return a valid
+        container.
+        """
+        pass
+
+    @property
+    def depth(self):
+        return self._depth
+
+    @depth.setter
+    def depth(self, value):
+        self._depth = value
 
     @property
     def parent_node(self) -> None:
@@ -2761,7 +2789,7 @@ class TreeView(ScrolledFrame):
         self.nodes.append(node)
         node.parent_node = self
         node.depth = self.depth + 1
-        node.pack(side="top", fill="x", in_=self.body, pady=self.__class__.Node.PADDING)
+        node.pack(side="top", fill="x", in_=self.get_body(), pady=self.__class__.Node.PADDING)
 
     def add_as_node(self, **options) -> Node:
         """
@@ -2800,7 +2828,7 @@ class TreeView(ScrolledFrame):
         for node in self.nodes:
             node.pack_forget()
         for node in self.nodes:
-            node.pack(side="top", fill="x", in_=self.body, pady=self.__class__.Node.PADDING)
+            node.pack(side="top", fill="x", in_=self.get_body(), pady=self.__class__.Node.PADDING)
 
     def insert(self, index=None, *nodes):
         if index is None:
@@ -2841,6 +2869,21 @@ class TreeView(ScrolledFrame):
         :return: total number of items selected
         """
         return len(self._selected)
+
+
+class TreeView(Tree, ScrolledFrame):
+    """
+    Custom tree view implementation that is way more flexible for hoverset applications. Can be easily
+    modified and works well with hoverset themes.
+    """
+
+    def __init__(self, master=None, **config):
+        super().__init__(master, **config)
+        self.config(**self.style.surface)
+        self.initialize_tree()
+
+    def get_body(self):
+        return self.body
 
 
 class PanedWindow(Widget, tk.PanedWindow):
