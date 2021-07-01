@@ -371,7 +371,11 @@ class FontPicker(Button):
         self._on_pick = lambda color: callback(color, *args, **kwargs)
 
     def _get_font(self, x, y):
-        widget = self.winfo_containing(x, y)
+        try:
+            widget = self.winfo_containing(x, y)
+        except KeyError:
+            # sometimes raised when over toplevel menu item
+            widget = None
         if widget is not None and 'font' in widget.keys():
             return widget['font']
 
@@ -381,16 +385,12 @@ class FontPicker(Button):
         displace_x = 10 if self.winfo_screenwidth() - event.x_root > 160 else -160
         displace_y = 0 if self.winfo_screenheight() - event.y_root > 40 else -30
         font_value = self._get_font(event.x_root, event.y_root)
-        try:
-            _font = FontStyle(self, font_value)
-            self._indicator['text'] = _font.cget('family') or 'No font to extract'
-            if font_value:
-                self._indicator['font'] = _font.cget('family')
-            else:
-                self._indicator['font'] = 'TkDefaultFont'
-        except Exception:
+        _font = FontStyle(self, font=font_value)
+        self._indicator['text'] = _font.cget('family') or 'No font to extract'
+        if font_value:
+            self._indicator['font'] = _font
+        else:
             self._indicator['font'] = 'TkDefaultFont'
-            self._indicator['text'] = 'No font to extract'
 
         self._window.geometry(
             '{width}x{height}+{x}+{y}'.format(
