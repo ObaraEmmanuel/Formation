@@ -2419,16 +2419,12 @@ class TreeView(ScrolledFrame):
             self.expander = Label(f, **self.style.text, compound=tk.TOP, image=self.BLANK)
             self.expander.grid(row=0, column=1)
             self.expander.bind("<Button-1>", self.toggle)
-            self.strip.bind("<FocusIn>", self.select)
-            self.strip.bind("<Up>", self.select_prev)
-            self.strip.bind("<Down>", self.select_next)
             self.icon_pad = Label(f, **self.style.text, image=self._icon)
             self.icon_pad.grid(row=0, column=2)
             self.name_pad = Label(f, **self.style.text, text=self._name)
             self.name_pad.grid(row=0, column=3)
             f.columnconfigure(3, uniform=1)
-            self.name_pad.bind("<ButtonRelease-1>", self.select)
-            self.strip.bind("<ButtonRelease-1>", self.select)
+            self._init_binding()
             self.body = Frame(self, **self.style.surface)
             self.body.pack(side="top", fill="x")
             self._expanded = False
@@ -2436,6 +2432,11 @@ class TreeView(ScrolledFrame):
             self._depth = 0  # Will be set on addition to a node or tree so this value is just placeholder
             self.parent_node = None
             self.nodes = []
+
+        def _init_binding(self):
+            for i in (self.name_pad, self.strip):
+                i.bind("<ButtonRelease-1>", self.select)
+                i.bind("<Return>", self.select)
 
         @classmethod
         def _load_images(cls):
@@ -2484,19 +2485,8 @@ class TreeView(ScrolledFrame):
                 parent = parent.parent_node
             return False
 
-        def select_prev(self, event):
-            self.tk_focusPrev().select(event)
-
-        def select_next(self, event):
-            self.tk_focusNext().select(event)
-
         def select(self, event=None, silently=False):
-            if event and event.state == '??':
-                # when the event is as a result of focus change using the tab key the event.state attribute
-                # is a string equal to '??'. We therefore perform a basic selection
-                self.tree.select(self)
-                return
-            elif event and event.state & EventMask.CONTROL:
+            if event and event.state & EventMask.CONTROL:
                 self.tree.toggle_from_selection(self)
                 return
             elif event:
