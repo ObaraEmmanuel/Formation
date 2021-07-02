@@ -7,7 +7,8 @@ Widget tree for the studio
 # ======================================================================= #
 from abc import ABC
 
-from hoverset.ui.widgets import EventMask, ScrolledFrame, Label, Tree
+from hoverset.ui.icons import get_icon_image
+from hoverset.ui.widgets import EventMask, ScrolledFrame, Label, Tree, Frame
 from hoverset.ui.windows import DragWindow
 from studio.ui.geometry import bounds, upscale_bounds
 from studio.ui.highlight import EdgeIndicator
@@ -268,3 +269,63 @@ class MalleableTreeView(MalleableTree, ScrolledFrame):
 
     def get_body(self):
         return self.body
+
+
+class NestedTreeView(MalleableTree, Frame):
+    """
+    Nestable malleable tree with scrolling removed
+
+    .. note::
+        Adding NestedTreeView inside a :py:class:`MalleableTree.Node` is
+        not tested and may cause things to break.
+    """
+
+    class Node(MalleableTree.Node):
+
+        EXPANDED_ICON = None
+        COLLAPSED_ICON = None
+        BLANK = None
+        __icons_loaded = False
+
+        def __init__(self, tree, **config):
+            super().__init__(tree, **config)
+            for component in (self.expander, self.icon_pad):
+                component.config(**self.style.text_secondary1)
+            self.name_pad.config(**self.style.text_italic)
+
+        def _load_images(self):
+            if self.__icons_loaded:
+                return
+            color = self.style.colors["secondary1"]
+            cls = self.__class__
+            cls.EXPANDED_ICON = get_icon_image("chevron_down", 14, 14, color=color)
+            cls.COLLAPSED_ICON = get_icon_image("chevron_right", 14, 14, color=color)
+            cls.BLANK = get_icon_image("blank", 14, 14)
+            cls.__icons_loaded = True
+
+    def __init__(self, node, **kw):
+        super(NestedTreeView, self).__init__(node, **kw)
+        self.initialize_tree()
+
+    def get_body(self):
+        return self
+
+    @property
+    def parent_node(self):
+        return self._parent_node
+
+    @parent_node.setter
+    def parent_node(self, value):
+        # allow setting of parent node since this tree is nestable within a node
+        self._parent_node = value
+
+    @property
+    def depth(self):
+        return self._depth
+
+    @depth.setter
+    def depth(self, value):
+        self._depth = value - 1
+        # Update depth even for child nodes
+        for node in self.nodes:
+            node.depth = self._depth + 1
