@@ -16,6 +16,7 @@ from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.icons import get_icon_image as icon
 from hoverset.ui.menu import MenuUtils, LoadLater, EnableIf
 from hoverset.util.execution import Action, as_thread
+from studio.lib import generate_id
 from studio.lib.layouts import PlaceLayoutStrategy
 from studio.lib.pseudo import PseudoWidget, Container, Groups
 from studio.parsers.loader import DesignBuilder
@@ -334,13 +335,7 @@ class Designer(DesignPad, Container):
         """
         Generate a unique id for widget belonging to a given class
         """
-        # start from 1 and check if name exists, if it exists keep incrementing
-        count = 1
-        name = f"{obj_class.display_name}_{count}"
-        while name in self._ids:
-            name = f"{obj_class.display_name}_{count}"
-            count += 1
-        return name
+        return generate_id(obj_class, self._ids)
 
     def on_motion(self, event):
         self.highlight.resize(event)
