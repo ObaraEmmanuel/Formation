@@ -371,11 +371,7 @@ class FontPicker(Button):
         self._on_pick = lambda color: callback(color, *args, **kwargs)
 
     def _get_font(self, x, y):
-        try:
-            widget = self.winfo_containing(x, y)
-        except KeyError:
-            # sometimes raised when over toplevel menu item
-            widget = None
+        widget = self.containing(x, y, self)
         if widget is not None and 'font' in widget.keys():
             return widget['font']
 

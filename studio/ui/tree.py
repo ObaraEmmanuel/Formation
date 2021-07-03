@@ -79,7 +79,7 @@ class MalleableTree(TreeView):
                           text=component.name, anchor='w',
                           **self.style.text).pack(side="top", fill="x")
                     count += 1
-            widget = self.winfo_containing(event.x_root, event.y_root)
+            widget = self.containing(event.x_root, event.y_root, self)
             # The widget can be a child to Node but not necessarily a node but we need a node so
             # Resolve the node that is immediately under the cursor position by iteratively getting widget's parent
             # For the sake of performance not more than 4 iterations

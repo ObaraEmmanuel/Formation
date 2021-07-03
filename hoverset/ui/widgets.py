@@ -747,6 +747,24 @@ class Widget:
             self.config(**clean_styles(self, {"state": tk.NORMAL}))
 
     @staticmethod
+    def containing(x, y, widget):
+        """
+        A safer alternative for tk winfo_containing that does extra checks
+        just in case the widget at the target position is not recognized
+        or managed by our tk instance
+
+        :param x: x coordinate
+        :param y: y coordinate
+        :param widget: widget to be checked.
+        :return: name of widget at position
+        """
+        try:
+            return widget.winfo_containing(x, y)
+        except KeyError:
+            # thrown when widget at position is not managed by our tk instance
+            return None
+
+    @staticmethod
     def event_in(event, widget):
         """
         Check whether event has occurred within a widget
@@ -764,8 +782,8 @@ class Widget:
         )
         return x1 < x < x2 and y1 < y < y2
 
-    @staticmethod
-    def event_first(event, widget, class_: type, ignore=None):
+    @classmethod
+    def event_first(cls, event, widget, class_: type, ignore=None):
         """
         Gets the first widget belonging to `class\\_` at the event position. This widget
         may be the top widget or it's parents and grandparents deep down the hierarchy.
@@ -778,11 +796,11 @@ class Widget:
         :param ignore: widget to be ignored if any
         :return: the first widget belonging to `class\\_`, if no widget is found None is returned
         """
-        check = widget.winfo_containing(event.x_root, event.y_root)
+        check = cls.containing(event.x_root, event.y_root, widget)
         while not isinstance(check, Application) and check is not None:
             if isinstance(check, class_) and not check == ignore:
                 return check
-            check = check.nametowidget(check.winfo_parent())
+            check = check.nametowidget(check.winfo_parent())  # noqa
         return None
 
     def absolute_bounds(self):
@@ -975,7 +993,7 @@ class _MouseWheelDispatcherMixin:
     def _on_mousewheel(self, event):
         # Resolve the widget under the cursor to determine if there is any scrollable widget (ScrollableInterface)
         # If any pass the event to it
-        check = self.winfo_containing(event.x_root, event.y_root)
+        check = self.containing(event.x_root, event.y_root, self)
         while not isinstance(check, Application) and check is not None:
             if isinstance(check, ScrollableInterface):
                 if check.scroll_transfer() and check.scroll_position()[0] < 1:
