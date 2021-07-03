@@ -508,9 +508,15 @@ class CanvasTool(BaseTool):
                 "<Double-Button-1>", self._draw_dispatch("on_double_press"), True)
             self.canvas.bind(
                 "<Motion>", self._draw_dispatch("on_motion"), True)
+            self.canvas.bind("<Control-Button-1>", self._enter_pointer_mode)
             self.canvas._cv_tree = CanvasTreeView(self.canvas)
             self.canvas._cv_tree.on_select(self._update_selection, self.canvas)
             self.canvas._cv_initialized = True
+
+    def _enter_pointer_mode(self, *_):
+        if self.item_select._selected is None:
+            return
+        self.item_select._selected.deselect()
 
     def create_item(self, component, *args):
         item = component(self.canvas, *args)
