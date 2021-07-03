@@ -230,6 +230,9 @@ class CanvasItem(abc.ABC):
     def __init__(self, canvas, *args, **options):
         self.canvas = canvas
         self._id = self._create(*args, **options)
+        self.name = ""
+        # tree node associated with widget
+        self.node = None
 
     def configure(self, option=None, **options):
         return self.canvas.itemconfigure(self._id, option, **options)

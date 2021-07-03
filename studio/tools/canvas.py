@@ -4,10 +4,13 @@
 import abc
 from collections import defaultdict
 
+from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import EventMask
 
 from studio.tools._base import BaseTool
 from studio.feature.components import ComponentPane, SelectToDrawGroup
+from studio.ui.tree import NestedTreeView
+from studio.lib import generate_id
 from studio.lib.canvas import *
 from studio.lib.legacy import Canvas
 
@@ -413,6 +416,47 @@ class LinearDraw(Draw):
         self.item.coords(*self.coords)
 
 
+class CanvasTreeView(NestedTreeView):
+
+    class Node(NestedTreeView.Node):
+
+        def __init__(self, master=None, **config):
+            super().__init__(master, **config)
+            self.item: CanvasItem = config.get("item")
+            self.item.node = self
+            self._color = self.style.colors["secondary1"]
+            self.name_pad.configure(text=self.item.name)
+            self.icon_pad.configure(
+                image=get_icon_image(self.item.icon, 15, 15, color=self._color)
+            )
+
+        def widget_modified(self, widget):
+            self.widget = widget
+            self.name_pad.configure(text=self.widget.name)
+            self.icon_pad.configure(
+                image=get_icon_image(self.widget.icon, 15, 15, color=self._color)
+            )
+
+    def __init__(self, canvas, **kw):
+        super(CanvasTreeView, self).__init__(canvas.node, **kw)
+        self._cv_node = canvas.node
+        self.canvas = canvas
+        self._is_mapped = False
+        self.allow_multi_select(True)
+
+    def add(self, node):
+        super(CanvasTreeView, self).add(node)
+        # if we have a node we make ourselves visible
+        if not self._is_mapped:
+            self._cv_node.add(self)
+
+    def remove(self, node):
+        super(CanvasTreeView, self).remove(node)
+        # if no nodes are left we hide ourselves
+        if not len(self.nodes):
+            self._cv_node.remove(self)
+
+
 class CanvasTool(BaseTool):
 
     name = "Canvas"
@@ -450,6 +494,10 @@ class CanvasTool(BaseTool):
             Polygon: ClosedLinearController
         }
 
+    @property
+    def _ids(self):
+        return [item.name for item_set in self.items.values() for item in item_set]
+
     def initialize_canvas(self):
         if self.canvas and not getattr(self.canvas, "_cv_initialized", False):
             self.canvas.bind(
@@ -460,11 +508,16 @@ class CanvasTool(BaseTool):
                 "<Double-Button-1>", self._draw_dispatch("on_double_press"), True)
             self.canvas.bind(
                 "<Motion>", self._draw_dispatch("on_motion"), True)
+            self.canvas._cv_tree = CanvasTreeView(self.canvas)
+            self.canvas._cv_tree.on_select(self._update_selection, self.canvas)
             self.canvas._cv_initialized = True
 
     def create_item(self, component, *args):
         item = component(self.canvas, *args)
+        # generate a unique id
+        item.name = generate_id(component, self._ids)
         self.items[self.canvas].append(item)
+        self.canvas._cv_tree.add_as_node(item=item)
         item.bind("<Button-1>", self._handle_select(item), True)
         return item
 
@@ -517,44 +570,99 @@ class CanvasTool(BaseTool):
             controller.release()
         item._controller = None
 
+    def selection_changed(self):
+        # called when canvas item selection changes
+        pass
+
+    def _update_selection(self, canvas):
+        # update selections from the canvas tree
+        if canvas != self.canvas:
+            self.studio.select(canvas)
+        # call to studio should cause canvas to be selected
+        assert self.canvas == canvas
+        selected = set(self.selected_items)
+        to_select = {node.item for node in canvas._cv_tree.get()}
+
+        # deselect items currently selected that shouldn't be
+        for item in selected - to_select:
+            self.remove_controller(item)
+            self.selected_items.remove(item)
+
+        # select items to be selected that are not yet selected
+        for item in to_select - selected:
+            controller = self.set_controller(item)
+            if not controller:
+                return
+            self.selected_items.append(item)
+
+        self.selection_changed()
+
+    def _clear_selection(self):
+        for item in self.selected_items:
+            self.remove_controller(item)
+            item.canvas._cv_tree.deselect(item.node)
+        if self.selected_items:
+            self.selected_items.clear()
+            self.selection_changed()
+
     def select_item(self, item, multi=False):
         if multi:
             if item in self.selected_items:
                 self.remove_controller(item)
                 self.selected_items.remove(item)
+                item.canvas._cv_tree.deselect(item.node)
             else:
                 controller = self.set_controller(item)
                 if not controller:
                     return
                 self.selected_items.append(item)
+                item.node.select(silently=True)
         else:
             for i in self.selected_items:
                 if i == item:
                     continue
                 self.remove_controller(i)
+                i.canvas._cv_tree.deselect(i.node)
             if item in self.selected_items:
                 self.selected_items = [item]
             elif self.set_controller(item):
                 self.selected_items = [item]
+                item.node.select(silently=True)
+
+        self.selection_changed()
 
     def on_select(self, widget):
         if self.canvas == widget:
             return
         if self.canvas is not None:
             self._reset_cursor()
+            self.release(self.canvas)
         if isinstance(widget, Canvas):
             self.canvas = widget
             self._cursor = widget["cursor"]
             self._set_cursor()
             self.initialize_canvas()
         else:
+            if self.canvas is None:
+                return
+            self.release(self.canvas)
             self.canvas = None
+
+    def release(self, canvas):
+        if canvas is None or not getattr(canvas, "_cv_initialized", False):
+            return
+        self._clear_selection()
 
     def on_layout_change(self):
         pass
 
     def on_item_added(self, item):
         pass
+
+    def on_widget_delete(self, widget):
+        if isinstance(widget, Canvas):
+            if widget in self.items:
+                self.items.pop(widget)
 
     def propagate_move(self, delta_x, delta_y, source=None):
         for item in self.selected_items:
