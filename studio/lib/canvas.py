@@ -257,6 +257,9 @@ class CanvasItem(abc.ABC):
     def move(self, x_amount, y_amount):
         self.canvas.move(self._id, x_amount, y_amount)
 
+    def bbox(self):
+        return self.canvas.bbox(self._id)
+
     @abc.abstractmethod
     def _create(self, *args, **options):
         pass

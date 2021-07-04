@@ -306,6 +306,42 @@ class ClosedLinearController(LinearController):
     _closed = True
 
 
+class PointController(Controller):
+
+    def __init__(self, canvas, tool, item=None, **kw):
+        super(PointController, self).__init__(canvas, tool, item, **kw)
+        self._border = None
+        if item:
+            self.highlight(item)
+
+    def get_coords(self):
+        return [self.coords[0].x, self.coords[0].y]
+
+    def on_coord_change(self, coord):
+        self.item.coords(self.get_coords())
+        self._change()
+
+    def on_move(self, delta_x, delta_y, propagated=False):
+        super(PointController, self).on_move(delta_x, delta_y, propagated)
+        self.highlight(self.item)
+
+    def highlight(self, item):
+        bbox = item.bbox() or (*item.coords(), *item.coords())
+        x1, y1, x2, y2 = bbox
+        x1, y1, x2, y2 = x1 - 2, y1 - 2, x2 + 2, y2 + 2
+        coords = x1, y1, x2, y1, x2, y2, x1, y2, x1, y1
+        if self._border:
+            self.canvas.coords(self._border, *coords)
+        else:
+            self._border = self.canvas.create_line(
+                *coords, fill="red", tag="controller", dash=(5, 4), width=2
+            )
+
+    def __del__(self):
+        if self._border:
+            self.canvas.delete(self._border)
+
+
 class Draw(abc.ABC):
 
     def __init__(self, tool):
@@ -407,6 +443,37 @@ class LinearDraw(Draw):
         self.item.coords(*self.coords)
 
 
+class PointDraw(Draw):
+
+    def __init__(self, tool, **default_opts):
+        super(PointDraw, self).__init__(tool)
+        self.default_opts = default_opts
+
+    def on_button_press(self, event):
+        if event.state & EventMask.CONTROL:
+            return
+        x, y = self.canvas_coord(event.x, event.y)
+        self.item = self.tool.create_item(
+            self.tool.current_draw, x, y, **self.default_opts
+        )
+
+    def on_button_release(self, event):
+        pass
+
+    def on_double_press(self, event):
+        pass
+
+    def on_motion(self, event):
+        pass
+
+
+class TextDraw(PointDraw):
+
+    def on_button_press(self, event):
+        super(TextDraw, self).on_button_press(event)
+        self.item.config(text=self.item.name)
+
+
 class CanvasTreeView(NestedTreeView):
 
     class Node(NestedTreeView.Node):
@@ -468,6 +535,8 @@ class CanvasTool(BaseTool):
 
         self.square_draw = SquareDraw(self)
         self.line_draw = LinearDraw(self)
+        self.text_draw = TextDraw(self)
+        self.bitmap_draw = PointDraw(self, bitmap="gray25")
 
         self.draw_map = {
             Oval: self.square_draw,
@@ -509,13 +578,13 @@ class CanvasTool(BaseTool):
             return
         self.item_select._selected.deselect()
 
-    def create_item(self, component, *args):
-        item = component(self.canvas, *args)
+    def create_item(self, component, *args, **kwargs):
+        item = component(self.canvas, *args, **kwargs)
         # generate a unique id
         item.name = generate_id(component, self._ids)
         self.items[self.canvas].append(item)
         self.canvas._cv_tree.add_as_node(item=item)
-        item.bind("<Button-1>", lambda e: self._handle_select(item, e), True)
+        item.bind("<ButtonRelease-1>", lambda e: self._handle_select(item, e), True)
         item.bind("<ButtonRelease-1>", lambda e: self._handle_end(item, e), True)
         item.bind("<Motion>", lambda e: self._handle_move(item, e), True)
         return item
@@ -539,7 +608,9 @@ class CanvasTool(BaseTool):
         item._coord_latch = None
 
     def _handle_select(self, item, event):
-        if self.current_draw is not None:
+        if self.current_draw is not None or getattr(item, '_coord_latch', None):
+            # if coord_latch has a value then it means we have been dragging
+            # an item and the button release means end of drag and not selection
             return
         if event.state & EventMask.CONTROL:
             self.select_item(item, True)
