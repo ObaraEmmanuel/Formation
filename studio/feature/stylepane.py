@@ -174,6 +174,9 @@ class StyleGroup(CollapseFrame):
     def _get_action_data(self, widget, prop):
         return {}
 
+    def _get_key(self, widget, prop):
+        return f"{widget}:{self.__class__.__name__}:{prop}"
+
     def apply(self, prop, value, widget=None, silent=False):
         is_external = widget is not None
         widget = self.widget if widget is None else widget
@@ -190,7 +193,7 @@ class StyleGroup(CollapseFrame):
                     self.items[prop].set_silently(value)
             if silent:
                 return
-            key = f"{widget}:{self.__class__.__name__}:{prop}"
+            key = self._get_key(widget, prop)
             action = self.studio.last_action()
             if action is None or action.key != key:
                 self.studio.new_action(Action(
@@ -208,6 +211,9 @@ class StyleGroup(CollapseFrame):
 
     def get_definition(self):
         return {}
+
+    def supports_widget(self, widget):
+        return True
 
     def on_search_query(self, query):
         for item in self.items.values():
@@ -459,6 +465,10 @@ class StylePane(BaseFeature):
         pref: Preferences = Preferences.acquire()
         pref.add_listener("designer::descriptive_names", lambda _: self.styles_for(self._current))
 
+    @property
+    def supported_groups(self):
+        return [group for group in self.groups if group.supports_widget(self._current)]
+
     def create_menu(self):
         return (
             ("command", "Search", get_icon_image("search", 14, 14), self.start_search, {}),
@@ -479,18 +489,26 @@ class StylePane(BaseFeature):
     def apply_layout(self, prop, value, widget=None, silent=False):
         self._layout_group.apply(prop, value, widget, silent)
 
-    def add_group(self, group_class) -> StyleGroup:
+    def add_group(self, group_class, **kwargs) -> StyleGroup:
         if not issubclass(group_class, StyleGroup):
             raise ValueError('type required.')
-        group = group_class(self.body.body, self)
+        group = group_class(self.body.body, self, **kwargs)
         self.groups.append(group)
-        group.pack(side='top', fill='x', pady=12)
+        self.show_group(group)
         return group
 
-    def add_group_instance(self, group_instance):
+    def add_group_instance(self, group_instance, show=False):
         if not isinstance(group_instance, StyleGroup):
             raise ValueError('Expected object of type StyleGroup.')
         self.groups.append(group_instance)
+        if show:
+            self.show_group(group_instance)
+
+    def hide_group(self, group):
+        group.pack_forget()
+
+    def show_group(self, group):
+        group.pack(side='top', fill='x', pady=12)
 
     def show_empty(self):
         self.remove_empty()
@@ -504,7 +522,7 @@ class StylePane(BaseFeature):
 
     def show_loading(self):
         if platform_is(LINUX) or self._is_loading:
-            # render transitions in linux as very fast and glitch free
+            # render transitions in linux are very fast and glitch free
             # for other platforms or at least for windows we need to hide the glitching
             return
         self.remove_empty()
@@ -523,7 +541,11 @@ class StylePane(BaseFeature):
             self.show_empty()
             return
         for group in self.groups:
-            group.on_widget_change(widget)
+            if group.supports_widget(widget):
+                self.show_group(group)
+                group.on_widget_change(widget)
+            else:
+                self.hide_group(group)
         self.remove_loading()
         self.body.update_idletasks()
 
