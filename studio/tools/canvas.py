@@ -543,7 +543,9 @@ class CanvasTool(BaseTool):
             Rectangle: self.square_draw,
             Arc: self.square_draw,
             Line: self.line_draw,
-            Polygon: self.line_draw
+            Polygon: self.line_draw,
+            Text: self.text_draw,
+            Bitmap: self.bitmap_draw,
         }
 
         self.controller_map = {
@@ -551,7 +553,9 @@ class CanvasTool(BaseTool):
             Rectangle: SquareController,
             Arc: SquareController,
             Line: LinearController,
-            Polygon: ClosedLinearController
+            Polygon: ClosedLinearController,
+            Text: PointController,
+            Bitmap: PointController
         }
 
     @property
