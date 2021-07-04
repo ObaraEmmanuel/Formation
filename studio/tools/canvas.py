@@ -27,12 +27,10 @@ class Coordinate:
         self.controller = controller
         self.x = x
         self.y = y
-        self._dragging = False
         self._id = canvas.create_oval(
             x-self.radius, y-self.radius, x+self.radius, y+self.radius,
             fill="red", tags=("coordinate", "controller")
         )
-        canvas.tag_bind(self._id, "<ButtonPress-1>", self._start_drag)
         canvas.tag_bind(self._id, "<ButtonRelease-1>", self._end_drag)
         canvas.tag_bind(self._id, "<Motion>", self._drag)
         canvas.tag_bind(self._id, "<Enter>", lambda _: self.grow_effect())
@@ -53,9 +51,6 @@ class Coordinate:
     def remove_listener(self, callback):
         if callback in self._listeners:
             self._listeners.remove(callback)
-
-    def _start_drag(self, _):
-        self._dragging = True
 
     def retire(self):
         # remove from view without deleting
@@ -84,7 +79,7 @@ class Coordinate:
         self.active.add(self)
 
     def _drag(self, event):
-        if not self._dragging:
+        if not event.state & EventMask.MOUSE_BUTTON_1:
             return
         self.x = self.canvas.canvasx(event.x)
         self.y = self.canvas.canvasy(event.y)
@@ -92,7 +87,6 @@ class Coordinate:
         self.controller.on_coord_change(self)
 
     def _end_drag(self, _):
-        self._dragging = False
         self.controller.on_release()
 
     @classmethod
@@ -113,36 +107,33 @@ class Link:
     def __init__(self, canvas, controller, coord1, coord2):
         self.canvas = canvas
         self.controller = controller
-        self._dragging = False
         self._id = canvas.create_line(
             coord1.x, coord1.y, coord2.x, coord2.y,
             fill="red", tag=("link", "controller"), dash=(5, 4), width=2
         )
         self.link_coord(coord1, coord2)
-        canvas.tag_bind(self._id, "<ButtonPress-1>", self._start_drag)
         canvas.tag_bind(self._id, "<ButtonRelease-1>", self._end_drag)
         canvas.tag_bind(self._id, "<Motion>", self._drag)
         self.active.add(self)
-        self._coord_latch = 0, 0
+        self._coord_latch = None
 
     def _to_canvas_coord(self, x, y):
         return self.canvas.canvasx(x), self.canvas.canvasy(y)
 
-    def _start_drag(self, event):
-        self._coord_latch = self._to_canvas_coord(event.x, event.y)
-        self._dragging = True
-
     def _drag(self, event):
-        if not self._dragging:
+        if not event.state & EventMask.MOUSE_BUTTON_1:
             return
-        x, y = self._to_canvas_coord(event.x, event.y)
-        xl, yl = self._coord_latch
-        self.controller.on_move(x-xl, y-yl)
-        self._coord_latch = x, y
+        if self._coord_latch:
+            x, y = self._to_canvas_coord(event.x, event.y)
+            xl, yl = self._coord_latch
+            self.controller.on_move(x-xl, y-yl)
+            self._coord_latch = x, y
+        else:
+            self._coord_latch = self._to_canvas_coord(event.x, event.y)
 
     def _end_drag(self, _):
         self.controller.on_release()
-        self._dragging = False
+        self._coord_latch = None
 
     def place(self, coord1, coord2):
         self.canvas.coords(self._id, coord1.x, coord1.y, coord2.x, coord2.y)
@@ -524,20 +515,36 @@ class CanvasTool(BaseTool):
         item.name = generate_id(component, self._ids)
         self.items[self.canvas].append(item)
         self.canvas._cv_tree.add_as_node(item=item)
-        item.bind("<Button-1>", self._handle_select(item), True)
+        item.bind("<Button-1>", lambda e: self._handle_select(item, e), True)
+        item.bind("<ButtonRelease-1>", lambda e: self._handle_end(item, e), True)
+        item.bind("<Motion>", lambda e: self._handle_move(item, e), True)
         return item
 
-    def _handle_select(self, item):
-
-        def handler(event):
-            if self.current_draw is not None:
-                return
-            if event.state & EventMask.CONTROL:
-                self.select_item(item, True)
+    def _handle_move(self, item, event):
+        if not event.state & EventMask.MOUSE_BUTTON_1:
+            # we need mouse button 1 to be down to qualify as a drag
+            return
+        if getattr(item, '_controller', None) and self.current_draw is None:
+            if getattr(item, '_coord_latch', None):
+                x0, y0 = item._coord_latch
+                x, y = item.canvas.canvasx(event.x), item.canvas.canvasx(event.y)
+                item._controller.on_move(x-x0, y-y0)
+                item._coord_latch = x, y
             else:
-                self.select_item(item)
+                item._coord_latch = item.canvas.canvasx(event.x), item.canvas.canvasx(event.y)
 
-        return handler
+    def _handle_end(self, item, event):
+        if getattr(item, '_coord_latch', None) and self.current_draw is None:
+            self.on_layout_change()
+        item._coord_latch = None
+
+    def _handle_select(self, item, event):
+        if self.current_draw is not None:
+            return
+        if event.state & EventMask.CONTROL:
+            self.select_item(item, True)
+        else:
+            self.select_item(item)
 
     def _draw_dispatch(self, event_type):
 
@@ -660,7 +667,7 @@ class CanvasTool(BaseTool):
         self._clear_selection()
 
     def on_layout_change(self):
-        pass
+        print("layout changed")
 
     def on_item_added(self, item):
         pass
