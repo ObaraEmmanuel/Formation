@@ -4,6 +4,9 @@
 
 import abc
 
+from studio.lib.properties import PROPERTY_TABLE, get_resolved, WIDGET_IDENTITY
+from studio.lib.pseudo import _ImageIntercept
+
 __all__ = (
     "CANVAS_PROPERTIES",
     "CANVAS_ITEMS",
@@ -222,10 +225,28 @@ CANVAS_PROPERTIES = {
 }
 
 
+class _IDIntercept:
+    __slots__ = ()
+
+    @staticmethod
+    def set(item, value, _):
+        item.name = value
+
+    @staticmethod
+    def get(item, _prop):
+        return item.name
+
+
 class CanvasItem(abc.ABC):
     OVERRIDES = {}
     icon = "canvas"
     display_name = "Item"
+    _intercepts = {
+        "id": _IDIntercept,
+        "activeimage": _ImageIntercept,
+        "disabledimage": _ImageIntercept,
+        "image": _ImageIntercept
+    }
 
     def __init__(self, canvas, *args, **options):
         self.canvas = canvas
@@ -234,10 +255,59 @@ class CanvasItem(abc.ABC):
         # tree node associated with widget
         self.node = None
 
+    @property
+    def properties(self):
+        conf = self.configure()
+        resolved = {}
+        for prop in conf:
+            definition = get_resolved(
+                prop, self.OVERRIDES, CANVAS_PROPERTIES,
+                PROPERTY_TABLE, WIDGET_IDENTITY
+            )
+            if definition:
+                definition["value"] = self.cget(prop)
+                definition["default"] = conf[prop][-2]
+                resolved[prop] = definition
+        return resolved
+
+    def _extra_conf(self):
+        # tkinter returns config in the form below
+        # argvName, dbName, dbClass, defValue, current value
+        return {
+            "id": ("id", "id", "id", "", self.name)
+        }
+
     def configure(self, option=None, **options):
+        option = {} if option is None else option
+        option.update(options)
+        for opt in list(option.keys()):
+            intercept = self._intercepts.get(opt)
+            if intercept:
+                intercept.set(self, option[opt], opt)
+                option.pop(opt)
+        if not option:
+            conf = self.canvas.itemconfigure(self._id)
+            conf.update(self._extra_conf())
+            return conf
+        else:
+            return self.canvas.itemconfigure(self._id, option)
+
+    def __setitem__(self, key, value):
+        self.configure({key: value})
+
+    def config(self, option=None, **options):
+        # This allows un-intercepted configuration
+        # this is an attempt to match widget behaviour to allow code reuse
         return self.canvas.itemconfigure(self._id, option, **options)
 
-    config = configure
+    def __getitem__(self, item):
+        return self.canvas.itemcget(self._id, item)
+
+    def cget(self, key):
+        intercept = self._intercepts.get(key)
+        if intercept:
+            return intercept.get(self, key)
+        return self.canvas.itemcget(self._id, key)
 
     def coords(self, *args):
         return self.canvas.coords(self._id, *args)
@@ -259,6 +329,15 @@ class CanvasItem(abc.ABC):
 
     def bbox(self):
         return self.canvas.bbox(self._id)
+
+    def after(self, ms, func=None, *args):
+        return self.canvas.after(ms, func, *args)
+
+    def after_idle(self, func, *args):
+        return self.canvas.after_idle(func, *args)
+
+    def after_cancel(self, _id):
+        return self.canvas.after_cancel(_id)
 
     @abc.abstractmethod
     def _create(self, *args, **options):
