@@ -625,16 +625,30 @@ WIDGET_IDENTITY = {
 }
 
 
+def get_resolved(prop, overrides, *property_tables):
+    """
+    Return copy of the first definition found in a set of property tables.
+    The table with the highest priority is passed in first in the
+    arguments. Returns empty dict if property cannot be found.
+    It also sets the name property and applies overrides
+    """
+    for table in property_tables:
+        if prop in table:
+            # use a copy to avoid messing up the general definition
+            definition = dict(table[prop], name=prop)
+            definition.update(overrides.get(prop, {}))
+            return definition
+    return {}
+
+
 def get_properties(widget):
     properties = widget.config()
     resolved_properties = {}
     overrides = getattr(widget, "DEF_OVERRIDES", {})
     for prop in properties:
-        # use a copy to avoid messing up the general definition
-        definition = dict(PROPERTY_TABLE.get(prop, {}))
+        definition = get_resolved(prop, overrides, PROPERTY_TABLE)
         if definition:
-            definition.update(overrides.get(prop, {}))
-            definition.update(value=widget[prop], name=prop)
+            definition.update(value=widget[prop])
             resolved_properties[prop] = definition
 
     return resolved_properties
