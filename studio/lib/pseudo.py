@@ -1,5 +1,6 @@
 import functools
 import logging
+import os.path
 import tkinter
 from enum import Enum
 
@@ -26,8 +27,13 @@ class _ImageIntercept:
     @staticmethod
     def set(widget, value, prop='image'):
         try:
-            image = load_image(value)
-            load_image_to_widget(widget, image, prop)
+            if os.path.isfile(str(value)):
+                image = load_image(value)
+                load_image_to_widget(widget, image, prop)
+            else:
+                # if value is invalid remove image
+                widget.config({prop: ''})
+            # for the sake of consistency we set the path regardless
             setattr(widget, f'{prop}_path', value)
         except Exception as e:
             logging.error(e)
@@ -35,7 +41,7 @@ class _ImageIntercept:
 
     @staticmethod
     def get(widget, prop='image'):
-        return getattr(widget, f'{prop}_path', widget[prop])
+        return getattr(widget, f'{prop}_path', '')
 
 
 class _IdIntercept:
