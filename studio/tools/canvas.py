@@ -9,6 +9,7 @@ from hoverset.ui.widgets import EventMask
 
 from studio.tools._base import BaseTool
 from studio.feature.components import ComponentPane, SelectToDrawGroup
+from studio.feature.stylepane import StyleGroup
 from studio.ui.tree import NestedTreeView
 from studio.lib import generate_id
 from studio.lib.canvas import *
@@ -181,6 +182,9 @@ class Controller(abc.ABC):
         self.coords = []
         self.links = []
 
+    def update(self):
+        pass
+
     def on_change(self, func, *args, **kwargs):
         self._on_change = lambda item: func(item, *args, **kwargs)
 
@@ -325,11 +329,17 @@ class PointController(Controller):
         super(PointController, self).on_move(delta_x, delta_y, propagated)
         self.highlight(self.item)
 
-    def highlight(self, item):
+    def _get_border_coords(self, item):
         bbox = item.bbox() or (*item.coords(), *item.coords())
         x1, y1, x2, y2 = bbox
         x1, y1, x2, y2 = x1 - 2, y1 - 2, x2 + 2, y2 + 2
-        coords = x1, y1, x2, y1, x2, y2, x1, y2, x1, y1
+        return x1, y1, x2, y1, x2, y2, x1, y2, x1, y1
+
+    def update(self):
+        self.canvas.coords(self._border, *self._get_border_coords(self.item))
+
+    def highlight(self, item):
+        coords = self._get_border_coords(item)
         if self._border:
             self.canvas.coords(self._border, *coords)
         else:
@@ -471,7 +481,95 @@ class TextDraw(PointDraw):
 
     def on_button_press(self, event):
         super(TextDraw, self).on_button_press(event)
-        self.item.config(text=self.item.name)
+        self.item.configure(text=self.item.name)
+
+
+class CanvasStyleGroup(StyleGroup):
+
+    def __init__(self, master, pane, **cnf):
+        self.tool = cnf.pop('tool', None)
+        super().__init__(master, pane, **cnf)
+        self.label = "Canvas Item"
+        self.prop_keys = None
+        self._prev_prop_keys = set()
+
+    @property
+    def cv_items(self):
+        # selected canvas items
+        return self.tool.selected_items
+
+    def supports_widget(self, widget):
+        return isinstance(widget, Canvas)
+
+    def can_optimize(self):
+        # probably needs a rethink if we consider definition overrides
+        # in canvas items but there isn't much of that so this will do
+        return self.prop_keys == self._prev_prop_keys
+
+    def compute_prop_keys(self):
+        items = self.cv_items
+        if not items:
+            self.prop_keys = set()
+        else:
+            self.prop_keys = None
+            # determine common configs for multi-selected items
+            for item in self.cv_items:
+                if self.prop_keys is None:
+                    self.prop_keys = set(item.configure())
+                else:
+                    self.prop_keys &= set(item.configure())
+            if len(items) > 1:
+                # id cannot be set for multi-selected items
+                self.prop_keys.remove('id')
+
+    def on_widget_change(self, widget):
+        self._prev_prop_keys = self.prop_keys
+        self.compute_prop_keys()
+        super(CanvasStyleGroup, self).on_widget_change(widget)
+
+    def _get_prop(self, prop, widget):
+        # not very useful to us
+        return None
+
+    def _get_key(self, widget, prop):
+        # generate a key identifying the multi-selection state and prop modified
+        return f"{','.join(map(lambda x: str(x._id), self.cv_items))}:{prop}"
+
+    def _get_action_data(self, widget, prop):
+        return {item: {prop: item.cget(prop)} for item in self.cv_items}
+
+    def _apply_action(self, prop, value, widget, data):
+        for item in data:
+            item.configure(data[item])
+            if item._controller:
+                item._controller.update()
+        if self.tool.canvas == widget:
+            self.on_widget_change(widget)
+        self.tool.on_items_modified(data.keys())
+
+    def _set_prop(self, prop, value, widget):
+        for item in self.cv_items:
+            item.configure({prop: value})
+            if item._controller:
+                item._controller.update()
+        self.tool.on_items_modified(self.cv_items)
+
+    def get_definition(self):
+        if not self.cv_items:
+            return {}
+        else:
+            rough_definition = self.cv_items[0].properties
+            if len(self.cv_items) == 1:
+                # for single item no need to refine definitions any further
+                return rough_definition
+            resolved = {}
+            for prop in self.prop_keys:
+                if prop not in rough_definition:
+                    continue
+                definition = resolved[prop] = rough_definition[prop]
+                # use default for value
+                definition.update(value=definition['default'])
+            return resolved
 
 
 class CanvasTreeView(NestedTreeView):
@@ -489,10 +587,10 @@ class CanvasTreeView(NestedTreeView):
             )
 
         def widget_modified(self, widget):
-            self.widget = widget
-            self.name_pad.configure(text=self.widget.name)
+            self.item = widget
+            self.name_pad.configure(text=self.item.name)
             self.icon_pad.configure(
-                image=get_icon_image(self.widget.icon, 15, 15, color=self._color)
+                image=get_icon_image(self.item.icon, 15, 15, color=self._color)
             )
 
     def __init__(self, canvas, **kw):
@@ -526,12 +624,17 @@ class CanvasTool(BaseTool):
         self.item_select = self._component_pane.register_group(
             "Canvas", CANVAS_ITEMS, SelectToDrawGroup, self._evaluator
         )
+        self.style_group = studio.style_pane.add_group(
+            CanvasStyleGroup, tool=self
+        )
         self.items = defaultdict(list)
         self.item_select.on_select(self.set_draw)
         self.canvas = None
         self._cursor = "arrow"
         self.current_draw = None
         self.selected_items = []
+
+        self._image_placeholder = get_icon_image("image_dark", 60, 60)
 
         self.square_draw = SquareDraw(self)
         self.line_draw = LinearDraw(self)
@@ -660,7 +763,7 @@ class CanvasTool(BaseTool):
 
     def selection_changed(self):
         # called when canvas item selection changes
-        pass
+        self.style_group.on_widget_change(self.canvas)
 
     def _update_selection(self, canvas):
         # update selections from the canvas tree
@@ -742,10 +845,14 @@ class CanvasTool(BaseTool):
         self._clear_selection()
 
     def on_layout_change(self):
-        print("layout changed")
+        pass
 
     def on_item_added(self, item):
         pass
+
+    def on_items_modified(self, items):
+        for item in items:
+            item.node.widget_modified(item)
 
     def on_widget_delete(self, widget):
         if isinstance(widget, Canvas):
