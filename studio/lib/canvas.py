@@ -254,6 +254,8 @@ class CanvasItem(abc.ABC):
         self.name = ""
         # tree node associated with widget
         self.node = None
+        self.__prev_state = self['state']
+        self._coord_restore = self.coords()
 
     @property
     def properties(self):
@@ -338,6 +340,13 @@ class CanvasItem(abc.ABC):
 
     def after_cancel(self, _id):
         return self.canvas.after_cancel(_id)
+
+    def hide(self):
+        self.__prev_state = self['state']
+        self.config(state='hidden')
+
+    def show(self):
+        self.config(state=self.__prev_state)
 
     @abc.abstractmethod
     def _create(self, *args, **options):

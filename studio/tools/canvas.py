@@ -6,6 +6,7 @@ from collections import defaultdict
 
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import EventMask
+from hoverset.util.execution import Action
 
 from studio.tools._base import BaseTool
 from studio.feature.components import ComponentPane, SelectToDrawGroup
@@ -247,6 +248,9 @@ class SquareController(Controller):
         self.se.place(x2, y2)
         self.sw.place(x1, y2)
 
+    def update(self):
+        self.highlight(self.item)
+
     def on_coord_change(self, coord):
         x, y = coord.x, coord.y
         if coord == self.nw:
@@ -287,6 +291,12 @@ class LinearController(Controller):
 
     def get_coords(self):
         return [coord for c in self.coords for coord in (c.x, c.y)]
+
+    def update(self):
+        # there is no smarter way to adjust links and coordinates
+        # clear them and reapply
+        self.release()
+        self.highlight(self.item)
 
     def highlight(self, item):
         coords = item.coords()
@@ -409,7 +419,7 @@ class SquareDraw(Draw):
             return
         x, y = self.canvas_coord(event.x, event.y)
         if self.item is None:
-            self.item = self.tool.create_item(self.tool.current_draw, *self.coords)
+            self.item = self.tool.create_item(self.tool.current_draw, self.coords)
         self.coords = (*self.coords[:2], x, y)
         self.item.coords(*self.coords)
 
@@ -446,7 +456,7 @@ class LinearDraw(Draw):
         if not self.draw_start:
             return
         if self.item is None:
-            self.item = self.tool.create_item(self.tool.current_draw, *self.coords)
+            self.item = self.tool.create_item(self.tool.current_draw, self.coords)
         x, y = self.canvas_coord(event.x, event.y)
         # set the last two coordinates
         self.coords[-2:] = [x, y]
@@ -464,11 +474,12 @@ class PointDraw(Draw):
             return
         x, y = self.canvas_coord(event.x, event.y)
         self.item = self.tool.create_item(
-            self.tool.current_draw, x, y, **self.default_opts
+            self.tool.current_draw, (x, y), **self.default_opts
         )
 
     def on_button_release(self, event):
-        pass
+        self.tool.on_item_added(self.item)
+        self.item = None
 
     def on_double_press(self, event):
         pass
@@ -627,7 +638,7 @@ class CanvasTool(BaseTool):
         self.style_group = studio.style_pane.add_group(
             CanvasStyleGroup, tool=self
         )
-        self.items = defaultdict(list)
+        self.items = []
         self.item_select.on_select(self.set_draw)
         self.canvas = None
         self._cursor = "arrow"
@@ -663,7 +674,7 @@ class CanvasTool(BaseTool):
 
     @property
     def _ids(self):
-        return [item.name for item_set in self.items.values() for item in item_set]
+        return [item.name for item_set in self.items for item in item_set._cv_items]
 
     def initialize_canvas(self):
         if self.canvas and not getattr(self.canvas, "_cv_initialized", False):
@@ -678,6 +689,7 @@ class CanvasTool(BaseTool):
             self.canvas.bind("<Control-Button-1>", self._enter_pointer_mode)
             self.canvas._cv_tree = CanvasTreeView(self.canvas)
             self.canvas._cv_tree.on_select(self._update_selection, self.canvas)
+            self.canvas._cv_items = []
             self.canvas._cv_initialized = True
 
     def _enter_pointer_mode(self, *_):
@@ -685,16 +697,41 @@ class CanvasTool(BaseTool):
             return
         self.item_select._selected.deselect()
 
-    def create_item(self, component, *args, **kwargs):
-        item = component(self.canvas, *args, **kwargs)
-        # generate a unique id
-        item.name = generate_id(component, self._ids)
-        self.items[self.canvas].append(item)
+    def create_item(self, component, coords=(), item=None, silently=False, **kwargs):
+        if item is None:
+            item = component(self.canvas, *coords, **kwargs)
+            # generate a unique id
+            item.name = generate_id(component, self._ids)
+        self.canvas._cv_items.append(item)
         self.canvas._cv_tree.add_as_node(item=item)
         item.bind("<ButtonRelease-1>", lambda e: self._handle_select(item, e), True)
         item.bind("<ButtonRelease-1>", lambda e: self._handle_end(item, e), True)
         item.bind("<Motion>", lambda e: self._handle_move(item, e), True)
+        if not silently:
+            self.studio.new_action(Action(
+                lambda _: self.remove_items([item], silently=True),
+                lambda _: self.restore_items([item])
+            ))
         return item
+
+    def remove_items(self, items, silently=False):
+        self.deselect_items(items)
+        for item in items:
+            item.hide()
+            item.canvas._cv_items.remove(item)
+            item.node.remove()
+        if not silently:
+            self.studio.new_action(Action(
+                lambda _: self.restore_items(items),
+                lambda _: self.remove_items(items, silently=True)
+            ))
+
+    def restore_items(self, items):
+        for item in items:
+            item.show()
+            canvas = item.canvas
+            canvas._cv_items.append(item)
+            canvas._cv_tree.add(item.node)
 
     def _handle_move(self, item, event):
         if not event.state & EventMask.MOUSE_BUTTON_1:
@@ -789,19 +826,32 @@ class CanvasTool(BaseTool):
         self.selection_changed()
 
     def _clear_selection(self):
-        for item in self.selected_items:
-            self.remove_controller(item)
-            item.canvas._cv_tree.deselect(item.node)
         if self.selected_items:
+            for item in self.selected_items:
+                self.remove_controller(item)
+                item.canvas._cv_tree.deselect(item.node)
+
             self.selected_items.clear()
+            self.selection_changed()
+
+    def _deselect(self, item):
+        self.remove_controller(item)
+        self.selected_items.remove(item)
+        item.canvas._cv_tree.deselect(item.node)
+
+    def deselect_items(self, items):
+        # only consider selected items
+        items = set(items) & set(self.selected_items)
+        if items:
+            for item in items:
+                if item in self.selected_items:
+                    self._deselect(item)
             self.selection_changed()
 
     def select_item(self, item, multi=False):
         if multi:
             if item in self.selected_items:
-                self.remove_controller(item)
-                self.selected_items.remove(item)
-                item.canvas._cv_tree.deselect(item.node)
+                self._deselect(item)
             else:
                 controller = self.set_controller(item)
                 if not controller:
@@ -845,10 +895,23 @@ class CanvasTool(BaseTool):
         self._clear_selection()
 
     def on_layout_change(self):
-        pass
+        prev_data = {item: item._coord_restore for item in self.selected_items}
+        data = {item: item.coords() for item in self.selected_items}
+        for item in self.selected_items:
+            item._coord_restore = item.coords()
+        self.studio.new_action(Action(
+            lambda _: self.restore_layouts(prev_data),
+            lambda _: self.restore_layouts(data)
+        ))
+
+    def restore_layouts(self, data):
+        for item in data:
+            item.coords(*data[item])
+            if item._controller:
+                item._controller.update()
 
     def on_item_added(self, item):
-        pass
+        item._coord_restore = item.coords()
 
     def on_items_modified(self, items):
         for item in items:
@@ -857,7 +920,7 @@ class CanvasTool(BaseTool):
     def on_widget_delete(self, widget):
         if isinstance(widget, Canvas):
             if widget in self.items:
-                self.items.pop(widget)
+                self.items.remove(widget)
 
     def propagate_move(self, delta_x, delta_y, source=None):
         for item in self.selected_items:
