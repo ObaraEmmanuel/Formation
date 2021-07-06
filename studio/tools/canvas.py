@@ -651,6 +651,7 @@ class CanvasTool(BaseTool):
         self.line_draw = LinearDraw(self)
         self.text_draw = TextDraw(self)
         self.bitmap_draw = PointDraw(self, bitmap="gray25")
+        self.image_draw = PointDraw(self, image=self._image_placeholder)
 
         self.draw_map = {
             Oval: self.square_draw,
@@ -660,6 +661,7 @@ class CanvasTool(BaseTool):
             Polygon: self.line_draw,
             Text: self.text_draw,
             Bitmap: self.bitmap_draw,
+            Image: self.image_draw,
         }
 
         self.controller_map = {
@@ -669,7 +671,8 @@ class CanvasTool(BaseTool):
             Line: LinearController,
             Polygon: ClosedLinearController,
             Text: PointController,
-            Bitmap: PointController
+            Bitmap: PointController,
+            Image: PointController,
         }
 
     @property
