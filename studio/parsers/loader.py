@@ -220,19 +220,28 @@ class VariableStudioAdapter(BaseStudioAdapter):
 
 class DesignBuilder:
 
+    _adapter_map = {
+        legacy.Menubutton: MenuStudioAdapter,
+        native.Menubutton: MenuStudioAdapter,
+    }
+
+    _ignore_tags = (
+        *MENU_ITEM_TYPES,
+        "event",
+        "grid"
+    )
+
     def __init__(self, designer):
-        self._adapter_map = {
-            legacy.Menubutton: MenuStudioAdapter,
-            native.Menubutton: MenuStudioAdapter,
-            # Add custom converters here
-        }
-        self._ignore_tags = (
-            *MENU_ITEM_TYPES,
-            "event",
-            "grid"
-        )
         self.designer = designer
         self.root = None
+
+    @classmethod
+    def add_adapter(cls, adapter, *obj_classes):
+        """
+        Connect an external adapter for a specific set of object types to the builder.
+        """
+        for obj_class in obj_classes:
+            cls._adapter_map[obj_class] = adapter
 
     def generate(self):
         """
