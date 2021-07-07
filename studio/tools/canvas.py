@@ -4,6 +4,8 @@
 import abc
 from collections import defaultdict
 
+from formation.formats import Node
+
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import EventMask
 from hoverset.util.execution import Action
@@ -15,6 +17,7 @@ from studio.ui.tree import NestedTreeView
 from studio.lib import generate_id
 from studio.lib.canvas import *
 from studio.lib.legacy import Canvas
+from studio.parsers.loader import BaseStudioAdapter, DesignBuilder
 
 
 class Coordinate:
@@ -624,6 +627,66 @@ class CanvasTreeView(NestedTreeView):
             self._cv_node.remove(self)
 
 
+class CanvasStudioAdapter(BaseStudioAdapter):
+    _tool = None
+
+    @classmethod
+    def assert_tool(cls):
+        # make sure tool is initialized
+        if cls._tool is None:
+            raise RuntimeError("Canvas tool not initialized. Could not load canvas.")
+
+    @classmethod
+    def generate(cls, widget, parent=None):
+        cls.assert_tool()
+        # if canvas is selected there is a chance its cursor has been modified by tool
+        # below lies a hack to set the right cursor and restore it after loading is complete
+        cursor = None
+        if widget == cls._tool.canvas:
+            cursor = widget["cursor"]
+            widget["cursor"] = cls._tool._cursor
+        node = BaseStudioAdapter.generate(widget, parent)
+        if cursor:
+            widget["cursor"] = cursor
+        if getattr(widget, "_cv_initialized", False):
+            for item in widget._cv_items:
+                opts = {
+                    "name": item.name,
+                    "coords": ",".join(map(lambda c: str(round(c)), item.coords())),
+                    "attr": item.altered_options()
+                }
+                if not item.name:
+                    opts.pop("name", None)
+                Node(node, item.__class__.__name__, opts)
+
+        return node
+
+    @classmethod
+    def load(cls, node, designer, parent, bounds=None):
+        widget = BaseStudioAdapter.load(node, designer, parent, bounds=None)
+        cls.assert_tool()
+        if len(node):
+            cls._tool.initialize_canvas(widget)
+        for sub_node in node:
+            if sub_node.type not in CANVAS_ITEM_MAP:
+                raise NotImplementedError(f"Tag <{sub_node.type}> not implemented by canvas tool")
+            # use a copy just in case something gets popped down the line
+            config = dict(sub_node.attrib.get("attr", {}))
+            # add name to config as id so the intercepts can set it for us
+            config["id"] = sub_node.attrib.get("name", "")
+            coords = sub_node.attrib.get("coords", "").split(",")
+            if len(coords) < 2:
+                raise ValueError("Not enough coordinates provided.")
+            item = cls._tool.create_item(
+                CANVAS_ITEM_MAP[sub_node.type],
+                coords,
+                canvas=widget,
+                silently=True,
+            )
+            item.configure(config)
+        return widget
+
+
 class CanvasTool(BaseTool):
 
     name = "Canvas"
@@ -638,6 +701,11 @@ class CanvasTool(BaseTool):
         self.style_group = studio.style_pane.add_group(
             CanvasStyleGroup, tool=self
         )
+
+        CanvasStudioAdapter._tool = self
+        # connect the canvas adapter to load canvas objects to the studio
+        DesignBuilder.add_adapter(CanvasStudioAdapter, Canvas)
+
         self.items = []
         self.item_select.on_select(self.set_draw)
         self.canvas = None
@@ -679,34 +747,36 @@ class CanvasTool(BaseTool):
     def _ids(self):
         return [item.name for item_set in self.items for item in item_set._cv_items]
 
-    def initialize_canvas(self):
-        if self.canvas and not getattr(self.canvas, "_cv_initialized", False):
-            self.canvas.bind(
+    def initialize_canvas(self, canvas=None):
+        canvas = canvas or self.canvas
+        if canvas and not getattr(canvas, "_cv_initialized", False):
+            canvas.bind(
                 "<ButtonPress-1>", self._draw_dispatch("on_button_press"), True)
-            self.canvas.bind(
+            canvas.bind(
                 "<ButtonRelease>", self._draw_dispatch("on_button_release"), True)
-            self.canvas.bind(
+            canvas.bind(
                 "<Double-Button-1>", self._draw_dispatch("on_double_press"), True)
-            self.canvas.bind(
+            canvas.bind(
                 "<Motion>", self._draw_dispatch("on_motion"), True)
-            self.canvas.bind("<Control-Button-1>", self._enter_pointer_mode)
-            self.canvas._cv_tree = CanvasTreeView(self.canvas)
-            self.canvas._cv_tree.on_select(self._update_selection, self.canvas)
-            self.canvas._cv_items = []
-            self.canvas._cv_initialized = True
+            canvas.bind("<Control-Button-1>", self._enter_pointer_mode)
+            canvas._cv_tree = CanvasTreeView(canvas)
+            canvas._cv_tree.on_select(self._update_selection, canvas)
+            canvas._cv_items = []
+            canvas._cv_initialized = True
 
     def _enter_pointer_mode(self, *_):
         if self.item_select._selected is None:
             return
         self.item_select._selected.deselect()
 
-    def create_item(self, component, coords=(), item=None, silently=False, **kwargs):
+    def create_item(self, component, coords=(), item=None, canvas=None, silently=False, **kwargs):
+        canvas = canvas or self.canvas
         if item is None:
-            item = component(self.canvas, *coords, **kwargs)
+            item = component(canvas, *coords, **kwargs)
             # generate a unique id
             item.name = generate_id(component, self._ids)
-        self.canvas._cv_items.append(item)
-        self.canvas._cv_tree.add_as_node(item=item)
+        canvas._cv_items.append(item)
+        canvas._cv_tree.add_as_node(item=item)
         item.bind("<ButtonRelease-1>", lambda e: self._handle_select(item, e), True)
         item.bind("<ButtonRelease-1>", lambda e: self._handle_end(item, e), True)
         item.bind("<Motion>", lambda e: self._handle_move(item, e), True)

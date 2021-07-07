@@ -10,6 +10,7 @@ from studio.lib.pseudo import _ImageIntercept
 __all__ = (
     "CANVAS_PROPERTIES",
     "CANVAS_ITEMS",
+    "CANVAS_ITEM_MAP",
     "CanvasItem",
     "Arc",
     "Bitmap",
@@ -250,8 +251,8 @@ class CanvasItem(abc.ABC):
 
     def __init__(self, canvas, *args, **options):
         self.canvas = canvas
+        self.name = options.pop('id', '')
         self._id = self._create(*args, **options)
-        self.name = ""
         # tree node associated with widget
         self.node = None
         self.__prev_state = self['state']
@@ -276,7 +277,7 @@ class CanvasItem(abc.ABC):
         # tkinter returns config in the form below
         # argvName, dbName, dbClass, defValue, current value
         return {
-            "id": ("id", "id", "id", "", self.name)
+            "id": ("id", "id", "id", None, self.name)
         }
 
     def configure(self, option=None, **options):
@@ -347,6 +348,13 @@ class CanvasItem(abc.ABC):
 
     def show(self):
         self.config(state=self.__prev_state)
+
+    def altered_options(self):
+        keys = self.configure()
+        opts = {key: self.cget(key) for key in keys if keys[key][-1] != keys[key][-2]}
+        # id not needed here
+        opts.pop("id", None)
+        return opts
 
     @abc.abstractmethod
     def _create(self, *args, **options):
@@ -455,3 +463,6 @@ class Window(CanvasItem):
 CANVAS_ITEMS = (
     Arc, Bitmap, Image, Line, Oval, Polygon, Rectangle, Text
 )
+
+
+CANVAS_ITEM_MAP = {item.__name__: item for item in CANVAS_ITEMS}
