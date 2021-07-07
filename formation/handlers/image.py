@@ -6,6 +6,15 @@ import pathlib
 from PIL import ImageTk, Image
 
 
+image_props = (
+    "image",
+    "selectimage",
+    "tristateimage",
+    "activeimage",
+    "disabledimage"
+)
+
+
 def to_tk_image(image):
     return ImageTk.PhotoImage(image)
 

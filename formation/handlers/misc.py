@@ -3,6 +3,12 @@ from formation.handlers import image, command
 
 class VariableHandler:
 
+    variable_props = (
+        "textvariable",
+        "variable",
+        "listvariable"
+    )
+
     @classmethod
     def handle(cls, widget, config, **kwargs):
         builder = kwargs.get("builder")
@@ -17,13 +23,8 @@ class VariableHandler:
 
 
 _common_redirect = {
-    "image": image,
-    "selectimage": image,
-    "tristateimage": image,
-    "textvariable": VariableHandler,
-    "variable": VariableHandler,
-    "listvariable": VariableHandler,
-    # extend with command types
+    **{prop: image for prop in image.image_props},
+    **{prop: VariableHandler for prop in VariableHandler.variable_props},
     **{prop: command for prop in command.command_props},
 }
 

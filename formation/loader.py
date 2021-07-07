@@ -159,6 +159,33 @@ class VariableLoaderAdapter(BaseLoaderAdapter):
         return obj
 
 
+class CanvasLoaderAdapter(BaseLoaderAdapter):
+
+    @classmethod
+    def load(cls, node, builder, parent):
+        canvas = BaseLoaderAdapter.load(node, builder, parent)
+        for sub_node in node:
+            # just additional options that may be needed down the line
+            kwargs = {
+                "parent_node": sub_node.parent,
+                "node": sub_node,
+                "builder": builder,
+            }
+
+            _id = sub_node.attrib.pop("name", None)
+            coords = sub_node.attrib.pop("coords", "").split(",")
+            item_id = canvas._create(sub_node.type.lower(), coords, {})
+
+            def handle(**config):
+                canvas.itemconfig(item_id, config)
+
+            dispatch_to_handlers(canvas, sub_node.attrib, **kwargs, handle_method=handle)
+            if _id:
+                setattr(builder, _id, item_id)
+
+        return canvas
+
+
 class Builder:
     """
     Load xml design into a GUI with all components accessible as attributes
@@ -181,6 +208,7 @@ class Builder:
     _adapter_map = {
         tk.Menubutton: MenuLoaderAdapter,
         ttk.Menubutton: MenuLoaderAdapter,
+        tk.Canvas: CanvasLoaderAdapter,
         # Add custom adapters here
     }
 
