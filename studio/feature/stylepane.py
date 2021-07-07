@@ -96,6 +96,7 @@ class StyleGroup(CollapseFrame):
     Main subdivision of the Style pane
     """
     handles_layout = False
+    self_positioned = False
 
     def __init__(self, master, pane, **cnf):
         super().__init__(master)
@@ -141,6 +142,12 @@ class StyleGroup(CollapseFrame):
 
     def _set_prop(self, prop, value, widget):
         widget.configure(**{prop: value})
+
+    def _hide_group(self):
+        pass
+
+    def _show_group(self):
+        pass
 
     def _match_query(self, definition, query):
         return query in definition["name"] or query in definition["display_name"]
@@ -273,6 +280,7 @@ class AttributeGroup(StyleGroup):
 class ColumnConfig(StyleGroup):
 
     handles_layout = True
+    self_positioned = True
 
     def __init__(self, master, pane, **cnf):
         super().__init__(master, pane, **cnf)
@@ -505,9 +513,15 @@ class StylePane(BaseFeature):
             self.show_group(group_instance)
 
     def hide_group(self, group):
+        if group.self_positioned:
+            group._hide_group()
+            return
         group.pack_forget()
 
     def show_group(self, group):
+        if group.self_positioned:
+            group._show_group()
+            return
         group.pack(side='top', fill='x', pady=12)
 
     def show_empty(self):
