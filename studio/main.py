@@ -255,8 +255,10 @@ class StudioApplication(Application):
         :param action: An action object implementing undo and redo methods
         :return:
         """
-        self._undo_stack.append(action)
         self._redo_stack.clear()
+        if len(self._undo_stack) >= pref.get("studio::undo_depth") and pref.get("studio::use_undo_depth"):
+            self._undo_stack.pop(0)
+        self._undo_stack.append(action)
 
     def undo(self):
         if not len(self._undo_stack):

@@ -457,7 +457,7 @@ class Designer(DesignPad, Container):
             restore_point = widget.layout.get_restore(widget)
             self.studio.new_action(Action(
                 lambda _: self.restore(widget, restore_point, widget.layout),
-                lambda _: self.studio.delete(widget)
+                lambda _: self.studio.delete(widget, True)
             ))
         else:
             self.studio.delete(widget, self)

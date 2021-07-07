@@ -29,6 +29,8 @@ defaults = {
         },
         "on_startup": "new",
         "smoothness": 3,
+        "use_undo_depth": True,
+        "undo_depth": 30,
     },
     "features": {},
     "hotkeys": {},
@@ -98,6 +100,26 @@ templates = {
                     "width": 4
                 },
             },
+        ),
+        "Undo Redo": (
+            DependentGroup({
+                "controller": {
+                    "desc": "Limit undo depth",
+                    "path": "studio::use_undo_depth",
+                    "element": Check
+                },
+                "allow": [True, ],
+                "children": (
+                    {
+                        "desc": "Undo depth",
+                        "path": "studio::undo_depth",
+                        "element": Number,
+                        "extra": {
+                            "width": 4,
+                        }
+                    },
+                )
+            }),
         ),
         "Start up": (
             {
