@@ -15,17 +15,20 @@ image_props = (
 )
 
 
-def to_tk_image(image):
-    return ImageTk.PhotoImage(image)
+def to_tk_image(image, widget=None):
+    root = None
+    if widget:
+        root = widget.winfo_toplevel()
+    return ImageTk.PhotoImage(image, master=root)
 
 
-def get_frames(image):
+def get_frames(image, widget=None):
     # Get all frames present in an image
-    frames = [to_tk_image(image)]
+    frames = [to_tk_image(image, widget)]
     try:
         while True:
             image.seek(image.tell() + 1)
-            frames.append(to_tk_image(image))
+            frames.append(to_tk_image(image, widget))
     except EOFError:
         pass
     return frames
@@ -44,7 +47,7 @@ def load_image_to_widget(widget, image, prop, builder, handle_method=None):
         builder._image_cache.append(image)
         return
     if not hasattr(image, "is_animated") or not image.is_animated:
-        image = to_tk_image(image)
+        image = to_tk_image(image, widget)
         handle_method(**{prop: image})
         # store a reference to shield from garbage collection
         builder._image_cache.append(image)
@@ -79,6 +82,9 @@ def handle(widget, config, **kwargs):
     handle_method = kwargs.get("handle_method")
     builder = kwargs.get("builder")
     for prop in props:
+        if not props[prop]:
+            # ignore empty values
+            continue
         path = pathlib.Path(props[prop])
         if not path.is_absolute() and builder.path is not None:
             path = pathlib.Path(os.path.dirname(builder.path), path)
