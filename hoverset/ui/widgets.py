@@ -799,10 +799,29 @@ class Widget:
         """
         check = cls.containing(event.x_root, event.y_root, widget)
         while not isinstance(check, Application) and check is not None:
-            if isinstance(check, class_) and not check == ignore:
+            if isinstance(check, class_) and check != ignore:
                 return check
             check = check.nametowidget(check.winfo_parent())  # noqa
         return None
+
+    @classmethod
+    def ancestor_first(cls, start_from, class_: type, ignore=None):
+        """
+        Gets the first widget belonging to `class\\_` starting from `start_from`. This widget
+        may be the top widget or it's parents and grandparents deep down the hierarchy.
+        Useful when you want to access a widget's first ancestor of a given type
+        down the stacking order
+
+        :param start_from: widget whose ancestor is to be determined
+        :param class_: the class of the widget we are interested in
+        :param ignore: widget to be ignored if any
+        :return: the first widget belonging to `class\\_`, if no widget is found None is returned
+        """
+        check = start_from.nametowidget(start_from.winfo_parent())
+        while not isinstance(check, Application) and check is not None:
+            if isinstance(check, class_) and check != ignore:
+                return check
+            check = check.nametowidget(check.winfo_parent())  # noqa
 
     def absolute_bounds(self):
         """
@@ -1310,6 +1329,18 @@ class ScrolledFrame(ContainerMixin, Widget, ScrollableInterface, ContextMenuMixi
     def scroll_to_start(self):
         self._canvas.yview_moveto(0.0)
         self._canvas.xview_moveto(0.0)
+
+    def xview_scroll(self, n, what):
+        return self._canvas.xview_scroll(n, what)
+
+    def yview_scroll(self, n, what):
+        return self._canvas.yview_scroll(n, what)
+
+    def xview_moveto(self, fraction):
+        return self._canvas.xview_moveto(fraction)
+
+    def yview_moveto(self, fraction):
+        return self._canvas.yview_moveto(fraction)
 
 
 class Screen:
