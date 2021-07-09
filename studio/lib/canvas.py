@@ -251,6 +251,7 @@ class CanvasItem(abc.ABC):
 
     def __init__(self, canvas, *args, **options):
         self.canvas = canvas
+        self.tk = self.canvas.tk
         self.name = options.pop('id', '')
         self._id = self._create(*args, **options)
         # tree node associated with widget
@@ -333,6 +334,12 @@ class CanvasItem(abc.ABC):
     def bbox(self):
         return self.canvas.bbox(self._id)
 
+    def addtag(self, tag):
+        return self.canvas.addtag_withtag(tag, self._id)
+
+    def dtag(self, tag):
+        return self.canvas.dtag(self._id, tag)
+
     def after(self, ms, func=None, *args):
         return self.canvas.after(ms, func, *args)
 
@@ -355,6 +362,32 @@ class CanvasItem(abc.ABC):
         # id not needed here
         opts.pop("id", None)
         return opts
+
+    def serialize(self, ref_x, ref_y):
+        coords = self.coords()
+        # transform coordinates based reference points to fix them at origin
+        for i in range(0, len(coords), 2):
+            coords[i] -= ref_x
+            coords[i + 1] -= ref_y
+
+        return dict(
+            name=self.name,
+            config=self.altered_options(),
+            coords=coords,
+            item_class=self.__class__
+        )
+
+    @classmethod
+    def from_data(cls, canvas, data, pos=None):
+        coords = data.get("coords", ())
+        item = data.get("item_class", cls)(canvas, *coords)
+        item.configure(data.get("config", {}))
+        item.name = data.get("name", "")
+        if pos is not None:
+            item.move(*pos)
+            # update restore with latest coordinate data
+            item._coord_restore = item.coords()
+        return item
 
     @abc.abstractmethod
     def _create(self, *args, **options):

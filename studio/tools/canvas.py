@@ -5,10 +5,13 @@ import abc
 from collections import defaultdict
 
 from formation.formats import Node
+from hoverset.data.keymap import KeyMap, CharKey
 
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import EventMask
 from hoverset.util.execution import Action
+from hoverset.data.actions import Routine
+from hoverset.ui.menu import MenuUtils, EnableIf
 
 from studio.tools._base import BaseTool
 from studio.feature.components import ComponentPane, SelectToDrawGroup
@@ -33,7 +36,7 @@ class Coordinate:
         self.x = x
         self.y = y
         self._id = canvas.create_oval(
-            x-self.radius, y-self.radius, x+self.radius, y+self.radius,
+            x - self.radius, y - self.radius, x + self.radius, y + self.radius,
             fill="red", tags=("coordinate", "controller")
         )
         canvas.tag_bind(self._id, "<ButtonRelease-1>", self._end_drag)
@@ -59,7 +62,7 @@ class Coordinate:
 
     def retire(self):
         # remove from view without deleting
-        self.place(-50, -50)
+        self.canvas.itemconfigure(self._id, state='hidden')
         self.pool["canvas"].append(self)
         self._listeners = []
 
@@ -80,6 +83,7 @@ class Coordinate:
 
     def revive(self, controller, x, y):
         self.controller = controller
+        self.canvas.itemconfigure(self._id, state='normal')
         self.place(x, y)
         self.active.add(self)
 
@@ -131,7 +135,7 @@ class Link:
         if self._coord_latch:
             x, y = self._to_canvas_coord(event.x, event.y)
             xl, yl = self._coord_latch
-            self.controller.on_move(x-xl, y-yl)
+            self.controller.on_move(x - xl, y - yl)
             self._coord_latch = x, y
         else:
             self._coord_latch = self._to_canvas_coord(event.x, event.y)
@@ -153,12 +157,13 @@ class Link:
 
     def revive(self, controller, coord1, coord2):
         self.controller = controller
+        self.canvas.itemconfigure(self._id, state='normal')
         self.link_coord(coord1, coord2)
         self.active.add(self)
 
     def retire(self):
         # remove from view without deleting
-        self.canvas.coords(self._id, -50, -50, -50, -50)
+        self.canvas.itemconfigure(self._id, state='hidden')
         self.pool["canvas"].append(self)
         self._listeners = []
 
@@ -308,15 +313,18 @@ class LinearController(Controller):
         self.coords.append(prev)
         for i in range(2, len(coords), 2):
             # just in case the length of coordinates is odd
-            if i+1 >= len(coords):
+            if i + 1 >= len(coords):
                 break
-            cd = Coordinate.acquire(self.canvas, self, coords[i], coords[i+1])
+            cd = Coordinate.acquire(self.canvas, self, coords[i], coords[i + 1])
             self.coords.append(cd)
             self.links.append(Link.acquire(self.canvas, self, prev, cd))
             prev = cd
 
         if self._closed:
             self.links.append(Link.acquire(self.canvas, self, prev, self.coords[0]))
+
+        # ensure you have at least one item with "controller" tag before calling super
+        super(LinearController, self).highlight(item)
 
 
 class ClosedLinearController(LinearController):
@@ -359,6 +367,7 @@ class PointController(Controller):
             self._border = self.canvas.create_line(
                 *coords, fill="red", tag="controller", dash=(5, 4), width=2
             )
+        super(PointController, self).highlight(item)
 
     def __del__(self):
         if self._border:
@@ -587,7 +596,6 @@ class CanvasStyleGroup(StyleGroup):
 
 
 class CanvasTreeView(NestedTreeView):
-
     class Node(NestedTreeView.Node):
 
         def __init__(self, master=None, **config):
@@ -688,7 +696,6 @@ class CanvasStudioAdapter(BaseStudioAdapter):
 
 
 class CanvasTool(BaseTool):
-
     name = "Canvas"
     icon = "paint"
 
@@ -712,6 +719,8 @@ class CanvasTool(BaseTool):
         self._cursor = "arrow"
         self.current_draw = None
         self.selected_items = []
+        self._clipboard = None
+        self._latch_pos = 0, 0
 
         self._image_placeholder = get_icon_image("image_dark", 60, 60)
 
@@ -743,6 +752,42 @@ class CanvasTool(BaseTool):
             Image: PointController,
         }
 
+        self.keymap = KeyMap(None)
+        CTRL = KeyMap.CTRL
+        self.routines = (
+            Routine(self.cut_items, 'CV_CUT', 'Cut selected items', 'canvas', CTRL + CharKey('x')),
+            Routine(self.copy_items, 'CV_COPY', 'Copy selected items', 'canvas', CTRL + CharKey('c')),
+            Routine(self.paste_items, 'CV_PASTE', 'Paste selected items', 'canvas', CTRL + CharKey('v')),
+            Routine(self.delete_items, 'CV_DELETE', 'Delete selected items', 'canvas', KeyMap.DELETE),
+            Routine(self.duplicate_items, 'CV_DUPLICATE', 'Duplicate selected items', 'canvas', CTRL + CharKey('d')),
+        )
+        self.keymap.add_routines(*self.routines)
+
+        icon = get_icon_image
+        self._item_context_menu = MenuUtils.make_dynamic((
+            EnableIf(
+                lambda: self.selected_items,
+                ("separator",),
+                ("command", "copy", icon("copy", 14, 14), self._get_routine('CV_COPY'), {}),
+                ("command", "duplicate", icon("copy", 14, 14), self._get_routine('CV_DUPLICATE'), {}),
+                EnableIf(
+                    lambda: self._clipboard is not None,
+                    ("command", "paste", icon("clipboard", 14, 14), self._get_routine('CV_PASTE'), {})
+                ),
+                ("command", "cut", icon("cut", 14, 14), self._get_routine('CV_CUT'), {}),
+                ("separator",),
+                ("command", "delete", icon("delete", 14, 14), self._get_routine('CV_DELETE'), {}),
+            ),
+        ), self.studio, self.studio.style)
+
+        self._canvas_menu = MenuUtils.make_dynamic((
+            EnableIf(
+                lambda: self._clipboard is not None,
+                ("command", "paste", icon("clipboard", 14, 14),
+                 self._get_routine('CV_PASTE'), {})
+            ),
+        ), self.studio, self.studio.style)
+
     @property
     def _ids(self):
         return [item.name for item_set in self.items for item in item_set._cv_items]
@@ -759,15 +804,47 @@ class CanvasTool(BaseTool):
             canvas.bind(
                 "<Motion>", self._draw_dispatch("on_motion"), True)
             canvas.bind("<Control-Button-1>", self._enter_pointer_mode)
+            canvas.bind("<Button-1>", self._latch_and_focus(canvas), True)
+            self.keymap._bind(canvas)
+            canvas.on_context_menu(self._show_canvas_menu(canvas))
             canvas._cv_tree = CanvasTreeView(canvas)
             canvas._cv_tree.on_select(self._update_selection, canvas)
             canvas._cv_items = []
             canvas._cv_initialized = True
 
+    def _latch_and_focus(self, canvas):
+
+        def func(event):
+            canvas.focus_set()
+            self._latch_pos = canvas.canvasx(event.x), canvas.canvasy(event.y)
+
+        return func
+
     def _enter_pointer_mode(self, *_):
         if self.item_select._selected is None:
             return
         self.item_select._selected.deselect()
+
+    def _show_item_menu(self, item):
+        def show(event):
+            if item in self.selected_items:
+                MenuUtils.popup(event, self._item_context_menu)
+        return show
+
+    def _show_canvas_menu(self, canvas):
+
+        def show(event):
+            x, y = canvas.canvasx(event.x), canvas.canvasy(event.y)
+            self._latch_pos = x, y
+            if not canvas.find_overlapping(x, y, x, y):
+                MenuUtils.popup(event, self._canvas_menu)
+            return 'break'
+        return show
+
+    def _get_routine(self, key):
+        for routine in self.routines:
+            if routine.key == key:
+                return routine
 
     def create_item(self, component, coords=(), item=None, canvas=None, silently=False, **kwargs):
         canvas = canvas or self.canvas
@@ -776,10 +853,12 @@ class CanvasTool(BaseTool):
             # generate a unique id
             item.name = generate_id(component, self._ids)
         canvas._cv_items.append(item)
-        canvas._cv_tree.add_as_node(item=item)
+        node = canvas._cv_tree.add_as_node(item=item)
         item.bind("<ButtonRelease-1>", lambda e: self._handle_select(item, e), True)
         item.bind("<ButtonRelease-1>", lambda e: self._handle_end(item, e), True)
         item.bind("<Motion>", lambda e: self._handle_move(item, e), True)
+        MenuUtils.bind_context(item, self._show_item_menu(item))
+        MenuUtils.bind_all_context(node, self._show_item_menu(item))
         if not silently:
             self.studio.new_action(Action(
                 lambda _: self.remove_items([item], silently=True),
@@ -806,6 +885,48 @@ class CanvasTool(BaseTool):
             canvas._cv_items.append(item)
             canvas._cv_tree.add(item.node)
 
+    def _get_copy_data(self):
+        if not self.selected_items:
+            return []
+
+        for item in self.selected_items:
+            item.addtag('bound_check')
+        bbox = self.canvas.bbox('bound_check') or self.selected_items[0].coords()
+        ref_x, ref_y = bbox[:2]
+        self.canvas.dtag('bound_check', 'bound_check')
+        return [item.serialize(ref_x, ref_y) for item in self.selected_items]
+
+    def copy_items(self):
+        if self.selected_items:
+            self._clipboard = self._get_copy_data()
+
+    def cut_items(self):
+        if self.selected_items:
+            self.copy_items()
+            self.delete_items()
+
+    def duplicate_items(self):
+        if self.selected_items:
+            self.paste_items(self._get_copy_data())
+
+    def paste_items(self, _clipboard=None):
+        _clipboard = self._clipboard if _clipboard is None else _clipboard
+        if _clipboard:
+            items = []
+            for item_data in _clipboard:
+                item = CanvasItem.from_data(self.canvas, item_data, self._latch_pos)
+                self.create_item(item.__class__, item=item, silently=True)
+                items.append(item)
+            # slightly displace latch position for next paste
+            self._latch_pos = tuple(map(lambda x: x + 5, self._latch_pos))
+            self.studio.new_action(Action(
+                lambda _: self.remove_items(items, silently=True),
+                lambda _: self.restore_items(items)
+            ))
+
+    def delete_items(self):
+        self.remove_items(list(self.selected_items))
+
     def _handle_move(self, item, event):
         if not event.state & EventMask.MOUSE_BUTTON_1:
             # we need mouse button 1 to be down to qualify as a drag
@@ -814,7 +935,7 @@ class CanvasTool(BaseTool):
             if getattr(item, '_coord_latch', None):
                 x0, y0 = item._coord_latch
                 x, y = item.canvas.canvasx(event.x), item.canvas.canvasx(event.y)
-                item._controller.on_move(x-x0, y-y0)
+                item._controller.on_move(x - x0, y - y0)
                 item._coord_latch = x, y
             else:
                 item._coord_latch = item.canvas.canvasx(event.x), item.canvas.canvasx(event.y)
