@@ -184,7 +184,7 @@ class PseudoWidget:
     def __handle_context_menu(self, event):
         self.last_menu_position = event.x_root, event.y_root
         if self.__on_context:
-            self.__on_context(event)
+            return self.__on_context(event)
 
     def copy_config_to(self, widget):
         widget.configure(**self.get_altered_options())
