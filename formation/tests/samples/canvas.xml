@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tkinter.Frame xmlns:attr="http://www.hoversetformationstudio.com/styles/" xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="Frame_2" attr:layout="place" layout:width="577" layout:height="588" layout:x="15" layout:y="19">
+  <tkinter.Canvas name="canvas1" layout:width="553" layout:height="384" layout:x="11" layout:y="11" layout:bordermode="outside">
+    <Line name="cv1_line" coords="25,33,292,33,382,128,542,128,542,226" attr:fill="#ffffff" attr:stipple="gray50" attr:width="4.0"/>
+    <Oval name="cv1_circle1" coords="32,58,144,168" attr:disabledwidth="0" attr:outline="#1d731d" attr:width="4.0"/>
+    <Oval name="cv1_circle2" coords="177,59,288,169" attr:disabledwidth="0" attr:fill="#ff0000" attr:outline="#1d731d" attr:stipple="gray12" attr:width="4.0"/>
+    <Polygon name="cv1_polygon" coords="68,216,67,284,151,339,366,340,448,272,448,216" attr:fill="#1d731d"/>
+    <Rectangle name="cv1_rectangle" coords="454,216,542,269" attr:disabledwidth="0" attr:outline="#ffffff" attr:width="4.0"/>
+    <Image name="cv1_image" coords="472,67" attr:image="images/okestr.png"/>
+    <Text name="cv1_text1" coords="445,176" attr:fill="#1d731d" attr:text="This is a canvas layout test"/>
+    <Text name="cv1_text2" coords="263,365" attr:text="This is a test layout"/>
+    <Bitmap name="cv1_bitmap" coords="84,115" attr:anchor="nw" attr:background="#1d731d" attr:bitmap="gray12"/>
+    <Bitmap coords="233,110" attr:bitmap="question"/>
+    <Bitmap coords="434,329" attr:bitmap="hourglass"/>
+    <Bitmap coords="79,330" attr:bitmap="error"/>
+    <Bitmap coords="500,249" attr:bitmap="questhead"/>
+    <Rectangle coords="370,9,394,33" attr:disabledwidth="0" attr:fill="#ffff00"/>
+    <Rectangle coords="311,9,336,33" attr:disabledwidth="0" attr:fill="#ff0000"/>
+    <Rectangle coords="370,37,394,58" attr:disabledwidth="0" attr:fill="#00ffff"/>
+    <Rectangle coords="340,9,366,33" attr:disabledwidth="0" attr:fill="#ff00ff"/>
+    <Rectangle coords="370,62,394,84" attr:disabledwidth="0" attr:fill="#000000"/>
+    <Rectangle coords="340,37,366,59" attr:disabledwidth="0" attr:fill="#00ff00"/>
+  </tkinter.Canvas>
+  <tkinter.Canvas name="canvas2" attr:background="#bfbfbf" layout:width="546" layout:height="168" layout:x="13" layout:y="401" layout:bordermode="outside">
+    <Arc name="cv2_arc1" coords="78,37,190,133" attr:extent="90.0" attr:start="0.0" attr:style="pieslice" attr:width="3.0"/>
+    <Arc name="cv2_arc2" coords="321,33,423,130" attr:extent="90.0" attr:start="0.0" attr:style="pieslice" attr:width="3.0"/>
+    <Line name="cv2_line" coords="156,68,286,20,399,66" attr:fill="#1d731d" attr:width="3.0"/>
+    <Rectangle coords="134,93,190,137" attr:disabledwidth="0" attr:fill="#1d731d" attr:width="3.0"/>
+    <Rectangle name="cv2_rectangle" coords="372,88,423,136" attr:disabledwidth="0" attr:fill="#1d731d" attr:stipple="gray12" attr:width="3.0"/>
+    <Text name="cv2_text" coords="280,114" attr:fill="#1d731d" attr:text="yet another layout"/>
+  </tkinter.Canvas>
+</tkinter.Frame>
