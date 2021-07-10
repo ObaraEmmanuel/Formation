@@ -203,7 +203,8 @@ class Controller(abc.ABC):
 
     def highlight(self, item):
         self.item = item
-        item.lower("controller")
+        # raise controller elements to the top
+        self.canvas.tag_raise("controller")
 
     @abc.abstractmethod
     def get_coords(self):
@@ -607,6 +608,8 @@ class CanvasTreeView(NestedTreeView):
             self.icon_pad.configure(
                 image=get_icon_image(self.item.icon, 15, 15, color=self._color)
             )
+            self.editable = True
+            self.strict_mode = True
 
         def widget_modified(self, widget):
             self.item = widget
@@ -614,6 +617,11 @@ class CanvasTreeView(NestedTreeView):
             self.icon_pad.configure(
                 image=get_icon_image(self.item.icon, 15, 15, color=self._color)
             )
+
+        def select(self, event=None, silently=False):
+            super(CanvasTreeView.Node, self).select(event, silently)
+            if event:
+                self.item.canvas.focus_set()
 
     def __init__(self, canvas, **kw):
         super(CanvasTreeView, self).__init__(canvas.node, **kw)
@@ -625,7 +633,13 @@ class CanvasTreeView(NestedTreeView):
     def add(self, node):
         super(CanvasTreeView, self).add(node)
         # if we have a node we make ourselves visible
-        if not self._is_mapped:
+        if self not in self._cv_node.nodes:
+            self._cv_node.add(self)
+            
+    def insert(self, index=None, *nodes):
+        super(CanvasTreeView, self).insert(index, *nodes)
+        # also make sure nodes is not empty
+        if self not in self._cv_node.nodes and nodes:
             self._cv_node.add(self)
 
     def remove(self, node):
@@ -633,6 +647,11 @@ class CanvasTreeView(NestedTreeView):
         # if no nodes are left we hide ourselves
         if not len(self.nodes):
             self._cv_node.remove(self)
+
+    def reorder(self, reorder_data):
+        # rearrange nodes based on data containing {item: index, ...}
+        for item in reorder_data:
+            self.insert(reorder_data[item], item.node)
 
 
 class CanvasStudioAdapter(BaseStudioAdapter):
@@ -760,6 +779,11 @@ class CanvasTool(BaseTool):
             Routine(self.paste_items, 'CV_PASTE', 'Paste selected items', 'canvas', CTRL + CharKey('v')),
             Routine(self.delete_items, 'CV_DELETE', 'Delete selected items', 'canvas', KeyMap.DELETE),
             Routine(self.duplicate_items, 'CV_DUPLICATE', 'Duplicate selected items', 'canvas', CTRL + CharKey('d')),
+            Routine(self._send_back, 'CV_BACK', 'Send item to back', 'canvas', CharKey(']')),
+            Routine(self._bring_front, 'CV_FRONT', 'Bring item to front', 'canvas', CharKey('[')),
+            Routine(lambda: self._send_back(1), 'CV_BACK_1', 'send item back one step', 'canvas', CTRL + CharKey(']')),
+            Routine(lambda: self._bring_front(1), 'CV_FRONT_1', 'bring item forward one step', 'canvas',
+                    CTRL + CharKey('[')),
         )
         self.keymap.add_routines(*self.routines)
 
@@ -777,6 +801,11 @@ class CanvasTool(BaseTool):
                 ("command", "cut", icon("cut", 14, 14), self._get_routine('CV_CUT'), {}),
                 ("separator",),
                 ("command", "delete", icon("delete", 14, 14), self._get_routine('CV_DELETE'), {}),
+                ("separator",),
+                ("command", "send to back", icon("send_to_back", 14, 14), self._get_routine('CV_BACK'), {}),
+                ("command", "bring to front", icon("bring_to_front", 14, 14), self._get_routine('CV_FRONT'), {}),
+                ("command", "back one step", icon("send_to_back", 14, 14), self._get_routine('CV_BACK_1'), {}),
+                ("command", "forward one step", icon("bring_to_front", 14, 14), self._get_routine('CV_FRONT_1'), {}),
             ),
         ), self.studio, self.studio.style)
 
@@ -808,9 +837,14 @@ class CanvasTool(BaseTool):
             self.keymap._bind(canvas)
             canvas.on_context_menu(self._show_canvas_menu(canvas))
             canvas._cv_tree = CanvasTreeView(canvas)
+            canvas._cv_tree.on_structure_change(self._update_stacking, canvas)
             canvas._cv_tree.on_select(self._update_selection, canvas)
             canvas._cv_items = []
             canvas._cv_initialized = True
+
+    @property
+    def sorted_selected_items(self):
+        return sorted(self.selected_items, key=lambda x: self.canvas._cv_items.index(x))
 
     def _latch_and_focus(self, canvas):
 
@@ -841,6 +875,65 @@ class CanvasTool(BaseTool):
             return 'break'
         return show
 
+    def _send_back(self, steps=None):
+        if not self.selected_items:
+            return
+        items = self.sorted_selected_items
+        if steps is None:
+            self._update_stacking(
+                self.canvas,
+                # arrange starting from zero
+                {item: index for index, item in enumerate(items)}
+            )
+        else:
+            self._update_stacking(
+                self.canvas,
+                # clamp to ensure non-negative index
+                {item: max(0, self.canvas._cv_items.index(item) - steps) for item in items}
+            )
+
+    def _bring_front(self, steps=None):
+        if not self.selected_items:
+            return
+        # work with items in stacking order
+        items = self.sorted_selected_items
+        cv_items = self.canvas._cv_items
+        if steps is None:
+            end = len(cv_items) - 1
+            self._update_stacking(
+                self.canvas,
+                # insert each item to the end of the list, will be done in stacking order
+                {item: end for item in items}
+            )
+        else:
+            self._update_stacking(
+                self.canvas,
+                # clamp the new index to within length of items
+                {item: min(len(cv_items) - 1, cv_items.index(item) + steps) for item in items}
+            )
+
+    def _update_stacking(self, canvas, data=None, silently=False):
+        if data:
+            canvas._cv_tree.reorder(data)
+        else:
+            data = {}
+        canvas._cv_items.sort(key=lambda x: canvas._cv_tree.nodes.index(x.node))
+        prev_data = {}
+        for index, item in enumerate(canvas._cv_items):
+            if item._prev_index != index:
+                # old data
+                prev_data[item] = item._prev_index
+                # new data
+                data[item] = index
+            item._prev_index = index
+            if index > 0:
+                item.lift(canvas._cv_items[index - 1]._id)
+        if not silently and prev_data != data:
+            self.studio.new_action(Action(
+                lambda _: self._update_stacking(canvas, prev_data, True),
+                lambda _: self._update_stacking(canvas, data, True)
+            ))
+
     def _get_routine(self, key):
         for routine in self.routines:
             if routine.key == key:
@@ -853,6 +946,7 @@ class CanvasTool(BaseTool):
             # generate a unique id
             item.name = generate_id(component, self._ids)
         canvas._cv_items.append(item)
+        item._prev_index = canvas._cv_items.index(item)
         node = canvas._cv_tree.add_as_node(item=item)
         item.bind("<ButtonRelease-1>", lambda e: self._handle_select(item, e), True)
         item.bind("<ButtonRelease-1>", lambda e: self._handle_end(item, e), True)
@@ -867,6 +961,7 @@ class CanvasTool(BaseTool):
         return item
 
     def remove_items(self, items, silently=False):
+        items = sorted(items, key=lambda x: x.canvas._cv_items.index(x))
         self.deselect_items(items)
         for item in items:
             item.hide()
@@ -882,19 +977,20 @@ class CanvasTool(BaseTool):
         for item in items:
             item.show()
             canvas = item.canvas
-            canvas._cv_items.append(item)
-            canvas._cv_tree.add(item.node)
+            if item._prev_index is not None:
+                canvas._cv_items.insert(item._prev_index, item)
+            canvas._cv_tree.insert(item._prev_index, item.node)
 
     def _get_copy_data(self):
         if not self.selected_items:
             return []
-
-        for item in self.selected_items:
+        items = self.sorted_selected_items
+        for item in items:
             item.addtag('bound_check')
-        bbox = self.canvas.bbox('bound_check') or self.selected_items[0].coords()
+        bbox = self.canvas.bbox('bound_check') or items[0].coords()
         ref_x, ref_y = bbox[:2]
         self.canvas.dtag('bound_check', 'bound_check')
-        return [item.serialize(ref_x, ref_y) for item in self.selected_items]
+        return [item.serialize(ref_x, ref_y) for item in items]
 
     def copy_items(self):
         if self.selected_items:

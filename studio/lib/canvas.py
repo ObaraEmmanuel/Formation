@@ -257,6 +257,7 @@ class CanvasItem(abc.ABC):
         # tree node associated with widget
         self.node = None
         self.__prev_state = self['state']
+        self._prev_index = None
         self._coord_restore = self.coords()
 
     @property
@@ -322,10 +323,10 @@ class CanvasItem(abc.ABC):
     def unbind(self, sequence, func_id=None):
         return self.canvas.tag_unbind(self._id, sequence, func_id)
 
-    def lower(self, below_this):
+    def lower(self, below_this=None):
         return self.canvas.tag_lower(self._id, below_this)
 
-    def lift(self, above_this):
+    def lift(self, above_this=None):
         return self.canvas.tag_raise(self._id, above_this)
 
     def move(self, x_amount, y_amount):
@@ -392,6 +393,9 @@ class CanvasItem(abc.ABC):
     @abc.abstractmethod
     def _create(self, *args, **options):
         pass
+
+    def __repr__(self):
+        return f"{self.canvas.id}.{self.name}"
 
 
 class Arc(CanvasItem):
