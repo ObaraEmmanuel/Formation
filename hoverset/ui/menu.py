@@ -100,19 +100,28 @@ class MenuUtils:
 
     @classmethod
     def bind_context(cls, widget, callback, add=None):
-        if windowing_is(widget, AQUA):
-            widget.bind("<Button-2>", callback, add)
-            widget.bind("<Control-1>", callback, add)
-        else:
-            widget.bind("<Button-3>", callback, add)
+        cls._bind_context(widget.bind, callback, widget, add)
 
     @classmethod
     def bind_all_context(cls, widget, callback, add=None):
-        if windowing_is(widget, AQUA):
-            widget.bind_all("<Button-2>", callback, add)
-            widget.bind_all("<Control-1>", callback, add)
+        cls._bind_context(widget.bind_all, callback, widget, add)
+
+    @classmethod
+    def bind_canvas_context(cls, canvas, tag_or_id, callback, add=None):
+        cls._bind_context(
+            lambda seq, func, _add: canvas.tag_bind(tag_or_id, seq, func, _add),
+            callback,
+            canvas,
+            add
+        )
+
+    @classmethod
+    def _bind_context(cls, bind_func, callback, root, add=None):
+        if windowing_is(root, AQUA):
+            bind_func("<Button-2>", callback, add)
+            bind_func("<Control-1>", callback, add)
         else:
-            widget.bind_all("<Button-3>", callback, add)
+            bind_func("<Button-3>", callback, add)
 
     @classmethod
     def _make_menu(cls, templates, menu, style: StyleDelegator = None):
