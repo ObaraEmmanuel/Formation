@@ -7,7 +7,7 @@ from collections import defaultdict
 from formation.formats import Node
 from hoverset.data.keymap import KeyMap, CharKey
 
-from hoverset.ui.icons import get_icon_image
+from hoverset.ui.icons import get_icon_image as icon
 from hoverset.ui.widgets import EventMask
 from hoverset.util.execution import Action
 from hoverset.data.actions import Routine
@@ -43,6 +43,7 @@ class Coordinate:
         canvas.tag_bind(self._id, "<Motion>", self._drag)
         canvas.tag_bind(self._id, "<Enter>", lambda _: self.grow_effect())
         canvas.tag_bind(self._id, "<Leave>", lambda _: self.grow_effect(True))
+        MenuUtils.bind_canvas_context(self.canvas, self._id, self._context_menu)
         self.active.add(self)
         self._listeners = []
 
@@ -87,6 +88,9 @@ class Coordinate:
         self.place(x, y)
         self.active.add(self)
 
+    def _context_menu(self, event):
+        self.controller.on_coord_context(self, event)
+
     def _drag(self, event):
         if not event.state & EventMask.MOUSE_BUTTON_1:
             return
@@ -122,12 +126,16 @@ class Link:
         )
         self.link_coord(coord1, coord2)
         canvas.tag_bind(self._id, "<ButtonRelease-1>", self._end_drag)
+        MenuUtils.bind_canvas_context(self.canvas, self._id, self._context_menu)
         canvas.tag_bind(self._id, "<Motion>", self._drag)
         self.active.add(self)
         self._coord_latch = None
 
     def _to_canvas_coord(self, x, y):
         return self.canvas.canvasx(x), self.canvas.canvasy(y)
+
+    def _context_menu(self, event):
+        self.controller.on_link_context(self, event)
 
     def _drag(self, event):
         if not event.state & EventMask.MOUSE_BUTTON_1:
@@ -155,6 +163,10 @@ class Link:
         self.coord2 = coord2
         self.place(coord1, coord2)
 
+    def unlink_coord(self):
+        self.coord1 = self.coord2 = None
+        self._listeners = []
+
     def revive(self, controller, coord1, coord2):
         self.controller = controller
         self.canvas.itemconfigure(self._id, state='normal')
@@ -165,7 +177,7 @@ class Link:
         # remove from view without deleting
         self.canvas.itemconfigure(self._id, state='hidden')
         self.pool["canvas"].append(self)
-        self._listeners = []
+        self.unlink_coord()
 
     def coord_changed(self):
         self.place(self.coord1, self.coord2)
@@ -211,6 +223,12 @@ class Controller(abc.ABC):
         pass
 
     def on_coord_change(self, coord):
+        pass
+
+    def on_coord_context(self, coord, event):
+        pass
+
+    def on_link_context(self, link, event):
         pass
 
     def on_move(self, delta_x, delta_y, propagated=False):
@@ -293,6 +311,44 @@ class LinearController(Controller):
         super(LinearController, self).__init__(canvas, tool, item, **kw)
         if item:
             self.highlight(item)
+        self._link_context = MenuUtils.make_dynamic((
+            ("command", "add point", icon("add", 14, 14), self._add_point, {}),
+        ), tool.studio, tool.studio.style)
+        self._coord_context = MenuUtils.make_dynamic((
+            ("command", "remove", icon("close", 14, 14), self._remove_point, {}),
+        ), tool.studio, tool.studio.style)
+        self._active_link = None
+        self._active_coord = None
+        self._active_point = None
+
+    def on_link_context(self, link, event):
+        MenuUtils.popup(event, self._link_context)
+        self._active_link = link
+        self._active_point = self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)
+
+    def on_coord_context(self, coord, event):
+        MenuUtils.popup(event, self._coord_context)
+        self._active_coord = coord
+        self._active_point = self.canvas.canvasx(event.x), self.canvas.canvasy(event.y)
+
+    def _add_point(self):
+        if not self._active_link:
+            return
+        index = self.coords.index(self._active_link.coord1) + 1
+        new_coord = Coordinate.acquire(self.canvas, self, *self._active_point)
+        self.coords.insert(index, new_coord)
+        self.item.coords(self.get_coords())
+        self.update()
+        self.tool.on_layout_change()
+
+    def _remove_point(self):
+        if not self._active_coord:
+            return
+        self.coords.remove(self._active_coord)
+        self._active_coord.retire()
+        self.item.coords(self.get_coords())
+        self.update()
+        self.tool.on_layout_change()
 
     def on_coord_change(self, coord):
         self.item.coords(self.get_coords())
@@ -606,7 +662,7 @@ class CanvasTreeView(NestedTreeView):
             self._color = self.style.colors["secondary1"]
             self.name_pad.configure(text=self.item.name)
             self.icon_pad.configure(
-                image=get_icon_image(self.item.icon, 15, 15, color=self._color)
+                image=icon(self.item.icon, 15, 15, color=self._color)
             )
             self.editable = True
             self.strict_mode = True
@@ -615,7 +671,7 @@ class CanvasTreeView(NestedTreeView):
             self.item = widget
             self.name_pad.configure(text=self.item.name)
             self.icon_pad.configure(
-                image=get_icon_image(self.item.icon, 15, 15, color=self._color)
+                image=icon(self.item.icon, 15, 15, color=self._color)
             )
 
         def select(self, event=None, silently=False):
@@ -741,7 +797,7 @@ class CanvasTool(BaseTool):
         self._clipboard = None
         self._latch_pos = 0, 0
 
-        self._image_placeholder = get_icon_image("image_dark", 60, 60)
+        self._image_placeholder = icon("image_dark", 60, 60)
 
         self.square_draw = SquareDraw(self)
         self.line_draw = LinearDraw(self)
@@ -787,7 +843,6 @@ class CanvasTool(BaseTool):
         )
         self.keymap.add_routines(*self.routines)
 
-        icon = get_icon_image
         self._item_context_menu = MenuUtils.make_dynamic((
             EnableIf(
                 lambda: self.selected_items,
