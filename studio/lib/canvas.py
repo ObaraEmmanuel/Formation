@@ -23,6 +23,8 @@ __all__ = (
     "Window"
 )
 
+# TODO Implement editors for dash, angle, arrowshape, offset
+# TODO Make color editor allow transparent color
 CANVAS_PROPERTIES = {
     "activebitmap": {
         "display_name": "active bitmap",
@@ -65,9 +67,9 @@ CANVAS_PROPERTIES = {
         "units": "pixels",
         "name": "activewidth"
     },
-    "_angle": {
+    "angle": {
         "display_name": "angle",
-        "type": "",
+        "type": "number",
         "name": "angle"
     },
     "arrow": {
@@ -76,9 +78,9 @@ CANVAS_PROPERTIES = {
         "options": ("none", "first", "last", "both"),
         "name": "arrow"
     },
-    "_arrowshape": {
-        "display_name": "arrow shape",
-        "type": "",
+    "arrowshape": {
+        "display_name": "arrow shape*",
+        "type": "text",
         "name": "arrowshape"
     },
     "capstyle": {
@@ -87,9 +89,9 @@ CANVAS_PROPERTIES = {
         "options": ("", "butt", "projecting", "round"),
         "name": "capstyle"
     },
-    "_dash": {
-        "display_name": "dash",
-        "type": "",
+    "dash": {
+        "display_name": "dash*",
+        "type": "text",
         "name": "dash"
     },
     "dashoffset": {
@@ -103,9 +105,9 @@ CANVAS_PROPERTIES = {
         "type": "bitmap",
         "name": "disabledbitmap"
     },
-    "_disableddash": {
-        "display_name": "disabled dash",
-        "type": "",
+    "disableddash": {
+        "display_name": "disabled dash*",
+        "type": "text",
         "name": "disableddash"
     },
     "disabledfill": {
@@ -139,9 +141,9 @@ CANVAS_PROPERTIES = {
         "units": "pixels",
         "name": "disabledwidth"
     },
-    "_extent": {
-        "display_name": "extent",
-        "type": "",
+    "extent": {
+        "display_name": "extent*",
+        "type": "number",
         "name": "extent"
     },
     "fill": {
@@ -161,9 +163,9 @@ CANVAS_PROPERTIES = {
         "options": ("", "round", "bevel", "miter"),
         "name": "joinstyle"
     },
-    "_offset": {
+    "offset": {
         "display_name": "offset",
-        "type": "",
+        "type": "text",
         "name": "offset"
     },
     "outline": {
@@ -171,9 +173,9 @@ CANVAS_PROPERTIES = {
         "type": "color",
         "name": "outline"
     },
-    "_outlineoffset": {
-        "display_name": "outline offset",
-        "type": "",
+    "outlineoffset": {
+        "display_name": "outline offset*",
+        "type": "text",
         "name": "outlineoffset"
     },
     "outlinestipple": {
@@ -191,9 +193,9 @@ CANVAS_PROPERTIES = {
         "type": "number",
         "name": "splinesteps"
     },
-    "_start": {
+    "start": {
         "display_name": "start",
-        "type": "",
+        "type": "number",
         "name": "start"
     },
     "stipple": {
