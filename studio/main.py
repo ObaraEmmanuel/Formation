@@ -15,6 +15,7 @@ from studio.feature._base import BaseFeature, FeaturePane
 from studio.tools import ToolManager
 from studio.ui.widgets import SideBar
 from studio.ui.about import about_window
+from studio.ui.guides import Guide
 from studio.preferences import Preferences, open_preferences
 from studio.resource_loader import ResourceLoader
 from studio.updates import Updater
@@ -111,6 +112,9 @@ class StudioApplication(Application):
         self.selected = None
         # set the image option to blank if there is no image for the menu option
         self.blank_img = blank_img = icon("blank", 14, 14)
+
+        # set up visual guides system
+        self.guides = Guide(self)
 
         self.tool_manager = ToolManager(self)
 

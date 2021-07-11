@@ -17,6 +17,7 @@ from studio.tools._base import BaseTool
 from studio.feature.components import ComponentPane, SelectToDrawGroup
 from studio.feature.stylepane import StyleGroup
 from studio.ui.tree import NestedTreeView
+from studio.ui.guides import Guide, GuideSpec
 from studio.lib import generate_id
 from studio.lib.canvas import *
 from studio.lib.legacy import Canvas
@@ -40,6 +41,8 @@ class Coordinate:
             fill=self.controller.tool.studio.style.colors["accent"],
             tags=("coordinate", "controller")
         )
+        self.guide_spec = Guide.get_spec("canvas")
+        self._is_moving = False
         canvas.tag_bind(self._id, "<ButtonRelease-1>", self._end_drag)
         canvas.tag_bind(self._id, "<Motion>", self._drag)
         canvas.tag_bind(self._id, "<Enter>", lambda _: self.grow_effect())
@@ -95,12 +98,22 @@ class Coordinate:
     def _drag(self, event):
         if not event.state & EventMask.MOUSE_BUTTON_1:
             return
+        if not self._is_moving:
+            self._is_moving = True
+            self.guide_spec.on_resize_start()
         self.x = self.canvas.canvasx(event.x)
         self.y = self.canvas.canvasy(event.y)
+        # pass the point of interest to the guide system to be used for analysis
+        self.guide_spec.on_drag((self.x, self.y))
+        snap = self.guide_spec.snap_delta
+        self.x, self.y = self.x + snap[0], self.y + snap[1]
         self.place()
         self.controller.on_coord_change(self)
+        self.guide_spec.reset_snap_delta()
 
     def _end_drag(self, _):
+        self._is_moving = False
+        self.guide_spec.on_drag_release()
         self.controller.on_release()
 
     @classmethod
@@ -121,6 +134,7 @@ class Link:
     def __init__(self, canvas, controller, coord1, coord2):
         self.canvas = canvas
         self.controller = controller
+        self.guide_spec = Guide.get_spec("canvas")
         self._id = canvas.create_line(
             coord1.x, coord1.y, coord2.x, coord2.y,
             fill=self.controller.tool.studio.style.colors["accent"],
@@ -147,10 +161,17 @@ class Link:
             xl, yl = self._coord_latch
             self.controller.on_move(x - xl, y - yl)
             self._coord_latch = x, y
+            self.guide_spec.on_drag()
+            snap = self.guide_spec.snap_delta
+            # apply any snap to position directives
+            self.controller.on_move(*snap)
+            self.guide_spec.reset_snap_delta()
         else:
+            self.guide_spec.on_move_start()
             self._coord_latch = self._to_canvas_coord(event.x, event.y)
 
     def _end_drag(self, _):
+        self.guide_spec.on_drag_release()
         self.controller.on_release()
         self._coord_latch = None
 
@@ -694,7 +715,7 @@ class CanvasTreeView(NestedTreeView):
         # if we have a node we make ourselves visible
         if self not in self._cv_node.nodes:
             self._cv_node.add(self)
-            
+
     def insert(self, index=None, *nodes):
         super(CanvasTreeView, self).insert(index, *nodes)
         # also make sure nodes is not empty
@@ -773,6 +794,47 @@ class CanvasStudioAdapter(BaseStudioAdapter):
         return widget
 
 
+class CanvasGuideSpec(GuideSpec):
+
+    def __init__(self, guide, tool):
+        super(CanvasGuideSpec, self).__init__(guide)
+        self.tool = tool
+        self.guide_lines = []
+        self.guide_pool = defaultdict(list)
+
+    @property
+    def canvas(self):
+        return self.tool.canvas
+
+    def _get_guide(self):
+        if self.guide_pool[self.canvas]:
+            guide = self.guide_pool[self.canvas].pop()
+        else:
+            guide = self.canvas.create_line(
+                0, 0, 0, 0,
+                fill=self.tool.studio.style.colors["accent"]
+            )
+        self.guide_lines.append(guide)
+        return guide
+
+    def clear_guides(self):
+        for guide in self.guide_lines:
+            self.canvas.itemconfigure(guide, state='hidden')
+        self.guide_pool[self.canvas].extend(self.guide_lines)
+        self.guide_lines.clear()
+
+    def draw_guide(self, bounds):
+        guide = self._get_guide()
+        self.canvas.coords(guide, *bounds)
+        self.canvas.itemconfigure(guide, state='normal')
+
+    def get_object_bounds(self):
+        return [item.bounds() for item in self.canvas._cv_items]
+
+    def get_reference(self):
+        return self.tool.get_select_bounds()
+
+
 class CanvasTool(BaseTool):
     name = "Canvas"
     icon = "paint"
@@ -786,6 +848,10 @@ class CanvasTool(BaseTool):
         self.style_group = studio.style_pane.add_group(
             CanvasStyleGroup, tool=self
         )
+
+        self.guide_spec = CanvasGuideSpec(self.studio.guides, self)
+        # register under canvas so other sub systems can access it
+        self.studio.guides.register_spec("canvas", self.guide_spec)
 
         CanvasStudioAdapter._tool = self
         # connect the canvas adapter to load canvas objects to the studio
@@ -921,6 +987,7 @@ class CanvasTool(BaseTool):
         def show(event):
             if item in self.selected_items:
                 MenuUtils.popup(event, self._item_context_menu)
+
         return show
 
     def _show_canvas_menu(self, canvas):
@@ -931,6 +998,7 @@ class CanvasTool(BaseTool):
             if not canvas.find_overlapping(x, y, x, y):
                 MenuUtils.popup(event, self._canvas_menu)
             return 'break'
+
         return show
 
     def _send_back(self, steps=None):
@@ -1039,15 +1107,21 @@ class CanvasTool(BaseTool):
                 canvas._cv_items.insert(item._prev_index, item)
             canvas._cv_tree.insert(item._prev_index, item.node)
 
+    def get_select_bounds(self):
+        items = self.selected_items
+        if not items:
+            return None
+        for item in items:
+            item.addtag('_bound_check_')
+        bbox = self.canvas.bbox('_bound_check_')
+        self.canvas.dtag('_bound_check_', '_bound_check_')
+        return bbox
+
     def _get_copy_data(self):
         if not self.selected_items:
             return []
         items = self.sorted_selected_items
-        for item in items:
-            item.addtag('bound_check')
-        bbox = self.canvas.bbox('bound_check') or items[0].coords()
-        ref_x, ref_y = bbox[:2]
-        self.canvas.dtag('bound_check', 'bound_check')
+        ref_x, ref_y = self.get_select_bounds()[:2]
         return [item.serialize(ref_x, ref_y) for item in items]
 
     def copy_items(self):
@@ -1091,13 +1165,19 @@ class CanvasTool(BaseTool):
                 x, y = item.canvas.canvasx(event.x), item.canvas.canvasx(event.y)
                 item._controller.on_move(x - x0, y - y0)
                 item._coord_latch = x, y
+                self.guide_spec.on_drag()
+                # apply any deltas required by the guides system
+                item._controller.on_move(*self.guide_spec.snap_delta)
+                self.guide_spec.reset_snap_delta()
             else:
+                self.guide_spec.on_move_start()
                 item._coord_latch = item.canvas.canvasx(event.x), item.canvas.canvasx(event.y)
 
     def _handle_end(self, item, event):
         if getattr(item, '_coord_latch', None) and self.current_draw is None:
             self.on_layout_change()
         item._coord_latch = None
+        self.guide_spec.on_drag_release()
 
     def _handle_select(self, item, event):
         if self.current_draw is not None or getattr(item, '_coord_latch', None):
