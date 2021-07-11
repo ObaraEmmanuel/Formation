@@ -37,7 +37,8 @@ class Coordinate:
         self.y = y
         self._id = canvas.create_oval(
             x - self.radius, y - self.radius, x + self.radius, y + self.radius,
-            fill="red", tags=("coordinate", "controller")
+            fill=self.controller.tool.studio.style.colors["accent"],
+            tags=("coordinate", "controller")
         )
         canvas.tag_bind(self._id, "<ButtonRelease-1>", self._end_drag)
         canvas.tag_bind(self._id, "<Motion>", self._drag)
@@ -122,7 +123,8 @@ class Link:
         self.controller = controller
         self._id = canvas.create_line(
             coord1.x, coord1.y, coord2.x, coord2.y,
-            fill="red", tag=("link", "controller"), dash=(5, 4), width=2
+            fill=self.controller.tool.studio.style.colors["accent"],
+            tag=("link", "controller"), dash=(5, 4), width=2
         )
         self.link_coord(coord1, coord2)
         canvas.tag_bind(self._id, "<ButtonRelease-1>", self._end_drag)
@@ -422,7 +424,8 @@ class PointController(Controller):
             self.canvas.coords(self._border, *coords)
         else:
             self._border = self.canvas.create_line(
-                *coords, fill="red", tag="controller", dash=(5, 4), width=2
+                *coords, fill=self.tool.studio.style.colors["accent"],
+                tag="controller", dash=(5, 4), width=2
             )
         super(PointController, self).highlight(item)
 
