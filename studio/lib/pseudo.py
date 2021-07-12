@@ -229,6 +229,11 @@ class Container(PseudoWidget):
         self._temporal_children = []
         self.layout_strategy.clear_indicators()
 
+    def lift(self, above_this):
+        super().lift(above_this)
+        for child in self._children:
+            child.lift(self)
+
     @property
     def level(self):
         return self._level
