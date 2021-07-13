@@ -224,8 +224,8 @@ class Color(Editor):
     def _change(self, value=None):
         value = self._entry.get() if value is None else value
         val = self._parse_color(value)
-        if val:
-            self._color_button.config(bg=value)
+        if val is not None:
+            self._color_button.config(bg=value or self._entry["bg"])
             if self._on_change:
                 self._on_change(value)
 
@@ -234,10 +234,12 @@ class Color(Editor):
         self._change(value)
 
     def _parse_color(self, value):
+        if value == "" and self.style_def.get("allow_transparent", False):
+            return value
         try:
             val = self.winfo_rgb(value)
         except Exception:
-            return ""
+            return None
         val = tuple(map(lambda x: round((x / 65535) * 255), val))
         return to_hex(val)
 
@@ -257,7 +259,7 @@ class Color(Editor):
         try:
             self._color_button.config(bg=value)
         except Exception:
-            self._color_button.config(bg="#000000")
+            self._color_button.config(bg=self._entry["bg"])
 
     def _chooser(self, *_):
         if self.get().startswith("#"):

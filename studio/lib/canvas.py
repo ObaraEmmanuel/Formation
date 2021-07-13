@@ -39,7 +39,8 @@ CANVAS_PROPERTIES = {
     "activefill": {
         "display_name": "active fill",
         "type": "color",
-        "name": "activefill"
+        "name": "activefill",
+        "allow_transparent": True,
     },
     "activeimage": {
         "display_name": "active image",
@@ -49,7 +50,8 @@ CANVAS_PROPERTIES = {
     "activeoutline": {
         "display_name": "active outline",
         "type": "color",
-        "name": "activeoutline"
+        "name": "activeoutline",
+        "allow_transparent": True,
     },
     "activeoutlinestipple": {
         "display_name": "active outline stipple",
@@ -113,7 +115,8 @@ CANVAS_PROPERTIES = {
     "disabledfill": {
         "display_name": "disabled fill",
         "type": "color",
-        "name": "disabledfill"
+        "name": "disabledfill",
+        "allow_transparent": True,
     },
     "disabledimage": {
         "display_name": "disabled image",
@@ -123,7 +126,8 @@ CANVAS_PROPERTIES = {
     "disabledoutline": {
         "display_name": "disabled outline",
         "type": "color",
-        "name": "disabledoutline"
+        "name": "disabledoutline",
+        "allow_transparent": True,
     },
     "disabledoutlinestipple": {
         "display_name": "disabled outline stipple",
@@ -149,7 +153,8 @@ CANVAS_PROPERTIES = {
     "fill": {
         "display_name": "fill",
         "type": "color",
-        "name": "fill"
+        "name": "fill",
+        "allow_transparent": True,
     },
     "height": {
         "display_name": "height",
@@ -171,7 +176,8 @@ CANVAS_PROPERTIES = {
     "outline": {
         "display_name": "outline",
         "type": "color",
-        "name": "outline"
+        "name": "outline",
+        "allow_transparent": True,
     },
     "outlineoffset": {
         "display_name": "outline offset*",
