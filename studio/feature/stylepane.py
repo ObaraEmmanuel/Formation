@@ -103,6 +103,10 @@ class StyleGroup(CollapseFrame):
         self.style_pane = pane
         self.studio = self.style_pane.studio
         self.configure(**{**self.style.surface, **cnf})
+        self._empty_message = "Select an item to see styles"
+        self._empty = Frame(self.body, **self.style.surface)
+        self._empty_label = Label(self._empty, **self.style.text_passive,)
+        self._empty_label.pack(fill="both", expand=True, pady=15)
         self._widget = None
         self._prev_widget = None
         self._has_initialized = False  # Flag to mark whether Style Items have been created
@@ -152,6 +156,14 @@ class StyleGroup(CollapseFrame):
     def _match_query(self, definition, query):
         return query in definition["name"] or query in definition["display_name"]
 
+    def _show_empty(self, text=None):
+        self._empty.pack(fill="both", expand=True)
+        text = self._empty_message if text is None else text
+        self._empty_label["text"] = text
+
+    def _remove_empty(self):
+        self._empty.pack_forget()
+
     def on_widget_change(self, widget):
         self._widget = widget
         if widget is None:
@@ -170,7 +182,11 @@ class StyleGroup(CollapseFrame):
             self.items.clear()
             add = self.add
             list(map(lambda p: add(ReusableStyleItem.acquire(self, definitions[p], self.apply), ), definitions))
-            self.style_pane.body.scroll_to_start()
+            if not len(self.items):
+                self._show_empty()
+            else:
+                self._remove_empty()
+            # self.style_pane.body.scroll_to_start()
 
         self._has_initialized = True
         self._prev_widget = widget

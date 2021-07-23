@@ -575,6 +575,7 @@ class CanvasStyleGroup(StyleGroup):
         self.label = "Canvas Item"
         self.prop_keys = None
         self._prev_prop_keys = set()
+        self._empty_message = "Select canvas item to see styles"
 
     @property
     def cv_items(self):
