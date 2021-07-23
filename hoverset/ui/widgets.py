@@ -2482,6 +2482,7 @@ class Tree(abc.ABC):
             self._init_binding()
             self.body = Frame(self, **self.style.surface)
             self.body.pack(side="top", fill="x")
+            self._visible = True
             self._expanded = False
             self._selected = False
             self._depth = 0  # Will be set on addition to a node or tree so this value is just placeholder
@@ -2666,7 +2667,7 @@ class Tree(abc.ABC):
                 # There is nothing to expand
                 return
             self.pack_propagate(True)
-            for node in self.nodes:
+            for node in filter(lambda n: n._visible, self.nodes):
                 node.pack(in_=self.body, fill="x", side="top", pady=self.PADDING)
             self._set_expander(self.EXPANDED_ICON)
             self._expanded = True
@@ -2678,7 +2679,7 @@ class Tree(abc.ABC):
             for node in self.nodes:
                 node.pack_forget()
             self.pack_propagate(False)
-            self.config(height=20)
+            self.config(height=self.strip.winfo_height())
             self._set_expander(self.COLLAPSED_ICON)
             self._expanded = False
 
@@ -2708,6 +2709,30 @@ class Tree(abc.ABC):
             for node in nodes:
                 self.remove(node)
 
+        def search(self, query):
+            match = False
+            self.collapse()
+            if not query:
+                # empty query is used to end search
+                # remove all nodes so they can be reconstructed in right order
+                for node in self.nodes:
+                    node.pack_forget()
+
+            for node in self.nodes:
+                if node.search(query):
+                    node.pack(in_=self.body, fill="x", side="top", pady=self.PADDING)
+                    node._visible = True
+                    match = True
+                else:
+                    node.pack_forget()
+                    node._visible = False
+
+            if not match:
+                self._set_expander(self.BLANK)
+            else:
+                self.expand()
+            return match or (query.lower() in self.name_pad["text"].lower())
+
     # =========================== Tree =================================
 
     def initialize_tree(self):
@@ -2725,6 +2750,7 @@ class Tree(abc.ABC):
         self._depth = 0
         self._parent_node = None  # This value should never be changed
         self._has_init = True
+        self._visible = True
 
     @abc.abstractmethod
     def get_body(self):
@@ -2858,7 +2884,7 @@ class Tree(abc.ABC):
     def redraw(self):
         for node in self.nodes:
             node.pack_forget()
-        for node in self.nodes:
+        for node in filter(lambda n: n._visible, self.nodes):
             node.pack(side="top", fill="x", in_=self.get_body(), pady=self.__class__.Node.PADDING)
 
     def insert(self, index=None, *nodes):
@@ -2900,6 +2926,27 @@ class Tree(abc.ABC):
         :return: total number of items selected
         """
         return len(self._selected)
+
+    def search(self, query):
+        match = False
+        if not query:
+            # empty query is used to end search
+            # remove all nodes so they can be reconstructed in right order
+            for node in self.nodes:
+                node.pack_forget()
+
+        for node in self.nodes:
+            if node.search(query):
+                node.pack(
+                    in_=self.get_body(), fill="x", side="top",
+                    pady=self.__class__.Node.PADDING
+                )
+                node._visible = True
+                match = True
+            else:
+                node.pack_forget()
+                node._visible = False
+        return match
 
 
 class TreeView(Tree, ScrolledFrame):

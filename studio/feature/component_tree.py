@@ -1,5 +1,5 @@
 from hoverset.ui.icons import get_icon_image
-from hoverset.ui.widgets import Button
+from hoverset.ui.widgets import Button, Label, Frame
 from hoverset.ui.menu import MenuUtils
 from studio.feature._base import BaseFeature
 from studio.lib.pseudo import PseudoWidget
@@ -22,6 +22,39 @@ class ComponentTreeView(MalleableTreeView):
             self.name_pad.configure(text=self.widget.id)
             self.icon_pad.configure(image=get_icon_image(self.widget.icon, 15, 15))
 
+    def initialize_tree(self):
+        super(ComponentTreeView, self).initialize_tree()
+        self._empty = Frame(self, **self.style.surface)
+        self._empty_text = Label(self._empty, **self.style.text_passive)
+        self._empty_text.pack(fill="both", expand=True, pady=30)
+        self._show_empty("No items created yet")
+
+    def add(self, node):
+        super().add(node)
+        self._remove_empty()
+
+    def insert(self, index=None, *nodes):
+        super(ComponentTreeView, self).insert(index, *nodes)
+        self._remove_empty()
+
+    def remove(self, node):
+        super().remove(node)
+        if len(self.nodes) == 0:
+            self._show_empty("No items created yet")
+
+    def _show_empty(self, text):
+        self._empty_text["text"] = text
+        self._empty.place(x=0, y=0, relheight=1, relwidth=1)
+
+    def _remove_empty(self):
+        self._empty.place_forget()
+
+    def search(self, query):
+        if not super().search(query):
+            self._show_empty("No items match your search")
+        else:
+            self._remove_empty()
+
 
 class ComponentTree(BaseFeature):
     name = "Component Tree"
@@ -38,6 +71,13 @@ class ComponentTree(BaseFeature):
                                   height=25)
         self._toggle_btn.pack(side="right")
         self._toggle_btn.on_click(self._toggle)
+
+        self._search_btn = Button(
+            self._header, **self.style.button,
+            image=get_icon_image("search", 15, 15), width=25, height=25,
+        )
+        self._search_btn.pack(side="right")
+        self._search_btn.on_click(self.start_search)
 
         self._selected = None
         self._expanded = False
@@ -119,3 +159,10 @@ class ComponentTree(BaseFeature):
     def on_widget_change(self, old_widget, new_widget=None):
         new_widget = new_widget if new_widget else old_widget
         new_widget.node.widget_modified(new_widget)
+
+    def on_search_query(self, query: str):
+        self._tree.search(query)
+
+    def on_search_clear(self):
+        self._tree.search("")
+        super(ComponentTree, self).on_search_clear()
