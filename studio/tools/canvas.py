@@ -730,10 +730,10 @@ class CanvasStudioAdapter(BaseStudioAdapter):
         cursor = None
         if widget == cls._tool.canvas:
             cursor = widget["cursor"]
-            widget["cursor"] = cls._tool._cursor
+            widget.config(cursor=cls._tool._cursor)
         node = BaseStudioAdapter.generate(widget, parent)
         if cursor:
-            widget["cursor"] = cursor
+            widget.config(cursor=cursor)
         if getattr(widget, "_cv_initialized", False):
             for item in widget._cv_items:
                 opts = {
