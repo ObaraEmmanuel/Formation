@@ -239,11 +239,17 @@ class StyleGroup(CollapseFrame):
         return True
 
     def on_search_query(self, query):
+        item_found = False
         for item in self.items.values():
             if self._match_query(item.definition, query):
                 self._show(item)
+                item_found = True
             else:
                 self._hide(item)
+        if not item_found:
+            self._show_empty("No items match your search")
+        else:
+            self._remove_empty()
 
     def on_search_clear(self):
         # Calling search query with empty query ensures all items are displayed
