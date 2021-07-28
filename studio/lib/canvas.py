@@ -250,6 +250,7 @@ class CanvasItem(abc.ABC):
     OVERRIDES = {}
     icon = "canvas"
     display_name = "Item"
+    defaults = {}
     _intercepts = {
         "id": _IDIntercept,
         "activeimage": _ImageIntercept,
@@ -409,6 +410,9 @@ class CanvasItem(abc.ABC):
 class Arc(CanvasItem):
     icon = "arc"
     display_name = "Arc"
+    defaults = dict(
+        fill="#4ebf3d", width=2, start=30, extent=240, outline="#4ebf3d"
+    )
 
     def __init__(self, canvas, x0, y0, x1, y1, **options):
         super(Arc, self).__init__(canvas, x0, y0, x1, y1, **options)
@@ -442,6 +446,7 @@ class Image(CanvasItem):
 class Line(CanvasItem):
     icon = "line"
     display_name = "Line"
+    defaults = dict(width=2)
 
     def __init__(self, canvas, x0, y0, x1, y1, *args, **options):
         super(Line, self).__init__(canvas, x0, y0, x1, y1, *args, **options)
@@ -453,6 +458,7 @@ class Line(CanvasItem):
 class Oval(CanvasItem):
     icon = "oval"
     display_name = "Oval"
+    defaults = dict(fill="#d2d444", outline="#7b7d1c", width=2)
 
     def __init__(self, canvas, x0, y0, x1, y1, **options):
         super(Oval, self).__init__(canvas, x0, y0, x1, y1, **options)
@@ -464,6 +470,7 @@ class Oval(CanvasItem):
 class Polygon(CanvasItem):
     icon = "polygon"
     display_name = "Polygon"
+    defaults = dict(fill="#484acf", outline="#1f217a", width=2)
 
     def __init__(self, canvas, x0, y0, x1, y1, *args, **options):
         super(Polygon, self).__init__(canvas, x0, y0, x1, y1, *args, **options)
@@ -475,6 +482,7 @@ class Polygon(CanvasItem):
 class Rectangle(CanvasItem):
     icon = "rectangle"
     display_name = "Rectangle"
+    defaults = dict(fill="#9c55cf", outline="#542178", width=2)
 
     def __init__(self, canvas, x0, y0, x1, y1, **options):
         super(Rectangle, self).__init__(canvas, x0, y0, x1, y1, **options)

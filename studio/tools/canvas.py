@@ -764,11 +764,10 @@ class CanvasStudioAdapter(BaseStudioAdapter):
             coords = sub_node.attrib.get("coords", "").split(",")
             if len(coords) < 2:
                 raise ValueError("Not enough coordinates provided.")
-            item = cls._tool.create_item(
-                CANVAS_ITEM_MAP[sub_node.type],
-                coords,
-                canvas=widget,
-                silently=True,
+            component = CANVAS_ITEM_MAP[sub_node.type]
+            item = component(widget, *coords)
+            cls._tool.create_item(
+                component, item=item, canvas=widget, silently=True
             )
             item.configure(config)
         return widget
@@ -1001,7 +1000,9 @@ class CanvasTool(BaseTool):
     def create_item(self, component, coords=(), item=None, canvas=None, silently=False, **kwargs):
         canvas = canvas or self.canvas
         if item is None:
-            item = component(canvas, *coords, **kwargs)
+            opts = dict(**component.defaults)
+            opts.update(kwargs)
+            item = component(canvas, *coords, **opts)
             # generate a unique id
             item.name = generate_id(component, self._ids)
         canvas._cv_items.append(item)
