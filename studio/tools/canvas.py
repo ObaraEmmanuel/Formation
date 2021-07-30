@@ -766,10 +766,10 @@ class CanvasStudioAdapter(BaseStudioAdapter):
                 raise ValueError("Not enough coordinates provided.")
             component = CANVAS_ITEM_MAP[sub_node.type]
             item = component(widget, *coords)
+            item.configure(config)
             cls._tool.create_item(
                 component, item=item, canvas=widget, silently=True
             )
-            item.configure(config)
         return widget
 
 
