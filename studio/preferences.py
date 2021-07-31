@@ -308,7 +308,7 @@ class Preferences(SharedPreferences):
         self.set("studio::recent", [])  # clear recent files
 
     def get_latest(self):
-        if len(self.get("studio::recent")):
+        if self.get("studio::recent"):
             return self.get("studio::recent")[0]
         return None
 

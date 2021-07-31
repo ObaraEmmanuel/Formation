@@ -454,7 +454,7 @@ class GenericLinearLayoutStrategy(BaseLayoutStrategy):
         pass
 
     def get_last(self):
-        if len(self._children):
+        if self._children:
             last = self._children[-1]
             last.update_idletasks()
             return last.winfo_y() - self.container.winfo_y() + last.winfo_height()
@@ -630,7 +630,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         bounds = geometry.relative_bounds(bounds, self.container)
         col, row = self.container.grid_location(bounds[0], bounds[1])
         widget = self.container.grid_slaves(row, col)
-        if len(widget):
+        if widget:
             self._highlighter.highlight(widget[0])
 
     def _redraw_widget(self, widget):
@@ -649,7 +649,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
     def _adjust_rows(self, from_row=0):
         rows = self.container.grid_size()[1]
         for row in range(from_row, rows):
-            if not len(self.container.grid_slaves(row)):
+            if not self.container.grid_slaves(row):
                 for child in self.container.grid_slaves(row + 1):
                     info = child.grid_info()
                     child.grid_configure(row=info["row"] - 1)
@@ -657,7 +657,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
     def _adjust_columns(self, from_col):
         cols = self.container.grid_size()[1]
         for col in range(from_col, cols):
-            if not len(self.container.grid_slaves(None, col)):
+            if not self.container.grid_slaves(None, col):
                 for child in self.container.grid_slaves(None, col + 1):
                     info = child.grid_info()
                     child.grid_configure(column=info["column"] - 1)
@@ -735,7 +735,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
             bounds = geometry.bounds(slaves[0])
         y_offset, x_offset = 10, 10  # 0.15*(bounds[3] - bounds[1]), 0.15*(bounds[2] - bounds[0])
         # If the position is empty no need to alter the row or column
-        resize = 1 if len(slaves) else 0
+        resize = 1 if slaves else 0
         if y - bounds[1] < y_offset:
             self._edge_indicator.top(bounds)
             return row, col, resize, 0

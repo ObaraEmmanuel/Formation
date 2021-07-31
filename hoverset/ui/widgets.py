@@ -1529,7 +1529,7 @@ class Button(Frame):
 
     def __init__(self, master=None, **cnf):
         super().__init__(master)
-        cnf = cnf if len(cnf) else self.style.button
+        cnf = cnf if cnf else self.style.button
         # Use the hoverset Label which has additional automatic image caching capabilities
         self._label = Label(self)
         self._label.pack(fill="both", expand=True)
@@ -1754,7 +1754,7 @@ class RadioButtonGroup(Frame):
         """
         self.config(clean_styles(self, cnf))
         self._label.config(clean_styles(self._label, cnf))
-        if len(self._radio_buttons):
+        if self._radio_buttons:
             radio_conf = clean_styles(self._radio_buttons[0], cnf)
             for button in self._radio_buttons:
                 button.config_all(**radio_conf)
@@ -1775,7 +1775,7 @@ class RadioButtonGroup(Frame):
         :param choice: a ``(value label)`` pair
         """
         value, desc = choice
-        if len(self._pool):
+        if self._pool:
             # pool is not empty so get buttons from there
             button = self._pool.pop(0)
         else:
@@ -2259,7 +2259,7 @@ class CompoundList(ScrolledFrame):
         """
         if self._mode == CompoundList.MULTI_MODE:
             return [self._items[index] for index in self._current_indices]
-        elif len(self._current_indices):
+        elif self._current_indices:
             return self._items[self._current_indices[0]]
         else:
             return None
@@ -2386,7 +2386,7 @@ class Spinner(Frame):
 
     def set_values(self, values):
         self._values = list(values)
-        if len(values):
+        if values:
             self.set(values[0])
 
     def add_values(self, *values):
@@ -2807,7 +2807,7 @@ class Tree(abc.ABC):
         if self._multi_select:
             return self._selected
         else:
-            if len(self._selected):
+            if self._selected:
                 return self._selected[0]
             else:
                 return None

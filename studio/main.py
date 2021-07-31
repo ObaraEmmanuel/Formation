@@ -266,22 +266,20 @@ class StudioApplication(Application):
         self._undo_stack.append(action)
 
     def undo(self):
-        if not len(self._undo_stack):
-            # Let's avoid popping an empty list to prevent raising IndexError
-            return
-        action = self._undo_stack.pop()
-        action.undo()
-        self._redo_stack.append(action)
+        # Let's avoid popping an empty list to prevent raising IndexError
+        if self._undo_stack:
+            action = self._undo_stack.pop()
+            action.undo()
+            self._redo_stack.append(action)
 
     def redo(self):
-        if not len(self._redo_stack):
-            return
-        action = self._redo_stack.pop()
-        action.redo()
-        self._undo_stack.append(action)
+        if self._redo_stack:
+            action = self._redo_stack.pop()
+            action.redo()
+            self._undo_stack.append(action)
 
     def last_action(self):
-        if len(self._undo_stack):
+        if self._undo_stack:
             return self._undo_stack[-1]
         return None
 

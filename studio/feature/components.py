@@ -290,7 +290,7 @@ class ComponentPane(BaseFeature):
     def _auto_select(self):
         # automatically pick a selector when no groups have
         # been explicitly selected and the pane is in limbo
-        if len(self._selectors):
+        if self._selectors:
             self.select(self._selectors[0])
         else:
             self._widget_pane.clear_children()
@@ -358,7 +358,7 @@ class ComponentPane(BaseFeature):
 
     def on_search_clear(self):
         super().on_search_clear()
-        if len(self._selectors):
+        if self._selectors:
             self.select(self._selectors[0])
         self._search_selector.pack_forget()
         self.show_selectors()
