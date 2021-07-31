@@ -100,7 +100,7 @@ class BindingsTable(CompoundList):
 
     def _render(self, values):
         for i, value in enumerate(values):
-            if len(self._item_pool):
+            if self._item_pool:
                 item = self._item_pool[0]
                 self._item_pool.remove(item)
                 item.update_details(value, i)
@@ -230,7 +230,7 @@ class EventPane(BaseFeature):
         values = bindings.values()
         self.bindings.clear()
         self.bindings.add(*values)
-        if not len(values):
+        if not values:
             self._show_empty(self.NO_EVENT_MSG)
 
     def start_search(self, *_):

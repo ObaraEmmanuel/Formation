@@ -462,7 +462,7 @@ class Anchor(Editor):
 
     def _sanitize(self, anchor):
         ex_anchor = [i for i in self.get() if self._is_exclusive_of(i, anchor)]
-        if len(ex_anchor):
+        if ex_anchor:
             self.anchors.get(ex_anchor[0]).set(False)
 
     def _adjust(self):
@@ -566,7 +566,7 @@ class Variable(Choice):
         # Override default conversion of value to string by Choice class
         var = list(filter(lambda x: x.name == value, VariableManager.variables))
         # if variable does not match anything in the variable manager presume as empty
-        value = var[0].var if len(var) else ''
+        value = var[0].var if var else ''
         self._spinner.set(value)
 
     def on_var_add(self, var):

@@ -55,7 +55,7 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
         self._listeners = defaultdict(list)
         files = self._get_files()
 
-        if len(files):
+        if files:
             self.data = self._get_shelve()
             try:
                 self._deep_update(self.data, defaults)

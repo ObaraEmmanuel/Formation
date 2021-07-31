@@ -151,10 +151,10 @@ class VariableManager:
     @classmethod
     def lookup(cls, name) -> Union[VariableItem, str]:
         name = str(name)  # Sometimes name is a TclObj and we need it as a string for this to work
-        search = list(filter(lambda x: x.var._name == name, cls.variables))
-        if len(search):
-            return search[0]
-        search = list(filter(lambda x: x.name == name, cls.variables))
-        if len(search):
+        search = list(filter(
+            lambda x: x.var._name == name or x.name == name,
+            cls.variables
+        ))
+        if search:
             return search[0]
         return ''

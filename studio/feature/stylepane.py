@@ -182,7 +182,7 @@ class StyleGroup(CollapseFrame):
             self.items.clear()
             add = self.add
             list(map(lambda p: add(ReusableStyleItem.acquire(self, definitions[p], self.apply), ), definitions))
-            if not len(self.items):
+            if not self.items:
                 self._show_empty()
             else:
                 self._remove_empty()

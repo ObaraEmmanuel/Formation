@@ -60,7 +60,7 @@ class ToolManager:
                 manipulator(partial(tool.supports, self.studio.selected), template),
             )
         # prepend a separator for context menus
-        if len(templates) and hide_unsupported:
+        if templates and hide_unsupported:
             templates = (('separator',),) + templates
         return tuple(templates)
 

@@ -67,7 +67,7 @@ class VariablePane(BaseFeature):
         self._editors = []
 
     def start_search(self, *_):
-        if len(self.variables):
+        if self.variables:
             super().start_search()
             self._variable_pane.scroll_to_start()
 
@@ -79,7 +79,7 @@ class VariablePane(BaseFeature):
                 self._show(item)
                 matches.append(item)
 
-        if not len(matches):
+        if not matches:
             self._show_overlay(True, text="No matches found", image=get_icon_image("search", 25, 25))
         else:
             self.select(matches[0])
@@ -135,7 +135,7 @@ class VariablePane(BaseFeature):
     def _delete(self, *_):
         if self._selected:
             self.delete_var(self._selected)
-        if len(self.variables):
+        if self.variables:
             self.select(self.variables[0])
         else:
             self._show_overlay(True)

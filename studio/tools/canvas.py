@@ -105,7 +105,7 @@ class Coordinate:
 
     @classmethod
     def acquire(cls, canvas, controller, x, y):
-        if len(cls.pool[canvas]):
+        if cls.pool[canvas]:
             coord = cls.pool[canvas][0]
             cls.pool[canvas].remove(coord)
             coord.revive(controller, x, y)
@@ -186,7 +186,7 @@ class Link:
 
     @classmethod
     def acquire(cls, canvas, controller, coord1, coord2):
-        if len(cls.pool[canvas]):
+        if cls.pool[canvas]:
             coord = cls.pool[canvas][0]
             cls.pool[canvas].remove(coord)
             coord.revive(controller, coord1, coord2)
@@ -705,7 +705,7 @@ class CanvasTreeView(NestedTreeView):
     def remove(self, node):
         super(CanvasTreeView, self).remove(node)
         # if no nodes are left we hide ourselves
-        if not len(self.nodes):
+        if not self.nodes:
             self._cv_node.remove(self)
 
     def reorder(self, reorder_data):
@@ -752,7 +752,7 @@ class CanvasStudioAdapter(BaseStudioAdapter):
     def load(cls, node, designer, parent, bounds=None):
         widget = BaseStudioAdapter.load(node, designer, parent, bounds=None)
         cls.assert_tool()
-        if len(node):
+        if node.children:
             cls._tool.initialize_canvas(widget)
         for sub_node in node:
             if sub_node.type not in CANVAS_ITEM_MAP:

@@ -77,7 +77,7 @@ class Symbol(Key):
         }
 
     def __init__(self, symbol: str):
-        if len(symbol):
+        if symbol:
             symbol = symbol[:1]
             if symbol in self._keycodes:
                 super().__init__(symbol, self._keycodes[symbol])
@@ -427,7 +427,7 @@ class ShortcutPane(Component, Frame):
             lambda i: i.value[1] == key,
             self.shortcut_list.items
         ))
-        if len(items):
+        if items:
             return items[0]
         return None
 
