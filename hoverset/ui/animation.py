@@ -187,7 +187,8 @@ class Animate(Thread):
         bench = time.time()
         while self.count <= self.STEPS:
             t1 = time.time()
-            t1 - bench > self.count*self.step_time and self.func(self._get())
+            if t1 - bench > self.count*self.step_time and self.func(self._get()):
+                break
         self.func(self.final)
         if self._on_complete:
             self._on_complete()
@@ -207,7 +208,7 @@ if __name__ == '__main__':
     total = 0
     for _ in range(100):
         d = time.time_ns()
-        600 * Easing.SLING_SHOT.get(_ / 100) + 50
+        Easing.SLING_SHOT.get(_ / 100)
         total += time.time_ns() - d
 
     print("Average execution in nanoseconds", total / 100)

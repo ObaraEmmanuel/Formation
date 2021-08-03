@@ -275,7 +275,7 @@ class MenuEditor(BaseToolWindow):
 
     def _on_menu_item_change(self, prop, value):
         nodes = self._tree.get()
-        menus = set([node._menu for node in nodes])
+        menus = {node._menu for node in nodes}
         for menu in menus:
             menu[prop] = value
 

@@ -53,7 +53,7 @@ def _enforce_tuple_format(*constraints):
                 raise ValueError("Expected iterable but got {} instead".format(abc.__class__))
             if len(abc) > len(constraints):
                 raise ValueError("Expected no more than {} items but got {} instead".format(len(constraints), len(abc)))
-            if any([abc[i] < 0 or abc[i] > constraints[i] for i in range(len(abc))]):
+            if any(abc[i] < 0 or abc[i] > constraints[i] for i in range(len(abc))):
                 raise ValueError("All values for the tuple should lie within the constraints {}".format(constraints))
             return func(abc, *args)
         return wrap

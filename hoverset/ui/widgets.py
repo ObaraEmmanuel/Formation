@@ -849,7 +849,8 @@ class Widget:
             else:
                 clone = widget.__class__(parent)
                 Widget.copy_config(widget, clone)
-                [Widget.clone_to(clone, i) for i in widget.winfo_children()]
+                for i in widget.winfo_children():
+                    Widget.clone_to(clone, i)
             return clone
         except TypeError:
             logging.debug(f"{widget.__class__} requires special clone handling")
