@@ -276,8 +276,7 @@ class ColorDialog(Popup):
     def destroy(self):
         if self.chooser.monitor.picker_active:
             return
-        else:
-            super().destroy()
+        super().destroy()
 
 
 if __name__ == "__main__":

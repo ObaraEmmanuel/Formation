@@ -517,23 +517,22 @@ class PositionMixin:
         bottom = y + height + padding
         if side == "nw":
             return left, top
-        elif side == "ne":
+        if side == "ne":
             return right, top
-        elif side == "sw":
+        if side == "sw":
             return left, bottom
-        elif side == "se":
+        if side == "se":
             return right, bottom
-        else:
-            # i.e. side == "auto"
-            # set the screen size as the boundary
-            win_bounds = 0, 0, widget.winfo_screenwidth(), widget.winfo_screenheight()
-            offset_b = win_bounds[3] - bottom
-            offset_t = y - win_bounds[1]
-            offset_l = x - win_bounds[0]
-            offset_r = win_bounds[2] - right
-            x_pos = left if offset_l >= offset_r or offset_l > w_width else right
-            y_pos = bottom if offset_b >= offset_t or offset_b > w_height else top
-            return x_pos, y_pos
+        # i.e. side == "auto"
+        # set the screen size as the boundary
+        win_bounds = 0, 0, widget.winfo_screenwidth(), widget.winfo_screenheight()
+        offset_b = win_bounds[3] - bottom
+        offset_t = y - win_bounds[1]
+        offset_l = x - win_bounds[0]
+        offset_r = win_bounds[2] - right
+        x_pos = left if offset_l >= offset_r or offset_l > w_width else right
+        y_pos = bottom if offset_b >= offset_t or offset_b > w_height else top
+        return x_pos, y_pos
 
     def post(self, widget, **kwargs):
         """
@@ -1597,8 +1596,7 @@ class _MacMenuButton(tk.Label):
     def __getitem__(self, item):
         if item == "menu":
             return self._menu
-        else:
-            return super(_MacMenuButton, self).__getitem__(item)
+        return super(_MacMenuButton, self).__getitem__(item)
 
 
 class MenuButton(
@@ -2259,10 +2257,9 @@ class CompoundList(ScrolledFrame):
         """
         if self._mode == CompoundList.MULTI_MODE:
             return [self._items[index] for index in self._current_indices]
-        elif self._current_indices:
+        if self._current_indices:
             return self._items[self._current_indices[0]]
-        else:
-            return None
+        return None
 
     def on_change(self, func, *args, **kwargs):
         """
@@ -2545,7 +2542,7 @@ class Tree(abc.ABC):
             if event and event.state & EventMask.CONTROL:
                 self.tree.toggle_from_selection(self)
                 return
-            elif event:
+            if event:
                 self.tree.select(self)
             else:
                 self.tree.add_to_selection(self, silently)
@@ -2806,11 +2803,9 @@ class Tree(abc.ABC):
         """
         if self._multi_select:
             return self._selected
-        else:
-            if self._selected:
-                return self._selected[0]
-            else:
-                return None
+        if self._selected:
+            return self._selected[0]
+        return None
 
     def add_to_selection(self, node, silently=False):
         if not self._multi_select:

@@ -49,8 +49,7 @@ class Node:
         match = _tag_rgx.search(self.type)
         if match:
             return match.groups()
-        else:
-            raise SyntaxError("Malformed type {}".format(self.type))
+        raise SyntaxError("Malformed type {}".format(self.type))
 
     def __getitem__(self, item):
         return self.attrib[item]

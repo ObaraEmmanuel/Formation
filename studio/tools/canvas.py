@@ -110,8 +110,7 @@ class Coordinate:
             cls.pool[canvas].remove(coord)
             coord.revive(controller, x, y)
             return coord
-        else:
-            return cls(canvas, controller, x, y)
+        return cls(canvas, controller, x, y)
 
 
 class Link:
@@ -191,8 +190,7 @@ class Link:
             cls.pool[canvas].remove(coord)
             coord.revive(controller, coord1, coord2)
             return coord
-        else:
-            return cls(canvas, controller, coord1, coord2)
+        return cls(canvas, controller, coord1, coord2)
 
 
 class Controller(abc.ABC):
@@ -641,19 +639,18 @@ class CanvasStyleGroup(StyleGroup):
     def get_definition(self):
         if not self.cv_items:
             return {}
-        else:
-            rough_definition = self.cv_items[0].properties
-            if len(self.cv_items) == 1:
-                # for single item no need to refine definitions any further
-                return rough_definition
-            resolved = {}
-            for prop in self.prop_keys:
-                if prop not in rough_definition:
-                    continue
-                definition = resolved[prop] = rough_definition[prop]
-                # use default for value
-                definition.update(value=definition['default'])
-            return resolved
+        rough_definition = self.cv_items[0].properties
+        if len(self.cv_items) == 1:
+            # for single item no need to refine definitions any further
+            return rough_definition
+        resolved = {}
+        for prop in self.prop_keys:
+            if prop not in rough_definition:
+                continue
+            definition = resolved[prop] = rough_definition[prop]
+            # use default for value
+            definition.update(value=definition['default'])
+        return resolved
 
 
 class CanvasTreeView(NestedTreeView):

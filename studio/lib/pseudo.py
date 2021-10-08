@@ -284,7 +284,7 @@ class Container(PseudoWidget):
 
         if len(layout) == 1:
             return layout[0]
-        elif len(layout) == 0:
+        if len(layout) == 0:
             raise ValueError(f"No layout with name {name} found!")
         else:
             raise ValueError(f"Multiple implementations of layout {name} found")
@@ -419,7 +419,7 @@ class TabContainer(Container):
             config = super().tab(widget)
             config['image'] = getattr(widget, '_tab_image_path', config['image'])
             return config
-        elif 'image' in kw:
+        if 'image' in kw:
             # load image at path before passing the image value
             # only load if value actually available
             if kw['image']:

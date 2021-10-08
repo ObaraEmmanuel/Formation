@@ -43,12 +43,11 @@ class BaseStudioAdapter(BaseAdapter):
             raise ModuleNotFoundError("module {} not implemented by designer".format(module))
         if hasattr(module, impl):
             return getattr(module, impl)
-        elif impl == 'Panedwindow' and module == native:
+        if impl == 'Panedwindow' and module == native:
             orient = node.attrib.get("attr", {}).get("orient")
             if orient == tk.HORIZONTAL:
                 return native.HorizontalPanedWindow
-            else:
-                return native.VerticalPanedWindow
+            return native.VerticalPanedWindow
         raise NotImplementedError("class {} does not have a designer implementation variant in {}".format(impl, module))
 
     @classmethod
