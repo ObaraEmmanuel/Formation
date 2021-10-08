@@ -899,7 +899,7 @@ class CanvasTool(BaseTool):
 
     @property
     def sorted_selected_items(self):
-        return sorted(self.selected_items, key=lambda x: self.canvas._cv_items.index(x))
+        return sorted(self.selected_items, key=self.canvas._cv_items.index)
 
     def _latch_and_focus(self, canvas):
 
@@ -1018,7 +1018,7 @@ class CanvasTool(BaseTool):
         return item
 
     def remove_items(self, items, silently=False):
-        items = sorted(items, key=lambda x: x.canvas._cv_items.index(x))
+        items = sorted(items, key=x.canvas._cv_items.index)
         self.deselect_items(items)
         for item in items:
             item.hide()
