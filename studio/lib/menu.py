@@ -95,7 +95,7 @@ def menu_config(parent_menu, index, key=None, **kw):
     if not kw:
         if key in _intercepts:
             return _intercepts.get(key).get(parent_menu, index, key)
-        elif key is not None:
+        if key is not None:
             return parent_menu.entrycget(index, key)
 
         config = parent_menu.entryconfigure(index)
@@ -104,9 +104,8 @@ def menu_config(parent_menu, index, key=None, **kw):
                 value = _intercepts.get(prop).get(parent_menu, index, prop)
                 config[prop] = (*config[prop][:-1], value)
         return config
-    else:
-        for prop in kw:
-            if prop in _intercepts:
-                _intercepts.get(prop).set(parent_menu, index, kw[prop], prop)
-            else:
-                parent_menu.entryconfigure(index, **{prop: kw[prop]})
+    for prop in kw:
+        if prop in _intercepts:
+            _intercepts.get(prop).set(parent_menu, index, kw[prop], prop)
+        else:
+            parent_menu.entryconfigure(index, **{prop: kw[prop]})

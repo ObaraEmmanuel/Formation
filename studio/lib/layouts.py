@@ -458,16 +458,14 @@ class GenericLinearLayoutStrategy(BaseLayoutStrategy):
             last = self._children[-1]
             last.update_idletasks()
             return last.winfo_y() - self.container.winfo_y() + last.winfo_height()
-        else:
-            return 0
+        return 0
 
     def get_offset(self, index):
         if index >= 0:
             last = self._children[index]
             last.update_idletasks()
             return last.winfo_y() - self.container.winfo_y() + last.winfo_height()
-        else:
-            return 0
+        return 0
 
     def add_widget(self, widget, bounds=None, **kwargs):
         super().add_widget(widget, bounds, **kwargs)
@@ -674,10 +672,9 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         info = widget.grid_info()
         if info:
             return info
-        else:
-            info = self._temp.get(widget, {})
-            info.update({"in_": self.container})
-            return info
+        info = self._temp.get(widget, {})
+        info.update({"in_": self.container})
+        return info
 
     def config_widget(self, widget, config):
         for prop in ("width", "height"):
@@ -739,18 +736,17 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         if y - bounds[1] < y_offset:
             self._edge_indicator.top(bounds)
             return row, col, resize, 0
-        elif bounds[3] - y < y_offset:
+        if bounds[3] - y < y_offset:
             self._edge_indicator.bottom(bounds)
             return row + resize, col, resize, 0
-        elif x - bounds[0] < x_offset:
+        if x - bounds[0] < x_offset:
             self._edge_indicator.left(bounds)
             return row, col, 0, resize
-        elif bounds[2] - x < x_offset:
+        if bounds[2] - x < x_offset:
             self._edge_indicator.right(bounds)
             return row, col + resize, 0, resize
-        else:
-            self._highlighter.highlight_bounds(bounds)
-            return row, col, 0, 0
+        self._highlighter.highlight_bounds(bounds)
+        return row, col, 0, 0
 
     def clear_indicators(self):
         self._highlighter.clear()

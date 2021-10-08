@@ -12,7 +12,6 @@ def image_grab(bbox=None, childprocess=None, backend=None):
     if platform_is(WINDOWS, MAC):
         from PIL import ImageGrab
         return ImageGrab.grab(bbox)
-    else:
-        # only import pyscreenshot if not on windows
-        import pyscreenshot  # noqa
-        return pyscreenshot.grab(bbox, childprocess, backend)
+    # only import pyscreenshot if not on windows
+    import pyscreenshot  # noqa
+    return pyscreenshot.grab(bbox, childprocess, backend)

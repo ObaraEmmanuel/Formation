@@ -117,8 +117,7 @@ class Selector(Label):
     def __eq__(self, other):
         if isinstance(other, Selector):
             return self.name == other.name
-        else:
-            super().__eq__(other)
+        super().__eq__(other)
 
 
 class ComponentGroup:
@@ -267,10 +266,9 @@ class ComponentPane(BaseFeature):
     def get_components(self):
         if self._component_cache:
             return self._component_cache
-        else:
-            # flatten component pool and store to cache
-            self._component_cache = [j for i in self._pool.values() for j in i]
-            return self._component_cache
+        # flatten component pool and store to cache
+        self._component_cache = [j for i in self._pool.values() for j in i]
+        return self._component_cache
 
     def select(self, selector):
         if self._selected is not None:

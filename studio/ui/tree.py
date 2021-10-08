@@ -179,12 +179,12 @@ class MalleableTree(Tree, ABC):
                 self.tree.edge_indicator.top(upscale_bounds(bounds(self.strip), self))
                 return self.InsertType.INSERT_BEFORE
             # The cursor is at the center of the node so we can attempt a direct insert into the node
-            elif self.strip.winfo_rooty() + 5 < event.y_root < self.strip.winfo_rooty() + self.strip.height - 5:
+            if self.strip.winfo_rooty() + 5 < event.y_root < self.strip.winfo_rooty() + self.strip.height - 5:
                 if not self._is_terminal:
                     # If node is terminal then id does not support children and consequently insertion
                     self.highlight()
                     return self.InsertType.INSERT_INTO
-            # The cursor is at the bottom edge of the node so we attempt to insert immediately after the node
+                        # The cursor is at the bottom edge of the node so we attempt to insert immediately after the node
             elif self._expanded:  # --- Case * ---
                 # If the node is expanded we would want to edge indicate at the very bottom after its last child
                 if event.y_root > self.winfo_rooty() + self.height - 5:

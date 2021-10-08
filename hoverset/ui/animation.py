@@ -47,18 +47,16 @@ class CubicBezier:
         init_slope = self.get_slope(guess_for_t, self.p1x, self.p2x)
         if init_slope >= CubicBezier.NEWTON_MIN_SLOPE:
             return self.newton_raphson_iterate(t, guess_for_t)
-        elif init_slope == 0:
+        if init_slope == 0:
             return guess_for_t
-        else:
-            return self.binary_subdivide(t, start, start + self.step_size)
+        return self.binary_subdivide(t, start, start + self.step_size)
 
     def bezier_easing(self, t):
         if t == 0:
             return 0
         if t == 1:
             return 1
-        else:
-            return self.calc_bezier(self.get_for_x(t), self.p1y, self.p2y)
+        return self.calc_bezier(self.get_for_x(t), self.p1y, self.p2y)
 
     def calc_bezier(self, at, a1, a2):
         # checked

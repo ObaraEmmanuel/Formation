@@ -375,10 +375,9 @@ class Duration(TextMixin, Editor):
     def get(self):
         if self._entry.get() == '':
             return ''
-        else:
-            m1 = self.MULTIPLIER.get(self._unit.get(), 1)  # Multiplier 1 converts to milliseconds, default is ms
-            m2 = self.MULTIPLIER.get(self._metric, 1)  # Multiplier 2 converts to required units, default is ms
-            return int((self._entry.get() * m1) / m2)
+        m1 = self.MULTIPLIER.get(self._unit.get(), 1)  # Multiplier 1 converts to milliseconds, default is ms
+        m2 = self.MULTIPLIER.get(self._metric, 1)  # Multiplier 2 converts to required units, default is ms
+        return int((self._entry.get() * m1) / m2)
 
 
 class Font(Editor):

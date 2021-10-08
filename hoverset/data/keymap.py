@@ -20,7 +20,7 @@ class Key:
     def __eq__(self, other):
         if isinstance(other, Key):
             return self._keycodes == other._keycodes
-        elif isinstance(other, int):
+        if isinstance(other, int):
             return other in self._keycodes
         return False
 

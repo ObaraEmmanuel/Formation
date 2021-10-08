@@ -63,9 +63,8 @@ class ResourceLoader(Application):
     def _cache_exists(cls, path):
         if os.path.exists(path):
             return True
-        else:
-            # for windows we may need the extension
-            return os.path.exists(path + ".dat")
+        # for windows we may need the extension
+        return os.path.exists(path + ".dat")
 
     @classmethod
     def _cache_is_stale(cls):
