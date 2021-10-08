@@ -13,11 +13,10 @@ def resize_cursor() -> tuple:
     if platform_is(WINDOWS):
         # Windows provides corner resize cursors so use those
         return "size_nw_se", "size_ne_sw"
-    elif platform_is(LINUX):
+    if platform_is(LINUX):
         return "bottom_right_corner", "bottom_left_corner"
-    else:
-        # Use circles for other platforms
-        return ("circle",)*2
+    # Use circles for other platforms
+    return ("circle",)*2
 
 
 class HighLight:

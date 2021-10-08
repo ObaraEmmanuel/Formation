@@ -68,7 +68,7 @@ def all_supported_cursors() -> tuple:
     """
     if platform_is(MAC):
         return BUILTIN_CURSORS + BUILTIN_CURSORS_MAC
-    elif platform_is(WINDOWS):
+    if platform_is(WINDOWS):
         return BUILTIN_CURSORS + BUILTIN_CURSORS_WINDOWS
     return BUILTIN_CURSORS
 

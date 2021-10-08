@@ -62,9 +62,9 @@ def get_layout_handler(parent_node, parent):
         return _layout_handlers.get(layout)
     if parent.__class__ == ttk.Notebook:
         return set_tab
-    elif parent.__class__ == tk.PanedWindow:
+    if parent.__class__ == tk.PanedWindow:
         return set_pane
-    elif parent.__class__ == ttk.PanedWindow:
+    if parent.__class__ == ttk.PanedWindow:
         return set_pane
 
 

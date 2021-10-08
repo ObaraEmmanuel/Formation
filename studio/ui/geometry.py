@@ -107,8 +107,7 @@ def compute_overlap(bound1, bound2):
     ox1, oy1, ox2, oy2 = max(ax1, bx1), max(ay1, by1), min(ax2, bx2), min(ay2, by2)
     if ox1 < ox2 and oy1 < oy2:
         return ox1, oy1, ox2, oy2
-    else:
-        return None
+    return None
 
 
 def upscale_bounds(bound, widget):

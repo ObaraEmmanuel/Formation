@@ -303,8 +303,7 @@ class CanvasItem(abc.ABC):
             conf = self.canvas.itemconfigure(self._id)
             conf.update(self._extra_conf())
             return conf
-        else:
-            return self.canvas.itemconfigure(self._id, option)
+        return self.canvas.itemconfigure(self._id, option)
 
     def __setitem__(self, key, value):
         self.configure({key: value})
