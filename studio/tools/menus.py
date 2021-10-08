@@ -401,5 +401,5 @@ class MenuTool(BaseTool):
                 ('command', 'Restore', icon('undo', 14, 14), lambda: self.restore(studio.selected), {})),
             EnableIf(
                 lambda: MenuEditor._tool_map,
-                ('command', 'Close all editors', icon('close', 14, 14), lambda: self.close_editors(), {}))
+                ('command', 'Close all editors', icon('close', 14, 14), self.close_editors, {}))
         )

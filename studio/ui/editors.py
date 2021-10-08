@@ -650,12 +650,12 @@ if __name__ == '__main__':
     root.load_styles("../../hoverset/ui/themes/default.css")
     boolean = Boolean(root)
     boolean.pack(side="top")
-    boolean.on_change(lambda x: print(x))
+    boolean.on_change(print)
     boolean.set(True)
 
     relief = Relief(root)
     relief.pack(side="top")
-    relief.on_change(lambda x: print(x))
+    relief.on_change(print)
     relief.set("groove")
 
     cursor = Cursor(root)
@@ -672,31 +672,31 @@ if __name__ == '__main__':
 
     color = Color(root)
     color.pack(side="top")
-    color.on_change(lambda x: print(x))
+    color.on_change(print)
     color.set("#dfdf45")
 
     text = Textarea(root, {})
     text.pack(side="top")
-    text.on_change(lambda x: print(x))
+    text.on_change(print)
     text.set("This is a sample")
 
     number = Number(root, {})
     number.pack(side="top")
-    number.on_change(lambda x: print(x))
+    number.on_change(print)
     number.set(456)
 
     duration = Duration(root, {"units": "ms"})
     duration.pack(side="top")
-    duration.on_change(lambda x: print(x))
+    duration.on_change(print)
     duration.set(456)
 
     anc = Anchor(root, {"units": "ms"})
     anc.pack(side="top")
-    anc.on_change(lambda x: print(x))
+    anc.on_change(print)
     anc.set('nswe')
 
     font = Font(root)
     font.pack(side="top")
-    font.on_change(lambda x: print(x))
+    font.on_change(print)
     font.set("TkDefaultFont")
     root.mainloop()
