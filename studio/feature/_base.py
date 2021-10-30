@@ -5,7 +5,7 @@ from tkinter import StringVar, BooleanVar, TkVersion
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import Frame, Label, Button, MenuButton, PanedWindow
 from hoverset.ui.menu import EnableIf
-from studio.ui.geometry import absolute_position
+from studio.ui.geometry import absolute_position, parse_geometry
 from studio.ui.widgets import SearchBar
 from studio.preferences import Preferences
 
@@ -290,13 +290,13 @@ class BaseFeature(Frame):
         # Allow us to create a hook in the close method of the window manager
         self.bind_close()
         self.title(self.name)
-        self.transient(self.master.window)
         self.geometry('{}x{}+{}+{}'.format(rec[2], rec[3], rec[0], rec[1]))
         self.update_idletasks()
         self.window_handle = self
         self._view_mode.set("window")
         self.set_pref("mode", "window")
         self.studio._adjust_pane(self.pane)
+        self.transient(self.master.window)
         self.save_window_pos()
         if self.focus_get() != self and self.get_pref("inactive_transparency"):
             self.window_handle.wm_attributes('-alpha', 0.3)
@@ -306,13 +306,17 @@ class BaseFeature(Frame):
             if self.winfo_ismapped():
                 self.set_pref("pane::height", self.height)
             return
-        self.set_pref("pos", dict(
-            x=self.winfo_x(),
-            y=self.winfo_y(),
-            width=self.width,
-            height=self.height,
-            initialized=True
-        ))
+        self.update_idletasks()
+        geometry = parse_geometry(self.geometry(), default=0)
+        if geometry:
+            # more accurate
+            # cast geometry values returned to int
+            self.set_pref("pos", dict(
+                {k: int(v) for k, v in geometry.items()},
+                initialized=True
+            ))
+        else:
+            raise Exception("Could not parse window geometry")
 
     def close_window(self):
         if self.window_handle:

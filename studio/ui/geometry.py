@@ -20,6 +20,11 @@ The following modifiers may be used together with the terms described above:
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
 
+import re
+
+# window geometry format '{width}x{height}(+|-){x}(+|-){y}'
+_geometry_regex = re.compile(r"^=?((?P<width>\d+)x(?P<height>\d+))?((?P<x>[+-]\d+)(?P<y>[+-]\d+))?$")
+
 
 def bounds(widget):
     """
@@ -184,3 +189,29 @@ def dimension_to_bounds(x, y, width, height):
         (x1, y1, x2, y2)
     """
     return x, y, x + width, y + height
+
+
+def parse_geometry(geometry, default=None):
+    """
+    Parse a tk geometry string and return a dict with the width, height,
+    x any y extracted from it. The geometry string is usually in the form
+    ``<width>x<height>(-/+)<x>(-/+)<y>`` for instance ``200x200-10+40``.
+    The dimensions part could be missing like in ``+60+67`` or the position
+    part like in ``200x200`` or even both. If any of these parts is missing
+    but the string is valid, the dictionary value will be set to value of
+    ``default``. If an invalid geometry string is provided ``None``
+    will be returned
+
+    :param geometry: Geometry string of the form
+        ``<width>x<height>(-/+)<x>(-/+)<y>``
+    :param default: Default value for when a section of the geometry
+        string is missing
+
+    :return: a dictionary ``{"width": "", "height": "", "x": "", "y": ""}``
+        if geometry string is valid otherwise ``None``. The values returned
+        are strings so you may need to cast them to number yourself
+    """
+    match = _geometry_regex.match(geometry, default)
+    if match:
+        return match.groupdict()
+    return None

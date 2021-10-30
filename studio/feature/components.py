@@ -205,7 +205,7 @@ class ComponentPane(BaseFeature):
         self._search_selector = Label(self._select_pane.body, **self.style.text, text="search", anchor="w")
         self._search_selector.configure(**self.style.hover)
 
-        self._widget_pane = ScrolledFrame(f, width=150, bg="orange")
+        self._widget_pane = ScrolledFrame(f, width=150)
         self._select_pane.body.config(**self.style.surface)
         self._widget_pane.place(relx=0.4, y=0, relwidth=0.6, relheight=1)
 
