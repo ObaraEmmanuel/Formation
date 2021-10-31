@@ -23,7 +23,7 @@ The following modifiers may be used together with the terms described above:
 import re
 
 # window geometry format '{width}x{height}(+|-){x}(+|-){y}'
-_geometry_regex = re.compile(r"^=?((?P<width>\d+)x(?P<height>\d+))?((?P<x>[+-]\d+)(?P<y>[+-]\d+))?$")
+_geometry_regex = re.compile(r"^=?((?P<width>\d+)x(?P<height>\d+))?([+-](?P<x>[+-]?\d+)[+-](?P<y>[+-]?\d+))?$")
 
 
 def bounds(widget):
