@@ -154,7 +154,7 @@ class Designer(DesignPad, Container):
         )
         self._empty.config(**self.style.bright)
         self._show_empty(True)
-        self._text_editor = Text(self, wrap="word")
+        self._text_editor = Text(self, wrap='none')
         self._text_editor.on_change(self._text_change)
         self._text_editor.bind("<FocusOut>", self._text_hide)
 
