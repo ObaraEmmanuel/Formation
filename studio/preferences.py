@@ -220,6 +220,10 @@ templates = {
                     )
                 }
             },
+            {
+                "element": Note,
+                "desc": "(Existing paths will not be affected, Reset the image to take effect)"
+            }
         ),
         "Style pane options": (
             {

@@ -6,6 +6,7 @@ import pickle
 import glob
 import logging
 import tkinter as tk
+import typing
 from pathlib import Path
 from collections import defaultdict
 
@@ -25,6 +26,7 @@ __all__ = (
     "RadioGroup",
     "Number",
     "LabeledScale",
+    "Note"
 )
 
 
@@ -439,6 +441,20 @@ class Check(Component, Checkbutton):
             self.config(state='normal')
 
 
+class Note(Label):
+    """
+    Adds small extra notes between preferences components
+    """
+
+    def __init__(self, parent, desc, **extra):
+        super(Note, self).__init__(parent)
+        # we use separate updates in case there are similar keys
+        cnf = dict(self.style.text_passive, anchor="w")
+        cnf.update(extra)
+        cnf.update(text=desc)
+        self.configure(**cnf)
+
+
 class PreferenceManager(MessageDialog):
     _ignore = ("_layout",  "_scroll")
 
@@ -475,7 +491,7 @@ class PreferenceManager(MessageDialog):
     def _change_category(self, new_category):
         self._load_category(new_category.value)
 
-    def _add_component(self, parent, template) -> Component:
+    def _add_component(self, parent, template) -> typing.Union[Component, None]:
         if isinstance(template, DependentGroup):
             controller = self._add_component(parent, template.controller)
             controller.dependents = [
@@ -484,6 +500,10 @@ class PreferenceManager(MessageDialog):
             controller.allowed_values = list(template.allowed_values)
             controller._update_states()
             return controller
+        elif template["element"] == Note:
+            note = Note(parent, template["desc"], **template.get("extra", {}))
+            note.pack(fill="x", pady=2)
+            return None
 
         element = template["element"](
             parent, self.pref, template["path"],
