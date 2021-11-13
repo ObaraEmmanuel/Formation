@@ -1,5 +1,5 @@
 """
-Contains classes that load formation xml design files and generate user interfaces
+Contains classes that load formation design files and generate user interfaces
 """
 # ======================================================================= #
 # Copyright (c) 2020 Hoverset Group.                                      #
@@ -188,7 +188,7 @@ class CanvasLoaderAdapter(BaseLoaderAdapter):
 
 class Builder:
     """
-    Load xml design into a GUI with all components accessible as attributes
+    Load design file into a GUI with all components accessible as attributes
     To access a widget use its name as set in the designer
 
     :param parent: The parent window where the design widgets are to be loaded
@@ -197,7 +197,7 @@ class Builder:
         * **string**: String of supported format to be used in loading the design
         * **node**: an instance of :py:class:`~formation.formats.Node` from which to load the design directly
         * **format**: an instance of :py:class:`~formation.formats.BaseFormat` to be used in loading the string
-            contents provided by the **string** option
+        contents provided by the **string** option
 
     .. note::
         if the **string** option is used, not providing the **format** option will
@@ -243,7 +243,7 @@ class Builder:
     def _get_adapter(self, widget_class):
         return self._adapter_map.get(widget_class, BaseLoaderAdapter)
 
-    def _load_xml(self, root_node):
+    def _load_node(self, root_node):
         # load variables first
         self._load_variables(root_node, self)
         return self._load_widgets(root_node, self, self._parent)
@@ -269,9 +269,9 @@ class Builder:
     @property
     def path(self):
         """
-        Get absolute path to loaded xml file if available
+        Get absolute path to loaded design file if available
 
-        :return: path to currently loaded xml file if builder was loaded
+        :return: path to currently loaded design file if builder was loaded
             from path else ``None``
         """
         return self._path
@@ -366,28 +366,28 @@ class Builder:
 
     def load_path(self, path):
         """
-        Load xml file
+        Load design file
 
-        :param path: Path to xml file to be loaded
+        :param path: Path to design file to be loaded
         :return: root widget
         """
         self._path = os.path.abspath(path)
         tree = infer_format(path)(path=path)
         tree.load()
-        self._root = self._load_xml(tree.root)
+        self._root = self._load_node(tree.root)
         return self._root
 
-    def load_string(self, xml_string, format_):
+    def load_string(self, content_string, format_):
         """
         Load the builder from a string
 
-        :param xml_string: string containing xml to be loaded
+        :param content_string: string containing serialized design to be loaded
         :param format_: the format class sub-classing :py:class:`~formation.formats.BaseFormat` to be used
         :return: root widget
         """
-        tree = format_(xml_string)
+        tree = format_(content_string)
         tree.load()
-        self._root = self._load_xml(tree.root)
+        self._root = self._load_node(tree.root)
         return self._root
 
     def load_node(self, node: Node):
@@ -397,13 +397,13 @@ class Builder:
         :param node: :py:class:`~formation.formats.Node` to be loaded
         :return: root widget
         """
-        self._root = self._load_xml(node)
+        self._root = self._load_node(node)
         return self._root
 
 
 class AppBuilder(Builder):
     """
-    Subclass of :class:`formation.loader.Builder` that allow opening of xml designs without
+    Subclass of :class:`formation.loader.Builder` that allow opening of designs files without
     toplevel root widget. It automatically creates a toplevel window
     and adapts its size to fit the design perfectly. The underlying toplevel window can
     be accesses as _app. The private accessor underscore is to
@@ -414,9 +414,9 @@ class AppBuilder(Builder):
     :param args: Additional arguments to be passed to underlying toplevel window
     :param kwargs: Keyword arguments to be passed to underlying toplevel window. The arguments allowed are:
 
-      * path: Path to the xml file to be loaded
-      * string: xml string to be loaded
-      * node: :class:`lxml.etree._Element` node to be loaded
+      * path: Path to the design file to be loaded
+      * string: serialized design as string to be loaded
+      * node: :py:class:`~formation.formats.Node` node to be loaded
 
       These arguments are mutually exclusive since design can be loaded from only one format at time.
 
@@ -440,13 +440,13 @@ class AppBuilder(Builder):
 
         super().__init__(self._app, **kwargs)
 
-    def _load_xml(self, root_node):
+    def _load_node(self, root_node):
         layout = root_node.attrib.get("layout", {})
         # Adjust toplevel window size to that of the root widget
         self._app.geometry(
             "{}x{}".format(layout.get("width", 200), layout.get("height", 200))
         )
-        root = super()._load_xml(root_node)
+        root = super()._load_node(root_node)
         root.pack(fill="both", expand=True)
         return root
 

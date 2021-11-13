@@ -17,7 +17,8 @@ other
 [RAD](https://en.wikipedia.org/wiki/Rapid_application_development) tools such as
 [Android Studio's](https://developer.android.com/studio) visual layout editor,
 [PAGE](http://page.sourceforge.net). The XML format used is largely similar to one used by android layout files. It
-currently support both tkinter and it's ttk extension.
+currently supports both tkinter and it's ttk extension. Other file formats other than XML are now supported for instance
+JSON.
 
 ## Getting started
 

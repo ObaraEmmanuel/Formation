@@ -244,8 +244,9 @@ class DesignBuilder:
 
     def generate(self):
         """
-        Convert the current contents of the designer to xml. Note that only
-        the root widget and its child widgets are converted to xml
+        Serialize the current contents of the designer for saving to file. Note
+        that only the root widget and its child widgets are converted to xml. Any
+        other widgets at the root level are ignored and cannot be recovered later
         :return:
         """
         self.root = self.to_tree(self.designer.root_obj)
