@@ -8,6 +8,8 @@ Formation studio
    installation
    quickstart
    component_pane
+   component_tree
+   canvas
 
 .. toctree::
    :maxdepth: 1

@@ -1,0 +1,6 @@
+.. _canvas:
+
+Canvas
+*******
+
+Canvas
