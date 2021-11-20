@@ -608,6 +608,7 @@ class CanvasStyleGroup(StyleGroup):
         self._prev_prop_keys = self.prop_keys
         self.compute_prop_keys()
         super(CanvasStyleGroup, self).on_widget_change(widget)
+        self.style_pane.remove_loading()
 
     def _get_prop(self, prop, widget):
         # not very useful to us
