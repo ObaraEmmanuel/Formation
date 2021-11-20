@@ -27,11 +27,6 @@ class ToolManager:
 
     def initialize(self):
         self._tools = [tool(self.studio, self) for tool in TOOLS]
-        self._templates = self.get_tool_menu(False)
-
-    @property
-    def templates(self):
-        return self._templates
 
     def get_tool_menu(self, hide_unsupported=True):
         """
@@ -70,7 +65,7 @@ class ToolManager:
         parameters, tools that cannot be invoked are disabled
         :return: tuple of menu templates
         """
-        return self._templates
+        return self.get_tool_menu(False)
 
     def install(self, tool):
         if not issubclass(tool, BaseTool):
