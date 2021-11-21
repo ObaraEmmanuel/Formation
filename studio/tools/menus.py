@@ -157,9 +157,10 @@ class MenuEditor(BaseToolWindow):
     # TODO Add style search
     # TODO Handle widget change from the studio main control
     _MESSAGE_EDITOR_EMPTY = "No item selected"
+    _tool_map = {}
 
-    def __init__(self, master, widget, menu=None):
-        super().__init__(master, widget)
+    def __init__(self, tool, widget, menu=None):
+        super().__init__(tool, widget)
         self.title(f'Edit menu for {widget.id}')
         if not isinstance(menu, tk.Menu):
             menu = tk.Menu(widget, tearoff=False)
@@ -373,7 +374,7 @@ class MenuTool(BaseTool):
         MenuEditor.close_all()
 
     def edit(self, widget):
-        editor = MenuEditor.acquire(widget.winfo_toplevel(), widget, widget.nametowidget(widget.cget("menu")))
+        editor = MenuEditor.acquire(self, widget, widget.nametowidget(widget.cget("menu")))
         editor.context = self.studio.context
         MenuTool._editors.add(editor)
 

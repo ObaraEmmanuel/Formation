@@ -24,6 +24,10 @@ class ToolManager:
         self._tools = []
         self.studio = studio
         ToolManager._instance = self
+        self._generic_menu = (
+            ("command", "Close all tool windows", get_icon_image("close", 14, 14), self._close_windows, {}),
+            ("separator", )
+        )
 
     def initialize(self):
         self._tools = [tool(self.studio, self) for tool in TOOLS]
@@ -38,6 +42,8 @@ class ToolManager:
         :return: tuple of menu templates
         """
         templates = ()
+        if not hide_unsupported:
+            templates += self._generic_menu
         manipulator = ShowIf if hide_unsupported else EnableIf
         for tool in self._tools:
             template = tool.get_menu(self.studio)
@@ -85,6 +91,10 @@ class ToolManager:
         # dispatch action to all tools connected
         for tool in self._tools:
             getattr(tool, action)(*args)
+
+    def _close_windows(self):
+        for tool in self._tools:
+            tool.close_windows()
 
     def on_select(self, widget):
         self.dispatch("on_select", widget)

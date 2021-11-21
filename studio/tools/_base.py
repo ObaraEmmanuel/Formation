@@ -11,6 +11,7 @@ class BaseTool:
     def __init__(self, studio, manager):
         self.studio = studio
         self.manager = manager
+        self._window_classes = set()
 
     def get_menu(self, studio):
         """
@@ -31,6 +32,13 @@ class BaseTool:
         :param widget: A tk Widget to be checked
         :return: True if tool can work on the widget otherwise false
         """
+
+    def _register_window_class(self, window_class):
+        self._window_classes.add(window_class)
+
+    def close_windows(self):
+        for window_class in self._window_classes:
+            window_class.close_windows()
 
     def on_select(self, widget):
         pass
@@ -63,10 +71,11 @@ class BaseTool:
 class BaseToolWindow(Window):
     _tool_map = {}
 
-    def __init__(self, master, widget):
-        super().__init__(master)
+    def __init__(self, tool, widget):
+        super().__init__(tool.studio)
+        self.tool = tool
         self.widget = widget
-        self.transient(master)
+        self.transient(tool.studio)
         self.config(**self.style.surface)
 
     @classmethod
@@ -77,7 +86,7 @@ class BaseToolWindow(Window):
 
     def destroy(self):
         """
-        Release an existing MenuEditor allowing a new one to
+        Release an existing tool window allowing a new one to
         be spawned next time.
         :return: None
         """
@@ -86,21 +95,28 @@ class BaseToolWindow(Window):
         super().destroy()
 
     @classmethod
-    def acquire(cls, master, widget, *args, **kwargs):
+    def close_windows(cls):
+        for window in list(cls._tool_map.values()):
+            window.destroy()
+        cls._tool_map.clear()
+
+    @classmethod
+    def acquire(cls, tool, widget, *args, **kwargs):
         """
         To avoid opening multiple tools for the same widget use this
         constructor. It will either create an editor for the widget if none exists or bring
         an existing editor to focus.
-        :param master: tk toplevel window
-        :param widget: menu supporting widget
-        :return: a MenuEditor instance
+        :param tool: :py:class:`~BaseTool` instance responsible for the window
+        :param widget: a studio widget
+        :return: created :py:class:`~BaseToolWindow` instance
         """
         if widget in cls._tool_map:
-            tool = cls._tool_map[widget]
-            tool.lift()
-            tool.focus_set()
+            tool_window = cls._tool_map[widget]
+            tool_window.lift()
+            tool_window.focus_set()
         else:
             # noinspection PyArgumentList
-            tool = cls(master, widget, *args, **kwargs)
-            cls._tool_map[widget] = tool
-        return tool
+            tool_window = cls(tool, widget, *args, **kwargs)
+            tool._register_window_class(cls)
+            cls._tool_map[widget] = tool_window
+        return tool_window
