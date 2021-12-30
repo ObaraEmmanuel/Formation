@@ -60,10 +60,10 @@ class StudioApplication(Application):
         self._register_actions()
         self._toolbar = Frame(self, **self.style.surface, height=30)
         self._toolbar.pack(side="top", fill="x")
-        self._toolbar.pack_propagate(0)
+        self._toolbar.pack_propagate(False)
         self._statusbar = Frame(self, **self.style.surface, height=20)
         self._statusbar.pack(side="bottom", fill="x")
-        self._statusbar.pack_propagate(0)
+        self._statusbar.pack_propagate(False)
         body = Frame(self, **self.style.surface)
         body.pack(fill="both", expand=True, side="top")
         self._right_bar = SideBar(body)
@@ -131,6 +131,7 @@ class StudioApplication(Application):
             ("command", "delete", icon("delete", 14, 14), actions.get('STUDIO_DELETE'), {}),
         ),)
 
+        # noinspection PyTypeChecker
         self.menu_bar = MenuUtils.make_dynamic(
             ((
                  ("cascade", "formation", None, None, {"menu": (

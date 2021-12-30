@@ -5,11 +5,13 @@ from hoverset.ui.icons import get_icon_image
 from studio.tools.menus import MenuTool
 from studio.tools.canvas import CanvasTool
 from studio.tools._base import BaseTool
+from studio.tools.scrollbar import ScrollbarTool
 
 
 TOOLS = (
     MenuTool,
-    CanvasTool
+    CanvasTool,
+    ScrollbarTool
 )
 
 

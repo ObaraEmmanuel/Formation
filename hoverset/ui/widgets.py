@@ -325,6 +325,7 @@ class EditableMixin:
 
         :param flag: set to ``True`` to disable and ``False`` to enable
         """
+        self._state = not flag
         if flag:
             self.config(state='disabled')
         else:
@@ -618,6 +619,7 @@ class Widget:
         self._tooltip_win = None
         self._tooltip_bound = False
         self._tooltip_delay = 1500
+        self._state = True
 
     @property
     def allow_drag(self):
@@ -772,10 +774,14 @@ class Widget:
         :return:
         """
         # clean the styles so we don't end up setting state to a widget that does not support it
+        self._state = not flag
         if flag:
             self.config(**clean_styles(self, {"state": tk.DISABLED}))
         else:
             self.config(**clean_styles(self, {"state": tk.NORMAL}))
+        for child in self.winfo_children():
+            if isinstance(child, Widget):
+                child.disabled(flag)
 
     @staticmethod
     def containing(x, y, widget):
@@ -1018,14 +1024,19 @@ class ContainerMixin:
             else:
                 child.bind_all(sequence, func, add)
 
-    def on_click(self, callback, *args, **kwargs):
+    def _bind_click(self):
         self.bind_all('<Button-1>', self._click)
         self.bind_all("<Return>", self._click)
+        self._click_bound = True
+
+    def on_click(self, callback, *args, **kwargs):
+        if not hasattr(self, "_click_bound"):
+            self._bind_click()
         self._on_click = lambda event: callback(event, *args, **kwargs)
 
     def _click(self, event):
-        self.focus_set()
-        if self._on_click is not None:
+        # self.focus_set()
+        if self._on_click is not None and self._state:
             self._on_click(event)
 
     def config_all(self, **cnf):
@@ -1578,30 +1589,19 @@ class Button(Frame):
         # Use the hoverset Label which has additional automatic image caching capabilities
         self._label = Label(self)
         self._label.pack(fill="both", expand=True)
+        self._on_click = None
         self.config(**cnf)
         self.pack_propagate(False)
+
+    def _bind_click(self):
+        super()._bind_click()
+        self.bind_all("<space>", self._click)
 
     def auto_width(self):
         self.pack_propagate(True)
 
     def measure_text(self, text):
         return FontStyle(family=self._label["font"]).measure(text)
-
-    def on_click(self, callback, *args, **kwargs):
-        """
-        A more elaborate event binding that binds mouse clicks, return button and
-        space button useful for mouse free operation. The callback should accept
-        an event argument.
-
-        :param callback: callback function to be bound
-        :param args: arguments to be passed to callback
-        :param kwargs: keyword arguments to be passed to callback
-        """
-        if callback is None:
-            return
-        self.bind_all("<Button-1>", lambda e: callback(e, *args, **kwargs))
-        self.bind_all("<Return>", lambda e: callback(e, *args, **kwargs))
-        self.bind_all("<space>", lambda e: callback(e, *args, **kwargs))
 
     def config(self, **cnf):
         if not cnf:
@@ -1696,8 +1696,8 @@ class ToggleButton(Button):
         self.config_all(**self.style.surface)
         self._selected = False
 
-    def on_click(self, callback, *args, **kwargs):
-        super().on_click(callback, *args, **kwargs)
+    def _bind_click(self):
+        super()._bind_click()
         self.bind_all("<Button-1>", self.toggle, '+')
 
     def on_change(self, func, *args, **kwargs):
@@ -1824,7 +1824,8 @@ class RadioButtonGroup(Frame):
             button = self._pool.pop(0)
         else:
             # create a new radio button since pool is empty
-            button = RadioButton(self)
+            # use space as tristate value to keep the button unchecked initially
+            button = RadioButton(self, tristatevalue=' ')
         button.config(value=value, text=desc, variable=self._var)
         button.pack(side=tk.TOP, fill=tk.X, padx=10)
         self._radio_buttons.append(button)
@@ -1853,12 +1854,6 @@ class RadioButtonGroup(Frame):
         :return: value of the current option
         """
         return self._var.get()
-
-    def disabled(self, flag: bool) -> None:
-        super().disabled(flag)
-        self._label.disabled(flag)
-        for button in self._radio_buttons:
-            button.disabled(flag)
 
     def set(self, value, silent=False):
         """
@@ -2330,10 +2325,11 @@ class Spinner(Frame):
     __icons_loaded = False
     EXPAND = None
     COLLAPSE = None
+    EXPAND_DISABLED = None
 
     def __init__(self, master=None, **_):
         super().__init__(master)
-        self._load_images()
+        self._load_images(self)
         self._button = Button(
             self, **self.style.button,
             image=self.EXPAND,
@@ -2355,10 +2351,13 @@ class Spinner(Frame):
         self.dropdown_height = 150
 
     @classmethod
-    def _load_images(cls):
+    def _load_images(cls, instance):
         if cls.__icons_loaded:
             return
         cls.EXPAND = get_icon_image("triangle_down", 14, 14)
+        cls.EXPAND_DISABLED = get_icon_image(
+            "triangle_down", 14, 14, color=instance.style.colors["primarydarkaccent"]
+        )
         cls.COLLAPSE = get_icon_image("triangle_up", 14, 14)
         cls.__icons_loaded = True
 
@@ -2465,7 +2464,12 @@ class Spinner(Frame):
         self._popup()
 
     def disabled(self, flag):
-        self._entry.disabled(flag)
+        super().disabled(flag)
+        if flag:
+            # use normal state to avoid the default disabled stipple
+            self._button.config(image=self.EXPAND_DISABLED, state='normal')
+        else:
+            self._button.config(image=self.EXPAND)
 
     def get(self):
         if self._value_item is None:
