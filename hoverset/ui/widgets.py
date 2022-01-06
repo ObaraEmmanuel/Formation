@@ -3300,7 +3300,7 @@ class TabView(Frame):
         index = len(self._tab_order) if index is None else index
         self._tab_order.insert(index, tab)
         self.render_tabs()
-        tab._allow_drag = self._malleable
+        tab.allow_drag = self._malleable
         self.event_generate("<<TabAdded>>")
         return tab
 
@@ -3385,5 +3385,11 @@ if __name__ == "__main__":
     # test
     r = Application()
     r.load_styles("themes/default.css")
-    Label(r, **r.style.text, text="this works").place(x=0, y=0, width=200, height=200)
+    tab = TabView(r)
+    tab.add(Frame(tab, bg="orange", width=400, height=400), text="tab 1", closeable=True)
+    tab.add(Frame(tab, bg="orange", width=400, height=400), text="tab 3", closeable=True)
+    tab.add(Frame(tab, bg="orange", width=400, height=400), text="tab 2", closeable=True)
+    tab.malleable(True)
+    tab.pack()
+    # Label(r, **r.style.text, text="this works").place(x=0, y=0, width=200, height=200)
     r.mainloop()
