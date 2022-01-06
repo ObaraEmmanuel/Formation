@@ -26,7 +26,7 @@ from hoverset.ui.animation import Animate, Easing
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.styles import StyleDelegator
 from hoverset.ui.windows import DragWindow
-from hoverset.ui.menu import MenuUtils
+from hoverset.ui.menu import MenuUtils, LoadLater
 import hoverset.ui
 
 __all__ = (
@@ -650,12 +650,17 @@ class Widget:
             # Event is of Motion type
             if event.state & EventMask.MOUSE_BUTTON_1 and self.window.drag_window is None:
                 self.window.drag_context = self
-                self.window.drag_window = DragWindow(self.window)
+                self.window.drag_window = DragWindow(self.window, **self.style.surface)
                 self.render_drag(self.window.drag_window)
-                self.window.drag_window.set_position(event.x_root, event.y_root)
+                self.window.drag_pos = event.x_root, event.y_root
+                self.window.drag_window.set_position(*self.drag_start_pos())
                 self.on_drag_start(event)
             elif self.window.drag_window is not None:
-                self.window.drag_window.set_position(event.x_root, event.y_root)
+                x, y = self.window.drag_pos
+                delta_x, delta_y = event.x_root - x, event.y_root - y
+                self.window.drag_window.move(delta_x, delta_y)
+                self.window.drag_pos = event.x_root, event.y_root
+                self.on_drag(event)
         elif event.type.value == "5":
             # Event is of Button release type so end drag
             if self.window.drag_window:
@@ -665,6 +670,7 @@ class Widget:
                 event_position = self.event_first(event, self, Widget)
                 if isinstance(event_position, Widget):
                     event_position.accept_context(self.window.drag_context)
+                self.on_drag_end(event)
                 self.window.drag_context = None
 
     def accept_context(self, context):
@@ -687,7 +693,30 @@ class Widget:
         tk.Label(window, text="Item", bg="#f7f7f7").pack()  # Default render
 
     def on_drag_start(self, *args):
+        """
+        Called whe the widget is first dragged
+        """
         pass
+
+    def on_drag_end(self, event):
+        """
+        Called when widget is dropped and dragging ends
+        """
+        pass
+
+    def on_drag(self, event):
+        """
+        Called when widget is dragged. This is called on each motion event so
+        it's best to keep computation in this function at a minimum
+        """
+        pass
+
+    def drag_start_pos(self):
+        """
+        Override and return the preferred drag start position as a tuple (x, y).
+        Default is the current widget position
+        """
+        return self.winfo_rootx(), self.winfo_rooty()
 
     def config_all(self, cnf=None, **kwargs):
         """
@@ -1032,6 +1061,7 @@ class WindowMixin(_MouseWheelDispatcherMixin):
         self._on_focus_lost = None
         self.drag_context = None
         self.drag_window = None
+        self.drag_pos = (0, 0)
         # This normally fails for non-toplevel like frame and labelframe so lets wrap
         # This can however be re-enacted by the bind_close method when the frame is ready
         try:
@@ -1386,6 +1416,7 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
         self.bind_all("<Button-5>", self._on_mousewheel, '+')
         self.drag_context = None
         self.drag_window = None
+        self.drag_pos = (0, 0)
         # Load default styles
         self.load_styles(get_resource_path(
             hoverset.ui, "themes/default.css"
@@ -3089,50 +3120,218 @@ class TabView(Frame):
     class Tab(Frame):
         def __init__(self, master, **cnf):
             super().__init__(master.tab_control)
-            self._controller = master
-            tab_style = dict(self.style.text)
-            tab_style.update(cnf)
-            self._label = Label(self, **tab_style, padx=10)
-            self._label.pack(side="top", fill="x")
-            self._highlight = Frame(self, height=2, **self.style.surface)
-            self._highlight.pack(side="top", fill="x")
+            self.configure(**self.style.surface)
+            self._controller: TabView = master
+            self.icon = cnf.get("icon")
+            self.text = cnf.get("text")
+            self._closeable = cnf.get("closeable", False)
+            self._label = Label(
+                self, **self.style.text, compound="left",
+                text=self.text, image=self.icon, padx=10,
+                **self.style.no_highlight,
+            )
+            self._label.grid(row=0, column=0, sticky='ew')
+            self._close_btn = Button(
+                self, **self.style.button,
+                width=25, padx=4,
+                image=get_icon_image("close", 14, 14),
+            )
+            self._close_btn.on_click(self._close_tab)
+            self._close_btn.config_all(**self.style.no_highlight)
+            self._show_close()
+            self._highlight = Frame(self, height=3, **self.style.surface)
+            self._highlight.grid(row=1, column=0, columnspan=2, sticky='ew')
             self._label.bind("<Button-1>", lambda e: self._controller.select(self))
+            self._placeholder = Frame(self, **self.style.hover)
+
+        def config_tab(self, **cnf):
+            self.icon = cnf.get("icon", self.icon)
+            self.text = cnf.get("text")
+            self._closeable = cnf.get("closeable", self._closeable)
+            self._label.config(image=self.icon, text=self.text)
+            self._show_close()
+
+        def render_drag(self, window):
+            label = Label(
+                window, **self.style.text, compound="left",
+                text=self.text, image=self.icon, padx=10
+            )
+            label.pack(side="top", fill="x")
+            frame = Frame(window, height=3, **self.style.accent)
+            frame.pack(side="top", fill="x")
+
+        def on_drag(self, event):
+            self._controller._tab_drag(event)
+
+        def on_drag_end(self, event):
+            self._controller._tab_drag_end()
+
+        def on_drag_start(self, *args):
+            self._controller._tab_drag_start(self)
 
         def on_select(self):
             self._highlight.config(**self.style.accent)
             self._label.config(**self.style.hover)
+            self._close_btn.config(**self.style.hover)
 
         def on_deselect(self):
             self._highlight.config(**self.style.surface)
             self._label.config(**self.style.surface)
+            self._close_btn.config(**self.style.surface)
 
-    def __init__(self, master):
-        super().__init__(master)
-        self.tab_control = Frame(self, **self.style.surface)
-        self.tab_control.pack(side="top", fill="x")
+        def _block(self):
+            self._placeholder.place(x=0, y=0, relwidth=1, relheight=1)
+
+        def _unblock(self):
+            self._placeholder.place_forget()
+
+        def _show_close(self):
+            if self._closeable:
+                self._close_btn.grid(row=0, column=1, sticky='ns')
+            else:
+                self._close_btn.grid_forget()
+
+        def _close_tab(self, _):
+            self._controller.remove(self)
+
+    def __init__(self, master, **cnf):
+        super().__init__(master, **cnf)
+        self._top_strip = Frame(self, **self.style.surface)
+        self._top_strip.pack(side="top", fill="x")
+        self._overflow = MenuButton(self._top_strip, **self.style.button, padx=5)
+        self._overflow.configure(image=get_icon_image("chevron_down", 14, 14))
+        self._overflow.menu = MenuUtils.make_dynamic((LoadLater(self._get_overflow_menu), ), self._overflow, self.style)
+        self._overflow.configure(menu=self._overflow.menu)
+        self.tab_control = Frame(self._top_strip, **self.style.surface)
+        self.tab_control.pack(fill="x", side="left")
+        self.bind("<Configure>", self._update_overflow)
+        self.bind("<Visibility>", self._update_overflow)
         self.body = Frame(self, **self.style.surface)
         self.body.pack(fill="both")
         self._tabs = {}
+        self._tab_order = []
         self._selected = None
+        self._malleable = False
+        self._active_tab = None
+        self._starting_index = None
+        self._block_close = False
 
-    def _show(self, tab):
-        tab.pack(side="left", fill="y")
+    def _tab_drag_start(self, tab):
+        tab._block()
+        self._active_tab = tab
+        self._starting_index = self.index(tab)
 
-    def add(self, widget, **cnf):
+    def _tab_drag(self, event):
+        if self._active_tab is None:
+            return
+        # convert to relative positions
+        x, y = (
+            event.x_root - self.tab_control.winfo_rootx(),
+            0
+        )
+        col, _ = self.tab_control.grid_location(x, y)
+        self._tab_order.remove(self._active_tab)
+        self._tab_order.insert(col, self._active_tab)
+        self.render_tabs()
+
+    def _tab_drag_end(self):
+        self._active_tab._unblock()
+        if self.index(self._active_tab) != self._starting_index:
+            self.event_generate("<<TabOrderChanged>>")
+        self._starting_index = None
+        self._active_tab = None
+
+    def _get_overflow(self):
+        threshold = self.tab_control.winfo_rootx() + self.tab_control.winfo_width()
+        return [t for t in self._tab_order if t.winfo_rootx() >= threshold]
+
+    def _get_overflow_menu(self):
+        return [
+            (
+                "command", t.text, t.icon,
+                self._make_visible(t),
+                self.style.accent if self._selected == t else {}
+            )
+            for t in self._get_overflow()]
+
+    def _update_overflow(self, _=None):
+        threshold = self.tab_control.winfo_rootx() + self.tab_control.winfo_width()
+        if self._tab_order and self._tab_order[-1].winfo_rootx() >= threshold:
+            self._overflow.lift()
+            self._overflow.place(relx=1, x=-25, relheight=1, width=25)
+        else:
+            self._overflow.place_forget()
+
+    def _make_visible(self, tab):
+        def func():
+            last_index = max(0, len(self._tab_order) - len(self._get_overflow()) - 2)
+            if last_index >= 0:
+                self._tab_order.remove(tab)
+                self._tab_order.insert(last_index, tab)
+                self.event_generate("<<TabOrderChanged>>")
+                self.render_tabs()
+                self.select(tab)
+        return func
+
+    def malleable(self, flag):
+        self._malleable = flag
+        for tab in self._tabs:
+            tab.allow_drag = flag
+
+    def render_tabs(self):
+        for index, tab in enumerate(self._tab_order):
+            tab.grid(row=0, column=index, sticky='ns')
+
+    def add(self, widget, index=None, **cnf):
         tab = self.Tab(self, **cnf)
-        self._show(tab)
         self._tabs[tab] = widget
         if len(self._tabs) == 1:
             self.select(tab)
+        index = len(self._tab_order) if index is None else index
+        self._tab_order.insert(index, tab)
+        self.render_tabs()
+        tab._allow_drag = self._malleable
+        self.event_generate("<<TabAdded>>")
         return tab
 
+    def remove(self, tab):
+        self.event_generate("<<TabClosed>>")
+        if self._block_close:
+            # clear flag to allow closing next time
+            self._block_close = False
+            return
+        if tab in self._tabs:
+            if self._selected == tab:
+                if len(self._tab_order) > 1:
+                    index = self.index(tab)
+                    new_select = self._tab_order[index + 1] if index == 0 else self._tab_order[index - 1]
+                    self.select(new_select)
+                else:
+                    # no more tabs left
+                    self._selected = None
+            tab.grid_forget()
+            self._tab_order.remove(tab)
+            self._tabs.pop(tab)
+            self.render_tabs()
+            self._update_overflow()
+
+    def block_close(self, flag):
+        # just in case we need to stop a tab from closing externally
+        self._block_close = flag
+
+    def index(self, tab):
+        return self._tab_order.index(tab)
+
     def select(self, tab):
+        if self._selected == tab:
+            return
         if self._selected:
             self._tabs[self._selected].pack_forget()
             self._selected.on_deselect()
         self._tabs[tab].pack(fill="both", expand=True)
         tab.on_select()
         self._selected = tab
+        self.event_generate("<<TabSelectionChanged>>")
 
 
 class Text(Widget, tk.Text):
@@ -3173,22 +3372,8 @@ class Text(Widget, tk.Text):
 
 
 if __name__ == "__main__":
+    # test
     r = Application()
     r.load_styles("themes/default.css")
-    frame = Frame(r, bg="#5a5a5a", width=300, height=400)
-    frame.pack(fill="both", expand=True)
-
-
-    class CompoundItem(CompoundList.BaseItem):
-
-        def render(self):
-            Label(self, **self.style.text_accent_1, text=self.value).pack(side="top", anchor="w")
-            Label(self, **self.style.text, text=len(self.value)).pack(side="top", anchor="w")
-
-
-    box = CompoundList(frame)
-    box.pack(fill="both", expand=True)
-    box.set_item_class(CompoundItem)
-    box.set_values(["this", "are", "samples", "its", "the", "dawn", "of", "a", "new", "era"])
-    box.set_mode(CompoundList.MULTI_MODE)
+    Label(r, **r.style.text, text="this works").place(x=0, y=0, width=200, height=200)
     r.mainloop()
