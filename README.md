@@ -6,7 +6,6 @@
 ![python version](https://img.shields.io/badge/python-3.6+-blue.svg)
 ![platforms](https://img.shields.io/badge/Platforms-Linux%20|%20Windows%20|%20Mac%20(partial)-purple.svg)
 [![Documentation Status](https://readthedocs.org/projects/formation-studio/badge/?version=latest)](https://formation-studio.readthedocs.io/en/latest/?badge=latest)
-![lines of code](https://img.shields.io/tokei/lines/github/obaraEmmanuel/Formation)
 ## Introduction
 
 **Formation studio** is a tool that makes developing User interfaces in python a breeze. It allows developers to focus
