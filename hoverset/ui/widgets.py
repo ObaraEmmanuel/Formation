@@ -1407,6 +1407,16 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
 
     def __init__(self, *args, **kwargs):
         Widget.s_window = self  # Window dependency set
+        # set DPI awareness for process
+        if platform_is(WINDOWS):
+            import ctypes
+            try:
+                # should work from windows vista
+                ctypes.windll.user32.SetProcessDPIAware()
+            except Exception:
+                # probably already set
+                pass
+
         super().__init__(*args, **kwargs)
         self.position_ref = Screen(self)
         self.enable_centering()
