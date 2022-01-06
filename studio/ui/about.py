@@ -33,7 +33,7 @@ class About(Frame):
 
         Label(self, text="Make designing user interfaces in python a breeze!",
               **self.style.text).pack(side="top", fill="y", pady=5)
-        copy_right = "Copyright © 2019-2021 Hoverset group"
+        copy_right = "Copyright © 2019-2022 Hoverset group"
         Label(self, text=copy_right, **self.style.text_passive).pack(side="top", fill="y")
         self.pack(fill="both", expand=True)
 
