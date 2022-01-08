@@ -6,6 +6,7 @@ Contains classes that load formation design files and generate user interfaces
 # ======================================================================= #
 import logging
 import os
+import warnings
 from collections import defaultdict
 from importlib import import_module
 import tkinter as tk
@@ -13,6 +14,7 @@ import tkinter.ttk as ttk
 
 from formation.formats import Node, BaseAdapter, infer_format
 from formation.handlers import dispatch_to_handlers
+import formation
 
 logger = logging.getLogger(__name__)
 
@@ -215,7 +217,8 @@ class Builder:
     _ignore_tags = (
         *_menu_item_types,
         "event",
-        "grid"
+        "grid",
+        "meta"
     )
 
     def __init__(self, parent, **kwargs):
@@ -229,6 +232,7 @@ class Builder:
         self._command_map = []
         self._root = None
         self._path = None
+        self._meta = {}
 
         if kwargs.get("path"):
             self.load_path(kwargs.get("path"))
@@ -244,7 +248,9 @@ class Builder:
         return self._adapter_map.get(widget_class, BaseLoaderAdapter)
 
     def _load_node(self, root_node):
-        # load variables first
+        # load meta and variables first
+        self._load_meta(root_node, self)
+        self._verify_version()
         self._load_variables(root_node, self)
         return self._load_widgets(root_node, self, self._parent)
 
@@ -252,6 +258,21 @@ class Builder:
         for sub_node in node:
             if sub_node.is_var():
                 VariableLoaderAdapter.load(sub_node, builder)
+
+    def _verify_version(self):
+        if self._meta.get("version"):
+            _, major, __ = formation.__version__.split(".")
+            if major < self._meta["version"].get("major", 0):
+                warnings.warn(
+                    "You are loading a design from a higher version of formation "
+                    "and some features may not be supported. Update your formation loader"
+                )
+
+    def _load_meta(self, node, builder):
+        for sub_node in node:
+            if sub_node.type == 'meta' and sub_node.attrib.get('name'):
+                meta = dict(sub_node.attrib)
+                builder._meta[meta.pop('name')] = meta
 
     def _load_widgets(self, node, builder, parent):
         adapter = self._get_adapter(BaseLoaderAdapter._get_class(node))

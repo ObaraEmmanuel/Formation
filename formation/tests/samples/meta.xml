@@ -1,0 +1,5 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tkinter.Frame xmlns:attr="http://www.hoversetformationstudio.com/styles/" xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="Frame_1" attr:layout="place" layout:width="337" layout:height="208" layout:x="36" layout:y="27">
+  <meta major="3" minor="1" name="version"/>
+  <tkinter.ttk.Label name="Label_1" attr:anchor="center" attr:text="Meta Loading Test" layout:width="262" layout:height="134" layout:x="35" layout:y="35" layout:bordermode="outside"/>
+</tkinter.Frame>

@@ -16,6 +16,7 @@ from studio.lib.pseudo import Container, PseudoWidget
 from studio.lib.events import make_event
 from studio.lib.layouts import GridLayoutStrategy
 from studio.preferences import Preferences
+import studio
 
 pref = Preferences.acquire()
 
@@ -227,12 +228,14 @@ class DesignBuilder:
     _ignore_tags = (
         *MENU_ITEM_TYPES,
         "event",
-        "grid"
+        "grid",
+        "meta"
     )
 
     def __init__(self, designer):
         self.designer = designer
         self.root = None
+        self.metadata = {}
 
     @classmethod
     def add_adapter(cls, adapter, *obj_classes):
@@ -249,16 +252,27 @@ class DesignBuilder:
         other widgets at the root level are ignored and cannot be recovered later
         :return:
         """
-        self.root = self.to_tree(self.designer.root_obj)
+        adapter = self.get_adapter(self.root.__class__)
+        self.root = adapter.generate(self.designer.root_obj, None)
+        # load meta and variables first
+        self._meta_to_tree(self.root)
         self._variables_to_tree(self.root)
+        self.to_tree(self.designer.root_obj, with_node=self.root)
 
     def get_adapter(self, widget_class):
         return self._adapter_map.get(widget_class, BaseStudioAdapter)
 
     def load(self, path, designer):
         self.root = infer_format(path)(path=path).load()
+        self._load_meta(self.root)
         self._load_variables(self.root)
         return self._load_widgets(self.root, designer, designer)
+
+    def _load_meta(self, node):
+        for sub_node in node:
+            if sub_node.type == 'meta' and sub_node.attrib.get('name'):
+                meta = dict(sub_node.attrib)
+                self.metadata[meta.pop('name')] = meta
 
     def _load_variables(self, node):
         for sub_node in node:
@@ -295,16 +309,20 @@ class DesignBuilder:
             self._load_widgets(sub_node, designer, widget)
         return widget
 
-    def to_tree(self, widget, parent=None):
+    def to_tree(self, widget, parent=None, with_node=None):
         """
         Convert a PseudoWidget widget and its children to a node
         :param widget: widget to be converted to an xml node
         :param parent: The intended xml node to act as parent to the created
+        :param with_node: This node will be used as starting point and no node
+            will be created from widget
         xml node
         :return: the widget converted to a :class:Node instance.
         """
-        adapter = self.get_adapter(widget.__class__)
-        node = adapter.generate(widget, parent)
+        node = with_node
+        if node is None:
+            adapter = self.get_adapter(widget.__class__)
+            node = adapter.generate(widget, parent)
         if isinstance(widget, Container):
             for child in widget._children:
                 self.to_tree(child, node)
@@ -314,6 +332,19 @@ class DesignBuilder:
         variables = VariablePane.get_instance().variables
         for var_item in variables:
             VariableStudioAdapter.generate(var_item, parent)
+
+    def _gen_meta_node(self, name, parent, **data):
+        node = Node(
+            parent,
+            'meta',
+            dict(data, name=name)
+        )
+        return node
+
+    def _meta_to_tree(self, parent):
+        # load all required meta here
+        _, major, minor = studio.__version__.split(".")
+        self._gen_meta_node("version", parent, major=major, minor=minor)
 
     def write(self, path):
         """

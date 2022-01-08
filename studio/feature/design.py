@@ -23,6 +23,7 @@ from studio.parsers.loader import DesignBuilder
 from studio.ui import geometry
 from studio.ui.highlight import HighLight
 from studio.ui.widgets import DesignPad, CoordinateIndicator
+import studio
 
 from formation.formats import get_file_types
 
@@ -279,6 +280,20 @@ class Designer(DesignPad, Container):
         self.objects.clear()
         self.root_obj = None
 
+    def _verify_version(self):
+        if self.builder.metadata.get("version"):
+            _, major, __ = studio.__version__.split(".")
+            if major < self.builder.metadata["version"].get("major", 0):
+                MessageDialog.show_warning(
+                    parent=self.studio,
+                    message=(
+                        "Design was made using a higher version of the studio. \n"
+                        "Some features may not be supported on this version. \n"
+                        "Update to a new version of Formation for proper handling. \n"
+                        "Note that saving may irreversibly strip off any unsupported features"
+                    )
+                )
+
     @as_thread
     def _load_design(self, path, progress=None):
         # Loading designs is elaborate so better do it on its own thread
@@ -292,6 +307,7 @@ class Designer(DesignPad, Container):
         finally:
             if progress:
                 progress.destroy()
+            self._verify_version()
 
     def save(self, new_path=False):
         if not self.design_path or new_path:

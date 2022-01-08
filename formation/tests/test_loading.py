@@ -114,5 +114,16 @@ class WidgetCreationTestCase(unittest.TestCase):
                 self.assertIsInstance(widget, widget_class, "creation failed: " + widget_class.__name__)
 
 
+class MetaLoadingTestCase(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.builder = AppBuilder(path=get_resource("meta.xml"))
+
+    def test_meta_loading(self):
+        self.assertEqual(self.builder._meta["version"]["major"], "3")
+        self.assertEqual(self.builder._meta["version"]["minor"], "1")
+
+
 if __name__ == '__main__':
     unittest.main()
