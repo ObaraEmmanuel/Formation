@@ -600,7 +600,7 @@ class StudioApplication(Application):
                     return False
             if not self.tool_manager.on_app_close():
                 return False
-            self.destroy()
+            self.quit()
             return True
         except Exception:
             self._exit_failures += 1
