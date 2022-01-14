@@ -2230,16 +2230,20 @@ class CompoundList(ScrolledFrame):
 
     def set_values(self, values):
         """
-        Set the values to be displayed by the list box
+        Set the values to be displayed by the list box. Clears current values.
+        to add new values use ``add_values``
 
         :param values: an iterable containing the item values to be displayed
         """
+        self.body.clear_children()
+        self._items.clear()
+        self._current_indices.clear()
         self._values = values
         self._render(values)
 
     def _render(self, values):
-        for i in range(len(values)):
-            item = self._cls(self, values[i], i)
+        for i, val in enumerate(values, start=len(self._items)):
+            item = self._cls(self, val, i)
             self._items.append(item)
             item.pack(side="top", fill="x", pady=1)
             item.update_idletasks()
