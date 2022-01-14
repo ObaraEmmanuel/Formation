@@ -13,6 +13,8 @@ import functools
 import errno
 import os
 import sys
+import importlib.util
+import pathlib
 from hoverset.platform import platform_is, WINDOWS, MAC
 
 if platform_is(WINDOWS):
@@ -243,3 +245,16 @@ def is_admin():
     return os.getuid() == 0
 
 # ----------------------------------------------------------------------
+
+
+def import_path(path):
+    """
+    Import/Re-import python module from path
+    """
+    path = pathlib.Path(path).resolve()
+    spec = importlib.util.spec_from_file_location(path.stem, path)
+    module = importlib.util.module_from_spec(spec)
+    if str(path.parent) not in sys.path:
+        sys.path.append(str(path.parent))
+    spec.loader.exec_module(module)
+    return module
