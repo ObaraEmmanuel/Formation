@@ -31,6 +31,7 @@ defaults = {
         "smoothness": 3,
         "use_undo_depth": True,
         "undo_depth": 30,
+        "custom_widget_paths": []
     },
     "features": {},
     "hotkeys": {},

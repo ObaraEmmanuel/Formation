@@ -13,6 +13,7 @@ from collections import defaultdict
 from hoverset.data.utils import make_path
 from hoverset.data.images import get_tk_image
 from hoverset.data.actions import get_routine
+from hoverset.ui.icons import get_icon_image as icon
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.widgets import *
 
@@ -26,7 +27,8 @@ __all__ = (
     "RadioGroup",
     "Number",
     "LabeledScale",
-    "Note"
+    "Note",
+    "ListControl"
 )
 
 
@@ -379,6 +381,7 @@ class Number(Component, Frame):
         self._label.pack(side="left")
         self.editor = SpinBox(self, **{**self.style.spinbox, **extra})
         self.editor.pack(side="left", padx=5)
+        self.editor.on_entry(self._change)
         self.load(pref, path)
 
     def disable(self, flag):
@@ -453,6 +456,61 @@ class Note(Label):
         cnf.update(extra)
         cnf.update(text=desc)
         self.configure(**cnf)
+
+
+class ListControl(Component, Frame):
+
+    def __init__(self, master, pref, path, desc, **extra):
+        super(ListControl, self).__init__(master)
+        self.configure(**self.style.surface)
+        self._label = Label(
+            self, text=desc, **self.style.text, anchor='w', pady=15
+        )
+        self._label.pack(fill="x", side="top")
+        self._ctrl_bar = Frame(self, **self.style.surface, height=25)
+        self._ctrl_bar.pack(fill="x", side="top", pady=4)
+        self._add_btn = self.create_action(icon("add", 20, 20), self.on_add)
+        self._remove_btn = self.create_action(icon("delete", 20, 20), self._remove)
+        self._list = CompoundList(self)
+        self._list.pack(fill="both", expand=True, side="top")
+        self.load(pref, path)
+
+    def create_action(self, icon_image, command, text=None):
+        button = Button(
+            self._ctrl_bar, width=25, height=25,
+            image=icon_image, **self.style.button
+        )
+        button.pack(fill="y", side="left", padx=5)
+        if text is not None:
+            button.config_all(
+                text=text, compound="left",
+                width=button.measure_text(text) + 25
+            )
+        button.on_click(command)
+        return button
+
+    def _remove(self, _=None):
+        selected = set(self._list.get())
+        if not selected:
+            return
+        # filter out selected items
+        new_values = [i.value for i in set(self._list.items) - selected]
+        # this will clear old values and show only those left after filtering
+        self._list.set_values(new_values)
+        self._change()
+
+    def on_add(self, _=None):
+        """
+        Override to implement custom add method. Ensure you call super
+        to trigger the required events
+        """
+        self._change()
+
+    def get(self):
+        return [i.value for i in self._list.items]
+
+    def set(self, values):
+        self._list.set_values(values)
 
 
 class PreferenceManager(MessageDialog):

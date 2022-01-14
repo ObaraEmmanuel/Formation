@@ -365,16 +365,16 @@ class Designer(DesignPad, Container):
         # bind events for context menu and object selection
         # all widget additions call this method so clear empty message
         self._show_empty(False)
-        MenuUtils.bind_context(obj, lambda e: self.show_menu(e, obj), add='+')
-        obj.bind('<Shift-ButtonPress-1>', lambda e: self.highlight.set_function(self.highlight.move, e), add='+')
-        obj.bind('<Motion>', self.on_motion, '+')
-        obj.bind('<ButtonRelease>', self.highlight.clear_resize, '+')
+        MenuUtils.bind_all_context(obj, lambda e: self.show_menu(e, obj), add='+')
+        obj.bind_all('<Shift-ButtonPress-1>', lambda e: self.highlight.set_function(self.highlight.move, e), add='+')
+        obj.bind_all('<Motion>', self.on_motion, '+')
+        obj.bind_all('<ButtonRelease>', self.highlight.clear_resize, '+')
         if "text" in obj.keys():
-            obj.bind("<Double-Button-1>", lambda _: self._show_text_editor(obj))
+            obj.bind_all("<Double-Button-1>", lambda _: self._show_text_editor(obj))
         self.objects.append(obj)
         if self.root_obj is None:
             self.root_obj = obj
-        obj.bind("<Button-1>", lambda e: self._handle_select(obj, e), add='+')
+        obj.bind_all("<Button-1>", lambda e: self._handle_select(obj, e), add='+')
         # bind shortcuts
         self._shortcut_mgr.bind_widget(obj)
 

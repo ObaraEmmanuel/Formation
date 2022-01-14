@@ -1,16 +1,19 @@
 from functools import partial
-from tkinter import BooleanVar
+from tkinter import BooleanVar, filedialog
 
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Spinner, EventMask, Button
 from hoverset.ui.windows import DragWindow
-from studio.preferences import Preferences
+from hoverset.ui.dialogs import MessageDialog
+from hoverset.data.preferences import ListControl
+from hoverset.util.execution import import_path
+from studio.preferences import Preferences, templates
 from studio.feature._base import BaseFeature
 from studio.feature.design import Designer
 from studio.lib import legacy, native
-from studio.lib.pseudo import PseudoWidget, Container
+from studio.lib.pseudo import PseudoWidget, Container, WidgetMeta
 
-pref = Preferences.acquire()
+pref: Preferences = Preferences.acquire()
 
 
 class Component(Frame):
@@ -126,15 +129,20 @@ class ComponentGroup:
     def __init__(self, master, name, items, evaluator=None, component_class=None):
         self.name = name
         self.items = items
+        self.master = master
         self.selector = None
         self._evaluator = evaluator
         self.component_class = component_class or Component
-        self.components = [self.component_class(master, i, self) for i in items]
+        self.components = []
+        self.update_components(items)
 
     def supports(self, widget):
         if self._evaluator:
             return self._evaluator(widget)
-        return False
+        return True
+
+    def update_components(self, items):
+        self.components = [self.component_class(self.master, i, self) for i in items]
 
 
 class SelectToDrawGroup(ComponentGroup):
@@ -169,6 +177,62 @@ class SelectToDrawGroup(ComponentGroup):
                 self._on_selection_change(self.selected)
 
 
+class CustomPathControl(ListControl):
+
+    def __init__(self, master, pref_, path, desc, **extra):
+        super(CustomPathControl, self).__init__(master, pref_, path, desc, **extra)
+        clear_btn = self.create_action(
+            get_icon_image("close", 17, 17), self._clear_all, "Clear all"
+        )
+        clear_btn.pack(side="right", fill="y", padx=5)
+        clear_btn.configure(**self.style.highlight_active)
+        self._list.set_mode(self._list.MULTI_MODE)
+
+    def on_add(self, _=None):
+        paths = filedialog.askopenfilenames(
+            parent=self.window, title="Pick custom widget search paths",
+            filetypes=[("python", ".py .pyw .pyi")],
+        )
+        cur_paths = [i.value for i in self._list.items]
+        # remove duplicates if any
+        cur_paths.extend(list(filter(lambda e: e not in cur_paths, paths)))
+        self._list.set_values(cur_paths)
+        super(CustomPathControl, self).on_add(_)
+
+    def _clear_all(self, _=None):
+        self._list.set_values([])
+        self._change()
+
+    def has_changes(self):
+        return super(CustomPathControl, self).has_changes()
+
+
+_widget_pref_template = {
+    "Widgets": {
+        "_scroll": False,
+        "Custom Widgets": {
+            "layout": {
+                "fill": "both",
+                "expand": True,
+            },
+            "children": (
+                {
+                    "desc": "Custom widgets search paths",
+                    "path": "studio::custom_widget_paths",
+                    "element": CustomPathControl,
+                    "layout": {
+                        "fill": "both",
+                        "expand": True,
+                        "padx": 5,
+                        "pady": 5
+                    }
+                },
+            )
+        }
+    },
+}
+
+
 class ComponentPane(BaseFeature):
     CLASSES = {
         "native": {"widgets": native.widgets},
@@ -180,6 +244,7 @@ class ComponentPane(BaseFeature):
         **BaseFeature._defaults,
         "widget_set": "native"
     }
+    _custom_pref_path = "studio::custom_widget_paths"
 
     def __init__(self, master, studio=None, **cnf):
         if not self._var_init:
@@ -216,6 +281,70 @@ class ComponentPane(BaseFeature):
         self._extern_groups = []
         self._widget = None
         self.collect_groups(self.get_pref("widget_set"))
+        # add custom widgets config to settings
+        templates.update(_widget_pref_template)
+        self._custom_group = None
+        self._custom_widgets = []
+        pref.add_listener(self._custom_pref_path, self._init_custom)
+        self._reload_custom()
+
+    @property
+    def custom_widgets(self):
+        return self._custom_widgets
+
+    def auto_find_load_custom(self, *modules):
+        # locate and load all custom widgets in modules
+        # module can be a module or a path to module file
+        self._custom_widgets = []
+        errors = {}
+        for module in modules:
+            if isinstance(module, str):
+                try:
+                    module = import_path(module)
+                except Exception as e:
+                    errors[module] = e
+                    continue
+            for attr in dir(module):
+                if type(getattr(module, attr)) == WidgetMeta:
+                    self._custom_widgets.append(getattr(module, attr))
+        if errors:
+            error_msg = "\n\n".join(
+                [f"{path}\n{error}" for path, error in errors.items()]
+            )
+            MessageDialog.show_error(
+                parent=self.window,
+                message=f"Error loading widgets \n\n{error_msg}"
+            )
+
+        return self._custom_widgets
+
+    def _init_custom(self, paths):
+        # reload custom widget modules
+        try:
+            widgets = self.auto_find_load_custom(*paths)
+        except Exception as e:
+
+            return
+
+        if not widgets:
+            if self._custom_group is not None:
+                self.unregister_group(self._custom_group)
+                self._custom_group = None
+            return
+
+        if self._custom_group is None:
+            self._custom_group = self.register_group(
+                "Custom",
+                widgets,
+                ComponentGroup,
+            )
+        else:
+            self._custom_group.update_components(widgets)
+            # this will force group to be re-rendered
+            self.select(self._custom_group.selector)
+
+    def _reload_custom(self):
+        self._init_custom(pref.get(self._custom_pref_path))
 
     def _init_var(self, master=None):
         self._var_init = True
@@ -238,8 +367,15 @@ class ComponentPane(BaseFeature):
 
     def create_menu(self):
         return (
-            ("command", "Search", get_icon_image("search", 14, 14), self.start_search, {}),
-            ("cascade", "Widget set", None, None, {"menu": (
+            (
+                "command", "Reload custom widgets",
+                get_icon_image("rotate_clockwise", 14, 14), self._reload_custom, {}
+            ),
+            (
+                "command", "Search",
+                get_icon_image("search", 14, 14), self.start_search, {}
+            ),
+            ("cascade", "Widget set", get_icon_image("blank", 14, 14), None, {"menu": (
                 *self._widget_sets_as_menu(),
             )}),
         )
@@ -265,9 +401,13 @@ class ComponentPane(BaseFeature):
 
     def get_components(self):
         if self._component_cache:
+            # cache hit
             return self._component_cache
         # flatten component pool and store to cache
         self._component_cache = [j for i in self._pool.values() for j in i]
+        self._component_cache.extend(
+            [item for g in self._extern_groups for item in g.components]
+        )
         return self._component_cache
 
     def select(self, selector):
@@ -338,6 +478,12 @@ class ComponentPane(BaseFeature):
         group.selector.group = group
         self.render_extern_groups()
         return group
+
+    def unregister_group(self, group):
+        if group in self._extern_groups:
+            self.remove_selector(group.selector)
+            self._extern_groups.remove(group)
+            self._auto_select()
 
     def on_select(self, widget):
         self._widget = widget

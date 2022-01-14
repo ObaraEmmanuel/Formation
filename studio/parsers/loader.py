@@ -9,6 +9,7 @@ import tkinter as tk
 
 from formation.formats import infer_format, BaseAdapter, Node
 from studio.feature.variablepane import VariablePane
+import studio.feature.components as components
 from studio.lib.variables import VariableItem
 from studio.lib import legacy, native
 from studio.lib.menu import menu_config, MENU_ITEM_TYPES
@@ -41,7 +42,16 @@ class BaseStudioAdapter(BaseAdapter):
         if module in cls._designer_alternates:
             module = cls._designer_alternates.get(module)
         else:
-            raise ModuleNotFoundError("module {} not implemented by designer".format(module))
+            # search custom widgets
+            custom: components.ComponentPane = components.ComponentPane.get_instance()
+            component = list(filter(
+                lambda comp: comp.impl.__module__ == module and comp.impl.__name__ == impl,
+                custom.custom_widgets,
+            ))
+            if component:
+                return component[0]
+            else:
+                raise ModuleNotFoundError("Could not resolve studio compatible widget for {}", node.type)
         if hasattr(module, impl):
             return getattr(module, impl)
         if impl == 'Panedwindow' and module == native:

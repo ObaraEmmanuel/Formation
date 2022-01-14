@@ -2,11 +2,13 @@ import functools
 import logging
 import os.path
 import tkinter
+import tkinter.ttk
 from enum import Enum
 
 from hoverset.data.images import load_tk_image, load_image, load_image_to_widget
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.menu import MenuUtils
+from hoverset.util.execution import import_path
 from studio.lib import layouts
 from studio.lib.variables import VariableManager
 from studio.lib.properties import get_properties
@@ -19,6 +21,7 @@ class Groups(Enum):
     input = 'Input'
     container = 'Container'
     layout = 'Layout'
+    custom = 'Custom'
 
 
 class _ImageIntercept:
@@ -160,6 +163,18 @@ class PseudoWidget:
                 intercept.set(self, kw[opt], opt)
                 kw.pop(opt)
         return super().config(**kw)
+
+    def bind_all(self, sequence, func=None, add=None):
+        # we should be able to bind studio events
+        # for complex hierarchies in custom widgets
+        # this also overrides the default bind_all behaviour which
+        # may cause problems for the studio if an external custom widget uses it
+        def _deep_bind(widget):
+            widget.bind(sequence, func, add)
+            for child in widget.winfo_children():
+                _deep_bind(child)
+
+        _deep_bind(self)
 
     @property
     def properties(self):
@@ -448,3 +463,53 @@ class PanedContainer(TabContainer):
         # add a legacy frame as a child
         from studio.lib import legacy
         self.add_new(legacy.Frame, 0, 0)
+
+
+class WidgetMeta(type):
+
+    def __new__(mcs, name, bases, dct):
+        if dct.pop("is_container", False):
+            # automatically pick specialization
+            if any(issubclass(t, (tkinter.PanedWindow, tkinter.ttk.PanedWindow)) for t in bases):
+                base = PanedContainer
+            elif any(issubclass(t, tkinter.ttk.Notebook) for t in bases):
+                base = TabContainer
+            else:
+                base = Container
+        else:
+            base = PseudoWidget
+
+        if dct.get("impl"):
+            impl = dct["impl"]
+        elif bases:
+            impl = bases[0]
+        else:
+            raise RuntimeError(
+                "Could not deduce base implementation for custom widget. "
+                "Inherit from base implementation or set the 'impl' attribute "
+                "to the base class"
+            )
+
+        attrs = dict(display_name=name, impl=impl, icon='play', group=Groups.custom)
+        attrs.update(dct)
+        obj_class = super().__new__(mcs, name, (base, *bases), attrs)
+        return obj_class
+
+    def __call__(cls, master, _id):
+        obj = super(WidgetMeta, cls).__call__(master)
+        setattr(obj, "id", _id)
+        obj.setup_widget()
+        return obj
+
+
+def auto_find_load_custom(*modules):
+    # locate and load all custom widgets in modules
+    # module can be a module or a path to module file
+    custom_widgets = []
+    for module in modules:
+        if isinstance(module, str):
+            module = import_path(module)
+        for attr in dir(module):
+            if type(getattr(module, attr)) == WidgetMeta:
+                custom_widgets.append(getattr(module, attr))
+    return custom_widgets
