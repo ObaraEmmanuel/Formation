@@ -9,6 +9,7 @@ Formation studio
    quickstart
    component_pane
    component_tree
+   custom_widgets
    canvas
 
 .. toctree::
