@@ -19,7 +19,7 @@ class VariableHandler:
             return
         for prop in properties:
             # find the variable which will be preloaded on the builder
-            handle_method(**{prop: getattr(builder, properties[prop], '')})
+            handle_method(**{prop: getattr(builder, str(properties[prop]), '')})
 
 
 _common_redirect = {
