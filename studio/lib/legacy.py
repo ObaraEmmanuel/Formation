@@ -205,6 +205,7 @@ class Scale(PseudoWidget, tk.Scale):
     group = Groups.input
     icon = "scale"
     impl = tk.Scale
+    initial_dimensions = 45, 100
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -219,6 +220,7 @@ class Scrollbar(PseudoWidget, tk.Scrollbar):
     group = Groups.widget
     icon = "play"
     impl = tk.Scrollbar
+    initial_dimensions = 20, 100
 
     def __init__(self, master, id_):
         super().__init__(master)

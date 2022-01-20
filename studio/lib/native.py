@@ -119,6 +119,7 @@ class LabeledScale(PseudoWidget, ttk.LabeledScale):
     group = Groups.input
     icon = "scale"
     impl = ttk.LabeledScale
+    initial_dimensions = 150, 40
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -209,6 +210,7 @@ class Progressbar(PseudoWidget, ttk.Progressbar):
     group = Groups.widget
     icon = "progressbar"
     impl = ttk.Progressbar
+    initial_dimensions = 200, 20
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -240,6 +242,7 @@ class Scale(PseudoWidget, ttk.Scale):
     group = Groups.input
     icon = "scale"
     impl = ttk.Scale
+    initial_dimensions = 150, 20
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -254,6 +257,7 @@ class Scrollbar(PseudoWidget, ttk.Scrollbar):
     group = Groups.widget
     icon = "play"
     impl = ttk.Scrollbar
+    initial_dimensions = 20, 100
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -267,6 +271,7 @@ class Separator(PseudoWidget, ttk.Separator):
     group = Groups.widget
     icon = "play"
     impl = ttk.Separator
+    initial_dimensions = 150, 1
 
     def __init__(self, master, id_):
         super().__init__(master)

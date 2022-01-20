@@ -39,19 +39,23 @@ This is a simple compound widget that really just displays the 4 buttons of a
 d-pad. To Add this to the studio we would need to define the class with the
 metadata. Below are some of the supported metadata.
 
-+------------------+-----------------------+-----------------------------------------------------------+
-| Metadata         | default               | Description                                               |
-+------------------+-----------------------+-----------------------------------------------------------+
-| *display_name*   | name of the meta class| The name used to refer to the widget within the studio    |
-+------------------+-----------------------+-----------------------------------------------------------+
-| *impl*           | the meta's super class| The custom widget class                                   |
-+------------------+-----------------------+-----------------------------------------------------------+
-| *is_container*   | False                 | whether the custom widget allows other widgets to be      |
-|                  |                       | placed within it.                                         |
-+------------------+-----------------------+-----------------------------------------------------------+
-| *icon*           | play                  | Text identifier to on of the built in icons to be used as |
-|                  |                       | image identifier for the widget                           |
-+------------------+-----------------------+-----------------------------------------------------------+
++-------------------------+-----------------------+-----------------------------------------------------------+
+| Metadata                | default               | Description                                               |
++-------------------------+-----------------------+-----------------------------------------------------------+
+| *display_name*          | name of the meta class| The name used to refer to the widget within the studio    |
++-------------------------+-----------------------+-----------------------------------------------------------+
+| *impl*                  | the meta's super class| The custom widget class                                   |
++-------------------------+-----------------------+-----------------------------------------------------------+
+| *is_container*          | False                 | whether the custom widget allows other widgets to be      |
+|                         |                       | placed within it.                                         |
++-------------------------+-----------------------+-----------------------------------------------------------+
+| *icon*                  | play                  | Text identifier to on of the built in icons to be used as |
+|                         |                       | image identifier for the widget                           |
++-------------------------+-----------------------+-----------------------------------------------------------+
+| *initial_dimensions*    | Automatic             | The initial dimensions of the widget when first placed on |
+|                         |                       | the design pad provided as a (width, height) tuple        |
++-------------------------+-----------------------+-----------------------------------------------------------+
+
 
 Each of the above metadata is optional and the default will be used if not its
 not provided.
@@ -70,6 +74,7 @@ Below is a sample metadata class for a our D-pad widget
         impl = DPad
         icon = "gaming"
         is_container = False
+        initial_dimensions = 90, 100
 
 Connecting to the studio
 =========================
@@ -110,6 +115,7 @@ but that is not necessary. Only the metadata class is required to be in the file
         impl = DPad
         icon = "gaming"
         is_container = False
+        initial_dimensions = 90, 100
 
 Our new custom widget should now be available in the components pane under
 the ``custom`` group.
