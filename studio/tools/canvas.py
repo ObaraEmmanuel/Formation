@@ -754,7 +754,8 @@ class CanvasStudioAdapter(BaseStudioAdapter):
             cls._tool.initialize_canvas(widget)
         for sub_node in node:
             if sub_node.type not in CANVAS_ITEM_MAP:
-                raise NotImplementedError(f"Tag <{sub_node.type}> not implemented by canvas tool")
+                # ignore non canvas items
+                continue
             # use a copy just in case something gets popped down the line
             config = dict(sub_node.attrib.get("attr", {}))
             # add name to config as id so the intercepts can set it for us

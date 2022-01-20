@@ -485,7 +485,7 @@ class Designer(DesignPad, Container):
             # try finding another toplevel widget that can be a root obj otherwise leave it as none
             self.root_obj = None
             for w in self.layout_strategy.children:
-                if isinstance(w, Container):
+                if isinstance(w, Container) or w.group == Groups.container:
                     self.root_obj = w
                     break
         self._uproot_widget(widget)

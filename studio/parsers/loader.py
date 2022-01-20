@@ -266,7 +266,7 @@ class DesignBuilder:
         other widgets at the root level are ignored and cannot be recovered later
         :return:
         """
-        adapter = self.get_adapter(self.root.__class__)
+        adapter = self.get_adapter(self.designer.root_obj.__class__)
         self.root = adapter.generate(self.designer.root_obj, None)
         # load meta and variables first
         self._meta_to_tree(self.root)

@@ -167,6 +167,8 @@ class CanvasLoaderAdapter(BaseLoaderAdapter):
     def load(cls, node, builder, parent):
         canvas = BaseLoaderAdapter.load(node, builder, parent)
         for sub_node in node:
+            if sub_node.type in builder._ignore_tags:
+                continue
             # just additional options that may be needed down the line
             kwargs = {
                 "parent_node": sub_node.parent,
