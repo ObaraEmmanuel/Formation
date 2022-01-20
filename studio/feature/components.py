@@ -2,14 +2,12 @@ from functools import partial
 from tkinter import BooleanVar, filedialog
 
 from hoverset.ui.icons import get_icon_image
-from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Spinner, EventMask, Button
-from hoverset.ui.windows import DragWindow
+from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Spinner, Button
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.data.preferences import ListControl
 from hoverset.util.execution import import_path
 from studio.preferences import Preferences, templates
 from studio.feature._base import BaseFeature
-from studio.feature.design import Designer
 from studio.lib import legacy, native
 from studio.lib.pseudo import PseudoWidget, Container, WidgetMeta
 
@@ -17,8 +15,6 @@ pref: Preferences = Preferences.acquire()
 
 
 class Component(Frame):
-    drag_popup = None
-    drag_active = None
 
     def __init__(self, master, component: PseudoWidget.__class__, _=None):
         super().__init__(master)
@@ -30,9 +26,7 @@ class Component(Frame):
         self.bind("<Enter>", self.select)
         self.bind("<Leave>", self.deselect)
         self.component = component
-
-        self.bind_all("<Motion>", self.drag)
-        self.bind_all("<ButtonRelease-1>", self.release)
+        self.allow_drag = True
 
     def select(self, *_):
         self.config_all(**self.style.hover)
@@ -40,30 +34,38 @@ class Component(Frame):
     def deselect(self, *_):
         self.config_all(**self.style.surface)
 
-    def drag(self, event):
-        # If cursor is moved while holding the left button down for the first time we begin drag
-        if event.state & EventMask.MOUSE_BUTTON_1 and not self.drag_active:
-            self.drag_popup = DragWindow(self.window).set_position(event.x_root, event.y_root)
-            Label(self.drag_popup, text=self.component.display_name).pack()
-            self.drag_active = True
-        elif self.drag_active:
-            widget = self.event_first(event, self, Designer)
-            if isinstance(widget, Designer):
-                widget.react(event)
-            self.drag_popup.set_position(event.x_root, event.y_root)
+    def render_drag(self, window):
+        Label(window, **self.style.text_accent, image=get_icon_image(self.component.icon, 15, 15)).pack(side="left")
+        Label(window, **self.style.text, anchor="w", text=self.component.display_name).pack(side="left", fill="x")
 
-    def _release(self):
-        if not self.drag_active:
-            return
-        self.drag_active = False
-        self.drag_popup.destroy()
-        self.drag_popup = None
+    def drag_start_pos(self, event):
+        window = self.window.drag_window
+        if window:
+            window.update_idletasks()
+            return (
+                event.x_root - int(window.winfo_width() / 2),
+                event.y_root - int(window.winfo_height() / 2)
+            )
+        return super(Component, self).drag_start_pos(event)
 
-    def release(self, event):
-        self._release()
+    def _adjust_event(self, event):
+        # adjust event position so it appears out the drag window
+        # this allows us to determine studio widget at said position
+        if self.window.drag_window:
+            event.x_root = self.window.drag_window.get_center()[0]
+            event.y_root = self.window.drag_window.pos[1] - 1
+
+    def on_drag(self, event):
+        self._adjust_event(event)
+        widget = self.event_first(event, self, Container)
+        if widget and self.window.drag_window:
+            widget.react(*self.window.drag_window.get_center())
+
+    def on_drag_end(self, event):
+        self._adjust_event(event)
         widget = self.event_first(event, self, Container)
         if isinstance(widget, Container):
-            widget.add_new(self.component, event.x_root, event.y_root)
+            widget.add_new(self.component, *self.window.drag_window.get_center())
 
 
 class SelectableComponent(Component):
@@ -73,6 +75,7 @@ class SelectableComponent(Component):
         self.selected = False
         self.controller = controller
         self.on_click(self.select)
+        self.allow_drag = False
         self.bind("<Leave>", self._on_leave)
         self.bind("<Enter>", self._on_enter)
 
@@ -95,12 +98,6 @@ class SelectableComponent(Component):
         super(SelectableComponent, self).deselect()
         self.selected = False
         self.controller.deselect(self, silently)
-
-    def drag(self, event):
-        pass
-
-    def release(self, event):
-        pass
 
 
 class Selector(Label):

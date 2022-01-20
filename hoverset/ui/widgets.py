@@ -653,7 +653,7 @@ class Widget:
                 self.window.drag_window = DragWindow(self.window, **self.style.surface)
                 self.render_drag(self.window.drag_window)
                 self.window.drag_pos = event.x_root, event.y_root
-                self.window.drag_window.set_position(*self.drag_start_pos())
+                self.window.drag_window.set_position(*self.drag_start_pos(event))
                 self.on_drag_start(event)
             elif self.window.drag_window is not None:
                 x, y = self.window.drag_pos
@@ -664,13 +664,15 @@ class Widget:
         elif event.type.value == "5":
             # Event is of Button release type so end drag
             if self.window.drag_window:
-                self.window.drag_window.destroy()
-                self.window.drag_window = None
+                try:
+                    self.on_drag_end(event)
+                finally:
+                    self.window.drag_window.destroy()
+                    self.window.drag_window = None
                 # Get the first widget at release position that supports drag manager and pass the context to it
                 event_position = self.event_first(event, self, Widget)
                 if isinstance(event_position, Widget):
                     event_position.accept_context(self.window.drag_context)
-                self.on_drag_end(event)
                 self.window.drag_context = None
 
     def accept_context(self, context):
@@ -711,7 +713,7 @@ class Widget:
         """
         pass
 
-    def drag_start_pos(self):
+    def drag_start_pos(self, event):
         """
         Override and return the preferred drag start position as a tuple (x, y).
         Default is the current widget position

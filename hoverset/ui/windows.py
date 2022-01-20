@@ -23,6 +23,10 @@ class DragWindow(tk.Toplevel):
             # needed for macos to make window visible
             self.lift()
 
+    def get_center(self):
+        w, h, = self.winfo_width(), self.winfo_height()
+        return self.pos[0] + int(w / 2), self.pos[1] + int(h / 2)
+
     def set_geometry(self, rec):
         self.geometry("{}x{}+{}+{}".format(*rec))
         return self

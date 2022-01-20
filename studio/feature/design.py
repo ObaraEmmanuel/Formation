@@ -11,7 +11,7 @@ from tkinter import filedialog, ttk
 from hoverset.data import actions
 from hoverset.data.keymap import KeyMap
 from hoverset.data.images import get_tk_image
-from hoverset.ui.widgets import Label, Text
+from hoverset.ui.widgets import Label, Text, FontStyle
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.icons import get_icon_image as icon
 from hoverset.ui.menu import MenuUtils, LoadLater, EnableIf
@@ -93,6 +93,8 @@ class DesignLayoutStrategy(PlaceLayoutStrategy):
 class Designer(DesignPad, Container):
     MOVE = 0x2
     RESIZE = 0x3
+    WIDGET_INIT_PADDING = 20
+    WIDGET_INIT_HEIGHT = 25
     name = "Designer"
     pane = None
 
@@ -158,6 +160,7 @@ class Designer(DesignPad, Container):
         self._text_editor = Text(self, wrap='none')
         self._text_editor.on_change(self._text_change)
         self._text_editor.bind("<FocusOut>", self._text_hide)
+        self._base_font = FontStyle()
 
     def _get_designer(self):
         return self
@@ -411,11 +414,17 @@ class Designer(DesignPad, Container):
             # We only need a container as the root widget
             self._show_root_widget_warning()
             return
-        width = kwargs.get("width", 55)
-        height = kwargs.get("height", 30)
         silent = kwargs.get("silently", False)
         name = self._get_unique(obj_class)
         obj = obj_class(self, name)
+        if hasattr(obj, 'initial_dimensions'):
+            width, height = obj.initial_dimensions
+        else:
+            width = kwargs.get(
+                "width",
+                self._base_font.measure(name) + self.WIDGET_INIT_PADDING
+            )
+            height = kwargs.get("height", self.WIDGET_INIT_HEIGHT)
         obj.layout = kwargs.get("intended_layout", None)
         self._attach(obj)  # apply extra bindings required
         layout = kwargs.get("layout")
@@ -489,15 +498,10 @@ class Designer(DesignPad, Container):
             for child in widget._children:
                 self._uproot_widget(child)
 
-    def react(self, event):
-        layout = self.event_first(event, self, Container, ignore=self)
+    def set_active_container(self, container):
         if self.current_container is not None:
             self.current_container.clear_highlight()
-            self.current_container = None
-        if isinstance(layout, Container):
-            self.current_container = layout
-            layout.react_to_pos(event.x_root, event.y_root)
-            layout.show_highlight()
+        self.current_container = container
 
     def compute_overlap(self, bound1, bound2):
         return geometry.compute_overlap(bound1, bound2)

@@ -249,6 +249,11 @@ class Container(PseudoWidget):
         for child in self._children:
             child.lift(self)
 
+    def react(self, x, y):
+        self.designer.set_active_container(self)
+        self.react_to_pos(x, y)
+        self.show_highlight()
+
     @property
     def level(self):
         return self._level

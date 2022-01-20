@@ -9,7 +9,7 @@ import tkinter as tk
 
 from formation.formats import infer_format, BaseAdapter, Node
 from studio.feature.variablepane import VariablePane
-import studio.feature.components as components
+from studio.feature.components import ComponentPane
 from studio.lib.variables import VariableItem
 from studio.lib import legacy, native
 from studio.lib.menu import menu_config, MENU_ITEM_TYPES
@@ -43,10 +43,10 @@ class BaseStudioAdapter(BaseAdapter):
             module = cls._designer_alternates.get(module)
         else:
             # search custom widgets
-            custom: components.ComponentPane = components.ComponentPane.get_instance()
+            components: ComponentPane = ComponentPane.get_instance()
             component = list(filter(
                 lambda comp: comp.impl.__module__ == module and comp.impl.__name__ == impl,
-                custom.custom_widgets,
+                components.custom_widgets,
             ))
             if component:
                 return component[0]
@@ -85,14 +85,18 @@ class BaseStudioAdapter(BaseAdapter):
             if hasattr(widget, "_row_conf"):
                 for row in widget._row_conf:
                     r_info = layout.get_row_def(None, row)
-                    modified = {i: str(r_info[i]["value"]) for i in r_info if r_info[i]["value"] != r_info[i]["default"]}
+                    modified = {
+                        i: str(r_info[i]["value"]) for i in r_info if r_info[i]["value"] != r_info[i]["default"]
+                    }
                     row_node = Node(node, "grid")
                     row_node.attrib["row"] = str(row)
                     row_node.attrib.update(modified)
             if hasattr(widget, "_column_conf"):
                 for column in widget._column_conf:
                     c_info = layout.get_column_def(None, column)
-                    modified = {i: str(c_info[i]["value"]) for i in c_info if c_info[i]["value"] != c_info[i]["default"]}
+                    modified = {
+                        i: str(c_info[i]["value"]) for i in c_info if c_info[i]["value"] != c_info[i]["default"]
+                    }
                     column_node = Node(node, "grid")
                     column_node.attrib["column"] = str(column)
                     column_node.attrib.update(modified)
