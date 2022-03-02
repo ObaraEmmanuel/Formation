@@ -686,7 +686,7 @@ def restart():
 
 def main():
     # load resources first
-    ResourceLoader.load()
+    ResourceLoader.load(pref)
     StudioApplication().mainloop()
 
 
