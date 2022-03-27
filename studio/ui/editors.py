@@ -23,11 +23,9 @@ from studio.lib.properties import all_supported_cursors, BUILTIN_BITMAPS
 from studio.lib.variables import VariableManager, VariableItem
 from studio.preferences import Preferences
 
-pref = Preferences.acquire()
-
 
 def get_display_name(style_def):
-    if pref.get("designer::descriptive_names"):
+    if Preferences.acquire().get("designer::descriptive_names"):
         return style_def.get("display_name")
     return style_def.get("name")
 
@@ -517,7 +515,7 @@ class Image(Text):
         path = filedialog.askopenfilename(parent=self)
         if path:
             try:
-                path_opt = pref.get("designer::image_path")
+                path_opt = Preferences.acquire().get("designer::image_path")
             except:
                 path_opt = "absolute"
 
