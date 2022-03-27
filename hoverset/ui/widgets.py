@@ -1079,6 +1079,9 @@ class WindowMixin(_MouseWheelDispatcherMixin):
 
     def set_up_mousewheel(self):
         self.bind_all("<MouseWheel>", self._on_mousewheel, '+')
+        # linux bindings
+        self.bind_all("<Button-4>", self._on_mousewheel, '+')
+        self.bind_all("<Button-5>", self._on_mousewheel, '+')
 
     def on_close(self, callback, *args, **kwargs):
         self._on_close = lambda: callback(*args, **kwargs)
