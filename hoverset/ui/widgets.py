@@ -1480,7 +1480,7 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
 class Window(Widget, CenterWindowMixin, WindowMixin, tk.Toplevel):
 
     def __init__(self, master=None, content=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(master, *args, **kwargs)
         self.master = self.position_ref = master
         if master:
             self._style = master.window.style
