@@ -3,16 +3,14 @@ import copy
 from tkinter import StringVar, BooleanVar, TkVersion
 
 from hoverset.ui.icons import get_icon_image
-from hoverset.ui.widgets import Frame, Label, Button, MenuButton, PanedWindow
+from hoverset.ui.widgets import Label, Button, MenuButton, PanedWindow
 from hoverset.ui.menu import EnableIf
 from studio.ui.geometry import absolute_position, parse_geometry
-from studio.ui.widgets import SearchBar
+from studio.ui.widgets import Pane
 from studio.preferences import Preferences
 
-pref = Preferences.acquire()
 
-
-class BaseFeature(Frame):
+class BaseFeature(Pane):
     _instance = None
     name = "Feature"
     pane = None
@@ -43,6 +41,7 @@ class BaseFeature(Frame):
 
     @classmethod
     def update_defaults(cls):
+        pref = Preferences.acquire()
         path = "features::{}".format(cls.name)
         if not pref.exists(path):
             pref.set(path, copy.deepcopy(cls._defaults))
@@ -60,10 +59,6 @@ class BaseFeature(Frame):
             self.is_visible = BooleanVar(None, self.get_pref('visible'))
             t.trace_add("write", lambda *_: self.set_pref('inactive_transparency', t.get()))
         self.studio = studio
-        self._header = Frame(self, **self.style.surface, **self.style.highlight_dim, height=30)
-        self._header.pack(side="top", fill="x")
-        self._header.pack_propagate(0)
-        self._header.allow_drag = True
         Label(self._header, **self.style.text_accent, text=self.name).pack(side="left")
         self._min = Button(self._header, image=get_icon_image("close", 15, 15), **self.style.button, width=25,
                            height=25)
@@ -73,9 +68,6 @@ class BaseFeature(Frame):
         self._pref.configure(image=get_icon_image("settings", 15, 15))
         self._pref.pack(side="right")
         self._pref.tooltip("Options")
-        self._search_bar = SearchBar(self._header, height=20)
-        self._search_bar.on_query_clear(self.on_search_clear)
-        self._search_bar.on_query_change(self.on_search_query)
         menu = self.make_menu((
             ("cascade", "View Mode", None, None, {"menu": (
                 ("radiobutton", "Docked", None, self.open_as_docked, {"variable": self._view_mode, "value": "docked"}),
@@ -116,42 +108,15 @@ class BaseFeature(Frame):
 
     @classmethod
     def get_pref(cls, short_path):
-        return pref.get(cls.get_pref_path(short_path))
+        return Preferences.acquire().get(cls.get_pref_path(short_path))
 
     @classmethod
     def set_pref(cls, short_path, value):
-        pref.set(cls.get_pref_path(short_path), value)
+        Preferences.acquire().set(cls.get_pref_path(short_path), value)
 
     @classmethod
     def get_instance(cls):
         return cls._instance
-
-    def start_search(self, *_):
-        self._search_bar.place(relwidth=1, relheight=1)
-        self._search_bar.lift()
-        self._search_bar.focus_set()
-
-    def quit_search(self, *_):
-        self._search_bar.place_forget()
-
-    def on_search_query(self, query: str):
-        """
-        Called when inbuilt search feature is queried. Use the query string to display the
-        necessary search results
-        :param query: String of current search query
-        :return: None
-        """
-        pass
-
-    def on_search_clear(self):
-        """
-        Called when the user terminates the search bar. Ensure you make a call to the super
-        method for the bar to actually get closed. This method can be used to restore the
-        feature state to when not performing a search
-        :return:
-        """
-        self.quit_search()
-        pass
 
     def on_select(self, widget):
         """
