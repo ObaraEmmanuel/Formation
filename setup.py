@@ -30,7 +30,6 @@ setup(
     },
     keywords=['formation', 'gui', 'graphical-user-interface', 'drag drop', 'tkinter', 'hoverset', 'python'],
     install_requires=requirements,
-    platform=['any'],
     package_data={
         'hoverset.data': ['image.*'],
         'hoverset.ui': ['themes/*', '*.tcl'],
