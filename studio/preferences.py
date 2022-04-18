@@ -1,7 +1,10 @@
 import os
+import logging
 
 from hoverset.data.preferences import *
 from hoverset.data.keymap import ShortcutPane
+
+logger = logging.getLogger("Pref")
 
 defaults = {
     "studio": {
@@ -320,3 +323,18 @@ class Preferences(SharedPreferences):
 
 def open_preferences(master):
     PreferenceManager(master, Preferences.acquire(), templates)
+
+
+def get_active_pref(widget):
+    import hoverset.ui.widgets as widgets
+    if hasattr(widget, 'window') and hasattr(widget.window, 'pref'):
+        return widget.window.pref
+    else:
+        check = widget.master
+        while not (isinstance(check, widgets.Application) or check is None):
+            check = check.master
+        if hasattr(check, 'pref'):
+            return check.pref
+
+    logger.error("Unable to acquire context sensitive preference")
+    return None

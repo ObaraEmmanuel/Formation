@@ -17,7 +17,7 @@ from studio.ui.editors import StyleItem, get_display_name, get_editor
 from studio.ui.widgets import CollapseFrame
 from studio.lib.pseudo import Container
 from studio.lib.layouts import GridLayoutStrategy
-from studio.preferences import Preferences
+from studio.preferences import Preferences, get_active_pref
 
 
 class ReusableStyleItem(StyleItem):
@@ -63,7 +63,7 @@ class ReusableStyleItem(StyleItem):
         self._editor.set_def(style_definition)
         self._editor.set(style_definition.get("value"))
         self._editor.on_change(self._change)
-        self._label.configure(text=get_display_name(style_definition))
+        self._label.configure(text=get_display_name(style_definition, self.pref))
         self._on_change = temp
         return self
 
