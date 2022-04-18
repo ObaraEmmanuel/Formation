@@ -211,6 +211,7 @@ class StudioApplication(Application):
         self._startup()
         self._restore_position()
         self._exit_failures = 0
+        self._is_shutting_down = False
 
     def _startup(self):
         on_startup = pref.get("studio::on_startup")
@@ -590,6 +591,10 @@ class StudioApplication(Application):
 
     def _on_close(self):
         """ Return ``True`` if exit successful otherwise ``False`` """
+        if self._is_shutting_down:
+            # block multiple close attempts
+            return
+        self._is_shutting_down = True
         try:
             self._save_position()
             # pass the on window close event to the features
@@ -597,8 +602,10 @@ class StudioApplication(Application):
                 # if any feature returns false abort shut down
                 feature.save_window_pos()
                 if not feature.on_app_close():
+                    self._is_shutting_down = False
                     return False
             if not self.tool_manager.on_app_close():
+                self._is_shutting_down = False
                 return False
             self.quit()
             return True
@@ -609,6 +616,7 @@ class StudioApplication(Application):
                 if force:
                     # exit by all means necessary
                     sys.exit(1)
+            self._is_shutting_down = False
             return False
 
     def get_help(self):
