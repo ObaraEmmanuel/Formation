@@ -13,11 +13,11 @@ from hoverset.ui.widgets import PanedWindow, Frame, MenuButton, Button, Scrolled
 from hoverset.ui.menu import EnableIf
 from studio.lib.properties import PROPERTY_TABLE, get_properties
 from studio.lib.menu import menu_config, MENU_PROPERTY_TABLE, MENU_PROPERTIES
-from studio.ui.editors import StyleItem, get_display_name
+from studio.ui.editors import StyleItem
 from studio.ui.tree import MalleableTreeView
 from studio.ui.widgets import CollapseFrame
 from studio.tools._base import BaseToolWindow, BaseTool
-from studio.preferences import Preferences
+from studio.preferences import get_active_pref
 
 
 class MenuTree(MalleableTreeView):
@@ -173,7 +173,7 @@ class MenuEditor(BaseToolWindow):
         self._tree.allow_multi_select(True)
         self._tree.on_select(self._refresh_styles)
         self._tree.on_structure_change(self._refresh_styles)
-        self._prefs = Preferences.acquire()
+        self._prefs = get_active_pref(self)
         self._prefs.add_listener(
             "designer::descriptive_names",
             self._update_display_names

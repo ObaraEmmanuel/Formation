@@ -1079,6 +1079,9 @@ class WindowMixin(_MouseWheelDispatcherMixin):
 
     def set_up_mousewheel(self):
         self.bind_all("<MouseWheel>", self._on_mousewheel, '+')
+        # linux bindings
+        self.bind_all("<Button-4>", self._on_mousewheel, '+')
+        self.bind_all("<Button-5>", self._on_mousewheel, '+')
 
     def on_close(self, callback, *args, **kwargs):
         self._on_close = lambda: callback(*args, **kwargs)
@@ -1477,7 +1480,7 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
 class Window(Widget, CenterWindowMixin, WindowMixin, tk.Toplevel):
 
     def __init__(self, master=None, content=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super().__init__(master, *args, **kwargs)
         self.master = self.position_ref = master
         if master:
             self._style = master.window.style

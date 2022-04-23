@@ -100,6 +100,9 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
     def get_dir(self):
         return self._app_dir.user_config_dir
 
+    def get_cache_dir(self):
+        return self._app_dir.user_cache_dir
+
     def _get_files(self):
         # possible .dat extension
         files = glob.glob(os.path.join(self.get_dir(), f"{self._file}.dat"))

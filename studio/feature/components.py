@@ -11,8 +11,6 @@ from studio.feature._base import BaseFeature
 from studio.lib import legacy, native
 from studio.lib.pseudo import PseudoWidget, Container, WidgetMeta
 
-pref: Preferences = Preferences.acquire()
-
 
 class Component(Frame):
 
@@ -282,7 +280,7 @@ class ComponentPane(BaseFeature):
         templates.update(_widget_pref_template)
         self._custom_group = None
         self._custom_widgets = []
-        pref.add_listener(self._custom_pref_path, self._init_custom)
+        Preferences.acquire().add_listener(self._custom_pref_path, self._init_custom)
         self._reload_custom()
 
     @property
@@ -341,7 +339,7 @@ class ComponentPane(BaseFeature):
             self.select(self._custom_group.selector)
 
     def _reload_custom(self):
-        self._init_custom(pref.get(self._custom_pref_path))
+        self._init_custom(Preferences.acquire().get(self._custom_pref_path))
 
     def _init_var(self, master=None):
         self._var_init = True

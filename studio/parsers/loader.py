@@ -19,8 +19,6 @@ from studio.lib.layouts import GridLayoutStrategy
 from studio.preferences import Preferences
 import studio
 
-pref = Preferences.acquire()
-
 
 def get_widget_impl(widget):
     if not hasattr(widget, 'impl'):
@@ -367,6 +365,7 @@ class DesignBuilder:
         :return: String
         """
         file_loader = infer_format(path)
+        pref = Preferences.acquire()
         pref_path = f"designer::{file_loader.name.lower()}"
         pref.set_default(pref_path, {})
         with open(path, 'w') as dump:

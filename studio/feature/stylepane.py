@@ -17,7 +17,7 @@ from studio.ui.editors import StyleItem, get_display_name, get_editor
 from studio.ui.widgets import CollapseFrame
 from studio.lib.pseudo import Container
 from studio.lib.layouts import GridLayoutStrategy
-from studio.preferences import Preferences
+from studio.preferences import Preferences, get_active_pref
 
 
 class ReusableStyleItem(StyleItem):
@@ -63,7 +63,7 @@ class ReusableStyleItem(StyleItem):
         self._editor.set_def(style_definition)
         self._editor.set(style_definition.get("value"))
         self._editor.on_change(self._change)
-        self._label.configure(text=get_display_name(style_definition))
+        self._label.configure(text=get_display_name(style_definition, self.pref))
         self._on_change = temp
         return self
 
@@ -101,7 +101,6 @@ class StyleGroup(CollapseFrame):
     def __init__(self, master, pane, **cnf):
         super().__init__(master)
         self.style_pane = pane
-        self.studio = self.style_pane.studio
         self.configure(**{**self.style.surface, **cnf})
         self._empty_message = "Select an item to see styles"
         self._empty = Frame(self.body, **self.style.surface)
@@ -210,16 +209,16 @@ class StyleGroup(CollapseFrame):
             data = self._get_action_data(widget, prop)
             self._set_prop(prop, value, widget)
             new_data = self._get_action_data(widget, prop)
-            self.studio.widget_modified(widget, self.style_pane, None)
+            self.style_pane.widget_modified(widget)
             if is_external:
                 if widget == self.widget:
                     self.items[prop].set_silently(value)
             if silent:
                 return
             key = self._get_key(widget, prop)
-            action = self.studio.last_action()
+            action = self.style_pane.last_action()
             if action is None or action.key != key:
-                self.studio.new_action(Action(
+                self.style_pane.new_action(Action(
                     lambda _: self._apply_action(prop, prev_val, widget, data),
                     lambda _: self._apply_action(prop, value, widget, new_data),
                     key=key,
@@ -452,38 +451,24 @@ class LayoutGroup(StyleGroup):
         return def1 == def2
 
 
-class StylePane(BaseFeature):
-    name = "Style pane"
-    icon = "edit"
-    _defaults = {
-        **BaseFeature._defaults,
-        "side": "right",
-    }
+class StylePaneFramework:
 
-    def __init__(self, master, studio, **cnf):
-        super().__init__(master, studio, **cnf)
+    def setup_style_pane(self):
         self.body = ScrolledFrame(self, **self.style.surface)
         self.body.pack(side="top", fill="both", expand=True)
 
-        self._toggle_btn = Button(self._header, image=get_icon_image("chevron_down", 15, 15), **self.style.button,
+        self._toggle_btn = Button(self.get_header(), image=get_icon_image("chevron_down", 15, 15), **self.style.button,
                                   width=25,
                                   height=25)
         self._toggle_btn.pack(side="right")
         self._toggle_btn.on_click(self._toggle)
 
-        self._search_btn = Button(self._header, image=get_icon_image("search", 15, 15), width=25, height=25,
+        self._search_btn = Button(self.get_header(), image=get_icon_image("search", 15, 15), width=25, height=25,
                                   **self.style.button)
         self._search_btn.pack(side="right")
         self._search_btn.on_click(self.start_search)
 
         self.groups = []
-
-        self._identity_group = self.add_group(IdentityGroup)
-        self._layout_group = self.add_group(LayoutGroup)
-        self._attribute_group = self.add_group(AttributeGroup)
-
-        self.add_group_instance(self._layout_group._grid_config.column_config)
-        self.add_group_instance(self._layout_group._grid_config.row_config)
 
         self._empty_frame = Frame(self.body)
         self.show_empty()
@@ -492,8 +477,8 @@ class StylePane(BaseFeature):
         self._is_loading = False
         self._search_query = None
 
-        pref: Preferences = Preferences.acquire()
-        pref.add_listener("designer::descriptive_names", lambda _: self.styles_for(self._current))
+    def get_header(self):
+        raise NotImplementedError()
 
     @property
     def supported_groups(self):
@@ -513,11 +498,14 @@ class StylePane(BaseFeature):
                 return
         raise ValueError(f"Class {group_class.__class__.__name__} not found")
 
-    def apply_style(self, prop, value, widget=None, silent=False):
-        self._attribute_group.apply(prop, value, widget, silent)
+    def last_action(self):
+        raise NotImplementedError()
 
-    def apply_layout(self, prop, value, widget=None, silent=False):
-        self._layout_group.apply(prop, value, widget, silent)
+    def new_action(self, action):
+        raise NotImplementedError()
+
+    def widget_modified(self, widget):
+        raise NotImplementedError()
 
     def add_group(self, group_class, **kwargs) -> StyleGroup:
         if not issubclass(group_class, StyleGroup):
@@ -646,3 +634,44 @@ class StylePane(BaseFeature):
         # The search bar is being closed and we need to bring everything back
         super().on_search_clear()
         self._search_query = None
+
+
+class StylePane(StylePaneFramework, BaseFeature):
+    name = "Style pane"
+    icon = "edit"
+    _defaults = {
+        **BaseFeature._defaults,
+        "side": "right",
+    }
+
+    def __init__(self, master, studio, **cnf):
+        super().__init__(master, studio, **cnf)
+        self.setup_style_pane()
+
+        pref: Preferences = Preferences.acquire()
+        pref.add_listener("designer::descriptive_names", lambda _: self.styles_for(self._current))
+
+        self._identity_group = self.add_group(IdentityGroup)
+        self._layout_group = self.add_group(LayoutGroup)
+        self._attribute_group = self.add_group(AttributeGroup)
+
+        self.add_group_instance(self._layout_group._grid_config.column_config)
+        self.add_group_instance(self._layout_group._grid_config.row_config)
+
+    def apply_style(self, prop, value, widget=None, silent=False):
+        self._attribute_group.apply(prop, value, widget, silent)
+
+    def apply_layout(self, prop, value, widget=None, silent=False):
+        self._layout_group.apply(prop, value, widget, silent)
+
+    def get_header(self):
+        return self._header
+
+    def last_action(self):
+        return self.studio.last_action()
+
+    def new_action(self, action):
+        self.studio.new_action(action)
+
+    def widget_modified(self, widget):
+        self.studio.widget_modified(widget, self, None)

@@ -641,10 +641,11 @@ def get_resolved(prop, overrides, *property_tables):
     return {}
 
 
-def get_properties(widget):
+def get_properties(widget, extern_overrides=None):
     properties = widget.config()
     resolved_properties = {}
-    overrides = getattr(widget, "DEF_OVERRIDES", {})
+    # use extern overrides if DEF_OVERRIDES are not found
+    overrides = getattr(widget, "DEF_OVERRIDES", extern_overrides or {})
     for prop in properties:
         definition = get_resolved(prop, overrides, PROPERTY_TABLE)
         if definition:

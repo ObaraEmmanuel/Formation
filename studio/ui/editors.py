@@ -21,14 +21,13 @@ from hoverset.util.color import to_hex
 from hoverset.util.validators import numeric_limit, validate_any, is_empty, is_floating_numeric, is_signed
 from studio.lib.properties import all_supported_cursors, BUILTIN_BITMAPS
 from studio.lib.variables import VariableManager, VariableItem
-from studio.preferences import Preferences
-
-pref = Preferences.acquire()
+from studio.preferences import get_active_pref
 
 
-def get_display_name(style_def):
-    if pref.get("designer::descriptive_names"):
-        return style_def.get("display_name")
+def get_display_name(style_def, pref):
+    if pref and pref.exists("designer::descriptive_names"):
+        if pref.get("designer::descriptive_names"):
+            return style_def.get("display_name")
     return style_def.get("name")
 
 
@@ -517,7 +516,7 @@ class Image(Text):
         path = filedialog.askopenfilename(parent=self)
         if path:
             try:
-                path_opt = pref.get("designer::image_path")
+                path_opt = get_active_pref(self).get("designer::image_path")
             except:
                 path_opt = "absolute"
 
@@ -602,10 +601,11 @@ class StyleItem(Frame):
 
     def __init__(self, parent, style_definition, on_change=None):
         super().__init__(parent.body)
+        self.pref = get_active_pref(self)
         self.definition = style_definition
         self.name = style_definition.get("name")
         self.config(**self.style.surface)
-        display = get_display_name(style_definition)
+        display = get_display_name(style_definition, self.pref)
         self._label = Label(self, **parent.style.text_passive, text=display,
                             anchor="w")
         self._label.grid(row=0, column=0, sticky='ew')
