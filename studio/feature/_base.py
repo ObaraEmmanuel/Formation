@@ -179,6 +179,12 @@ class BaseFeature(Pane):
         """
         pass
 
+    def on_context_switch(self):
+        """
+        Override to perform operations when the active tab changes
+        """
+        pass
+
     def on_app_close(self) -> bool:
         """
         Override to perform operations before the studio app closes.

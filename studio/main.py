@@ -9,7 +9,7 @@ import time
 import webbrowser
 from tkinter import filedialog, Toplevel
 
-from studio.feature.design import Designer
+from studio.feature.design import DesignContext, MultiSaveDialog
 from studio.feature import FEATURES, StylePane
 from studio.feature._base import BaseFeature, FeaturePane
 from studio.tools import ToolManager
@@ -18,9 +18,13 @@ from studio.ui.about import about_window
 from studio.preferences import Preferences, open_preferences
 from studio.resource_loader import ResourceLoader
 from studio.updates import Updater
+from studio.context import BaseContext
 import studio
 
-from hoverset.ui.widgets import Application, Frame, PanedWindow, Button, ActionNotifier
+from hoverset.ui.widgets import (
+    Application, Frame, PanedWindow, Button,
+    ActionNotifier, TabView, Label
+)
 from hoverset.ui.icons import get_icon_image
 from hoverset.data.images import load_tk_image
 from hoverset.util.execution import Action
@@ -74,8 +78,6 @@ class StudioApplication(Application):
 
         self._bin = []
         self._clipboard = None
-        self._undo_stack = []
-        self._redo_stack = []
         self.current_preview = None
 
         self._pane.add(self._left, minsize=320, sticky='nswe', width=320)
@@ -143,17 +145,20 @@ class StudioApplication(Application):
                     ("command", "Open", icon("folder", 14, 14), actions.get('STUDIO_OPEN'), {}),
                     ("cascade", "Recent", icon("clock", 14, 14), None, {"menu": self._create_recent_menu()}),
                     ("separator",),
-                    ("command", "Save", icon("save", 14, 14), actions.get('STUDIO_SAVE'), {}),
-                    ("command", "Save As", icon("save", 14, 14), actions.get('STUDIO_SAVE_AS'), {}),
+                    EnableIf(
+                        lambda: self.designer,
+                        ("command", "Save", icon("save", 14, 14), actions.get('STUDIO_SAVE'), {}),
+                        ("command", "Save As", icon("save", 14, 14), actions.get('STUDIO_SAVE_AS'), {})
+                    ),
                     ("separator",),
                     ("command", "Settings", icon("settings", 14, 14), actions.get('STUDIO_SETTINGS'), {}),
                     ("command", "Restart", icon("blank", 14, 14), actions.get('STUDIO_RESTART'), {}),
                     ("command", "Exit", icon("close", 14, 14), actions.get('STUDIO_EXIT'), {}),
                 )}),
                 ("cascade", "Edit", None, None, {"menu": (
-                    EnableIf(lambda: len(self._undo_stack),
+                    EnableIf(lambda: self.context and self.context.has_undo(),
                              ("command", "undo", icon("undo", 14, 14), actions.get('STUDIO_UNDO'), {})),
-                    EnableIf(lambda: len(self._redo_stack),
+                    EnableIf(lambda: self.context and self.context.has_redo(),
                              ("command", "redo", icon("redo", 14, 14), actions.get('STUDIO_REDO'), {})),
                     *self.menu_template,
                 )}),
@@ -194,9 +199,19 @@ class StudioApplication(Application):
             self.createcommand("tk::mac::Quit", lambda: actions.get('STUDIO_EXIT').invoke())
 
         self.features = []
-
-        self.designer = Designer(self._center, self)
-        self._center.add(self.designer, sticky='nswe')
+        self.context = None
+        self.contexts = []
+        self.tab_view = TabView(self._center)
+        self.tab_view.malleable(True)
+        self.tab_view.bind("<<TabSelectionChanged>>", self.on_context_switch)
+        self.tab_view.bind("<<TabClosed>>", self.on_context_close)
+        self.tab_view.bind("<<TabAdded>>", self.on_context_add)
+        self._center.add(self.tab_view, sticky='nswe')
+        self._tab_view_empty = Label(
+            self.tab_view, **self.style.text_passive, compound='top',
+            image=get_icon_image("paint", 60, 60)
+        )
+        self._tab_view_empty.config(**self.style.bright)
 
         # install features
         for feature in FEATURES:
@@ -212,6 +227,62 @@ class StudioApplication(Application):
         self._restore_position()
         self._exit_failures = 0
         self._is_shutting_down = False
+
+    def on_context_switch(self, _):
+        selected = self.tab_view.selected
+        if isinstance(self.context, BaseContext):
+            self.context.on_context_unset()
+
+        if isinstance(selected, BaseContext):
+            self.context = selected
+            selected.on_context_set()
+        else:
+            self.context = None
+
+        for feature in self.features:
+            feature.on_context_switch()
+
+        # switch selection to that of the new context
+        if self.designer:
+            self.select(self.designer.current_obj, self.designer)
+        else:
+            self.select(None)
+
+    def on_context_close(self, context):
+        if not self.tab_view.tabs():
+            self._show_empty("Open a design file")
+        if context in self.contexts:
+            self.contexts.remove(context)
+
+    def on_context_add(self, _):
+        self._show_empty(None)
+
+    def add_context(self, context):
+        self.contexts.append(context)
+        tab = self.tab_view.add(
+            context, text=context.name, icon=context.icon, closeable=True
+        )
+        context.tab_handle = tab
+        self.tab_view.select(tab)
+        context.activate()
+
+    def create_context(self, context, *args, **kwargs):
+        new_context = context(self.tab_view, self, *args, **kwargs)
+        self.add_context(new_context)
+        return new_context
+
+    @property
+    def designer(self):
+        if isinstance(self.context, DesignContext):
+            return self.context.designer
+
+    def _show_empty(self, text):
+        if text:
+            self._tab_view_empty.lift()
+            self._tab_view_empty['text'] = text
+            self._tab_view_empty.place(x=0, y=0, relwidth=1, relheight=1)
+        else:
+            self._tab_view_empty.place_forget()
 
     def _startup(self):
         on_startup = pref.get("studio::on_startup")
@@ -261,39 +332,27 @@ class StudioApplication(Application):
         :param action: An action object implementing undo and redo methods
         :return:
         """
-        self._redo_stack.clear()
-        if len(self._undo_stack) >= pref.get("studio::undo_depth") and pref.get("studio::use_undo_depth"):
-            self._undo_stack.pop(0)
-        self._undo_stack.append(action)
+        if self.context:
+            self.context.new_action(action)
 
     def undo(self):
-        # Let's avoid popping an empty list to prevent raising IndexError
-        if self._undo_stack:
-            action = self._undo_stack.pop()
-            action.undo()
-            self._redo_stack.append(action)
+        if self.context:
+            self.context.undo()
 
     def redo(self):
-        if self._redo_stack:
-            action = self._redo_stack.pop()
-            action.redo()
-            self._undo_stack.append(action)
+        if self.context:
+            self.context.redo()
 
     def last_action(self):
-        if self._undo_stack:
-            return self._undo_stack[-1]
-        return None
+        if self.context:
+            return self.context.last_action()
 
     def pop_last_action(self, key=None):
-        last = self.last_action()
-        if last is not None:
-            # verify action key first
-            if key is not None and last.key != key:
-                return
-            self._undo_stack.remove(last)
+        if self.context:
+            self.context.pop_last_action(key)
 
     def copy(self):
-        if self.selected:
+        if self.designer and self.selected:
             # store the current object as  node in the clipboard
             self._clipboard = self.designer.as_node(self.selected)
 
@@ -306,7 +365,7 @@ class StudioApplication(Application):
         return self._panes.get(pane, [self._right, self._right_bar])
 
     def paste(self):
-        if self._clipboard is not None:
+        if self.designer and self._clipboard is not None:
             self.designer.paste(self._clipboard)
 
     def close_all_on_side(self, side):
@@ -421,26 +480,30 @@ class StudioApplication(Application):
             )
             return
         if path:
+            self.create_context(DesignContext, path)
             self.set_path(path)
-            self.designer.open_file(path)
             pref.update_recent(path)
 
     def open_recent(self, path):
         self.open_file(path)
 
     def open_new(self):
-        self.designer.open_new()
-        self.set_path(None)
+        context = self.create_context(DesignContext)
+        self.set_path(context.name)
 
     def save(self):
-        path = self.designer.save()
-        self.set_path(path)
-        pref.update_recent(path)
+        if self.designer:
+            path = self.context.save()
+            if path:
+                self.set_path(path)
+                pref.update_recent(path)
 
     def save_as(self):
-        path = self.designer.save(new_path=True)
-        self.set_path(path)
-        pref.update_recent(path)
+        if self.designer:
+            path = self.context.save(new_path=True)
+            if path:
+                self.set_path(path)
+                pref.update_recent(path)
 
     def get_feature(self, feature_class) -> BaseFeature:
         for feature in self.features:
@@ -480,7 +543,7 @@ class StudioApplication(Application):
 
     def select(self, widget, source=None):
         self.selected = widget
-        if source != self.designer:
+        if self.designer and source != self.designer:
             # Select from the designer explicitly so the selection does not end up being re-fired
             self.designer.select(widget, True)
         for feature in self.features:
@@ -494,9 +557,11 @@ class StudioApplication(Application):
         self.tool_manager.on_widget_add(widget, parent)
 
     def widget_modified(self, widget1, source=None, widget2=None):
-        for feature in self._all_features():
+        for feature in self.features:
             if feature != source:
                 feature.on_widget_change(widget1, widget2)
+        if self.designer and self.designer != source:
+            self.designer.on_widget_change(widget1, widget2)
         self.tool_manager.on_widget_change(widget1, widget2)
 
     def widget_layout_changed(self, widget):
@@ -510,13 +575,15 @@ class StudioApplication(Application):
             return
         if self.selected == widget:
             self.select(None)
-        if source != self.designer:
+        if self.designer and source != self.designer:
             self.designer.delete(widget)
         for feature in self.features:
             feature.on_widget_delete(widget)
         self.tool_manager.on_widget_delete(widget)
 
     def cut(self, widget=None, source=None):
+        if not self.designer:
+            return
         widget = self.selected if widget is None else widget
         if not widget:
             return
@@ -530,7 +597,7 @@ class StudioApplication(Application):
         self.tool_manager.on_widget_delete(widget)
 
     def duplicate(self):
-        if self.selected:
+        if self.designer and self.selected:
             self.designer.paste(self.designer.as_node(self.selected))
 
     def on_restore(self, widget):
@@ -542,12 +609,27 @@ class StudioApplication(Application):
         self.features.remove(old)
 
     def on_session_clear(self, source):
-        self._redo_stack.clear()
-        self._undo_stack.clear()
-        for feature in self._all_features():
+        for feature in self.features:
             if feature != source:
                 feature.on_session_clear()
         self.tool_manager.on_session_clear()
+
+    def check_unsaved_changes(self):
+        unsaved = [
+            i for i in self.contexts if isinstance(i, DesignContext) and i.designer.has_changed()
+        ]
+        if len(unsaved) > 1:
+            contexts = MultiSaveDialog.ask_save(self, self)
+            if contexts is None:
+                return False
+            for context in contexts:
+                if context.designer.save() is None:
+                    return False
+        elif unsaved:
+            return unsaved[0].designer.on_app_close()
+        elif unsaved is None:
+            return False
+        return True
 
     def preview(self):
         if self.designer.root_obj is None:
@@ -569,15 +651,6 @@ class StudioApplication(Application):
         if self.current_preview:
             self.current_preview.destroy()
 
-    def _all_features(self):
-        """
-        Return a tuple of all features including the designer instance
-        :return: tuple of features
-        """
-        # We cannot unpack directly at the return statement due to a flaw in python versions < 3.8
-        features = *self.features, self.designer
-        return features
-
     def _force_exit_prompt(self):
         return MessageDialog.builder(
             {"text": "Force exit", "value": True, "focus": True},
@@ -598,13 +671,13 @@ class StudioApplication(Application):
         try:
             self._save_position()
             # pass the on window close event to the features
-            for feature in self._all_features():
+            for feature in self.features:
                 # if any feature returns false abort shut down
                 feature.save_window_pos()
                 if not feature.on_app_close():
                     self._is_shutting_down = False
                     return False
-            if not self.tool_manager.on_app_close():
+            if not self.tool_manager.on_app_close() or not self.check_unsaved_changes():
                 self._is_shutting_down = False
                 return False
             self.quit()

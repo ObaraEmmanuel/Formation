@@ -5,17 +5,19 @@ Drag drop designer for the studio
 # ======================================================================= #
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
+import os.path
 import time
 from tkinter import filedialog, ttk
 
 from hoverset.data import actions
 from hoverset.data.keymap import KeyMap
 from hoverset.data.images import get_tk_image
-from hoverset.ui.widgets import Label, Text, FontStyle
+from hoverset.ui.widgets import Label, Text, FontStyle, Checkbutton, CompoundList
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.icons import get_icon_image as icon
 from hoverset.ui.menu import MenuUtils, LoadLater, EnableIf
 from hoverset.util.execution import Action, as_thread
+
 from studio.lib import generate_id
 from studio.lib.layouts import PlaceLayoutStrategy
 from studio.lib.pseudo import PseudoWidget, Container, Groups
@@ -23,7 +25,8 @@ from studio.parsers.loader import DesignBuilder
 from studio.ui import geometry
 from studio.ui.highlight import HighLight
 from studio.ui.widgets import DesignPad, CoordinateIndicator
-import studio
+from studio.context import BaseContext
+from studio import __version__
 
 from formation.formats import get_file_types
 
@@ -97,10 +100,12 @@ class Designer(DesignPad, Container):
     WIDGET_INIT_HEIGHT = 25
     name = "Designer"
     pane = None
+    _coord_indicator = None
 
     def __init__(self, master, studio):
         super().__init__(master)
         self.id = None
+        self.context = master
         self.studio = studio
         self.setup_widget()
         self.parent = self
@@ -148,7 +153,8 @@ class Designer(DesignPad, Container):
                  lambda: self.paste(self.studio._clipboard, paste_to=self), {})
             ),
         )
-        self._coord_indicator = self.studio.install_status_widget(CoordinateIndicator)
+        if Designer._coord_indicator is None:
+            Designer._coord_indicator = self.studio.install_status_widget(CoordinateIndicator)
         self._empty = Label(
             self,
             image=get_tk_image("paint", 30, 30), compound="top",
@@ -240,7 +246,7 @@ class Designer(DesignPad, Container):
             {"text": "Cancel", "value": None},
             wait=True,
             title="Save design",
-            message="This design has unsaved changes. Do you want to save them?",
+            message=f"Design file \"{self.context.name}\" has unsaved changes. Do you want to save them?",
             parent=self.studio,
             icon=MessageDialog.ICON_INFO
         )
@@ -259,7 +265,7 @@ class Designer(DesignPad, Container):
                 return
         self.clear()
         # inform the studio about the session clearing
-        self.studio.on_session_clear(self)
+        # self.studio.on_session_clear(self)
         if path:
             self.builder = DesignBuilder(self)
             progress = MessageDialog.show_progress(
@@ -285,7 +291,7 @@ class Designer(DesignPad, Container):
 
     def _verify_version(self):
         if self.builder.metadata.get("version"):
-            _, major, __ = studio.__version__.split(".")
+            _, major, __ = __version__.split(".")
             if major < self.builder.metadata["version"].get("major", 0):
                 MessageDialog.show_warning(
                     parent=self.studio,
@@ -723,3 +729,103 @@ class Designer(DesignPad, Container):
             elif save is None:
                 return False
         return True
+
+
+class DesignContext(BaseContext):
+    _untitled_count = 0
+
+    def __init__(self, master, studio, path=None):
+        super(DesignContext, self).__init__(master, studio)
+        self.designer = Designer(self, studio)
+        self.designer.pack(fill="both", expand=True)
+        self.path = path
+        self.icon = get_tk_image("paint", 15, 15)
+        self.name = self.name_from_path(path) if path else self._create_name()
+
+    def _create_name(self):
+        DesignContext._untitled_count += 1
+        return f"untitled_{DesignContext._untitled_count}"
+
+    def activate(self):
+        super(DesignContext, self).activate()
+        if self.path:
+            self.designer.open_file(self.path)
+        else:
+            self.designer.open_new()
+
+    def name_from_path(self, path):
+        return os.path.basename(path)
+
+    def save(self, new_path=None):
+        path = self.designer.save(new_path)
+        if path:
+            self.name = self.name_from_path(path)
+            self.tab_handle.config_tab(text=self.name)
+        return path
+
+    def on_context_set(self):
+        self.studio.set_path(self.path)
+
+    def on_context_unset(self):
+        pass
+
+    def on_app_close(self):
+        return self.designer.on_app_close()
+
+    def on_context_close(self):
+        return self.designer.on_app_close()
+
+
+class MultiSaveDialog(MessageDialog):
+
+    class CheckedItem(CompoundList.BaseItem):
+
+        def render(self):
+            self.check = Checkbutton(
+                self, **self.style.checkbutton, text=self.value.name
+            )
+            self.check.set(True)
+            self.check.pack(fill="both")
+
+        def checked(self):
+            return self.check.get()
+
+    def __init__(self, master, studio):
+        self.studio = studio
+        super(MultiSaveDialog, self).__init__(master, self.render)
+        self.title("Save dialog")
+        self.value = None
+
+    def cancel(self, *_):
+        self.destroy()
+
+    def discard(self, *_):
+        self.value = []
+        self.destroy()
+
+    def save(self, *_):
+        self.value = [i.value for i in self.context_choice.items if i.checked()]
+        self.destroy()
+
+    @classmethod
+    def ask_save(cls, parent, studio):
+        dialog = cls(parent, studio)
+        dialog.wait_window()
+        return dialog.value
+
+    def render(self, window):
+        self.contexts = [
+            i for i in self.studio.contexts if isinstance(i, DesignContext) and i.designer.has_changed()
+        ]
+        self.geometry("500x250")
+        self._message("Some files have changes. Select files to save", self.ICON_INFO)
+        self.context_choice = CompoundList(window)
+        self.context_choice.config(padx=2, height=200)
+        self.context_choice.set_item_class(MultiSaveDialog.CheckedItem)
+        self.context_choice.set_values(self.contexts)
+        self.context_choice.config_all(**self.style.bright)
+        self._make_button_bar()
+        self.cancel_btn = self._add_button(text="Cancel", command=self.cancel)
+        self.save_btn = self._add_button(text="Don't save", command=self.discard)
+        self.discard_btn = self._add_button(text="Save", command=self.save, focus=True)
+        self.context_choice.pack(fill="both", expand=True, padx=10, pady=5)
