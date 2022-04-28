@@ -3226,7 +3226,7 @@ class TabView(Frame):
         self.bind("<Configure>", self._update_overflow)
         self.bind("<Visibility>", self._update_overflow)
         self.body = Frame(self, **self.style.surface)
-        self.body.pack(fill="both")
+        self.body.pack(fill="both", expand=True)
         self._tabs = {}
         self._tab_order = []
         self._selected = None
@@ -3314,7 +3314,10 @@ class TabView(Frame):
         return tab
 
     def remove(self, tab):
-        self.event_generate("<<TabClosed>>")
+        if tab in self._tabs:
+            # generate intent to close tab
+            tab.event_generate("<<TabToClose>>")
+            self._tabs[tab].event_generate("<<TabToClose>>")
         if self._block_close:
             # clear flag to allow closing next time
             self._block_close = False
@@ -3328,11 +3331,20 @@ class TabView(Frame):
                 else:
                     # no more tabs left
                     self._selected = None
+                    self.event_generate("<<TabSelectionChanged>>")
             tab.grid_forget()
+            body = self._tabs[tab]
+            body.pack_forget()
             self._tab_order.remove(tab)
             self._tabs.pop(tab)
             self.render_tabs()
             self._update_overflow()
+            # generate deleted event for respective handles
+            tab.event_generate("<<TabDeleted>>")
+            body.event_generate("<<TabDeleted>>")
+            # generate overall tab closed event
+            self.event_generate("<<TabClosed>>")
+            tab.destroy()
 
     def block_close(self, flag):
         # just in case we need to stop a tab from closing externally
@@ -3341,13 +3353,22 @@ class TabView(Frame):
     def index(self, tab):
         return self._tab_order.index(tab)
 
+    def tabs(self):
+        return list(self._tabs)
+
+    @property
+    def selected(self):
+        if self._selected:
+            return self._tabs[self._selected]
+        return None
+
     def select(self, tab):
         if self._selected == tab:
             return
         if self._selected:
             self._tabs[self._selected].pack_forget()
             self._selected.on_deselect()
-        self._tabs[tab].pack(fill="both", expand=True)
+        self._tabs[tab].pack(fill="both", expand=True, in_=self.body)
         tab.on_select()
         self._selected = tab
         self.event_generate("<<TabSelectionChanged>>")
@@ -3393,12 +3414,14 @@ class Text(Widget, tk.Text):
 if __name__ == "__main__":
     # test
     r = Application()
+    r.config(bg='red')
     r.load_styles("themes/default.css")
-    tab = TabView(r)
-    tab.add(Frame(tab, bg="orange", width=400, height=400), text="tab 1", closeable=True)
-    tab.add(Frame(tab, bg="orange", width=400, height=400), text="tab 3", closeable=True)
-    tab.add(Frame(tab, bg="orange", width=400, height=400), text="tab 2", closeable=True)
+    r.geometry('500x400')
+    tab = TabView(r, bg="red")
+    tab.add(Frame(tab.body, bg="orange"), text="tab 1", closeable=True)
+    tab.add(Frame(tab.body, bg="orange", width=400, height=400), text="tab 3", closeable=True)
+    tab.add(Frame(tab.body, bg="orange", width=400, height=400), text="tab 2", closeable=True)
     tab.malleable(True)
-    tab.pack()
+    tab.pack(fill="both", expand=True)
     # Label(r, **r.style.text, text="this works").place(x=0, y=0, width=200, height=200)
     r.mainloop()
