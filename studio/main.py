@@ -148,7 +148,12 @@ class StudioApplication(Application):
                     EnableIf(
                         lambda: self.designer,
                         ("command", "Save", icon("save", 14, 14), actions.get('STUDIO_SAVE'), {}),
-                        ("command", "Save As", icon("save", 14, 14), actions.get('STUDIO_SAVE_AS'), {})
+                        ("command", "Save As", icon("blank", 14, 14), actions.get('STUDIO_SAVE_AS'), {})
+                    ),
+                    EnableIf(
+                        # more than one design contexts open
+                        lambda: len([i for i in self.contexts if isinstance(i, DesignContext)]) > 1,
+                        ("command", "Save All", icon("blank", 14, 14), actions.get('STUDIO_SAVE_ALL'), {})
                     ),
                     ("separator",),
                     ("command", "Settings", icon("settings", 14, 14), actions.get('STUDIO_SETTINGS'), {}),
@@ -508,6 +513,15 @@ class StudioApplication(Application):
                 self.set_path(path)
                 pref.update_recent(path)
 
+    def save_all(self):
+        contexts = [
+            i for i in self.contexts if isinstance(i, DesignContext) and i.designer.has_changed()
+        ]
+        for context in contexts:
+            if context.save() is None:
+                # save has been cancelled
+                break
+
     def get_feature(self, feature_class) -> BaseFeature:
         for feature in self.features:
             if feature.__class__ == feature_class:
@@ -733,6 +747,7 @@ class StudioApplication(Application):
             routine(self.save, 'STUDIO_SAVE', 'Save current design', 'studio', CTRL + CharKey('s')),
             routine(self.save_as, 'STUDIO_SAVE_AS', 'Save current design under a new file', 'studio',
                     CTRL + SHIFT + CharKey('s')),
+            routine(self.save_all, 'STUDIO_SAVE_ALL', 'Save all open designs', 'studio', CTRL + ALT + CharKey('s')),
             routine(self.get_help, 'STUDIO_HELP', 'Show studio help', 'studio', KeyMap.F(12)),
             routine(self.settings, 'STUDIO_SETTINGS', 'Open studio settings', 'studio', ALT + CharKey('s')),
             routine(restart, 'STUDIO_RESTART', 'Restart application', 'studio', BlankKey),
