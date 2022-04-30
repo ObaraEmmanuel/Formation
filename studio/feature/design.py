@@ -138,6 +138,16 @@ class Designer(DesignPad, Container):
         self._shortcut_mgr = KeyMap(self._frame)
         self._set_shortcuts()
         self._last_click_pos = None
+
+        self._empty = Label(
+            self,
+            image=get_tk_image("paint", 30, 30), compound="top",
+            text="Drag or paste a container here to start",
+            **self.style.text_passive,
+        )
+        self._empty.config(**self.style.bright)
+        self._show_empty(True)
+
         # create the dynamic menu
         self._context_menu = MenuUtils.make_dynamic(
             self.studio.menu_template +
@@ -146,23 +156,16 @@ class Designer(DesignPad, Container):
             self.studio,
             self.style
         )
-        self.set_up_context(
+        design_menu = (
             EnableIf(
                 lambda: self.studio._clipboard is not None,
                 ("command", "paste", icon("clipboard", 14, 14),
                  lambda: self.paste(self.studio._clipboard, paste_to=self), {})
-            ),
-        )
+            ),)
+        self.set_up_context(design_menu)
+        self._empty.set_up_context(design_menu)
         if Designer._coord_indicator is None:
             Designer._coord_indicator = self.studio.install_status_widget(CoordinateIndicator)
-        self._empty = Label(
-            self,
-            image=get_tk_image("paint", 30, 30), compound="top",
-            text="Drag a container here to start",
-            **self.style.text_passive,
-        )
-        self._empty.config(**self.style.bright)
-        self._show_empty(True)
         self._text_editor = Text(self, wrap='none')
         self._text_editor.on_change(self._text_change)
         self._text_editor.bind("<FocusOut>", self._text_hide)
@@ -495,6 +498,8 @@ class Designer(DesignPad, Container):
                     self.root_obj = w
                     break
         self._uproot_widget(widget)
+        if not self.objects:
+            self._show_empty(True)
 
     def _uproot_widget(self, widget):
         # Recursively remove widgets and all its children
