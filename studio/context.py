@@ -32,7 +32,7 @@ class BaseContext(Frame):
     def on_context_unset(self):
         pass
 
-    def activate(self):
+    def on_context_mount(self):
         self.tab_handle.config_tab(text=self.name)
 
     def new_action(self, action: Action):

@@ -235,12 +235,14 @@ class StudioApplication(Application):
 
         if isinstance(selected, BaseContext):
             self.context = selected
-            selected.on_context_set()
         else:
             self.context = None
 
         for feature in self.features:
             feature.on_context_switch()
+
+        if self.context:
+            selected.on_context_set()
 
         # switch selection to that of the new context
         if self.designer:
@@ -257,14 +259,15 @@ class StudioApplication(Application):
     def on_context_add(self, _):
         self._show_empty(None)
 
-    def add_context(self, context):
+    def add_context(self, context, select=True):
         self.contexts.append(context)
         tab = self.tab_view.add(
             context, text=context.name, icon=context.icon, closeable=True
         )
         context.tab_handle = tab
-        self.tab_view.select(tab)
-        context.activate()
+        if select:
+            self.tab_view.select(tab)
+        context.on_context_mount()
 
     def create_context(self, context, *args, **kwargs):
         new_context = context(self.tab_view, self, *args, **kwargs)

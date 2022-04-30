@@ -741,17 +741,11 @@ class DesignContext(BaseContext):
         self.path = path
         self.icon = get_tk_image("paint", 15, 15)
         self.name = self.name_from_path(path) if path else self._create_name()
+        self._loaded = False
 
     def _create_name(self):
         DesignContext._untitled_count += 1
         return f"untitled_{DesignContext._untitled_count}"
-
-    def activate(self):
-        super(DesignContext, self).activate()
-        if self.path:
-            self.designer.open_file(self.path)
-        else:
-            self.designer.open_new()
 
     def name_from_path(self, path):
         return os.path.basename(path)
@@ -764,6 +758,13 @@ class DesignContext(BaseContext):
         return path
 
     def on_context_set(self):
+        # lazy loading, only load when tab is brought into view for first time
+        if not self._loaded:
+            if self.path:
+                self.designer.open_file(self.path)
+            else:
+                self.designer.open_new()
+            self._loaded = True
         self.studio.set_path(self.path)
 
     def on_context_unset(self):
