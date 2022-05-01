@@ -488,9 +488,16 @@ class StudioApplication(Application):
             )
             return
         if path:
-            self.create_context(DesignContext, path)
-            self.set_path(path)
-            pref.update_recent(path)
+            # find if path is already open on the designer
+            for context in self.contexts:
+                if isinstance(context, DesignContext) and context.path == path:
+                    # path is open, select
+                    context.select()
+                    break
+            else:
+                self.create_context(DesignContext, path)
+                self.set_path(path)
+                pref.update_recent(path)
 
     def open_recent(self, path):
         self.open_file(path)

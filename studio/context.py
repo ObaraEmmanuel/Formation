@@ -78,6 +78,10 @@ class BaseContext(Frame):
                 return
             self._undo_stack.remove(last)
 
+    def select(self):
+        if self.tab_handle:
+            self.tab_view.select(self.tab_handle)
+
     def on_app_close(self):
         return True
 
