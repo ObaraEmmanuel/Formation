@@ -31,6 +31,7 @@ defaults = {
             "state": 'zoomed'
         },
         "on_startup": "new",
+        "prev_contexts": [],
         "smoothness": 3,
         "use_undo_depth": True,
         "undo_depth": 30,
@@ -132,9 +133,9 @@ templates = {
                 "element": RadioGroup,
                 "extra": {
                     "choices": (
-                        ("new", "Open new design file"),
-                        ("recent", "Open most recent design file"),
-                        ("blank", "Do not open any design")
+                        ("new", "Open blank design tab"),
+                        ("recent", "Restore previous tabs"),
+                        ("blank", "Do not open any design tab")
                     )
                 }
             },

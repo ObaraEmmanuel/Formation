@@ -772,6 +772,14 @@ class DesignContext(BaseContext):
             self._loaded = True
         self.studio.set_path(self.path)
 
+    def serialize(self):
+        data = super().serialize()
+        data["args"] = (self.path, )
+        return data
+
+    def can_persist(self):
+        return self.path is not None
+
     def on_context_unset(self):
         pass
 

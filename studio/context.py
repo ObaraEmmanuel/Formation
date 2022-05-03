@@ -5,7 +5,7 @@ from hoverset.ui.icons import get_icon_image
 
 class BaseContext(Frame):
 
-    def __init__(self, master, studio):
+    def __init__(self, master, studio, *args, **kwargs):
         super(BaseContext, self).__init__(master)
         self.tab_view = master
         self.studio = studio
@@ -81,6 +81,15 @@ class BaseContext(Frame):
     def select(self):
         if self.tab_handle:
             self.tab_view.select(self.tab_handle)
+
+    def serialize(self):
+        return {"class": self.__class__, "args": (), "kwargs": {}, "data": {}}
+
+    def deserialize(self, data):
+        pass
+
+    def can_persist(self):
+        return False
 
     def on_app_close(self):
         return True

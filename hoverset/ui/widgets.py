@@ -3301,10 +3301,10 @@ class TabView(Frame):
         for index, tab in enumerate(self._tab_order):
             tab.grid(row=0, column=index, sticky='ns')
 
-    def add(self, widget, index=None, **cnf):
+    def add(self, widget, index=None, autoselect=True, **cnf):
         tab = self.Tab(self, **cnf)
         self._tabs[tab] = widget
-        if len(self._tabs) == 1:
+        if len(self._tabs) == 1 and autoselect:
             self.select(tab)
         index = len(self._tab_order) if index is None else index
         self._tab_order.insert(index, tab)

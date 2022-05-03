@@ -211,6 +211,7 @@ class StudioApplication(Application):
         self.tab_view.bind("<<TabSelectionChanged>>", self.on_context_switch)
         self.tab_view.bind("<<TabClosed>>", self.on_context_close)
         self.tab_view.bind("<<TabAdded>>", self.on_context_add)
+        self.tab_view.bind("<<TabOrderChanged>>", lambda _: self.save_tab_status())
         self._center.add(self.tab_view, sticky='nswe')
         self._tab_view_empty = Label(
             self.tab_view, **self.style.text_passive, compound='top',
@@ -228,6 +229,7 @@ class StudioApplication(Application):
         # initialize tools with everything ready
         self.tool_manager.initialize()
 
+        self._ignore_tab_status = False
         self._startup()
         self._restore_position()
         self._exit_failures = 0
@@ -254,12 +256,14 @@ class StudioApplication(Application):
             self.select(self.designer.current_obj, self.designer)
         else:
             self.select(None)
+        self.save_tab_status()
 
     def on_context_close(self, context):
         if not self.tab_view.tabs():
             self._show_empty("Open a design file")
         if context in self.contexts:
             self.contexts.remove(context)
+        self.save_tab_status()
 
     def on_context_add(self, _):
         self._show_empty(None)
@@ -267,16 +271,17 @@ class StudioApplication(Application):
     def add_context(self, context, select=True):
         self.contexts.append(context)
         tab = self.tab_view.add(
-            context, text=context.name, icon=context.icon, closeable=True
+            context, None, False, text=context.name, icon=context.icon, closeable=True
         )
         context.tab_handle = tab
         if select:
             self.tab_view.select(tab)
         context.on_context_mount()
+        self.save_tab_status()
 
-    def create_context(self, context, *args, **kwargs):
+    def create_context(self, context, *args, select=True, **kwargs):
         new_context = context(self.tab_view, self, *args, **kwargs)
-        self.add_context(new_context)
+        self.add_context(new_context, select)
         return new_context
 
     @property
@@ -297,10 +302,9 @@ class StudioApplication(Application):
         if on_startup == "new":
             self.open_new()
         elif on_startup == "recent":
-            latest = pref.get_latest()
-            if latest:
-                self.open_file(latest)
-        # if blank do nothing
+            self.restore_tabs()
+        else:
+            self._show_empty("Open a design file")
 
     def _get_window_state(self):
         try:
@@ -511,6 +515,7 @@ class StudioApplication(Application):
             path = self.context.save()
             if path:
                 self.set_path(path)
+                self.save_tab_status()
                 pref.update_recent(path)
 
     def save_as(self):
@@ -518,6 +523,7 @@ class StudioApplication(Application):
             path = self.context.save(new_path=True)
             if path:
                 self.set_path(path)
+                self.save_tab_status()
                 pref.update_recent(path)
 
     def save_all(self):
@@ -637,6 +643,39 @@ class StudioApplication(Application):
             if feature != source:
                 feature.on_session_clear()
         self.tool_manager.on_session_clear()
+
+    def restore_tabs(self):
+        # ignore all tab status changes as we restore tabs
+        self._ignore_tab_status = True
+        first_context = None
+        has_select = False
+        for context_dat in self.pref.get("studio::prev_contexts"):
+            context = self.create_context(
+                context_dat["class"],
+                *context_dat["args"],
+                select=context_dat["selected"],
+                **context_dat["kwargs"]
+            )
+            has_select = has_select or context_dat["selected"]
+            first_context = context if first_context is None else first_context
+            context.deserialize(context_dat["data"])
+        if not first_context:
+            self._show_empty("Open a design file")
+        elif not has_select:
+            first_context.select()
+        self._ignore_tab_status = False
+
+    def save_tab_status(self):
+        if self._ignore_tab_status:
+            return
+        status = []
+        for tab in self.tab_view._tab_order:
+            context = self.tab_view._tabs[tab]
+            if isinstance(context, BaseContext) and context.can_persist():
+                data = context.serialize()
+                data["selected"] = self.context == context
+                status.append(data)
+        self.pref.set("studio::prev_contexts", status)
 
     def check_unsaved_changes(self):
         unsaved = [
