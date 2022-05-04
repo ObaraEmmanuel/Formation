@@ -263,6 +263,8 @@ class StudioApplication(Application):
             self._show_empty("Open a design file")
         if context in self.contexts:
             self.contexts.remove(context)
+        for feature in self.features:
+            feature.on_context_close(context)
         self.save_tab_status()
 
     def on_context_add(self, _):

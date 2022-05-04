@@ -31,6 +31,8 @@ class VariablePane(BaseFeature):
         }
     }
 
+    _empty_message = "No variables added"
+
     def __init__(self, master, studio=None, **cnf):
         super().__init__(master, studio, **cnf)
         f = Frame(self, **self.style.surface)
@@ -43,10 +45,33 @@ class VariablePane(BaseFeature):
         self._detail_pane = ScrolledFrame(f, width=150)
         self._detail_pane.place(relx=0.4, y=0, relwidth=0.6, relheight=1, x=15, width=-20)
 
+        Label(
+            self._detail_pane.body, **self.style.text_passive,
+            text="Type", anchor="w"
+        ).pack(side="top", fill="x")
+        self.var_type_lbl = Label(
+            self._detail_pane.body, **self.style.text, anchor="w"
+        )
+        self.var_type_lbl.pack(side="top", fill="x")
+        Label(
+            self._detail_pane.body, **self.style.text_passive,
+            text="Name", anchor="w"
+        ).pack(side="top", fill="x")
+        self.var_name = editors.get_editor(self._detail_pane.body, self._definitions["name"])
+        self.var_name.pack(side="top", fill="x")
+        Label(
+            self._detail_pane.body, **self.style.text_passive,
+            text="Value", anchor="w"
+        ).pack(fill="x", side="top")
+        self._editors = {}
+        self._editor = None
+
         self._search_btn = Button(self._header, image=get_icon_image("search", 15, 15), width=25, height=25,
                                   **self.style.button)
         self._search_btn.pack(side="right")
         self._search_btn.on_click(self.start_search)
+        self._search_query = None
+
         self._add = MenuButton(self._header, **self.style.button)
         self._add.configure(image=get_icon_image("add", 15, 15))
         self._add.pack(side="right")
@@ -61,10 +86,9 @@ class VariablePane(BaseFeature):
         self._add.config(menu=self._var_types_menu)
         self._selected = None
         self._links = {}
-        self._overlay = Label(f, **self.style.text_passive, text="Add variables", compound="top")
+        self._overlay = Label(f, **self.style.text_passive, text=self._empty_message, compound="top")
         self._overlay.configure(image=get_icon_image("add", 25, 25))
         self._show_overlay(True)
-        self._editors = []
 
     def start_search(self, *_):
         if self.variables:
@@ -84,9 +108,11 @@ class VariablePane(BaseFeature):
         else:
             self.select(matches[0])
             self._show_overlay(False)
+        self._search_query = query
 
     def on_search_clear(self):
         self.on_search_query("")
+        self._search_query = None
         self._show_overlay(False)
         super().on_search_clear()
 
@@ -96,7 +122,7 @@ class VariablePane(BaseFeature):
             tk.COMMAND,
             _types[i].get("name"),
             get_icon_image(_types[i].get("icon"), 14, 14),
-            functools.partial(self.add_var, i), {}
+            functools.partial(self.menu_add_var, i), {}
         ) for i in _types]
 
     def create_menu(self):
@@ -108,11 +134,17 @@ class VariablePane(BaseFeature):
 
     def _show_overlay(self, flag=True, **kwargs):
         if flag:
+            kwargs["text"] = kwargs.get("text", self._empty_message)
+            kwargs["image"] = kwargs.get("image", get_icon_image("add", 25, 25))
             self._overlay.lift()
             self._overlay.configure(**kwargs)
             self._overlay.place(x=0, y=0, relwidth=1, relheight=1)
         else:
             self._overlay.place_forget()
+
+    def menu_add_var(self, var_type, **kw):
+        item = self.add_var(var_type, **kw)
+        self.select(item)
 
     def add_var(self, var_type, **kw):
         var = var_type(self.studio)
@@ -123,10 +155,16 @@ class VariablePane(BaseFeature):
         item.bind("<Button-1>", lambda e: self.select(item))
         if value is not None:
             item.set(value)
-        VariableManager.add(item)
+
         self._show(item)
         self._show_overlay(False)
-        self.select(item)
+        if self._search_query is not None:
+            # reapply search if any
+            self.on_search_query(self._search_query)
+        elif not self.variables:
+            self.select(item)
+        VariableManager.add(item)
+        return item
 
     def delete_var(self, var):
         self._hide(var)
@@ -149,7 +187,7 @@ class VariablePane(BaseFeature):
 
     @property
     def variables(self):
-        return VariableManager.variables
+        return VariableManager.variables()
 
     def select(self, item):
         if item == self._selected:
@@ -166,24 +204,48 @@ class VariablePane(BaseFeature):
     def _hide(self, item):
         item.pack_forget()
 
+    def _get_editor(self, variable):
+        editor_type = variable.definition["type"]
+        if not self._editors.get(editor_type):
+            # we do not have that type of editor yet, create it
+            self._editors[editor_type] = editors.get_editor(self._detail_pane.body, variable.definition)
+        return self._editors[editor_type]
+
+    def refresh(self):
+        # redraw variables for current context
+        self._variable_pane.body.clear_children()
+        has_selection = False
+        if not self.variables:
+            self._show_overlay(True)
+        else:
+            self._show_overlay(False)
+        for item in self.variables:
+            self._show(item)
+            if not has_selection:
+                self.select(item)
+                has_selection = True
+        # reapply search query if any
+        if self._search_query is not None:
+            self.on_search_query(self._search_query)
+
     def _detail_for(self, variable):
-        self._detail_pane.clear_children()
-        Label(self._detail_pane.body, **self.style.text_passive,
-              text="Type", anchor="w").pack(fill="x", side="top")
-        Label(self._detail_pane.body, **self.style.text,
-              text=variable.var_type_name, anchor="w").pack(fill="x", side="top")
-        Label(self._detail_pane.body, **self.style.text_passive,
-              text="Name", anchor="w").pack(fill="x", side="top")
-        name = editors.get_editor(self._detail_pane.body, self._definitions["name"])
-        name.pack(side="top", fill="x")
-        name.set(variable.name)
-        name.on_change(variable.set_name)
-        Label(self._detail_pane.body, **self.style.text_passive,
-              text="Value", anchor="w").pack(fill="x", side="top")
-        value = editors.get_editor(self._detail_pane.body, variable.definition)
-        value.set(variable.value)
-        value.pack(side="top", fill="x")
-        value.on_change(variable.set)
+        _editor = self._get_editor(variable)
+        if self._editor != _editor:
+            # we need to change current editor completely
+            if self._editor:
+                self._editor.pack_forget()
+            self._editor = _editor
+        self._editor.set(variable.value)
+        self._editor.pack(side="top", fill="x")
+        self._editor.on_change(variable.set)
+
+        self.var_name.set(variable.name)
+        self.var_name.on_change(variable.set_name)
+        self.var_type_lbl["text"] = variable.var_type_name
 
     def on_session_clear(self):
         self.clear_variables()
+
+    def on_context_switch(self):
+        VariableManager.set_context(self.studio.context)
+        self.refresh()

@@ -554,7 +554,7 @@ class Variable(Choice):
 
     def set_up(self):
         VariableManager.editors.append(self)
-        values = [i.var for i in VariableManager.variables]
+        values = [i.var for i in VariableManager.variables()]
         self._spinner.set_item_class(Variable.VariableChoiceItem)
         self._spinner.set_values((
             '', *values,
@@ -562,7 +562,7 @@ class Variable(Choice):
 
     def set(self, value):
         # Override default conversion of value to string by Choice class
-        var = list(filter(lambda x: x.name == value, VariableManager.variables))
+        var = list(filter(lambda x: x.name == value, VariableManager.variables()))
         # if variable does not match anything in the variable manager presume as empty
         value = var[0].var if var else ''
         self._spinner.set(value)
@@ -572,6 +572,12 @@ class Variable(Choice):
 
     def on_var_delete(self, var):
         self._spinner.remove_value(var)
+
+    def on_var_context_change(self):
+        values = [i.var for i in VariableManager.variables()]
+        self._spinner.set_values((
+            '', *values,
+        ))
 
     def destroy(self):
         VariableManager.remove_editor(self)
@@ -584,8 +590,14 @@ class Stringvariable(Variable):
     def set_up(self):
         # filter to obtain only string variables
         VariableManager.editors.append(self)
-        values = [i.var for i in VariableManager.variables if i.var.__class__ == StringVar]
+        values = [i.var for i in VariableManager.variables() if i.var.__class__ == StringVar]
         self._spinner.set_item_class(Variable.VariableChoiceItem)
+        self._spinner.set_values((
+            '', *values,
+        ))
+
+    def on_var_context_change(self):
+        values = [i.var for i in VariableManager.variables() if i.var.__class__ == StringVar]
         self._spinner.set_values((
             '', *values,
         ))

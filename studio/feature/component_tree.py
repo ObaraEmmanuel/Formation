@@ -175,6 +175,11 @@ class ComponentTree(BaseFeature):
         if node.parent_node != parent:
             parent.insert(None, node)
 
+    def on_context_close(self, context):
+        if hasattr(context, "designer"):
+            # delete context's tree
+            context.designer.node.destroy()
+
     def on_session_clear(self):
         self._tree.clear()
 

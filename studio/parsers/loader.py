@@ -10,7 +10,7 @@ import tkinter as tk
 from formation.formats import infer_format, BaseAdapter, Node
 from studio.feature.variablepane import VariablePane
 from studio.feature.components import ComponentPane
-from studio.lib.variables import VariableItem
+from studio.lib.variables import VariableItem, VariableManager
 from studio.lib import legacy, native
 from studio.lib.menu import menu_config, MENU_ITEM_TYPES
 from studio.lib.pseudo import Container, PseudoWidget
@@ -341,7 +341,7 @@ class DesignBuilder:
         return node
 
     def _variables_to_tree(self, parent):
-        variables = VariablePane.get_instance().variables
+        variables = VariableManager.variables(self.designer.context)
         for var_item in variables:
             VariableStudioAdapter.generate(var_item, parent)
 

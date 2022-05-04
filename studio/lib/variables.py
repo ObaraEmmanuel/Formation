@@ -8,6 +8,7 @@ use by the studio
 """
 import logging
 import tkinter as tk
+from collections import defaultdict
 from typing import Union
 
 from hoverset.ui.widgets import Label
@@ -120,22 +121,34 @@ class VariableItem(Label):
 
 
 class VariableManager:
-    variables = []
+    _variables = defaultdict(list)
     editors = []
+    _context = None
+
+    @classmethod
+    def set_context(cls, context):
+        if context == cls._context:
+            return
+        cls._context = context
+        cls._broadcast("on_var_context_change")
+
+    @classmethod
+    def variables(cls, context=None):
+        return cls._variables[context or cls._context]
 
     @classmethod
     def add(cls, item):
-        cls.variables.append(item)
+        cls.variables().append(item)
         cls._broadcast("on_var_add", item.var)
 
     @classmethod
     def clear(cls):
-        cls.variables.clear()
+        cls.variables().clear()
 
     @classmethod
     def remove(cls, item):
-        if item in cls.variables:
-            cls.variables.remove(item)
+        if item in cls.variables():
+            cls.variables().remove(item)
             cls._broadcast("on_var_delete", item.var)
 
     @classmethod
@@ -153,7 +166,7 @@ class VariableManager:
         name = str(name)  # Sometimes name is a TclObj and we need it as a string for this to work
         search = list(filter(
             lambda x: name in (x.var._name, x.name),
-            cls.variables
+            cls.variables()
         ))
         if search:
             return search[0]
