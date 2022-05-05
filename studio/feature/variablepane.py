@@ -113,7 +113,8 @@ class VariablePane(BaseFeature):
     def on_search_clear(self):
         self.on_search_query("")
         self._search_query = None
-        self._show_overlay(False)
+        # remove overlay if we have variables otherwise show it
+        self._show_overlay(not self.variables)
         super().on_search_clear()
 
     def _get_add_menu(self):
