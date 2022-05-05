@@ -190,7 +190,8 @@ templates = {
                                 "choices": (
                                     ("\t", "Tabs"),
                                     ("", "Spaces")
-                                )
+                                ),
+                                "tristatevalue": '-'
                             }
                         },
                         "allow": [""],

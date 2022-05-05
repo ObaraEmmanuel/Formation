@@ -357,7 +357,7 @@ class DependentGroup:
 class RadioGroup(Component, RadioButtonGroup):
 
     def __init__(self, master, pref, path, desc, **extra):
-        super().__init__(master, extra.get('choices', ()), desc)
+        super().__init__(master, extra.pop('choices', ()), desc, **extra)
         self.load(pref, path)
 
     def disable(self, flag):
