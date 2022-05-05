@@ -175,15 +175,30 @@ class StudioApplication(Application):
                     )
                 )}),
                 ("cascade", "View", None, None, {"menu": (
-                    ("command", "show all", blank_img, actions.get('FEATURE_SHOW_ALL'), {}),
-                    ("command", "close all", icon("close", 14, 14), actions.get('FEATURE_CLOSE_ALL'), {}),
-                    ("command", "close all on the right", blank_img, actions.get('FEATURE_CLOSE_RIGHT'), {}),
-                    ("command", "close all on the left", blank_img, actions.get('FEATURE_CLOSE_LEFT'), {}),
+                    ("command", "show all panes", blank_img, actions.get('FEATURE_SHOW_ALL'), {}),
+                    ("command", "close all panes", icon("close", 14, 14), actions.get('FEATURE_CLOSE_ALL'), {}),
+                    ("command", "close all panes on the right", blank_img, actions.get('FEATURE_CLOSE_RIGHT'), {}),
+                    ("command", "close all panes on the left", blank_img, actions.get('FEATURE_CLOSE_LEFT'), {}),
                     ("separator",),
                     ("command", "Undock all windows", blank_img, actions.get('FEATURE_UNDOCK_ALL'), {}),
                     ("command", "Dock all windows", blank_img, actions.get('FEATURE_DOCK_ALL'), {}),
                     ("separator",),
                     LoadLater(self.get_features_as_menu),
+                    ("separator",),
+                    EnableIf(
+                        lambda: self.context,
+                        ("command", "close tab", icon("close", 14, 14), actions.get('CONTEXT_CLOSE'), {}),
+                        ("command", "close all tabs", blank_img, actions.get('CONTEXT_CLOSE_ALL'), {}),
+                        EnableIf(
+                            lambda: self.context and len(self.tab_view.tabs()) > 1,
+                            ("command", "close other tabs", blank_img, actions.get('CONTEXT_CLOSE_OTHER'), {})
+                        ),
+                        EnableIf(
+                            lambda: self.context and self.context._contexts_right(),
+                            ("command", "close all tabs on the right", blank_img,
+                             actions.get('CONTEXT_CLOSE_OTHER_RIGHT'), {})
+                        )
+                    ),
                     ("separator",),
                     ("command", "Save window positions", blank_img, actions.get('FEATURE_SAVE_POS'), {})
                 )}),
@@ -285,6 +300,23 @@ class StudioApplication(Application):
         new_context = context(self.tab_view, self, *args, **kwargs)
         self.add_context(new_context, select)
         return new_context
+
+    def close_context(self):
+        if self.context:
+            self.context.close()
+
+    def close_all_contexts(self):
+        if self.check_unsaved_changes():
+            for context in list(self.contexts):
+                context.close(force=True)
+
+    def close_other_contexts(self):
+        if self.context:
+            self.context.close_other()
+
+    def close_other_contexts_right(self):
+        if self.context:
+            self.context.close_other_right()
 
     @property
     def designer(self):
@@ -679,12 +711,13 @@ class StudioApplication(Application):
                 status.append(data)
         self.pref.set("studio::prev_contexts", status)
 
-    def check_unsaved_changes(self):
+    def check_unsaved_changes(self, check_contexts=None):
+        check_contexts = self.contexts if check_contexts is None else check_contexts
         unsaved = [
-            i for i in self.contexts if isinstance(i, DesignContext) and i.designer.has_changed()
+            i for i in check_contexts if isinstance(i, DesignContext) and i.designer.has_changed()
         ]
         if len(unsaved) > 1:
-            contexts = MultiSaveDialog.ask_save(self, self)
+            contexts = MultiSaveDialog.ask_save(self, self, check_contexts)
             if contexts is None:
                 return False
             for context in contexts:
@@ -814,6 +847,13 @@ class StudioApplication(Application):
                     ALT + CharKey('u')),
             routine(self.save_window_positions, 'FEATURE_SAVE_POS', 'Save window positions', 'studio',
                     ALT + SHIFT + CharKey('s')),
+            # -----------------------------
+            routine(self.close_context, 'CONTEXT_CLOSE', 'Close tab', 'studio', CTRL + CharKey('T')),
+            routine(self.close_all_contexts, 'CONTEXT_CLOSE_ALL', 'Close all tabs', 'studio',
+                    CTRL + ALT + CharKey('T')),
+            routine(self.close_other_contexts, 'CONTEXT_CLOSE_OTHER', 'Close other tabs', 'studio', BlankKey),
+            routine(self.close_other_contexts_right, 'CONTEXT_CLOSE_OTHER_RIGHT', 'Close all tabs on the right',
+                    'studio', BlankKey),
             # -----------------------------
             routine(self.preview, 'STUDIO_PREVIEW', 'Show preview', 'studio', KeyMap.F(5)),
             routine(self.close_preview, 'STUDIO_PREVIEW_CLOSE', 'Close any preview', 'studio', ALT + KeyMap.F(5)),

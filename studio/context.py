@@ -1,6 +1,7 @@
 from hoverset.util.execution import Action
 from hoverset.ui.widgets import Frame
-from hoverset.ui.icons import get_icon_image
+from hoverset.ui.icons import get_icon_image as icon
+from hoverset.ui.menu import EnableIf
 
 
 class BaseContext(Frame):
@@ -14,17 +15,22 @@ class BaseContext(Frame):
         self._redo_stack = []
         self.tab_handle = None
         self.name = "tab"
-        self.icon = get_icon_image("data", 15, 15)
+        self.icon = icon("data", 15, 15)
         self.bind("<<TabDeleted>>", self._close_context)
         self.bind("<<TabToClose>>", self._close_check)
+        self._force_close = False
 
-    def _close_context(self, _):
+    def _close_context(self, *_):
         self.studio.on_context_close(self)
         self.destroy()
 
-    def _close_check(self, _):
-        if not self.on_context_close():
+    def _close_check(self, *_):
+        if not self._force_close and not self.on_context_close():
             self.tab_view.block_close(True)
+
+    def close(self, force=False):
+        self._force_close = force
+        self.tab_view.remove(self.tab_handle)
 
     def on_context_set(self):
         pass
@@ -34,6 +40,31 @@ class BaseContext(Frame):
 
     def on_context_mount(self):
         self.tab_handle.config_tab(text=self.name)
+        self.tab_handle.set_up_context((
+            ("command", "close", icon("blank", 14, 14), self.close, {}),
+            EnableIf(
+                lambda: len(self.tab_view.tabs()) > 1,
+                ("command", "close other tabs", icon("blank", 14, 14), self.close_other, {})
+            ),
+            EnableIf(
+                lambda: self._contexts_right(),
+                ("command", "close tabs to the right", icon("blank", 14, 14), self.close_other_right, {})
+            ),
+        ))
+
+    def _contexts_right(self):
+        return [self.tab_view._tabs[i] for i in self.tab_view._tab_order[self.tab_view.index(self.tab_handle) + 1:]]
+
+    def _close_contexts(self, contexts):
+        if self.studio.check_unsaved_changes(contexts):
+            for context in contexts:
+                context.close(force=True)
+
+    def close_other(self):
+        self._close_contexts(list(filter(lambda x: x != self, self.studio.contexts)))
+
+    def close_other_right(self):
+        self._close_contexts(self._contexts_right())
 
     def new_action(self, action: Action):
         """

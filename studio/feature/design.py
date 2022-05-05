@@ -804,8 +804,9 @@ class MultiSaveDialog(MessageDialog):
         def checked(self):
             return self.check.get()
 
-    def __init__(self, master, studio):
+    def __init__(self, master, studio, contexts=None):
         self.studio = studio
+        self.check_contexts = contexts
         super(MultiSaveDialog, self).__init__(master, self.render)
         self.title("Save dialog")
         self.value = None
@@ -822,14 +823,15 @@ class MultiSaveDialog(MessageDialog):
         self.destroy()
 
     @classmethod
-    def ask_save(cls, parent, studio):
-        dialog = cls(parent, studio)
+    def ask_save(cls, parent, studio, contexts=None):
+        dialog = cls(parent, studio, contexts)
         dialog.wait_window()
         return dialog.value
 
     def render(self, window):
+        contexts = self.check_contexts if self.check_contexts is not None else self.studio.contexts
         self.contexts = [
-            i for i in self.studio.contexts if isinstance(i, DesignContext) and i.designer.has_changed()
+            i for i in contexts if isinstance(i, DesignContext) and i.designer.has_changed()
         ]
         self.geometry("500x250")
         self._message("Some files have changes. Select files to save", self.ICON_INFO)
