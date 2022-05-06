@@ -178,7 +178,7 @@ class ComponentTree(BaseFeature):
     def on_context_close(self, context):
         if hasattr(context, "designer"):
             # delete context's tree
-            if hasattr(context.designer, "node"):
+            if hasattr(context.designer, "node") and context.designer.node:
                 context.designer.node.destroy()
 
     def on_session_clear(self):

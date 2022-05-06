@@ -12,7 +12,7 @@ from tkinter import filedialog, ttk
 from hoverset.data import actions
 from hoverset.data.keymap import KeyMap
 from hoverset.data.images import get_tk_image
-from hoverset.ui.widgets import Label, Text, FontStyle, Checkbutton, CompoundList
+from hoverset.ui.widgets import Label, Text, FontStyle, Checkbutton, CompoundList, Button
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.icons import get_icon_image as icon
 from hoverset.ui.menu import MenuUtils, LoadLater, EnableIf
@@ -141,8 +141,7 @@ class Designer(DesignPad, Container):
 
         self._empty = Label(
             self,
-            image=get_tk_image("paint", 30, 30), compound="top",
-            text="Drag or paste a container here to start",
+            image=get_tk_image("paint", 30, 30), compound="top", text=" ",
             **self.style.text_passive,
         )
         self._empty.config(**self.style.bright)
@@ -184,8 +183,11 @@ class Designer(DesignPad, Container):
     def _update_throttling(self, *_):
         self.highlight.set_skip_max(self.studio.pref.get("designer::frame_skip"))
 
-    def _show_empty(self, flag):
+    def _show_empty(self, flag, **kw):
         if flag:
+            kw['image'] = kw.get('image', get_tk_image('paint', 30, 30))
+            kw['text'] = kw.get('text', "Drag or paste a container here to start")
+            self._empty.configure(**kw)
             self._empty.place(relwidth=1, relheight=1)
         else:
             self._empty.place_forget()
@@ -266,9 +268,6 @@ class Designer(DesignPad, Container):
             elif save is None:
                 # user made no choice or basically selected cancel
                 return
-        self.clear()
-        # inform the studio about the session clearing
-        # self.studio.on_session_clear(self)
         if path:
             self.builder = DesignBuilder(self)
             progress = MessageDialog.show_progress(
@@ -312,14 +311,35 @@ class Designer(DesignPad, Container):
         # Capture any errors that occur while loading
         # This helps the user single out syntax errors and other value errors
         try:
-            self.root_obj = self.builder.load(path, self)
             self.design_path = path
+            self.root_obj = self.builder.load(path, self)
         except Exception as e:
-            MessageDialog.show_error(parent=self.studio, title='Error loading design', message=str(e))
+            self.clear()
+            self.studio.on_session_clear(self)
+            accelerator = actions.get_routine("STUDIO_RELOAD").accelerator
+            text = f"{str(e)}\nPress {accelerator} to reload" if accelerator else f"{str(e)} \n reload design"
+            self._show_empty(True, text=text, image=get_tk_image("dialog_error", 50, 50))
+            # MessageDialog.show_error(parent=self.studio, title='Error loading design', message=str(e))
         finally:
             if progress:
                 progress.destroy()
             self._verify_version()
+
+    def reload(self, *_):
+        if not self.design_path or self.studio.context != self.context:
+            return
+        if self.has_changed():
+            okay = MessageDialog.ask_okay_cancel(
+                title="Confirm reload",
+                message="All changes made will be lost",
+                parent=self.studio
+            )
+            if not okay:
+                # user made no choice or basically selected cancel
+                return
+        self.clear()
+        self.studio.on_session_clear(self)
+        self.open_file(self.design_path)
 
     def save(self, new_path=False):
         if not self.design_path or new_path:
@@ -771,6 +791,14 @@ class DesignContext(BaseContext):
                 self.designer.open_new()
             self._loaded = True
         self.studio.set_path(self.path)
+
+    def get_tab_menu(self):
+        return (
+            EnableIf(
+                lambda: self.studio.context == self and self.designer.design_path,
+                ("command", "Reload", icon("rotate_clockwise", 14, 14), self.designer.reload, {})
+            ),
+        )
 
     def serialize(self):
         data = super().serialize()

@@ -171,7 +171,13 @@ class StudioApplication(Application):
                     EnableIf(
                         lambda: self.designer and self.designer.root_obj,
                         ("command", "Preview design", icon("play", 14, 14), actions.get('STUDIO_PREVIEW'), {}),
-                        ("command", "close preview", icon("close", 14, 14), actions.get('STUDIO_PREVIEW_CLOSE'), {})
+                        ("command", "close preview", icon("close", 14, 14), actions.get('STUDIO_PREVIEW_CLOSE'), {}),
+                        ("separator", ),
+                        EnableIf(
+                            lambda: self.designer and self.designer.design_path,
+                            ("command", "Reload design file", icon("rotate_clockwise", 14, 14),
+                             actions.get('STUDIO_RELOAD'), {}),
+                        ),
                     )
                 )}),
                 ("cascade", "View", None, None, {"menu": (
@@ -749,6 +755,10 @@ class StudioApplication(Application):
         if self.current_preview:
             self.current_preview.destroy()
 
+    def reload(self):
+        if self.designer:
+            self.designer.reload()
+
     def _force_exit_prompt(self):
         return MessageDialog.builder(
             {"text": "Force exit", "value": True, "focus": True},
@@ -857,6 +867,7 @@ class StudioApplication(Application):
             # -----------------------------
             routine(self.preview, 'STUDIO_PREVIEW', 'Show preview', 'studio', KeyMap.F(5)),
             routine(self.close_preview, 'STUDIO_PREVIEW_CLOSE', 'Close any preview', 'studio', ALT + KeyMap.F(5)),
+            routine(self.reload, 'STUDIO_RELOAD', 'Reload current design', 'studio', CTRL + CharKey('R'))
         )
 
 

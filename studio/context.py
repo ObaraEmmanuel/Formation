@@ -28,6 +28,9 @@ class BaseContext(Frame):
         if not self._force_close and not self.on_context_close():
             self.tab_view.block_close(True)
 
+    def get_tab_menu(self):
+        return ()
+
     def close(self, force=False):
         self._force_close = force
         self.tab_view.remove(self.tab_handle)
@@ -50,6 +53,8 @@ class BaseContext(Frame):
                 lambda: self._contexts_right(),
                 ("command", "close tabs to the right", icon("blank", 14, 14), self.close_other_right, {})
             ),
+            ("separator", ),
+            *self.get_tab_menu()
         ))
 
     def _contexts_right(self):
@@ -73,7 +78,7 @@ class BaseContext(Frame):
         :return:
         """
         self._redo_stack.clear()
-        if len(self._undo_stack) >= self.pref.get("studio::undo_depth") and self.studio.get("studio::use_undo_depth"):
+        if len(self._undo_stack) >= self.pref.get("studio::undo_depth") and self.pref.get("studio::use_undo_depth"):
             self._undo_stack.pop(0)
         self._undo_stack.append(action)
 

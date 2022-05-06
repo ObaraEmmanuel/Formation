@@ -49,7 +49,7 @@ class BaseStudioAdapter(BaseAdapter):
             if component:
                 return component[0]
             else:
-                raise ModuleNotFoundError("Could not resolve studio compatible widget for {}", node.type)
+                raise ModuleNotFoundError("Could not resolve studio compatible widget for \"{}\"".format(node.type))
         if hasattr(module, impl):
             return getattr(module, impl)
         if impl == 'Panedwindow' and module == native:
