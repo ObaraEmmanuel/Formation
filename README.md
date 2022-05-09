@@ -17,7 +17,10 @@ other
 [Android Studio's](https://developer.android.com/studio) visual layout editor,
 [PAGE](http://page.sourceforge.net). The XML format used is largely similar to one used by android layout files. It
 currently supports both tkinter and it's ttk extension. Other file formats other than XML are now supported for instance
-JSON.
+JSON. With a rich set of tools you can achieve stunning UI almost entirely from scratch. The design below was achieved using
+the tooling present in the studio (no images or external tools) testament to the power that formation presents.
+
+![Formation demo](https://raw.githubusercontent.com/obaraemmanuel/Formation/master/docs/_static/canvas-full-demo.png)
 
 ## Getting started
 
@@ -62,8 +65,13 @@ After a successful installation, you can launch the studio from the command line
 formation-studio
 ```
 
-The studio will open with a blank design (This can be modified in the preferences). Below is a sample of the studio in
+> Note: You cannot open multiple formation studio windows at the same time.
+> Running  this command to open another window while the previous one is still 
+> open will not work 
+
+The studio will open with a blank design in a new tab (This can be modified in the preferences). Below is a sample of the studio in
 action. With detachable tool windows, the studio is able to provide the flexibility required to get things done quickly.
+You can open multiple design files in different tabs.
 
 ![Formation window](https://raw.githubusercontent.com/obaraemmanuel/Formation/master/docs/_static/showcase.png)
 
@@ -136,6 +144,31 @@ app.mainloop()
 >Note: Its advisable that you use widget names that are valid python identifiers to avoid 
 >possible issues while use the dot syntax to access the widget from the builder object.
 >Use the widgets exact name as specified in the design to avoid `AttributeError`
+
+### formation CLI
+Formation also features a CLI to help do certain operations outside the studio such
+as install updates and modify or delete config files. The CLI is however more
+useful for studio developers. To run the CLI use the command `formation-cli`.
+
+```bash
+formation-cli --help
+```
+
+```
+usage: formation-cli [-h] [-r FILES] [-c KEY [VALUES ...]] [-u] [-v]
+
+Command line tools for formation studio
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -r FILES, --remove FILES
+                        Removes and cleans internal app files. Can be set to config, cache or all.
+  -c KEY [VALUES ...], --config KEY [VALUES ...]
+                        Get or set studio configuration values.
+  -u, --upgrade         Upgrade formation studio to latest version
+  -v, --version         show program's version number and exit
+```
+
 
 For more details checkout the [documentation](https://formation-studio.readthedocs.io/en/latest/)
 For those wishing to contribute, see the [studio notes](https://formation-studio.readthedocs.io/en/latest/studio/architecture.html) for developers and contributors
