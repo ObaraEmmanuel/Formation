@@ -365,6 +365,7 @@ class MenuEditor(BaseToolWindow):
 
 class MenuTool(BaseTool):
     _deleted = {}
+    _editors = set()
     name = 'Menu'
     icon = 'menubutton'
 
@@ -372,7 +373,9 @@ class MenuTool(BaseTool):
         MenuEditor.close_all()
 
     def edit(self, widget):
-        MenuEditor.acquire(widget.winfo_toplevel(), widget, widget.nametowidget(widget.cget("menu")))
+        editor = MenuEditor.acquire(widget.winfo_toplevel(), widget, widget.nametowidget(widget.cget("menu")))
+        editor.context = self.studio.context
+        MenuTool._editors.add(editor)
 
     def remove(self, widget):
         # store menu for restoration
@@ -403,3 +406,9 @@ class MenuTool(BaseTool):
                 lambda: MenuEditor._tool_map,
                 ('command', 'Close all editors', icon('close', 14, 14), self.close_editors, {}))
         )
+
+    def on_context_close(self, context):
+        for editor in set(MenuTool._editors):
+            if editor.context == context:
+                editor.destroy()
+                MenuTool._editors.remove(editor)

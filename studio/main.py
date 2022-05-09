@@ -269,6 +269,8 @@ class StudioApplication(Application):
         for feature in self.features:
             feature.on_context_switch()
 
+        self.tool_manager.on_context_switch()
+
         if self.context:
             selected.on_context_set()
 
@@ -286,6 +288,7 @@ class StudioApplication(Application):
             self.contexts.remove(context)
         for feature in self.features:
             feature.on_context_close(context)
+        self.tool_manager.on_context_close(context)
         self.save_tab_status()
 
     def on_context_add(self, _):
