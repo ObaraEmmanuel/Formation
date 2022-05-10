@@ -53,6 +53,12 @@ class BaseTool:
     def on_widget_layout_change(self, widget):
         pass
 
+    def on_context_switch(self):
+        pass
+
+    def on_context_close(self, context):
+        pass
+
 
 class BaseToolWindow(Window):
     _tool_map = {}

@@ -317,8 +317,9 @@ class HighLight:
 class WidgetHighlighter:
     OUTLINE = 2
 
-    def __init__(self, master):
-        color = master.winfo_toplevel().style.colors.get("accent")
+    def __init__(self, master, style=None):
+        style = master.winfo_toplevel().style if style is None else style
+        color = style.colors.get("accent")
         h_force_visible = dict(relief="groove", bd=1)
         self.l = tk.Frame(master, bg=color, width=self.OUTLINE, **h_force_visible)
         self.r = tk.Frame(master, bg=color, width=self.OUTLINE, **h_force_visible)
@@ -354,9 +355,9 @@ class EdgeIndicator(tk.Frame):
     Generates a conspicuous line at the edges of a widget for various indication purposes
     """
 
-    def __init__(self, master):
+    def __init__(self, master, style=None):
         super().__init__(master)
-        style = self.winfo_toplevel().style
+        style = self.winfo_toplevel().style if style is None else style
         self.config(**style.bright_background, height=1, relief="groove", bd=1)
 
     def bottom(self, bounds):

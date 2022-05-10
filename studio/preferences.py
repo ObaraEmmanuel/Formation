@@ -1,7 +1,10 @@
 import os
+import logging
 
 from hoverset.data.preferences import *
 from hoverset.data.keymap import ShortcutPane
+
+logger = logging.getLogger("Pref")
 
 defaults = {
     "studio": {
@@ -28,6 +31,7 @@ defaults = {
             "state": 'zoomed'
         },
         "on_startup": "new",
+        "prev_contexts": [],
         "smoothness": 3,
         "use_undo_depth": True,
         "undo_depth": 30,
@@ -129,9 +133,9 @@ templates = {
                 "element": RadioGroup,
                 "extra": {
                     "choices": (
-                        ("new", "Open new design file"),
-                        ("recent", "Open most recent design file"),
-                        ("blank", "Do not open any design")
+                        ("new", "Open blank design tab"),
+                        ("recent", "Restore previous tabs"),
+                        ("blank", "Do not open any design tab")
                     )
                 }
             },
@@ -321,3 +325,18 @@ class Preferences(SharedPreferences):
 
 def open_preferences(master):
     PreferenceManager(master, Preferences.acquire(), templates)
+
+
+def get_active_pref(widget):
+    import hoverset.ui.widgets as widgets
+    if hasattr(widget, 'window') and hasattr(widget.window, 'pref'):
+        return widget.window.pref
+    else:
+        check = widget.master
+        while not (isinstance(check, widgets.Application) or check is None):
+            check = check.master
+        if hasattr(check, 'pref'):
+            return check.pref
+
+    logger.error("Unable to acquire context sensitive preference")
+    return None

@@ -62,10 +62,6 @@ class ComponentTree(BaseFeature):
 
     def __init__(self, master, studio=None,  **cnf):
         super().__init__(master, studio, **cnf)
-        self._tree = ComponentTreeView(self)
-        self._tree.pack(side="top", fill="both", expand=True, pady=4)
-        # self._tree.sample()
-        self._tree.on_select(self._trigger_select)
         self._toggle_btn = Button(self._header, image=get_icon_image("chevron_down", 15, 15), **self.style.button,
                                   width=25,
                                   height=25)
@@ -78,17 +74,43 @@ class ComponentTree(BaseFeature):
         )
         self._search_btn.pack(side="right")
         self._search_btn.on_click(self.start_search)
+        self.body = Frame(self, **self.style.surface)
+        self.body.pack(side="top", fill="both", expand=True)
+        self._empty_label = Label(self.body, **self.style.text_passive)
 
         self._selected = None
         self._expanded = False
+        self._tree = None
 
-        self.studio.designer.node = self._tree
+    def on_context_switch(self):
+        if self._tree:
+            self._tree.pack_forget()
+
+        if self.studio.designer:
+            self.show_empty(None)
+            if self.studio.designer.node:
+                self._tree = self.studio.designer.node
+            else:
+                self._tree = ComponentTreeView(self.body)
+                self._tree.on_select(self._trigger_select)
+                self.studio.designer.node = self._tree
+            self._tree.pack(fill="both", expand=True)
+        else:
+            self.show_empty("No active Designer")
 
     def create_menu(self):
         return (
             ("command", "Expand all", get_icon_image("chevron_down", 14, 14), self._expand, {}),
             ("command", "Collapse all", get_icon_image("chevron_up", 14, 14), self._collapse, {})
         )
+
+    def show_empty(self, text):
+        if text:
+            self._empty_label.lift()
+            self._empty_label.place(x=0, y=0, relwidth=1, relheight=1)
+            self._empty_label['text'] = text
+        else:
+            self._empty_label.place_forget()
 
     def _expand(self):
         self._tree.expand_all()
@@ -152,6 +174,12 @@ class ComponentTree(BaseFeature):
             parent = widget.layout.node
         if node.parent_node != parent:
             parent.insert(None, node)
+
+    def on_context_close(self, context):
+        if hasattr(context, "designer"):
+            # delete context's tree
+            if hasattr(context.designer, "node") and context.designer.node:
+                context.designer.node.destroy()
 
     def on_session_clear(self):
         self._tree.clear()

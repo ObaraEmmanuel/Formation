@@ -69,7 +69,7 @@ class _VariableIntercept:
         else:
             setattr(widget, f"__{prop}", value)
         if isinstance(value, str):
-            var = list(filter(lambda x: x.name == value, VariableManager.variables))
+            var = list(filter(lambda x: x.name == value, VariableManager.variables()))
             if var:
                 value = var[0].var
         widget.config(**{prop: value})

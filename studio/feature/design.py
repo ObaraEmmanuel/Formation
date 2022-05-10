@@ -5,17 +5,19 @@ Drag drop designer for the studio
 # ======================================================================= #
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
+import os.path
 import time
 from tkinter import filedialog, ttk
 
 from hoverset.data import actions
 from hoverset.data.keymap import KeyMap
 from hoverset.data.images import get_tk_image
-from hoverset.ui.widgets import Label, Text, FontStyle
+from hoverset.ui.widgets import Label, Text, FontStyle, Checkbutton, CompoundList, Button
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.icons import get_icon_image as icon
 from hoverset.ui.menu import MenuUtils, LoadLater, EnableIf
 from hoverset.util.execution import Action, as_thread
+
 from studio.lib import generate_id
 from studio.lib.layouts import PlaceLayoutStrategy
 from studio.lib.pseudo import PseudoWidget, Container, Groups
@@ -23,7 +25,8 @@ from studio.parsers.loader import DesignBuilder
 from studio.ui import geometry
 from studio.ui.highlight import HighLight
 from studio.ui.widgets import DesignPad, CoordinateIndicator
-import studio
+from studio.context import BaseContext
+from studio import __version__
 
 from formation.formats import get_file_types
 
@@ -97,10 +100,12 @@ class Designer(DesignPad, Container):
     WIDGET_INIT_HEIGHT = 25
     name = "Designer"
     pane = None
+    _coord_indicator = None
 
     def __init__(self, master, studio):
         super().__init__(master)
         self.id = None
+        self.context = master
         self.studio = studio
         self.setup_widget()
         self.parent = self
@@ -133,6 +138,15 @@ class Designer(DesignPad, Container):
         self._shortcut_mgr = KeyMap(self._frame)
         self._set_shortcuts()
         self._last_click_pos = None
+
+        self._empty = Label(
+            self,
+            image=get_tk_image("paint", 30, 30), compound="top", text=" ",
+            **self.style.text_passive,
+        )
+        self._empty.config(**self.style.bright)
+        self._show_empty(True)
+
         # create the dynamic menu
         self._context_menu = MenuUtils.make_dynamic(
             self.studio.menu_template +
@@ -141,22 +155,16 @@ class Designer(DesignPad, Container):
             self.studio,
             self.style
         )
-        self.set_up_context(
+        design_menu = (
             EnableIf(
                 lambda: self.studio._clipboard is not None,
                 ("command", "paste", icon("clipboard", 14, 14),
                  lambda: self.paste(self.studio._clipboard, paste_to=self), {})
-            ),
-        )
-        self._coord_indicator = self.studio.install_status_widget(CoordinateIndicator)
-        self._empty = Label(
-            self,
-            image=get_tk_image("paint", 30, 30), compound="top",
-            text="Drag a container here to start",
-            **self.style.text_passive,
-        )
-        self._empty.config(**self.style.bright)
-        self._show_empty(True)
+            ),)
+        self.set_up_context(design_menu)
+        self._empty.set_up_context(design_menu)
+        if Designer._coord_indicator is None:
+            Designer._coord_indicator = self.studio.install_status_widget(CoordinateIndicator)
         self._text_editor = Text(self, wrap='none')
         self._text_editor.on_change(self._text_change)
         self._text_editor.bind("<FocusOut>", self._text_hide)
@@ -175,8 +183,11 @@ class Designer(DesignPad, Container):
     def _update_throttling(self, *_):
         self.highlight.set_skip_max(self.studio.pref.get("designer::frame_skip"))
 
-    def _show_empty(self, flag):
+    def _show_empty(self, flag, **kw):
         if flag:
+            kw['image'] = kw.get('image', get_tk_image('paint', 30, 30))
+            kw['text'] = kw.get('text', "Drag or paste a container here to start")
+            self._empty.configure(**kw)
             self._empty.place(relwidth=1, relheight=1)
         else:
             self._empty.place_forget()
@@ -240,7 +251,7 @@ class Designer(DesignPad, Container):
             {"text": "Cancel", "value": None},
             wait=True,
             title="Save design",
-            message="This design has unsaved changes. Do you want to save them?",
+            message=f"Design file \"{self.context.name}\" has unsaved changes. Do you want to save them?",
             parent=self.studio,
             icon=MessageDialog.ICON_INFO
         )
@@ -257,9 +268,6 @@ class Designer(DesignPad, Container):
             elif save is None:
                 # user made no choice or basically selected cancel
                 return
-        self.clear()
-        # inform the studio about the session clearing
-        self.studio.on_session_clear(self)
         if path:
             self.builder = DesignBuilder(self)
             progress = MessageDialog.show_progress(
@@ -285,7 +293,7 @@ class Designer(DesignPad, Container):
 
     def _verify_version(self):
         if self.builder.metadata.get("version"):
-            _, major, __ = studio.__version__.split(".")
+            _, major, __ = __version__.split(".")
             if major < self.builder.metadata["version"].get("major", 0):
                 MessageDialog.show_warning(
                     parent=self.studio,
@@ -303,14 +311,35 @@ class Designer(DesignPad, Container):
         # Capture any errors that occur while loading
         # This helps the user single out syntax errors and other value errors
         try:
-            self.root_obj = self.builder.load(path, self)
             self.design_path = path
+            self.root_obj = self.builder.load(path, self)
         except Exception as e:
-            MessageDialog.show_error(parent=self.studio, title='Error loading design', message=str(e))
+            self.clear()
+            self.studio.on_session_clear(self)
+            accelerator = actions.get_routine("STUDIO_RELOAD").accelerator
+            text = f"{str(e)}\nPress {accelerator} to reload" if accelerator else f"{str(e)} \n reload design"
+            self._show_empty(True, text=text, image=get_tk_image("dialog_error", 50, 50))
+            # MessageDialog.show_error(parent=self.studio, title='Error loading design', message=str(e))
         finally:
             if progress:
                 progress.destroy()
             self._verify_version()
+
+    def reload(self, *_):
+        if not self.design_path or self.studio.context != self.context:
+            return
+        if self.has_changed():
+            okay = MessageDialog.ask_okay_cancel(
+                title="Confirm reload",
+                message="All changes made will be lost",
+                parent=self.studio
+            )
+            if not okay:
+                # user made no choice or basically selected cancel
+                return
+        self.clear()
+        self.studio.on_session_clear(self)
+        self.open_file(self.design_path)
 
     def save(self, new_path=False):
         if not self.design_path or new_path:
@@ -489,6 +518,8 @@ class Designer(DesignPad, Container):
                     self.root_obj = w
                     break
         self._uproot_widget(widget)
+        if not self.objects:
+            self._show_empty(True)
 
     def _uproot_widget(self, widget):
         # Recursively remove widgets and all its children
@@ -723,3 +754,122 @@ class Designer(DesignPad, Container):
             elif save is None:
                 return False
         return True
+
+
+class DesignContext(BaseContext):
+    _untitled_count = 0
+
+    def __init__(self, master, studio, path=None):
+        super(DesignContext, self).__init__(master, studio)
+        self.designer = Designer(self, studio)
+        self.designer.pack(fill="both", expand=True)
+        self.path = path
+        self.icon = get_tk_image("paint", 15, 15)
+        self.name = self.name_from_path(path) if path else self._create_name()
+        self._loaded = False
+
+    def _create_name(self):
+        DesignContext._untitled_count += 1
+        return f"untitled_{DesignContext._untitled_count}"
+
+    def name_from_path(self, path):
+        return os.path.basename(path)
+
+    def save(self, new_path=None):
+        path = self.designer.save(new_path)
+        if path:
+            self.name = self.name_from_path(path)
+            self.tab_handle.config_tab(text=self.name)
+        return path
+
+    def on_context_set(self):
+        # lazy loading, only load when tab is brought into view for first time
+        if not self._loaded:
+            if self.path:
+                self.designer.open_file(self.path)
+            else:
+                self.designer.open_new()
+            self._loaded = True
+        self.studio.set_path(self.path)
+
+    def get_tab_menu(self):
+        return (
+            EnableIf(
+                lambda: self.studio.context == self and self.designer.design_path,
+                ("command", "Reload", icon("rotate_clockwise", 14, 14), self.designer.reload, {})
+            ),
+        )
+
+    def serialize(self):
+        data = super().serialize()
+        data["args"] = (self.path, )
+        return data
+
+    def can_persist(self):
+        return self.path is not None
+
+    def on_context_unset(self):
+        pass
+
+    def on_app_close(self):
+        return self.designer.on_app_close()
+
+    def on_context_close(self):
+        return self.designer.on_app_close()
+
+
+class MultiSaveDialog(MessageDialog):
+
+    class CheckedItem(CompoundList.BaseItem):
+
+        def render(self):
+            self.check = Checkbutton(
+                self, **self.style.checkbutton, text=self.value.name
+            )
+            self.check.set(True)
+            self.check.pack(fill="both")
+
+        def checked(self):
+            return self.check.get()
+
+    def __init__(self, master, studio, contexts=None):
+        self.studio = studio
+        self.check_contexts = contexts
+        super(MultiSaveDialog, self).__init__(master, self.render)
+        self.title("Save dialog")
+        self.value = None
+
+    def cancel(self, *_):
+        self.destroy()
+
+    def discard(self, *_):
+        self.value = []
+        self.destroy()
+
+    def save(self, *_):
+        self.value = [i.value for i in self.context_choice.items if i.checked()]
+        self.destroy()
+
+    @classmethod
+    def ask_save(cls, parent, studio, contexts=None):
+        dialog = cls(parent, studio, contexts)
+        dialog.wait_window()
+        return dialog.value
+
+    def render(self, window):
+        contexts = self.check_contexts if self.check_contexts is not None else self.studio.contexts
+        self.contexts = [
+            i for i in contexts if isinstance(i, DesignContext) and i.designer.has_changed()
+        ]
+        self.geometry("500x250")
+        self._message("Some files have changes. Select files to save", self.ICON_INFO)
+        self.context_choice = CompoundList(window)
+        self.context_choice.config(padx=2, height=200)
+        self.context_choice.set_item_class(MultiSaveDialog.CheckedItem)
+        self.context_choice.set_values(self.contexts)
+        self.context_choice.config_all(**self.style.bright)
+        self._make_button_bar()
+        self.cancel_btn = self._add_button(text="Cancel", command=self.cancel)
+        self.save_btn = self._add_button(text="Don't save", command=self.discard)
+        self.discard_btn = self._add_button(text="Save", command=self.save, focus=True)
+        self.context_choice.pack(fill="both", expand=True, padx=10, pady=5)

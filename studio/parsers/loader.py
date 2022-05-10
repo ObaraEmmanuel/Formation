@@ -10,7 +10,7 @@ import tkinter as tk
 from formation.formats import infer_format, BaseAdapter, Node
 from studio.feature.variablepane import VariablePane
 from studio.feature.components import ComponentPane
-from studio.lib.variables import VariableItem
+from studio.lib.variables import VariableItem, VariableManager
 from studio.lib import legacy, native
 from studio.lib.menu import menu_config, MENU_ITEM_TYPES
 from studio.lib.pseudo import Container, PseudoWidget
@@ -18,8 +18,6 @@ from studio.lib.events import make_event
 from studio.lib.layouts import GridLayoutStrategy
 from studio.preferences import Preferences
 import studio
-
-pref = Preferences.acquire()
 
 
 def get_widget_impl(widget):
@@ -51,7 +49,7 @@ class BaseStudioAdapter(BaseAdapter):
             if component:
                 return component[0]
             else:
-                raise ModuleNotFoundError("Could not resolve studio compatible widget for {}", node.type)
+                raise ModuleNotFoundError("Could not resolve studio compatible widget for \"{}\"".format(node.type))
         if hasattr(module, impl):
             return getattr(module, impl)
         if impl == 'Panedwindow' and module == native:
@@ -343,7 +341,7 @@ class DesignBuilder:
         return node
 
     def _variables_to_tree(self, parent):
-        variables = VariablePane.get_instance().variables
+        variables = VariableManager.variables(self.designer.context)
         for var_item in variables:
             VariableStudioAdapter.generate(var_item, parent)
 
@@ -367,6 +365,7 @@ class DesignBuilder:
         :return: String
         """
         file_loader = infer_format(path)
+        pref = Preferences.acquire()
         pref_path = f"designer::{file_loader.name.lower()}"
         pref.set_default(pref_path, {})
         with open(path, 'w') as dump:

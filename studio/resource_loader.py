@@ -13,17 +13,15 @@ from hoverset.data.utils import make_path, get_theme_path
 from hoverset.util.color import parse_color
 from hoverset.ui.widgets import Application, Label, ProgressBar
 from hoverset.ui.styles import StyleDelegator
-from studio.preferences import Preferences
-
-pref = Preferences.acquire()
 
 
 class ResourceLoader(Application):
     _default_icon_path = _primary_location
     _cache_icon_path = _primary_location
 
-    def __init__(self):
+    def __init__(self, pref):
         super().__init__()
+        self.pref = pref
         self.load_styles(pref.get("resource::theme"))
         try:
             self.wm_attributes("-type", "splash")
@@ -75,17 +73,17 @@ class ResourceLoader(Application):
                 return len(defaults.keys() - cache.keys())
 
     @classmethod
-    def load(cls):
+    def load(cls, pref):
         cache_color = pref.get("resource::icon_cache_color")
         style = StyleDelegator(get_theme_path(pref.get("resource::theme")))
-        cache_path = appdirs.AppDirs("formation", "hoverset").user_cache_dir
+        cache_path = pref.get_cache_dir()
         cls._cache_icon_path = os.path.join(cache_path, "image")
         if style.colors["accent"] != cache_color \
                 or not cls._cache_exists(cls._cache_icon_path)\
                 or cls._cache_is_stale():
             if not os.path.exists(cache_path):
                 make_path(cache_path)
-            cls().mainloop()
+            cls(pref).mainloop()
 
         set_image_resource_path(cls._cache_icon_path)
         pref.set("resource::icon_cache_color", style.colors["accent"])
@@ -106,4 +104,6 @@ class ResourceLoader(Application):
 
 
 if __name__ == "__main__":
-    ResourceLoader().mainloop()
+
+    from studio.preferences import Preferences
+    ResourceLoader(Preferences.acquire()).mainloop()

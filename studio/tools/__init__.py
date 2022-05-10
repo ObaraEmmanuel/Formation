@@ -111,6 +111,12 @@ class ToolManager:
     def on_widget_layout_change(self, widget):
         self.dispatch("on_widget_layout_change", widget)
 
+    def on_context_switch(self):
+        self.dispatch("on_context_switch")
+
+    def on_context_close(self, context):
+        self.dispatch("on_context_close", context)
+
     @classmethod
     def acquire(cls):
         return cls._instance

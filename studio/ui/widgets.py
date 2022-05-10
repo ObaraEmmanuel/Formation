@@ -323,3 +323,43 @@ class DesignPad(ScrollableInterface, Frame):
         return super().configure(cnf, **kw)
 
     config = configure
+
+
+class Pane(Frame):
+
+    def __init__(self, master, **cnf):
+        super(Pane, self).__init__(master, **cnf)
+        self.config(**self.style.surface)
+        self._header = Frame(self, **self.style.surface, **self.style.highlight_dim, height=30)
+        self._header.pack(side="top", fill="x")
+        self._header.pack_propagate(0)
+        self._search_bar = SearchBar(self._header, height=20)
+        self._search_bar.on_query_clear(self.on_search_clear)
+        self._search_bar.on_query_change(self.on_search_query)
+
+    def on_search_query(self, query: str):
+        """
+        Called when inbuilt search feature is queried. Use the query string to display the
+        necessary search results
+        :param query: String of current search query
+        :return: None
+        """
+        pass
+
+    def on_search_clear(self):
+        """
+        Called when the user terminates the search bar. Ensure you make a call to the super
+        method for the bar to actually get closed. This method can be used to restore the
+        feature state to when not performing a search
+        :return:
+        """
+        self.quit_search()
+        pass
+
+    def start_search(self, *_):
+        self._search_bar.place(relwidth=1, relheight=1)
+        self._search_bar.lift()
+        self._search_bar.focus_set()
+
+    def quit_search(self, *_):
+        self._search_bar.place_forget()

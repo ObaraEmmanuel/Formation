@@ -21,14 +21,13 @@ from hoverset.util.color import to_hex
 from hoverset.util.validators import numeric_limit, validate_any, is_empty, is_floating_numeric, is_signed
 from studio.lib.properties import all_supported_cursors, BUILTIN_BITMAPS
 from studio.lib.variables import VariableManager, VariableItem
-from studio.preferences import Preferences
-
-pref = Preferences.acquire()
+from studio.preferences import get_active_pref
 
 
-def get_display_name(style_def):
-    if pref.get("designer::descriptive_names"):
-        return style_def.get("display_name")
+def get_display_name(style_def, pref):
+    if pref and pref.exists("designer::descriptive_names"):
+        if pref.get("designer::descriptive_names"):
+            return style_def.get("display_name")
     return style_def.get("name")
 
 
@@ -517,7 +516,7 @@ class Image(Text):
         path = filedialog.askopenfilename(parent=self)
         if path:
             try:
-                path_opt = pref.get("designer::image_path")
+                path_opt = get_active_pref(self).get("designer::image_path")
             except:
                 path_opt = "absolute"
 
@@ -555,7 +554,7 @@ class Variable(Choice):
 
     def set_up(self):
         VariableManager.editors.append(self)
-        values = [i.var for i in VariableManager.variables]
+        values = [i.var for i in VariableManager.variables()]
         self._spinner.set_item_class(Variable.VariableChoiceItem)
         self._spinner.set_values((
             '', *values,
@@ -563,7 +562,7 @@ class Variable(Choice):
 
     def set(self, value):
         # Override default conversion of value to string by Choice class
-        var = list(filter(lambda x: x.name == value, VariableManager.variables))
+        var = list(filter(lambda x: x.name == value, VariableManager.variables()))
         # if variable does not match anything in the variable manager presume as empty
         value = var[0].var if var else ''
         self._spinner.set(value)
@@ -573,6 +572,12 @@ class Variable(Choice):
 
     def on_var_delete(self, var):
         self._spinner.remove_value(var)
+
+    def on_var_context_change(self):
+        values = [i.var for i in VariableManager.variables()]
+        self._spinner.set_values((
+            '', *values,
+        ))
 
     def destroy(self):
         VariableManager.remove_editor(self)
@@ -585,8 +590,14 @@ class Stringvariable(Variable):
     def set_up(self):
         # filter to obtain only string variables
         VariableManager.editors.append(self)
-        values = [i.var for i in VariableManager.variables if i.var.__class__ == StringVar]
+        values = [i.var for i in VariableManager.variables() if i.var.__class__ == StringVar]
         self._spinner.set_item_class(Variable.VariableChoiceItem)
+        self._spinner.set_values((
+            '', *values,
+        ))
+
+    def on_var_context_change(self):
+        values = [i.var for i in VariableManager.variables() if i.var.__class__ == StringVar]
         self._spinner.set_values((
             '', *values,
         ))
@@ -602,10 +613,11 @@ class StyleItem(Frame):
 
     def __init__(self, parent, style_definition, on_change=None):
         super().__init__(parent.body)
+        self.pref = get_active_pref(self)
         self.definition = style_definition
         self.name = style_definition.get("name")
         self.config(**self.style.surface)
-        display = get_display_name(style_definition)
+        display = get_display_name(style_definition, self.pref)
         self._label = Label(self, **parent.style.text_passive, text=display,
                             anchor="w")
         self._label.grid(row=0, column=0, sticky='ew')

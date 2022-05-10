@@ -88,6 +88,13 @@ class MenuUtils:
     image_cache = set()
 
     @classmethod
+    def clear_menu(cls, menu):
+        # delete previous sub menus
+        for sub_menu in menu.winfo_children():
+            sub_menu.destroy()
+        menu.delete(0, tk.END)
+
+    @classmethod
     def expand_template(cls, template):
         raw_templates = []
         # recursively expand manipulators
@@ -207,7 +214,7 @@ class MenuUtils:
 
         def on_post():
             # clear former contents of menu to allow _make_menu to populate it afresh
-            menu.delete(0, tk.END)
+            cls.clear_menu(menu)
             cls._make_menu(templates, menu, style)
 
         if dynamic:
@@ -256,7 +263,7 @@ def dynamic_menu(func):
             # call postcommand
             menu['postcommand'] = lambda: populate(self, menu)
         # clear the menu
-        menu.delete(0, tk.END)
+        MenuUtils.clear_menu(menu)
         func(self, menu)
         return menu
 
