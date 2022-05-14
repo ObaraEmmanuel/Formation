@@ -13,6 +13,7 @@ from collections import defaultdict
 from hoverset.data.utils import make_path
 from hoverset.data.images import get_tk_image
 from hoverset.data.actions import get_routine
+from hoverset.util.validators import numeric_limit
 from hoverset.ui.icons import get_icon_image as icon
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.widgets import *
@@ -385,6 +386,7 @@ class Number(Component, Frame):
         self.editor = SpinBox(self, **{**self.style.spinbox, **extra})
         self.editor.pack(side="left", padx=5)
         self.editor.on_entry(self._change)
+        self.editor.set_validator(numeric_limit, extra.get("_from", 0), extra.get("to", 10000))
         self.load(pref, path)
 
     def disable(self, flag):
