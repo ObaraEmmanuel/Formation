@@ -53,13 +53,19 @@ defaults = {
             "stringify_values": True
         },
         "image_path": 'mixed',
-        "descriptive_names": False
+        "descriptive_names": False,
+        "label": {
+            "start": 1,
+            "underscore": True,
+            "case": 'lower',
+        }
     },
     "resource": {
         "icon_cache_color": "#ffffff",
         "theme": "default.css"
     }
 }
+
 
 templates = {
     "General": {
@@ -152,6 +158,38 @@ templates = {
                     "_from": 1,
                     "to": 5,
                 }
+            },
+        ),
+        "Naming options": (
+            {
+                "desc": "Naming case",
+                "path": "designer::label::case",
+                "element": RadioGroup,
+                "extra": {
+                    "choices": (
+                        ("title", "Title case (Button1, Label_1...)"),
+                        ("lower", "Lower case (button2, label_2...)"),
+                        ("upper", "Upper case (BUTTON2, LABEL2...)"),
+                    )
+                }
+            },
+            {
+                "desc": "Use underscore separator",
+                "path": "designer::label::underscore",
+                "element": Check,
+            },
+{
+                "desc": "Start numbering from",
+                "path": "designer::label::start",
+                "element": Number,
+                "extra": {
+                    "width": 4,
+                    "values": (0, 1)
+                },
+            },
+            {
+                "element": Note,
+                "desc": "(Widget names already created will not be affected)"
             },
         ),
         "Xml options": (
@@ -272,7 +310,6 @@ templates = {
         }
     }
 }
-
 
 class Preferences(SharedPreferences):
 

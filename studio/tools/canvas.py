@@ -17,7 +17,7 @@ from studio.tools._base import BaseTool
 from studio.feature.components import ComponentPane, SelectToDrawGroup
 from studio.feature.stylepane import StyleGroup
 from studio.ui.tree import NestedTreeView
-from studio.lib import generate_id
+from studio.lib import NameGenerator
 from studio.lib.canvas import *
 from studio.lib.legacy import Canvas
 from studio.parsers.loader import BaseStudioAdapter, DesignBuilder
@@ -506,10 +506,10 @@ class LinearDraw(Draw):
         x, y = self.canvas_coord(event.x, event.y)
         if not self.draw_start:
             self.coords = [x, y, x, y]
+            self.draw_start = True
         else:
             self.coords.extend([x, y])
             self.item.coords(*self.coords)
-        self.draw_start = True
 
     def on_button_release(self, event):
         pass
@@ -789,6 +789,7 @@ class CanvasTool(BaseTool):
         CanvasStudioAdapter._tool = self
         # connect the canvas adapter to load canvas objects to the studio
         DesignBuilder.add_adapter(CanvasStudioAdapter, Canvas)
+        self.generator = NameGenerator(self.studio.pref)
 
         self.items = []
         self.item_select.on_select(self.set_draw)
@@ -1003,7 +1004,7 @@ class CanvasTool(BaseTool):
             opts.update(kwargs)
             item = component(canvas, *coords, **opts)
             # generate a unique id
-            item.name = generate_id(component, self._ids)
+            item.name = self.generator.generate(component, self._ids)
         canvas._cv_items.append(item)
         item._prev_index = canvas._cv_items.index(item)
         node = canvas._cv_tree.add_as_node(item=item)
@@ -1099,7 +1100,7 @@ class CanvasTool(BaseTool):
             else:
                 item._coord_latch = item.canvas.canvasx(event.x), item.canvas.canvasx(event.y)
 
-    def _handle_end(self, item, event):
+    def _handle_end(self, item, _):
         if getattr(item, '_coord_latch', None) and self.current_draw is None:
             self.on_layout_change()
         item._coord_latch = None

@@ -18,7 +18,7 @@ from hoverset.ui.icons import get_icon_image as icon
 from hoverset.ui.menu import MenuUtils, LoadLater, EnableIf
 from hoverset.util.execution import Action, as_thread
 
-from studio.lib import generate_id
+from studio.lib import NameGenerator
 from studio.lib.layouts import PlaceLayoutStrategy
 from studio.lib.pseudo import PseudoWidget, Container, Groups
 from studio.parsers.loader import DesignBuilder
@@ -107,6 +107,7 @@ class Designer(DesignPad, Container):
         self.id = None
         self.context = master
         self.studio = studio
+        self.name_generator = NameGenerator(self.studio.pref)
         self.setup_widget()
         self.parent = self
         self.config(**self.style.bright, takefocus=True)
@@ -383,7 +384,7 @@ class Designer(DesignPad, Container):
         """
         Generate a unique id for widget belonging to a given class
         """
-        return generate_id(obj_class, self._ids)
+        return self.name_generator.generate(obj_class, self._ids)
 
     def on_motion(self, event):
         self.highlight.resize(event)
