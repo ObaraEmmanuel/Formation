@@ -1424,7 +1424,6 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
 
         super().__init__(*args, **kwargs)
         self.position_ref = Screen(self)
-        self.enable_centering()
         self.bind_all("<MouseWheel>", self._on_mousewheel, '+')
         # linux bindings
         self.bind_all("<Button-4>", self._on_mousewheel, '+')

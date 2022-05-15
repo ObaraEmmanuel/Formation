@@ -252,7 +252,6 @@ class StudioApplication(Application):
 
         self._ignore_tab_status = False
         self._startup()
-        self._restore_position()
         self._exit_failures = 0
         self._is_shutting_down = False
 
@@ -368,18 +367,16 @@ class StudioApplication(Application):
     def _save_position(self):
         # self.update_idletasks()
         pref.set("studio::pos", dict(
-            width=self.width,
-            height=self.height,
-            x=self.winfo_x(),
-            y=self.winfo_y(),
+            geometry=self.geometry(),
             state=self._get_window_state(),  # window state either zoomed or normal
         ))
 
     def _restore_position(self):
         pos = pref.get("studio::pos")
-        self._set_window_state(pos.get("state"))
-        if pos.get("state") == 'normal':
-            self.geometry('{width}x{height}+{x}+{y}'.format(**pos))
+        state = pos.get('state', 'zoomed')
+        self._set_window_state(state)
+        if state == 'normal' and pos.get('geometry'):
+            self.geometry(pos['geometry'])
 
     def new_action(self, action: Action):
         """

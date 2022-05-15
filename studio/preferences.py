@@ -24,10 +24,7 @@ defaults = {
             }
         },
         "pos": {
-            "x": 0,
-            "y": 0,
-            "width": 200,
-            "height": 200,
+            "geometry": '',
             "state": 'zoomed'
         },
         "on_startup": "new",
