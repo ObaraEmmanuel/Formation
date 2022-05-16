@@ -79,7 +79,7 @@ class Frame(Container, ttk.Frame):
     impl = ttk.Frame
 
     def __init__(self, master, id_):
-        super().__init__(master)
+        super().__init__(master, borderwidth=1, relief="ridge")
         self.id = id_
         self.setup_widget()
 
