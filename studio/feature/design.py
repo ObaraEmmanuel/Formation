@@ -827,11 +827,18 @@ class MultiSaveDialog(MessageDialog):
             self.check = Checkbutton(
                 self, **self.style.checkbutton, text=self.value.name
             )
+            self.config_all(**self.style.bright)
             self.check.set(True)
             self.check.pack(fill="both")
 
         def checked(self):
             return self.check.get()
+
+        def on_hover(self, *_):
+            self.config_all(**self.style.surface)
+
+        def on_hover_ended(self, *_):
+            self.config_all(**self.style.bright)
 
     def __init__(self, master, studio, contexts=None):
         self.studio = studio
@@ -868,7 +875,7 @@ class MultiSaveDialog(MessageDialog):
         self.context_choice.config(padx=2, height=200)
         self.context_choice.set_item_class(MultiSaveDialog.CheckedItem)
         self.context_choice.set_values(self.contexts)
-        self.context_choice.config_all(**self.style.bright)
+        self.context_choice.config_all(**self.style.hover)
         self._make_button_bar()
         self.cancel_btn = self._add_button(text="Cancel", command=self.cancel)
         self.save_btn = self._add_button(text="Don't save", command=self.discard)
