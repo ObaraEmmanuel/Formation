@@ -26,16 +26,16 @@ the tooling present in the studio (no images or external tools) testament to the
 
 ### Installation
 
-To use formation studio you will need to have installed python version 3.6 or higher. You can download and install
-python from [here](https://www.python.org/downloads/)
-.Proceed then and install formation using pip. This will install the latest stable version.
+To use Formation Studio, [install Python 3.6 or higher](https://www.python.org/downloads/)
+
+Afterwards, install Formation Studio with pip (Python package manager).
 
 ```bash
 pip install formation-studio
 ```
 
-If you want to install the development version directly from the master branch, the following command should suffice.
-> **note**: You will need to have installed git on your system as well as the stable formation studio release as shown above
+The development branch can be installed with the following command:
+> **note**: Git needs to be installed to use the following command, and the above version of Formation Studio should be installed prior
 
 ```bash
 pip install --upgrade git+https://github.com/obaraemmanuel/Formation@master
@@ -43,49 +43,44 @@ pip install --upgrade git+https://github.com/obaraemmanuel/Formation@master
 
 ### Installation on Linux
 
-Formation studio uses tkinter and depending on the distro you are using it may or may not
-be installed by default. If you are using tkinter for the first time on your machine you
-might want to first install `tkinter` and `imagetk` after completing the installation procedure above. 
-For debian based distros it should be something like
+Formation Studio uses TKinter and, depending on the verion of Python installed, it may not be installed by default. If TKinter is not installed, install `tkinter` and `imagetk` after installing Formation Studio.
+
+Install command for `tkinter` and `imagetk` on Debian Python:
 
 ```bash
 sudo apt-get install python3-tk, python3-pil.imagetk
 ```
 
-> Note: These are instructions for Debian based distros and is only assured to work on Ubuntu. For
-> other distros, sub the installation command with the right one. Also, these commands install
-> to ``python 3`` installations. Formation studio does not support python 2 so ensure you install 
-> python 3 packages only.
+> Note: The above instruction is only assured to work on Ubuntu. For
+> other versions, change the installation command based on the platform. Also, ensure these commands install to the correct directory if multiple versions of python exist on the machine. Formation Studio is a Python 3 application, therefore it does not support Python 2.
 
 ### Launching
 
-After a successful installation, you can launch the studio from the command line using the command
+After an installation, you can launch Formation Studio from the command line using the command
 
 ```bash
 formation-studio
 ```
 
-> Note: You cannot open multiple formation studio windows at the same time.
-> Running  this command to open another window while the previous one is still 
-> open will not work 
+> Note: Multiple instances of Formation Studio will not work simultaneously.
 
-The studio will open with a blank design in a new tab (This can be modified in the preferences). Below is a sample of the studio in
-action. With detachable tool windows, the studio is able to provide the flexibility required to get things done quickly.
-You can open multiple design files in different tabs.
+The studio will open a blank design by default (This can be changed in the preferences). With detachable tool windows, Formation Studio is able to provide the flexibility to tailor to every developer's unique needs.
+
+Multiple design files can be opened in different tabs.
 
 ![Formation window](https://raw.githubusercontent.com/obaraemmanuel/Formation/master/docs/_static/showcase.png)
+*Demonstration of Formation Studio above ^*
 
-You can select widgets from the _**Components**_ pane at the top and drag them onto the stage. Click to select widgets
-on the workspace and customize them on _**Stylepane**_ to the right. You can view your widget hierarchies from the _**
-Component tree**_ at the bottom left. To preview the the design, use the preview ("run button") on the toolbar. After
-you are satisfied with the design, save by heading to the menubar _File > Save_. Below is a sample studio preview saved
+Widgets can be selected from the _**Components**_ pane at the top to be dragged on stage. Click to select widgets
+on the workspace and customize them on _**Stylepane**_ to the right. The widget hierarchies can be viewed from the _**
+Component tree**_ at the bottom left. To preview the the design, use the preview ("run button") on the toolbar. The design can be saved in the top bar by going to _File > Save_. Below is a sample studio preview saved
 as `hello.xml`
 
 <p align="center">
     <img alt="sample design" src="https://raw.githubusercontent.com/obaraemmanuel/Formation/master/docs/_static/hello.png"/>
 </p>
 
-The underlying xml uses namespaces and is as shown below:
+The underlying xml uses namespaces shown below:
 
 ```xml
 <tkinter.Frame 
@@ -119,8 +114,7 @@ The underlying xml uses namespaces and is as shown below:
 ```
 
 > Note: this xml file has been manually formatted to make it more legible. The actual xml file
-> is minimally formatted since it's not expected that the developer will need to modify the xml
-> file manually
+> will not be formatted as the developer is not expected to change it manually.
 
 To load the design in your python code is as simple as:
 
@@ -141,14 +135,14 @@ print(app.myButton["text"]) # outputs text in the button 'Click me'
 app.mainloop()
 ```
 
->Note: Its advisable that you use widget names that are valid python identifiers to avoid 
->possible issues while use the dot syntax to access the widget from the builder object.
+>Note: Its advisable that widget names are not named as reserved Python keywords to avoid 
+>possible issues in runtime.
 >Use the widgets exact name as specified in the design to avoid `AttributeError`
 
 ### formation CLI
 Formation also features a CLI to help do certain operations outside the studio such
 as install updates and modify or delete config files. The CLI is however more
-useful for studio developers. To run the CLI use the command `formation-cli`.
+useful for Formation Studio developers. To run the CLI use the command `formation-cli`.
 
 ```bash
 formation-cli --help
