@@ -8,17 +8,14 @@
 [![Documentation Status](https://readthedocs.org/projects/formation-studio/badge/?version=latest)](https://formation-studio.readthedocs.io/en/latest/?badge=latest)
 ## Introduction
 
-**Formation studio** is a tool that makes developing User interfaces in python a breeze. It allows developers to focus
-on product functionality by doing the heavy lifting in terms of writing the interface code. Using a set of powerful
-tools, developers can quickly design interfaces, save them as
-[XML](https://en.wikipedia.org/wiki/XML) files and load them into their code. Formation studio draws inspiration from
-other
+**Formation studio** is a tool that makes developing user interfaces in Python a breeze. By generating the interface code from simple drag-and-drop widgets, it allows developers to focus
+on building product functionality and beautiful designs. Formation Studio has a set of powerful tools which can be used to design interfaces saved in
+[.XML](https://en.wikipedia.org/wiki/XML) or [.JSON](https://en.wikipedia.org/wiki/JSON) files. These generated files can then be loaded in code. Formation Studio draws inspiration from other
 [RAD](https://en.wikipedia.org/wiki/Rapid_application_development) tools such as
 [Android Studio's](https://developer.android.com/studio) visual layout editor,
-[PAGE](http://page.sourceforge.net). The XML format used is largely similar to one used by android layout files. It
-currently supports both tkinter and it's ttk extension. Other file formats other than XML are now supported for instance
-JSON. With a rich set of tools you can achieve stunning UI almost entirely from scratch. The design below was achieved using
-the tooling present in the studio (no images or external tools) testament to the power that formation presents.
+[PAGE](http://page.sourceforge.net). 
+
+The design below was built solely in Formation Studio (no images or external tools).
 
 ![Formation demo](https://raw.githubusercontent.com/obaraemmanuel/Formation/master/docs/_static/canvas-full-demo.png)
 
@@ -43,7 +40,7 @@ pip install --upgrade git+https://github.com/obaraemmanuel/Formation@master
 
 ### Installation on Linux
 
-Formation Studio uses TKinter and, depending on the verion of Python installed, it may not be installed by default. If TKinter is not installed, install `tkinter` and `imagetk` after installing Formation Studio.
+Formation Studio uses TKinter and, depending on the distribution/platform, it may not be installed by default. If TKinter is not installed, install `tkinter` and `imagetk` after installing Formation Studio.
 
 Install command for `tkinter` and `imagetk` on Debian Python:
 
@@ -56,7 +53,7 @@ sudo apt-get install python3-tk, python3-pil.imagetk
 
 ### Launching
 
-After an installation, you can launch Formation Studio from the command line using the command
+After installation, you can launch Formation Studio from the command line using the command
 
 ```bash
 formation-studio
@@ -135,9 +132,9 @@ print(app.myButton["text"]) # outputs text in the button 'Click me'
 app.mainloop()
 ```
 
->Note: Its advisable that widget names are not named as reserved Python keywords to avoid 
->possible issues in runtime.
->Use the widgets exact name as specified in the design to avoid `AttributeError`
+>Note: Its advisable that widget names are valid Python identifiers (starting with underscores/letters, not having special letters, and not being a [reserved keyword](https://www.programiz.com/python-programming/keyword-list)) to avoid 
+>possible issues at runtime.
+>Use the widget's exact name as specified in the design to avoid `AttributeError`
 
 ### formation CLI
 Formation also features a CLI to help do certain operations outside the studio such
@@ -166,7 +163,7 @@ optional arguments:
 
 For more details checkout the [documentation](https://formation-studio.readthedocs.io/en/latest/)
 For those wishing to contribute, see the [studio notes](https://formation-studio.readthedocs.io/en/latest/studio/architecture.html) for developers and contributors
-Some good documentation for building python user interfaces
+Some good documentation for building Python user interfaces
 include:
 
 - [TkDocs](http://www.tkdocs.com)
