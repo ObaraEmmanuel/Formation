@@ -77,7 +77,7 @@ as `hello.xml`
     <img alt="sample design" src="https://raw.githubusercontent.com/obaraemmanuel/Formation/master/docs/_static/hello.png"/>
 </p>
 
-The underlying xml uses namespaces shown below:
+The underlying xml uses namespaces as shown below:
 
 ```xml
 <tkinter.Frame 
