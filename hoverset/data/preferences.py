@@ -1,5 +1,4 @@
 import appdirs
-import atexit
 import os
 import shelve
 import pickle
@@ -56,14 +55,19 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
 
     def __init__(self, app, author, file, defaults):
         self._file = file
+        self._defaults = defaults
         self._app_dir = appdirs.AppDirs(app, author)
+        self._load()
         self._listeners = defaultdict(list)
+
+    def _load(self):
         files = self._get_files()
 
         if files:
-            self.data = self._get_shelve()
+            conf = self._get_shelve()
             try:
-                self._deep_update(self.data, defaults)
+                self.data = dict(conf)
+                self._deep_update(self.data, self._defaults)
             except pickle.UnpicklingError:
                 if len(files) > 1:
                     # we cannot tell whether the config file is really
@@ -72,31 +76,28 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
                 # The pickle file is corrupted
                 logging.error("Config file is corrupted, attempting recovery.")
                 # the cache contains the data that was recoverable
-                recovered = self.data.cache
-                self.data.close()
+                recovered = conf.cache
+                conf.close()
                 # delete all the generated pickle files
                 for f in self._get_generated_files():
                     Path(f).unlink(True)
-                self.data = self._get_shelve()
-                self._deep_update(self.data, defaults)
+                conf = self._get_shelve()
+                self.data = dict(conf)
+                self._deep_update(self.data, self._defaults)
                 # restore the little we could recover
                 self._deep_update(self.data, recovered)
+            finally:
+                conf.close()
 
         else:
             make_path(self.get_dir())
-            self.data = self._get_shelve()
-            self.data.update(defaults)
-        atexit.register(self._release)
+            with self._get_shelve() as conf:
+                self.data = dict(conf)
+                self.data.update(self._defaults)
 
-    def __del__(self):
-        self._release()
-        atexit.unregister(self._release)
-
-    def _release(self):
-        try:
-            self.data.close()
-        except:
-            pass
+    def _commit(self):
+        with self._get_shelve() as conf:
+            conf.update(self.data)
 
     def get_dir(self):
         return self._app_dir.user_config_dir
@@ -121,7 +122,7 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
     def _get_shelve(self):
         path = os.path.join(self.get_dir(), self._file)
         try:
-            return shelve.open(path, writeback=True)
+            return shelve.open(path)
         except IOError as e:
             if e.errno == 11:
                 raise SharedPreferences.ConfigFileInUseError(path)
@@ -191,7 +192,7 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
         *dicts, prop = path.split(SharedPreferences.PATH_SEP)
         ref_dict = self.get_dict(dicts)
         ref_dict[prop] = value
-        self.data.sync()
+        self._commit()
         # call all listeners associated to path
         for listener in self._listeners.get(path, []):
             listener(value)
@@ -209,7 +210,7 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
                 ref_dict[d] = {}
             ref_dict = ref_dict[d]
         ref_dict[key] = ref_dict.get(key)
-        self.data.sync()
+        self._commit()
 
     def set_default(self, path, value):
         """
@@ -221,7 +222,7 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
         """
         if not self.exists(path):
             self.set(path, value)
-            self.data.sync()
+            self._commit()
 
     def append(self, path, *values):
         """

@@ -875,7 +875,6 @@ def restart():
     exit_success = actions.get_routine("STUDIO_EXIT").invoke()
     if not exit_success:
         return
-    pref._release()
     # allow some time before starting
     time.sleep(2)
     python = sys.executable
