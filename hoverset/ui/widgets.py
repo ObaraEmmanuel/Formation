@@ -3163,10 +3163,10 @@ class TabView(Frame):
             self._placeholder = Frame(self, **self.style.hover)
 
         def config_tab(self, **cnf):
-            self.icon = cnf.get("icon", self.icon)
-            self.text = cnf.get("text")
-            self._closeable = cnf.get("closeable", self._closeable)
-            self._label.config(image=self.icon, text=self.text)
+            self.icon = cnf.pop("icon", self.icon)
+            self.text = cnf.pop("text", "")
+            self._closeable = cnf.pop("closeable", self._closeable)
+            self._label.config(image=self.icon, text=self.text, **cnf)
             self._show_close()
 
         def render_drag(self, window):

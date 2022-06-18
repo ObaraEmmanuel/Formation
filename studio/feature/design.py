@@ -12,7 +12,7 @@ from tkinter import filedialog, ttk
 from hoverset.data import actions
 from hoverset.data.keymap import KeyMap
 from hoverset.data.images import get_tk_image
-from hoverset.ui.widgets import Label, Text, FontStyle, Checkbutton, CompoundList, Button
+from hoverset.ui.widgets import Label, Text, FontStyle, Checkbutton, CompoundList
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.icons import get_icon_image as icon
 from hoverset.ui.menu import MenuUtils, LoadLater, EnableIf
@@ -314,6 +314,7 @@ class Designer(DesignPad, Container):
         try:
             self.design_path = path
             self.root_obj = self.builder.load(path, self)
+            self.context.on_load_complete()
         except Exception as e:
             self.clear()
             self.studio.on_session_clear(self)
@@ -780,7 +781,11 @@ class DesignContext(BaseContext):
         path = self.designer.save(new_path)
         if path:
             self.name = self.name_from_path(path)
-            self.tab_handle.config_tab(text=self.name)
+            self.tab_handle.config_tab(text=self.name, **self.style.text)
+
+            if self.tab_view._selected == self.tab_handle:
+                # re-apply selection style
+                self.tab_handle.on_select()
         return path
 
     def on_context_set(self):
@@ -792,6 +797,10 @@ class DesignContext(BaseContext):
                 self.designer.open_new()
             self._loaded = True
         self.studio.set_path(self.path)
+
+    def on_load_complete(self):
+        # the design load thread is done
+        self.update_save_status()
 
     def get_tab_menu(self):
         return (
@@ -805,6 +814,37 @@ class DesignContext(BaseContext):
         data = super().serialize()
         data["args"] = (self.path, )
         return data
+
+    def update_save_status(self):
+        if self.designer:
+            if self.designer.has_changed():
+                self.tab_handle.config_tab(text=f"*{self.name}", **self.style.text_italic)
+            else:
+                self.tab_handle.config_tab(text=self.name, **self.style.text)
+
+            if self.tab_view._selected == self.tab_handle:
+                # re-apply selection style
+                self.tab_handle.on_select()
+
+    def new_action(self, action: Action):
+        super(DesignContext, self).new_action(action)
+        self.update_save_status()
+
+    def pop_last_action(self, key=None):
+        super(DesignContext, self).pop_last_action(key)
+        self.update_save_status()
+
+    def last_action(self):
+        self.update_save_status()
+        return super().last_action()
+
+    def undo(self):
+        super(DesignContext, self).undo()
+        self.update_save_status()
+
+    def redo(self):
+        super(DesignContext, self).redo()
+        self.update_save_status()
 
     def can_persist(self):
         return self.path is not None
