@@ -403,6 +403,7 @@ class Designer(DesignPad, Container):
         obj.bind_all('<Shift-ButtonPress-1>', lambda e: self.highlight.set_function(self.highlight.move, e), add='+')
         obj.bind_all('<Motion>', self.on_motion, '+')
         obj.bind_all('<ButtonRelease>', self.highlight.clear_resize, '+')
+        obj.bind_all('<KeyRelease>', self._stop_displace, '+')
         if "text" in obj.keys():
             obj.bind_all("<Double-Button-1>", lambda _: self._show_text_editor(obj))
         self.objects.append(obj)
@@ -666,21 +667,21 @@ class Designer(DesignPad, Container):
 
     def _on_move(self, new_bound):
         obj = self.current_obj
-        current_container = self.current_container
+        current = self.current_container
         if obj is None:
             return
         self.current_action = self.MOVE
         container: Container = self.layout_at(new_bound)
         if container is not None and obj != container:
-            if container != current_container:
-                if current_container is not None:
-                    current_container.clear_highlight()
+            if container != current:
+                if current is not None:
+                    current.clear_highlight()
                 container.show_highlight()
                 self.current_container = container
             container.move_widget(obj, new_bound)
         else:
-            if current_container is not None:
-                current_container.clear_highlight()
+            if current is not None:
+                current.clear_highlight()
                 self.current_container = self
             obj.level = 0
             obj.layout = self
