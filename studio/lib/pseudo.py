@@ -234,6 +234,7 @@ class Container(PseudoWidget):
 
     def setup_widget(self):
         self.parent = self.designer = self._get_designer()
+        self.body = self
         self._level = 0
         self._children = []
         self.temporal_children = []
@@ -258,8 +259,10 @@ class Container(PseudoWidget):
 
     def lift(self, above_this):
         super().lift(above_this)
+        if self.body != self:
+            self.body.lift(self)
         for child in self._children:
-            child.lift(self)
+            child.lift(self.body)
 
     def react(self, x, y):
         self.designer.set_active_container(self)
@@ -366,7 +369,7 @@ class Container(PseudoWidget):
         }
 
     def position(self, widget, bounds):
-        widget.place(in_=self, **self.parse_bounds(bounds), bordermode=tkinter.OUTSIDE)
+        widget.place(in_=self.body, **self.parse_bounds(bounds), bordermode=tkinter.OUTSIDE)
 
     #  =========================================== Rerouting methods ==================================================
 

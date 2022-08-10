@@ -217,7 +217,7 @@ class Designer(DesignPad, Container):
         width = max(self.width - self._padding * 2, 300)
         height = max(self.height - self._padding * 2, 300)
         self.add(
-            legacy.Frame, self._padding, self._padding,
+            legacy.Toplevel, self._padding, self._padding,
             width=width, height=height
         )
         self.builder.generate()

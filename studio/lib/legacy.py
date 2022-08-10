@@ -3,6 +3,7 @@ import tkinter as tk
 from studio.lib.pseudo import (
     PseudoWidget, Groups, Container, PanedContainer, _dimension_override
 )
+from studio.lib.toplevel import Toplevel
 
 
 class Button(PseudoWidget, tk.Button):
@@ -284,22 +285,7 @@ class Text(PseudoWidget, tk.Text):
         self.insert(tk.END, name)
 
 
-class Toplevel(PseudoWidget, tk.Toplevel):
-    display_name = 'Toplevel'
-    group = Groups.container
-    icon = "labelframe"
-    impl = tk.Toplevel
-
-    def __init__(self, master, id_):
-        super().__init__(master)
-        self.id = id_
-        self.setup_widget()
-
-    def set_name(self, name):
-        self.title(name)
-
-
 widgets = (
     Button, Canvas, Checkbutton, Entry, Frame, Label, LabelFrame, Listbox, Menubutton, Message, PanedWindow,
-    Radiobutton, Scale, Scrollbar, Spinbox, Text
+    Radiobutton, Scale, Scrollbar, Spinbox, Text, Toplevel
 )
