@@ -442,6 +442,14 @@ class Designer(DesignPad, Container):
                                    message='Only containers are allowed as root widgets')
 
     def add(self, obj_class: PseudoWidget.__class__, x, y, **kwargs):
+        layout = kwargs.get("layout")
+        if obj_class.is_toplevel and layout not in (self, None):
+            MessageDialog.show_warning(
+                title='Invalid parent',
+                parent=self.studio,
+                message='Toplevel widgets cannot be placed inside other widgets'
+            )
+            return
         if obj_class.group != Groups.container and self.root_obj is None:
             # We only need a container as the root widget
             self._show_root_widget_warning()
@@ -459,7 +467,6 @@ class Designer(DesignPad, Container):
             height = kwargs.get("height", self.WIDGET_INIT_HEIGHT)
         obj.layout = kwargs.get("intended_layout", None)
         self._attach(obj)  # apply extra bindings required
-        layout = kwargs.get("layout")
         # If the object has a layout which actually the layout at the point of creation prepare and pass it
         # to the layout
         if isinstance(layout, Container):
