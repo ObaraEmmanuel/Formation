@@ -4,12 +4,10 @@ from hoverset.data.images import get_tk_image
 from studio.lib.pseudo import Groups, Container
 
 
-class Toplevel(Container, tk.Frame):
-
-    display_name = 'Toplevel'
+class _Toplevel(Container, tk.Frame):
     group = Groups.container
     icon = 'window'
-    impl = tk.Toplevel
+    is_toplevel = True
 
     _images = None
 
@@ -50,5 +48,15 @@ class Toplevel(Container, tk.Frame):
         self.label["text"] = f"  {name}"
 
     def bind_all(self, sequence, func=None, add=None):
-        super(Toplevel, self).bind_all(sequence, func, add)
+        super(_Toplevel, self).bind_all(sequence, func, add)
         self._body.bind(sequence, func, add)
+
+
+class Toplevel(_Toplevel):
+    display_name = 'Toplevel'
+    impl = tk.Toplevel
+
+
+class Tk(_Toplevel):
+    display_name = 'Tk'
+    impl = tk.Tk

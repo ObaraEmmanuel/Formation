@@ -4,6 +4,7 @@ from studio.lib.pseudo import (
     PseudoWidget, Groups, Container, PanedContainer, _dimension_override
 )
 from studio.lib.toplevel import Toplevel
+from studio.lib.toplevel import Toplevel, Tk
 
 
 class Button(PseudoWidget, tk.Button):
@@ -287,5 +288,5 @@ class Text(PseudoWidget, tk.Text):
 
 widgets = (
     Button, Canvas, Checkbutton, Entry, Frame, Label, LabelFrame, Listbox, Menubutton, Message, PanedWindow,
-    Radiobutton, Scale, Scrollbar, Spinbox, Text, Toplevel
+    Radiobutton, Scale, Scrollbar, Spinbox, Text, Toplevel, Tk
 )

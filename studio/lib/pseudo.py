@@ -98,6 +98,7 @@ class PseudoWidget:
     group = Groups.widget
     icon = "play"
     impl = None
+    is_toplevel = False
     # special handlers (intercepts) for attributes that need additional processing
     # to interface with the studio easily
     _intercepts = {
