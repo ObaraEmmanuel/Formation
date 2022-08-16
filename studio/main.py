@@ -745,11 +745,9 @@ class StudioApplication(Application):
             return
         # close previous preview if any
         self.close_preview()
-        window = self.current_preview = Toplevel(self)
-        window.wm_transient(self)
-        window.build = AppBuilder(window, node=self.designer.to_tree())
+        window = AppBuilder(node=self.designer.to_tree())
         name = self.designer.design_path if self.designer.design_path is not None else "Untitled"
-        window.build._app.title(os.path.basename(name))
+        window._app.title(os.path.basename(name))
 
     def close_preview(self):
         if self.current_preview:

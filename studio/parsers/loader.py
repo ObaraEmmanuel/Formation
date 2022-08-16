@@ -12,11 +12,12 @@ from studio.feature.variablepane import VariablePane
 from studio.feature.components import ComponentPane
 from studio.lib.variables import VariableItem, VariableManager
 from studio.lib import legacy, native
-from studio.lib.menu import menu_config, MENU_ITEM_TYPES
+from studio.lib.menu import menu_config
 from studio.lib.pseudo import Container, PseudoWidget
 from studio.lib.events import make_event
 from studio.lib.layouts import GridLayoutStrategy
 from studio.preferences import Preferences
+from formation.loader import _ignore_tags
 import studio
 
 
@@ -180,6 +181,9 @@ class MenuStudioAdapter(BaseStudioAdapter):
                 menu_config(menu, menu.index(tk.END), **attrib.get("menu", {}))
                 continue
 
+            if sub_node.type in _ignore_tags:
+                continue
+
             obj_class = cls._get_class(sub_node)
             if obj_class == legacy.Menu:
                 menu_obj = obj_class(widget, **attrib.get("attr", {}))
@@ -235,14 +239,9 @@ class DesignBuilder:
     _adapter_map = {
         legacy.Menubutton: MenuStudioAdapter,
         native.Menubutton: MenuStudioAdapter,
+        legacy.Toplevel: MenuStudioAdapter,
+        legacy.Tk: MenuStudioAdapter
     }
-
-    _ignore_tags = (
-        *MENU_ITEM_TYPES,
-        "event",
-        "grid",
-        "meta"
-    )
 
     def __init__(self, designer):
         self.designer = designer
@@ -315,8 +314,10 @@ class DesignBuilder:
             # We dont need to load child tags of non-container widgets
             return widget
         for sub_node in node:
-            if sub_node.is_var() or sub_node.type in self._ignore_tags:
+            if sub_node.is_var() or sub_node.type in _ignore_tags:
                 # ignore variables and non widget nodes
+                continue
+            if BaseStudioAdapter._get_class(sub_node) == legacy.Menu:
                 continue
             self._load_widgets(sub_node, designer, widget)
         return widget
