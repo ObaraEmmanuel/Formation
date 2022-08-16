@@ -450,6 +450,10 @@ class LayoutGroup(StyleGroup):
         def2 = widget2.layout.layout_strategy.get_def(widget2)
         return def1 == def2
 
+    def supports_widget(self, widget):
+        # toplevel widgets do not need layout
+        return not widget.is_toplevel
+
 
 class StylePaneFramework:
 
