@@ -1,4 +1,4 @@
-.. _custom_widgets:
+.. _Custom widgets:
 
 Custom Widgets
 **************

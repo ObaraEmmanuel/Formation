@@ -10,6 +10,7 @@ Formation studio
    component_pane
    component_tree
    custom_widgets
+   custom_properties
    canvas
 
 .. toctree::
