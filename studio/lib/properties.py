@@ -638,7 +638,7 @@ def get_resolved(prop, overrides, *property_tables):
             definition = dict(table[prop], name=prop)
             definition.update(overrides.get(prop, {}))
             return definition
-    return {}
+    return dict(overrides.get(prop, {}))
 
 
 def get_properties(widget, extern_overrides=None):
