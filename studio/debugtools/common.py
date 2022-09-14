@@ -37,3 +37,12 @@ def get_resolved_properties(widget):
     base = get_studio_equiv(widget)
     overrides = getattr(base, 'DEF_OVERRIDES', {})
     return get_properties(widget, overrides)
+
+
+def is_under_debugger(debugger, widget):
+    window = widget.winfo_toplevel()
+    while not isinstance(window, tkinter.Tk):
+        if window == debugger:
+            return True
+        window = window.nametowidget(window.winfo_parent())
+    return False

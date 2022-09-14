@@ -156,10 +156,8 @@ class ElementPane(Pane):
     def on_widget_tap(self, event):
         if self._select_btn.get():
             try:
-                # widget = self.debugger.root.winfo_containing(event.x_root, event.y_root)
                 widget = event.widget
-                # print(widget)
-                if widget.winfo_toplevel() == self.debugger or getattr(widget, "_dbg_ignore", False):
+                if common.is_under_debugger(self.debugger, widget) or getattr(widget, "_dbg_ignore", False):
                     widget = None
             except (KeyError, AttributeError):
                 widget = None
