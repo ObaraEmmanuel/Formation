@@ -166,6 +166,7 @@ class ElementPane(Pane):
                 node = self._tree.expand_to(widget)
                 if node:
                     node.select(event)
+                    self._tree.y_scroll_to_widget(node)
 
     def on_motion(self, event):
         if self._select_btn.get():

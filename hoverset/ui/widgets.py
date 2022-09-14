@@ -1365,6 +1365,22 @@ class ScrolledFrame(ContainerMixin, Widget, ScrollableInterface, ContextMenuMixi
         self._canvas.yview_moveto(0.0)
         self._canvas.xview_moveto(0.0)
 
+    def y_scroll_to_widget(self, widget, center=True):
+        """
+        Scroll to a widget within the scrolled frame.
+        :param widget: widget to be scrolled into view
+        :param center: set to true to scroll widget to center of view port
+        """
+        w_y = widget.winfo_rooty() - self.body.winfo_rooty()
+        c_y = self._canvas.bbox('all')[3]
+        s_y1, s_y2 = self._scroll_y.get()
+        if s_y1 < w_y/c_y < s_y2:
+            return
+        if center:
+            self._canvas.yview_moveto((w_y - self.height/2) / c_y)
+        else:
+            self._canvas.yview_moveto(w_y / c_y)
+
     def xview_scroll(self, n, what):
         return self._canvas.xview_scroll(n, what)
 
