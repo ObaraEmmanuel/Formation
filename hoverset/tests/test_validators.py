@@ -29,6 +29,13 @@ class ValidatorTestCase(unittest.TestCase):
         self.assertTrue(is_signed("+"))
         self.assertTrue(is_signed("-"))
 
+    def test_is_signed_negative(self):
+        self.assertFalse(is_signed_negative("-rtpur"))
+        self.assertFalse(is_signed_negative("--"))
+        self.assertFalse(is_signed_negative("+6"))
+        self.assertFalse(is_signed_negative("+"))
+        self.assertTrue(is_signed_negative("-"))
+
     def test_is_hex(self):
         self.assertTrue(is_hex_color("#ff00ff"))
         self.assertTrue(is_hex_color("#f"))
@@ -41,9 +48,36 @@ class ValidatorTestCase(unittest.TestCase):
     def test_test_limit(self):
         self.assertTrue(limit(20, 300)("25.6"))
         self.assertTrue(limit(20, 300)("20"))
+        self.assertTrue(limit(-30, 0)("-20"))
+        self.assertTrue(limit(0, 300)("20"))
+        self.assertFalse(limit(20, 300)("-20"))
         self.assertTrue(limit(20, 300)("300"))
         self.assertFalse(limit(20, 300)("2000"))
         self.assertFalse(limit(20, 300)("gkgllk"))
+
+    def test_no_limit(self):
+        self.assertRaises(ValueError, limit)
+
+    def test_invalid_limits(self):
+        self.assertRaises(ValueError, limit, 300, 20)
+
+    def test_limits_upper_only(self):
+        self.assertTrue(limit(None, 300)("-25.6"))
+        self.assertTrue(limit(upper=300)("-25.6"))
+        self.assertTrue(limit(None, 300)("-20"))
+        self.assertTrue(limit(None, 300)("300"))
+        self.assertFalse(limit(None, 300)("2000"))
+        self.assertFalse(limit(None, 300)("gkgllk"))
+
+    def test_limits_lower_only(self):
+        self.assertTrue(limit(20)("25.6"))
+        self.assertTrue(limit(20, None)("25.6"))
+        self.assertTrue(limit(lower=20)("25.6"))
+        self.assertTrue(limit(20)("20"))
+        self.assertTrue(limit(20)("300"))
+        self.assertFalse(limit(20)("-2000"))
+        self.assertFalse(limit(20)("10"))
+        self.assertFalse(limit(20)("gkgllk"))
 
 
 class TestCompositeValidators(unittest.TestCase):
@@ -55,10 +89,18 @@ class TestCompositeValidators(unittest.TestCase):
 
     def test_numeric_limit(self):
         self.assertTrue(numeric_limit("20", 15, 30))
-        self.assertFalse(numeric_limit("20.0", 15, 30))
+        self.assertTrue(numeric_limit("-20", None, 30))
+        self.assertTrue(numeric_limit("20.0", 0, 30, is_floating_numeric))
+        self.assertFalse(numeric_limit("20.0", 0, 30))
         self.assertFalse(numeric_limit("10", 15, 30))
         self.assertFalse(numeric_limit("40", 15, 30))
         self.assertFalse(numeric_limit("gkgkhk", 15, 30))
+
+    def test_no_numeric_limit(self):
+        self.assertRaises(ValueError, numeric_limit, 20)
+
+    def test_invalid_numeric_limits(self):
+        self.assertRaises(ValueError, numeric_limit, 10, 300, 20)
 
 
 class ChainingTestCase(unittest.TestCase):
