@@ -18,7 +18,7 @@ from hoverset.ui.widgets import (CompoundList, Entry, SpinBox, Spinner, Frame, A
                                  Label, ToggleButton, Button, Checkbutton, suppress_change)
 from hoverset.ui import widgets
 from hoverset.util.color import to_hex
-from hoverset.util.validators import numeric_limit, validate_any, is_empty, is_floating_numeric, is_signed
+from hoverset.util.validators import numeric_limit, validate_any, is_empty, is_floating_numeric, is_signed, is_numeric
 from studio.lib.properties import all_supported_cursors, BUILTIN_BITMAPS
 from studio.lib.variables import VariableManager, VariableItem
 from studio.preferences import get_active_pref
@@ -329,19 +329,34 @@ class Number(TextMixin, Editor):
         self.config(**self.style.highlight_active)
         self._entry = SpinBox(self, from_=-9999, to=9999, **self.style.spinbox)
         self._entry.config(**self.style.no_highlight)
-        self._entry.set_validator(numeric_limit, -9999, 9999)
+        # self._entry.set_validator(numeric_limit, -9999, 9999)
         self._entry.pack(fill="x")
         self._entry.on_change(self._change)
-        super(Number, self).set_def(style_def)
+        self.set_def(style_def)
+
+    def validator(self):
+        return validate_any(is_numeric, is_empty, is_signed)
+
+    def set_def(self, definition):
+        super(Number, self).set_def(definition)
+        from_ = definition.get("from")
+        to = definition.get("to")
+        self._entry.config(from_=from_, to=to)
+        if from_ is None and to is None:
+            # validate without limits
+            self._entry.set_validator(self.validator())
+        else:
+            self._entry.set_validator(numeric_limit, from_, to, self.validator())
 
 
 class Float(Number):
-    validator = validate_any(is_empty, is_floating_numeric, is_signed)
 
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
-        self._entry.set_validator(Float.validator)
         self.set_def(style_def)
+
+    def validator(self):
+        return validate_any(is_floating_numeric, is_empty, is_signed)
 
 
 class Duration(TextMixin, Editor):
@@ -405,16 +420,10 @@ class Dimension(Number):
         self._entry.config(from_=0, to=1e6)
         self._entry.set_validator(numeric_limit, 0, 1e6)
         self._entry.pack_forget()
-        self._unit = Label(self, **self.style.text_passive)
+        self._unit = Label(self, **self.style.text_passive, text='px')
         self._unit.pack(side="right")
         self.set_def(style_def)
         self._entry.pack(side="left", fill="x")
-
-    def set_def(self, definition):
-        self._unit['text'] = self.SHORT_FORMS.get(
-            definition.get("units", "pixels"), 'px'
-        )
-        super().set_def(definition)
 
 
 class Anchor(Editor):

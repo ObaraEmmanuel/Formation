@@ -81,7 +81,7 @@ PROPERTY_TABLE = {
     "activeborderwidth": {
         "display_name": "active border width",
         "type": "dimension",
-        "units": "pixels"
+        "units": "pixels",
     },
     "activeforeground": {
         "display_name": "active foreground",
@@ -293,6 +293,7 @@ PROPERTY_TABLE = {
     "maxundo": {
         "display_name": "maxundo",
         "type": "number",
+        "from": -1,
     },
     "offrelief": {
         "display_name": "off relief",
@@ -366,7 +367,7 @@ PROPERTY_TABLE = {
     },
     "resolution": {
         "display_name": "resolution",
-        "type": "number",
+        "type": "float",
     },
     "sashpad": {
         "display_name": "sash padding",
@@ -502,6 +503,7 @@ PROPERTY_TABLE = {
     "underline": {
         "display_name": "underline",
         "type": "number",
+        "from": -1,
     },
     "undo": {
         "display_name": "undo",

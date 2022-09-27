@@ -298,6 +298,12 @@ class EditableMixin:
             )
         )
 
+    def clear_validator(self):
+        """
+        Remove any existing validators set by set_validator
+        """
+        self.configure(validatecommand='')
+
     def on_change(self, callback, *args, **kwargs):
         """
         Set the callback when data in the input widget is changed either
