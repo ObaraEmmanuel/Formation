@@ -40,9 +40,10 @@ def timed(func):
     @functools.wraps(func)
     def wrap(*args, **kwargs):
         start = time.perf_counter()
-        func(*args, **kwargs)
+        result = func(*args, **kwargs)
         stop = time.perf_counter()
-        print(f'{func.__name__} executed in {stop - start}s')
+        print(f'{func.__name__} executed in {round((stop - start) * 1000, 4)}ms')
+        return result
 
     return wrap
 
