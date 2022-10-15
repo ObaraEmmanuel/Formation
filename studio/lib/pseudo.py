@@ -16,6 +16,18 @@ from studio.ui.highlight import WidgetHighlighter
 from studio.ui.tree import MalleableTree
 
 
+# Applied to widgets whose width is specified in characters
+# and height in lines
+_dimension_override = {
+    "width": {
+        "units": "char",
+    },
+    "height": {
+        "units": "line"
+    }
+}
+
+
 class Groups(Enum):
     widget = 'Widget'
     input = 'Input'

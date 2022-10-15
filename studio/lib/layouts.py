@@ -14,25 +14,21 @@ COMMON_DEFINITION = {
     "ipadx": {
         "display_name": "internal padding x",
         "type": "dimension",
-        "units": "pixels",
         "name": "ipadx",
     },
     "ipady": {
         "display_name": "internal padding y",
         "type": "dimension",
-        "units": "pixels",
         "name": "ipady",
     },
     "padx": {
         "display_name": "padding x",
         "type": "dimension",
-        "units": "pixels",
         "name": "padx"
     },
     "pady": {
         "display_name": "padding y",
         "type": "dimension",
-        "units": "pixels",
         "name": "pady"
     },
 }
@@ -45,14 +41,12 @@ class BaseLayoutStrategy:
         "width": {
             "display_name": "width",
             "type": "dimension",
-            "units": "pixels",
             "name": "width",
             "default": None,
         },
         "height": {
             "display_name": "height",
             "type": "dimension",
-            "units": "pixels",
             "name": "height",
             "default": None
         },
@@ -61,6 +55,7 @@ class BaseLayoutStrategy:
     icon = "frame"
     manager = "place"  # Default layout manager in use
     realtime_support = False  # dictates whether strategy supports realtime updates to its values, most do not
+    dimensions_in_px = False  # Whether to use pixel units for width and height
 
     def __init__(self, container):
         self.parent = container.parent
@@ -153,7 +148,14 @@ class BaseLayoutStrategy:
     def get_def(self, widget):
         # May be overridden to return dynamic definitions based on the widget
         # Always use a copy to avoid messing with definition
-        return dict(self.DEFINITION)
+        if self.dimensions_in_px:
+            return dict(self.DEFINITION)
+        props = dict(self.DEFINITION)
+        overrides = getattr(widget, 'DEF_OVERRIDES', {})
+        for key in ('width', 'height'):
+            if key in props and key in overrides:
+                props[key] = {**props[key], **overrides[key]}
+        return props
 
     def definition_for(self, widget):
         info = self.info(widget)
@@ -204,14 +206,14 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
         "x": {
             "display_name": "x",
             "type": "dimension",
-            "units": "pixels",
+            "negative": True,
             "name": "x",
             "default": None
         },
         "y": {
             "display_name": "y",
             "type": "dimension",
-            "units": "pixels",
+            "negative": True,
             "name": "y",
             "default": None
         },
@@ -227,6 +229,7 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
     icon = "frame"
     manager = "place"
     realtime_support = True
+    dimensions_in_px = True
 
     def clear_all(self):
         for child in self.children:
@@ -406,8 +409,7 @@ class PackLayoutStrategy(BaseLayoutStrategy):
         widget.pack_configure(**config)
 
     def get_def(self, widget):
-        # Use copy since we are going to modify definition
-        definition = dict(self.DEFINITION)
+        definition = super().get_def(widget)
         keys = widget.keys()
         for prop in ("width", "height"):
             if prop not in keys:
@@ -565,14 +567,12 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         "minsize": {
             "display_name": "minsize",
             "type": "dimension",
-            "units": "pixels",
             "name": "minsize",
             "default": 0,
         },
         "pad": {
             "display_name": "pad",
             "type": "dimension",
-            "units": "pixels",
             "name": "pad",
             "default": 0
         },
@@ -770,8 +770,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         return info
 
     def get_def(self, widget):
-        # Use copy since we are going to modify definition
-        definition = dict(self.DEFINITION)
+        definition = super().get_def(widget)
         keys = widget.keys()
         for prop in ("width", "height"):
             if prop not in keys:
@@ -846,7 +845,6 @@ class TabLayoutStrategy(BaseLayoutStrategy):
         "padding": {
             "display_name": "padding",
             "type": "dimension",
-            "units": "pixels",
             "name": "padding",
             "default": 0,
         },
@@ -966,7 +964,6 @@ class PanedLayoutStrategy(BaseLayoutStrategy):
         "minsize": {
             "display_name": "minsize",
             "type": "dimension",
-            "units": "pixels",
             "default": 0,
             "name": "minsize",
         }
@@ -1020,7 +1017,7 @@ class PanedLayoutStrategy(BaseLayoutStrategy):
         self.container.paneconfig(widget, **kwargs)
 
     def get_def(self, widget):
-        definition = dict(self.DEFINITION)
+        definition = super().get_def(widget)
         # Give a hint on what the minsize attribute will affect
         # if panedwindow is in horizontal orient minsize affects min-width of
         # the children otherwise it affects height
@@ -1075,7 +1072,7 @@ class NPanedLayoutStrategy(PanedLayoutStrategy):
     def get_def(self, widget):
         # We need to override the hinting behaviour inherited since there's no
         # orient and minsize options
-        return dict(self.DEFINITION)
+        return super(PanedLayoutStrategy, self).get_def(widget)
 
     def info(self, widget):
         return self._config(widget) or {}

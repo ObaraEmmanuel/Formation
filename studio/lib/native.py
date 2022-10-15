@@ -3,7 +3,10 @@ import tkinter as tk
 import tkinter.ttk as ttk
 
 from studio.lib.layouts import NPanedLayoutStrategy
-from studio.lib.pseudo import PseudoWidget, Groups, Container, TabContainer, PanedContainer
+from studio.lib.pseudo import (
+    PseudoWidget, Groups, Container, TabContainer, PanedContainer,
+    _dimension_override
+)
 
 
 class Button(PseudoWidget, ttk.Button):
@@ -11,6 +14,8 @@ class Button(PseudoWidget, ttk.Button):
     group = Groups.widget
     icon = "button"
     impl = ttk.Button
+
+    DEF_OVERRIDES = _dimension_override
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -26,6 +31,13 @@ class Checkbutton(PseudoWidget, ttk.Checkbutton):
     group = Groups.widget
     icon = "checkbutton"
     impl = ttk.Checkbutton
+
+    DEF_OVERRIDES = {
+        "width": {
+            "units": "line",
+            "negative": True
+        }
+    }
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -45,7 +57,8 @@ class Combobox(PseudoWidget, ttk.Combobox):
     DEF_OVERRIDES = {
         "state": {
             "options": ("readonly",)
-        }
+        },
+        **_dimension_override
     }
 
     def __init__(self, master, id_):
@@ -62,6 +75,8 @@ class Entry(PseudoWidget, ttk.Entry):
     group = Groups.input
     icon = "entry"
     impl = ttk.Entry
+
+    DEF_OVERRIDES = _dimension_override
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -89,6 +104,15 @@ class Label(PseudoWidget, ttk.Label):
     group = Groups.widget
     icon = "text"
     impl = ttk.Label
+
+    DEF_OVERRIDES = {
+        "width": {
+            "units": "line",
+            "negative": True
+        }
+    }
+
+    # TODO handle special compound & image options
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -133,6 +157,8 @@ class Menubutton(PseudoWidget, ttk.Menubutton):
     group = Groups.widget
     icon = "menubutton"
     impl = ttk.Menubutton
+
+    DEF_OVERRIDES = _dimension_override
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -226,6 +252,13 @@ class Radiobutton(PseudoWidget, ttk.Radiobutton):
     group = Groups.input
     icon = "radiobutton"
     impl = ttk.Radiobutton
+
+    DEF_OVERRIDES = {
+        "width": {
+            "units": "line",
+            "negative": True
+        }
+    }
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -322,6 +355,8 @@ if (version_info.major, version_info.minor) > (3, 6):
         group = Groups.input
         icon = "play"
         impl = ttk.Spinbox
+
+        DEF_OVERRIDES = _dimension_override
 
         def __init__(self, master, id_):
             super().__init__(master)

@@ -4,7 +4,7 @@ Contains all the widget representations used in the designer and specifies all t
 # ======================================================================= #
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
-
+import logging
 import os
 import pathlib
 import re
@@ -410,20 +410,81 @@ class Font(Editor):
         self._input.set(value)
 
 
-class Dimension(Number):
+class Dimension(TextMixin, Editor):
     SHORT_FORMS = {
-        "pixels": "px",
+        "px": "",
+        "cm": "c",
+        "in": "i",
+        "mm": "m",
+        "pts": "p"
     }
+
+    # a reverse of the short forms above to simplify lookup
+    # to be computed later
+    REVERSE_SF = None
+
+    parse_expr = re.compile(r'^([-+]?\d+) *([cimp]?)$')
 
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
-        self._entry.config(from_=0, to=1e6)
-        self._entry.set_validator(numeric_limit, 0, 1e6)
-        self._entry.pack_forget()
-        self._unit = Label(self, **self.style.text_passive, text='px')
+        self.config(**self.style.highlight_active)
+        self._entry = SpinBox(self, from_=0, to=1e6, **self.style.spinbox)
+        self._entry.config(**self.style.no_highlight)
+        self._entry.on_change(self._change)
+        self._unit = Spinner(self, **self.style.input)
+        self._unit.config(**self.style.no_highlight, width=50)
+        self._unit.set_item_class(Choice.ChoiceItem)
+        self._unit.set_values(list(Dimension.SHORT_FORMS.keys()))
         self._unit.pack(side="right")
+        self._unit.on_change(self._change)
         self.set_def(style_def)
         self._entry.pack(side="left", fill="x")
+
+    def set_def(self, definition):
+        super().set_def(definition)
+        self._metric = definition.get("units", "px")
+        if self._metric in ("char", "line"):
+            self._unit.set_values((self._metric, ))
+            self._unit.set(self._metric)
+            self._unit.disabled(True)
+        else:
+            self._unit.set_values(list(Dimension.SHORT_FORMS.keys()))
+            self._unit.disabled(False)
+            self._unit.set(self._metric)
+
+        if definition.get("negative", False):
+            self._entry.set_validator(self._validator())
+        else:
+            self._entry.set_validator(numeric_limit, 0, None, self._validator())
+
+    def _validator(self):
+        return is_numeric if self.style_def.get("float", False) else is_floating_numeric
+
+    def get(self):
+        if self._entry.get() == '':
+            return ''
+        return f"{self._entry.get()}{Dimension.SHORT_FORMS.get(self._unit.get(), '')}"
+
+    @suppress_change
+    def set(self, value):
+        match = Dimension.parse_expr.match(str(value))
+        if match:
+            if self.style_def.get("units") in ('char', 'line'):
+                self._entry.set(match.group(1))
+                return
+            num, metric = match.groups()
+            self._entry.set(num)
+            self._unit.set(self._reverse_lookup(metric))
+        elif not value:
+            self._entry.set(value)
+        else:
+            logging.error("malformed dimension '%s'", value)
+
+    @classmethod
+    def _reverse_lookup(cls, metric):
+        if not cls.REVERSE_SF:
+            cls.REVERSE_SF = {cls.SHORT_FORMS[k]: k for k in cls.SHORT_FORMS}
+        return cls.REVERSE_SF.get(metric, '')
 
 
 class Anchor(Editor):
@@ -629,7 +690,7 @@ class StyleItem(Frame):
         display = get_display_name(style_definition, self.pref)
         self._label = Label(self, **parent.style.text_passive, text=display,
                             anchor="w")
-        self._label.grid(row=0, column=0, sticky='ew')
+        self._label.grid(row=0, column=0, sticky='new')
         self._editor = get_editor(self, style_definition)
         self._editor.grid(row=0, column=1, sticky='ew')
         self.grid_columnconfigure(1, weight=1, uniform=1)
@@ -715,6 +776,11 @@ if __name__ == '__main__':
     anc.pack(side="top")
     anc.on_change(print)
     anc.set('nswe')
+
+    dim = Dimension(root, {})
+    dim.pack(side="top")
+    dim.on_change(print)
+    dim.set('40c')
 
     font = Font(root)
     font.pack(side="top")

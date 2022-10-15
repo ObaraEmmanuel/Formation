@@ -81,7 +81,6 @@ PROPERTY_TABLE = {
     "activeborderwidth": {
         "display_name": "active border width",
         "type": "dimension",
-        "units": "pixels",
     },
     "activeforeground": {
         "display_name": "active foreground",
@@ -125,7 +124,6 @@ PROPERTY_TABLE = {
     "borderwidth": {
         "display_name": "relief width",
         "type": "dimension",
-        "units": "pixels"
     },
     "buttoncursor": {
         "display_name": "button cursor",
@@ -192,14 +190,10 @@ PROPERTY_TABLE = {
     "handlepad": {
         "display_name": "handle pad",
         "type": "dimension",
-        "units": "pixels",
-        "default": 8
     },
     "handlesize": {
         "display_name": "handle size",
         "type": "dimension",
-        "units": "pixels",
-        "default": 8
     },
     "highlightbackground": {
         "display_name": "border color",
@@ -212,7 +206,6 @@ PROPERTY_TABLE = {
     "highlightthickness": {
         "display_name": "border width",
         "type": "dimension",
-        "units": "pixels",
     },
     "image": {
         "display_name": "image",
@@ -237,7 +230,6 @@ PROPERTY_TABLE = {
     "insertborderwidth": {
         "display_name": "insert border width",
         "type": "dimension",
-        "units": "pixels",
     },
     "insertofftime": {
         "display_name": "insertofftime",
@@ -257,7 +249,6 @@ PROPERTY_TABLE = {
     "insertwidth": {
         "display_name": "insert width",
         "type": "dimension",
-        "units": "pixels",
     },
     "invalidcommand": {
         "display_name": "invalid command",
@@ -284,7 +275,6 @@ PROPERTY_TABLE = {
     "length": {
         "display_name": "length",
         "type": "dimension",
-        "units": "pixels",
     },
     "listvariable": {
         "display_name": "listvariable",
@@ -323,12 +313,10 @@ PROPERTY_TABLE = {
     "padx": {
         "display_name": "horizontal padding",
         "type": "dimension",
-        "units": "pixels",
     },
     "pady": {
         "display_name": "vertical padding",
         "type": "dimension",
-        "units": "pixels",
     },
     "postcommand": {
         "display_name": "postcommand",
@@ -341,7 +329,6 @@ PROPERTY_TABLE = {
     "proxyborderwidth": {
         "display_name": "proxy border width",
         "type": "dimension",
-        "units": "pixels",
     },
     "proxyrelief": {
         "display_name": "proxy relief",
@@ -372,7 +359,6 @@ PROPERTY_TABLE = {
     "sashpad": {
         "display_name": "sash padding",
         "type": "dimension",
-        "units": "pixels",
     },
     "sashrelief": {
         "display_name": "sash relief",
@@ -381,7 +367,6 @@ PROPERTY_TABLE = {
     "sashwidth": {
         "display_name": "sash width",
         "type": "dimension",
-        "units": "pixels",
     },
     "selectbackground": {
         "display_name": "select background",
@@ -390,7 +375,6 @@ PROPERTY_TABLE = {
     "selectborderwidth": {
         "display_name": "select border width",
         "type": "dimension",
-        "units": "pixels",
     },
     "selectforeground": {
         "display_name": "select foreground",
@@ -424,7 +408,6 @@ PROPERTY_TABLE = {
     "sliderlength": {
         "display_name": "slider length",
         "type": "dimension",
-        "units": "pixels",
     },
     "sliderrelief": {
         "display_name": "slider relief",
@@ -433,17 +416,14 @@ PROPERTY_TABLE = {
     "spacing1": {
         "display_name": "top spacing",
         "type": "dimension",
-        "units": "pixels",
     },
     "spacing2": {
         "display_name": "line spacing",
         "type": "dimension",
-        "units": "pixels",
     },
     "spacing3": {
         "display_name": "bottom spacing",
         "type": "dimension",
-        "units": "pixels",
     },
     "state": {
         "display_name": "state",
@@ -533,7 +513,7 @@ PROPERTY_TABLE = {
     "wraplength": {
         "display_name": "wraplength",
         "type": "dimension",
-        "units": "pixels"
+        "units": "char"
     },
     "mode": {
         "display_name": "mode",
@@ -547,7 +527,6 @@ PROPERTY_TABLE = {
     "xscrollincrement": {
         "display_name": "xscrollincrement",
         "type": "dimension",
-        "units": "pixels"
     },
     "yscrollcommand": {
         "display_name": "yscrollcommand",
@@ -556,7 +535,6 @@ PROPERTY_TABLE = {
     "yscrollincrement": {
         "display_name": "yscrollincrement",
         "type": "dimension",
-        "units": "pixels"
     },
 }
 
@@ -640,7 +618,12 @@ def get_resolved(prop, overrides, *property_tables):
             definition = dict(table[prop], name=prop)
             definition.update(overrides.get(prop, {}))
             return definition
-    return dict(overrides.get(prop, {}))
+    override = dict(overrides.get(prop, {}))
+    # definition with no 'name' key is not a fully qualified definition
+    # and is probably just an override so ignore it
+    if 'name' in override:
+        return override
+    return {}
 
 
 def get_properties(widget, extern_overrides=None):

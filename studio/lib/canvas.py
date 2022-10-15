@@ -66,7 +66,6 @@ CANVAS_PROPERTIES = {
     "activewidth": {
         "display_name": "active width",
         "type": "dimension",
-        "units": "pixels",
         "name": "activewidth"
     },
     "angle": {
@@ -99,7 +98,6 @@ CANVAS_PROPERTIES = {
     "dashoffset": {
         "display_name": "dash offset",
         "type": "dimension",
-        "units": "pixels",
         "name": "dashoffset"
     },
     "disabledbitmap": {
@@ -142,7 +140,6 @@ CANVAS_PROPERTIES = {
     "disabledwidth": {
         "display_name": "disabled width",
         "type": "dimension",
-        "units": "pixels",
         "name": "disabledwidth"
     },
     "extent": {
@@ -159,7 +156,6 @@ CANVAS_PROPERTIES = {
     "height": {
         "display_name": "height",
         "type": "dimension",
-        "units": "pixels",
         "name": "height"
     },
     "joinstyle": {
@@ -223,7 +219,6 @@ CANVAS_PROPERTIES = {
     "width": {
         "display_name": "width",
         "type": "dimension",
-        "units": "pixels",
         "name": "width"
     },
     "_window": {

@@ -1,6 +1,8 @@
 import tkinter as tk
 
-from studio.lib.pseudo import PseudoWidget, Groups, Container, PanedContainer
+from studio.lib.pseudo import (
+    PseudoWidget, Groups, Container, PanedContainer, _dimension_override
+)
 
 
 class Button(PseudoWidget, tk.Button):
@@ -12,7 +14,8 @@ class Button(PseudoWidget, tk.Button):
     DEF_OVERRIDES = {
         "state": {
             "options": ("normal", "active", "disabled")
-        }
+        },
+        **_dimension_override
     }
 
     def __init__(self, master, id_):
@@ -45,6 +48,8 @@ class Checkbutton(PseudoWidget, tk.Checkbutton):
     icon = "checkbutton"
     impl = tk.Checkbutton
 
+    DEF_OVERRIDES = _dimension_override
+
     def __init__(self, master, id_):
         super().__init__(master)
         self.id = id_
@@ -63,7 +68,10 @@ class Entry(PseudoWidget, tk.Entry):
     DEF_OVERRIDES = {
         "state": {
             "options": ("normal", "readonly", "disabled")
-        }
+        },
+        "width": {
+            "units": "char",
+        },
     }
 
     def __init__(self, master, id_):
@@ -92,6 +100,8 @@ class Label(PseudoWidget, tk.Label):
     group = Groups.widget
     icon = "text"
     impl = tk.Label
+
+    DEF_OVERRIDES = _dimension_override
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -123,6 +133,8 @@ class Listbox(PseudoWidget, tk.Listbox):
     icon = "listbox"
     impl = tk.Listbox
 
+    DEF_OVERRIDES = _dimension_override
+
     def __init__(self, master, id_):
         super().__init__(master)
         self.id = id_
@@ -148,6 +160,8 @@ class Menubutton(PseudoWidget, tk.Menubutton):
     group = Groups.widget
     icon = "menubutton"
     impl = tk.Menubutton
+
+    DEF_OVERRIDES = _dimension_override
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -190,6 +204,8 @@ class Radiobutton(PseudoWidget, tk.Radiobutton):
     group = Groups.input
     icon = "radiobutton"
     impl = tk.Radiobutton
+
+    DEF_OVERRIDES = _dimension_override
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -234,6 +250,8 @@ class Spinbox(PseudoWidget, tk.Spinbox):
     icon = "entry"
     impl = tk.Spinbox
 
+    DEF_OVERRIDES = _dimension_override
+
     def __init__(self, master, id_):
         super().__init__(master)
         self.id = id_
@@ -253,7 +271,8 @@ class Text(PseudoWidget, tk.Text):
         "wrap": {
             "type": "choice",
             "options": ("char", "word", "none")
-        }
+        },
+        **_dimension_override
     }
 
     def __init__(self, master, id_):
