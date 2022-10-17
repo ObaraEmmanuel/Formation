@@ -13,6 +13,7 @@ from hoverset.data.utils import make_path, get_theme_path
 from hoverset.util.color import parse_color
 from hoverset.ui.widgets import Application, Label, ProgressBar
 from hoverset.ui.styles import StyleDelegator
+from hoverset.platform import windowing_is, X11
 
 
 class ResourceLoader(Application):
@@ -23,9 +24,9 @@ class ResourceLoader(Application):
         super().__init__()
         self.pref = pref
         self.load_styles(pref.get("resource::theme"))
-        try:
+        if windowing_is(self, X11):
             self.wm_attributes("-type", "splash")
-        except:
+        else:
             self.enable_centering()
             self.overrideredirect(1)
 
