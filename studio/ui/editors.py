@@ -423,7 +423,7 @@ class Dimension(TextMixin, Editor):
     # to be computed later
     REVERSE_SF = None
 
-    parse_expr = re.compile(r'^([-+]?\d+) *([cimp]?)$')
+    parse_expr = re.compile(r'^([-+]?\d+(?:.\d+)?) *([cimp]?)$')
 
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
@@ -478,7 +478,7 @@ class Dimension(TextMixin, Editor):
         elif not value:
             self._entry.set(value)
         else:
-            logging.error("malformed dimension '%s'", value)
+            logging.error("%: malformed dimension '%s'", self.style_def['name'], value)
 
     @classmethod
     def _reverse_lookup(cls, metric):
