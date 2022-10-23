@@ -465,15 +465,21 @@ class AppBuilder(Builder):
     """
 
     def __init__(self, app=None, *args, **kwargs):
-        obj_class = BaseLoaderAdapter._get_class(kwargs.get("node"))
-        if obj_class not in (tk.Toplevel, tk.Tk) and app is None:
-            self._parent = self._app = tk.Tk(*args)
-        else:
-            self._parent = self._app = app
-
+        self._app = app
+        self._toplevel_args = args
         super().__init__(self._app, **kwargs)
 
     def _load_node(self, root_node):
+        if self._app is None:
+            # no external parent app provided
+            obj_class = BaseLoaderAdapter._get_class(root_node)
+            if obj_class not in (tk.Toplevel, tk.Tk):
+                # widget is not toplevel so we spin up a toplevel parent for it
+                self._parent = self._app = tk.Tk(*self._toplevel_args)
+        else:
+            # use external app as parent
+            self._parent = self._app
+
         layout = root_node.attrib.get("layout", {})
         root = super()._load_node(root_node)
         if not isinstance(root, (tk.Tk, tk.Toplevel)):
@@ -482,8 +488,9 @@ class AppBuilder(Builder):
                 "{}x{}".format(layout.get("width", 200), layout.get("height", 200))
             )
             root.pack(fill="both", expand=True)
-        else:
-            self._parent = self._app = root
+        elif not self._app:
+            # this means root is a toplevel so set it as the app and parent
+            self._app = root
         return root
 
     def mainloop(self, n: int = 0):

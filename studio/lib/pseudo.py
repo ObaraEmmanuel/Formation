@@ -235,7 +235,7 @@ class Container(PseudoWidget):
 
     def setup_widget(self):
         self.parent = self.designer = self._get_designer()
-        if self.body is None:
+        if not hasattr(self, 'body') or self.body is None:
             self.body = self
         self._level = 0
         self._children = []
