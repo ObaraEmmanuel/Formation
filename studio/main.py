@@ -72,17 +72,20 @@ class StudioApplication(Application):
         self._left_bar.pack(side="left", fill="y")
         self._pane = PanedWindow(body, **self.style.pane_horizontal)
         self._pane.pack(side="left", fill="both", expand=True)
-        self._left = FeaturePane(self._pane, **self.style.pane_vertical)
+        self._left = FeaturePane("left", self._pane, **self.style.pane_vertical)
         self._center = PanedWindow(self._pane, **self.style.pane_vertical)
-        self._right = FeaturePane(self._pane, **self.style.pane_vertical)
+        self._right = FeaturePane("right", self._pane, **self.style.pane_vertical)
 
         self._bin = []
         self._clipboard = None
         self.current_preview = None
 
-        self._pane.add(self._left, minsize=320, sticky='nswe', width=320)
-        self._pane.add(self._center, minsize=400, width=16000, sticky='nswe')
-        self._pane.add(self._right, minsize=320, sticky='nswe', width=320)
+        self._pane.add(self._left, minsize=320, width=320, stretch="never")
+        self._pane.add(self._center, minsize=400, stretch="always")
+        self._pane.add(self._right, minsize=320, width=320, stretch="never")
+
+        self._left.restore_size()
+        self._right.restore_size()
 
         self._panes = {
             "left": (self._left, self._left_bar),
@@ -370,6 +373,8 @@ class StudioApplication(Application):
             geometry=self.geometry(),
             state=self._get_window_state(),  # window state either zoomed or normal
         ))
+        self._left.save_size()
+        self._right.save_size()
 
     def _restore_position(self):
         pos = pref.get("studio::pos")
