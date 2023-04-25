@@ -15,6 +15,20 @@ image_props = (
 )
 
 
+_image_cache = {}
+
+
+def parse_image(path, cache=True, master=None):
+    if cache and path in _image_cache:
+        return _image_cache[path]
+
+    image = Image.open(path)
+    image = ImageTk.PhotoImage(image, master=master)
+    if cache:
+        _image_cache[path] = image
+    return image
+
+
 def to_tk_image(image, widget=None):
     root = None
     if widget:
@@ -53,7 +67,7 @@ def load_image_to_widget(widget, image, prop, builder, handle_method=None):
         builder._image_cache.append(image)
         return
     # Animate the image only if there are more than one frames
-    frames = get_frames(image)
+    frames = get_frames(image, widget)
     frame_count = len(frames)
     if frame_count == 1:
         handle_method(**{prop: frames[0]})

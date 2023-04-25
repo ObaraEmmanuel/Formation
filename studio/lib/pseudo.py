@@ -40,10 +40,10 @@ class _ImageIntercept:
     __slots__ = []
 
     @staticmethod
-    def set(widget, value, prop='image'):
+    def set(widget, value, prop='image', **kw):
         try:
             if os.path.isfile(str(value)):
-                image = load_image(value)
+                image = load_image(value, **kw)
                 load_image_to_widget(widget, image, prop)
             else:
                 # if value is invalid remove image
@@ -228,6 +228,20 @@ class PseudoWidget:
         options = self.properties
         # Get options whose values are different from their default values
         return {opt: self.get_prop(opt) for opt in options if str(defaults.get(opt)) != str(self.get_prop(opt))}
+
+    def get_method_defaults(self):
+        return {}
+
+    def get_methods(self):
+        return {}
+
+    def get_resolved_methods(self):
+        # do not override
+        defaults = self.get_method_defaults()
+        return filter(lambda x: x != defaults.get(x.name), self.get_methods())
+
+    def handle_method(self, name, *args, **kwargs):
+        pass
 
 
 class Container(PseudoWidget):

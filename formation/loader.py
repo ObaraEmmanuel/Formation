@@ -13,7 +13,9 @@ import tkinter as tk
 import tkinter.ttk as ttk
 
 from formation.formats import Node, BaseAdapter, infer_format
-from formation.handlers import dispatch_to_handlers
+from formation.handlers import dispatch_to_handlers, parse_arg
+from formation.meth import Meth
+from formation.handlers.image import parse_image
 import formation
 
 logger = logging.getLogger(__name__)
@@ -56,7 +58,8 @@ _ignore_tags = (
     *_menu_item_types,
     "event",
     "grid",
-    "meta"
+    "meta",
+    "meth"
 )
 
 
@@ -115,6 +118,13 @@ class BaseLoaderAdapter(BaseAdapter):
                 elif sub_node.attrib.get("row"):
                     row = sub_node.attrib.pop("row")
                     obj.rowconfigure(row, **sub_node.attrib)
+            elif sub_node.type == "meth":
+                meth = Meth.from_node(sub_node)
+                meth.call(
+                    getattr(obj, sub_node.attrib["name"]),
+                    parser=builder._arg_parser,
+                    context=builder
+                )
         return obj
 
 
@@ -252,6 +262,13 @@ class Builder:
             self.load_string(kwargs.get("string"), format_)
         elif kwargs.get("node") is not None:
             self.load_node(kwargs.get("node"))
+
+        Meth.call_deferred(self)
+
+    def _arg_parser(self, a, t):
+        if t == "image":
+            return parse_image(a, master=self._root)
+        return parse_arg(a, t)
 
     def _get_adapter(self, widget_class):
         return self._adapter_map.get(widget_class, BaseLoaderAdapter)

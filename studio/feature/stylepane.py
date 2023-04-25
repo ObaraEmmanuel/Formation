@@ -169,7 +169,7 @@ class StyleGroup(CollapseFrame):
             self.collapse()
             return
         definitions = self.get_definition()
-        if self.can_optimize():
+        if self.can_optimize() and self.items:
             for prop in definitions:
                 self.items[prop]._re_purposed(definitions[prop])
         else:
@@ -455,6 +455,33 @@ class LayoutGroup(StyleGroup):
         return not widget.is_toplevel
 
 
+class WindowGroup(StyleGroup):
+    handles_layout = True
+
+    def __init__(self, master, pane, **cnf):
+        super().__init__(master, pane, **cnf)
+        self.label = "Window"
+        self._prev_layout = None
+        self._grid_config = GridConfig(self.body, pane)
+
+    def _get_prop(self, prop, widget):
+        return widget.get_win_prop(prop)
+
+    def _set_prop(self, prop, value, widget):
+        widget.set_win_prop(prop, value)
+
+    def can_optimize(self):
+        return True
+
+    def get_definition(self):
+        if self.widget is not None:
+            return self.widget.window_definition()
+        return {}
+
+    def supports_widget(self, widget):
+        return widget.is_toplevel
+
+
 class StylePaneFramework:
 
     def setup_style_pane(self):
@@ -658,6 +685,7 @@ class StylePane(StylePaneFramework, BaseFeature):
         self._identity_group = self.add_group(IdentityGroup)
         self._layout_group = self.add_group(LayoutGroup)
         self._attribute_group = self.add_group(AttributeGroup)
+        self.add_group(WindowGroup)
 
         self.add_group_instance(self._layout_group._grid_config.column_config)
         self.add_group_instance(self._layout_group._grid_config.row_config)

@@ -18,6 +18,8 @@ from studio.lib.events import make_event
 from studio.lib.layouts import GridLayoutStrategy
 from studio.preferences import Preferences
 from formation.loader import _ignore_tags
+from formation.meth import Meth
+from formation.handlers import parse_arg
 import studio
 
 
@@ -100,6 +102,9 @@ class BaseStudioAdapter(BaseAdapter):
                     column_node.attrib["column"] = str(column)
                     column_node.attrib.update(modified)
 
+        for meth in widget.get_resolved_methods():
+            meth.to_node(node)
+
         return node
 
     @classmethod
@@ -135,6 +140,14 @@ class BaseStudioAdapter(BaseAdapter):
                     if not hasattr(obj, "_row_conf"):
                         obj._row_conf = set()
                     obj._row_conf.add(int(row))
+            elif sub_node.type == "meth":
+                meth = Meth.from_node(sub_node)
+                meth.call(
+                    obj.handle_method,
+                    with_name=True,
+                    context=designer,
+                    parser=designer.builder._arg_parser
+                )
         return obj
 
     @staticmethod
@@ -320,6 +333,7 @@ class DesignBuilder:
             if BaseStudioAdapter._get_class(sub_node) == legacy.Menu:
                 continue
             self._load_widgets(sub_node, designer, widget)
+        Meth.call_deferred(designer)
         return widget
 
     def to_tree(self, widget, parent=None, with_node=None):
@@ -358,6 +372,12 @@ class DesignBuilder:
         # load all required meta here
         _, major, minor = studio.__version__.split(".")
         self._gen_meta_node("version", parent, major=major, minor=minor)
+
+    def _arg_parser(self, arg, typ):
+        # bypass image conversion
+        if typ == "image":
+            return arg
+        return parse_arg(arg, typ)
 
     def write(self, path):
         """
