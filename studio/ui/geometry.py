@@ -211,7 +211,11 @@ def parse_geometry(geometry, default=None):
         if geometry string is valid otherwise ``None``. The values returned
         are strings so you may need to cast them to number yourself
     """
-    match = _geometry_regex.match(geometry, default)
+    match = _geometry_regex.match(geometry)
     if match:
-        return match.groupdict()
+        data = match.groupdict()
+        for k, v in data.items():
+            if v is None:
+                data[k] = default
+        return data
     return None
