@@ -674,9 +674,69 @@ class Stringvariable(Variable):
 
 
 def get_editor(parent, definition):
-    type_ = definition.get("type").capitalize()
+    if "compose" in definition:
+        type_ = "Compose"
+    else:
+        type_ = definition.get("type").capitalize()
+
     editor = getattr(sys.modules[__name__], type_, Text)
     return editor(parent, definition)
+
+
+class Compose(Editor):
+
+    def __init__(self, master, style_def=None):
+        super().__init__(master, style_def)
+        items = style_def.get("compose", [])
+        row = 0
+        self.pref = get_active_pref(self)
+        height = 25 * len(items)
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
+        max_columns = 1
+        self.editors = {}
+
+        for item in filter(lambda x: isinstance(x, list), items):
+            column = 0
+            for row_item in item:
+                self.columnconfigure(column, weight=1)
+                self._create_editor(row_item, row, column, 1)
+                column += 1
+            height += 25
+            max_columns = max(max_columns, column)
+            row += 2
+
+        for item in filter(lambda x: isinstance(x, dict), items):
+            self._create_editor(item, row, 0, max_columns)
+            height += 25
+            row += 2
+
+        self.config(height=height)
+
+    def _create_editor(self, definition, row, column, columnspan):
+        Label(
+            self,
+            **self.style.text_passive,
+            anchor="w", text=get_display_name(definition, self.pref)
+        ).grid(row=row, column=column, columnspan=columnspan)
+        editor = get_editor(self, definition)
+        self.editors[definition["name"]] = editor
+        editor.grid(row=row + 1, column=column, columnspan=columnspan, sticky='ew')
+        editor.on_change(self._change)
+
+    def _change(self, _):
+        if self._on_change:
+            self._on_change(self.get())
+
+    def set(self, value):
+        if not value:
+            return
+        for k, v in value.items():
+            if k in self.editors:
+                self.editors[k].set(v)
+
+    def get(self):
+        return {k: e.get() for k, e in self.editors.items()}
 
 
 class StyleItem(Frame):
