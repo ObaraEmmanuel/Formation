@@ -143,7 +143,7 @@ class Designer(DesignPad, Container):
         self._empty = Label(
             self,
             image=get_tk_image("paint", 30, 30), compound="top", text=" ",
-            **self.style.text_passive,
+            **self.style.text_passive
         )
         self._empty.config(**self.style.bright)
         self._show_empty(True)
@@ -188,7 +188,7 @@ class Designer(DesignPad, Container):
         if flag:
             kw['image'] = kw.get('image', get_tk_image('paint', 30, 30))
             kw['text'] = kw.get('text', "Drag or paste a container here to start")
-            self._empty.configure(**kw)
+            self._empty.configure(**kw, wraplength=max(400, self.width))
             self._empty.place(relwidth=1, relheight=1)
         else:
             self._empty.place_forget()
