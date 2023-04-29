@@ -715,6 +715,14 @@ class Designer(DesignPad, Container):
         if obj is None:
             return
         self.current_action = self.RESIZE
+        if self.current_obj.max_size or self.current_obj.min_size:
+            b = geometry.constrain_bounds(
+                new_bound,
+                self.current_obj.max_size,
+                self.current_obj.min_size
+            )
+            new_bound = b
+
         if isinstance(obj.layout, Container):
             obj.layout.resize_widget(obj, new_bound)
 

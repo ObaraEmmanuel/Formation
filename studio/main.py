@@ -6,6 +6,7 @@ import functools
 import os
 import sys
 import time
+import tkinter
 import webbrowser
 from tkinter import filedialog, Toplevel
 
@@ -754,7 +755,11 @@ class StudioApplication(Application):
 
     def close_preview(self):
         if self.current_preview:
-            self.current_preview.destroy()
+            try:
+                self.current_preview.destroy()
+            except tkinter.TclError:
+                pass
+            self.current_preview = None
 
     def reload(self):
         if self.designer:

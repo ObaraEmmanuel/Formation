@@ -120,6 +120,8 @@ class PseudoWidget:
         self.node = None
         self.__on_context = None
         self.last_menu_position = (0, 0)
+        self.max_size = None
+        self.min_size = None
         MenuUtils.bind_context(self, self.__handle_context_menu, add='+')
 
     def set_name(self, name):

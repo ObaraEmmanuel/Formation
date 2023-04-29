@@ -17,11 +17,6 @@ WINDOW_DEF = {
         "type": "text",
         "handler": "_geometry",
     },
-    "overrideredirect": {
-        "display_name": "override redirect",
-        "type": "boolean",
-        "handler": "_overrideredirect",
-    },
     "iconphoto": {
         "display_name": "icon photo",
         "type": "icon_photo",
@@ -44,10 +39,48 @@ WINDOW_DEF = {
         "type": "bitmap",
         "handler": "_iconbitmap"
     },
-    "title": {
-        "display_name": "title",
-        "type": "text",
-        "handler": "_title",
+    "maxsize": {
+        "display_name": "maximum size",
+        "type": "width_height",
+        "handler": "_maxsize",
+        "compose": [
+
+            {
+                "display_name": "width",
+                "name": "width",
+                "type": "dimension",
+            },
+            {
+                "display_name": "height",
+                "name": "height",
+                "type": "dimension",
+            }
+
+        ]
+    },
+    "minsize": {
+        "display_name": "minimum size",
+        "type": "width_height",
+        "handler": "_minsize",
+        "compose": [
+
+            {
+                "display_name": "width",
+                "name": "width",
+                "type": "dimension",
+            },
+            {
+                "display_name": "height",
+                "name": "height",
+                "type": "dimension",
+            }
+
+        ]
+    },
+    "overrideredirect": {
+        "display_name": "override redirect",
+        "type": "boolean",
+        "handler": "_overrideredirect",
     },
     "resizable": {
         "display_name": "resizable",
@@ -67,7 +100,12 @@ WINDOW_DEF = {
                 }
             ]
         ]
-    }
+    },
+    "title": {
+        "display_name": "title",
+        "type": "text",
+        "handler": "_title",
+    },
 }
 
 
@@ -162,6 +200,9 @@ class _Toplevel(tk.Frame):
             # we cannot embed Tk instances
             self._toplevel = tk.Toplevel(master, use=str(window.winfo_id()))
 
+        # get system default maxsize before toplevel is modified
+        maxsize = self._toplevel.maxsize()
+        self._fixed_maxsize = {"width": maxsize[0], "height": maxsize[1]}
         self._iconphoto_default = True
         self._geom_is_setup = False
 
@@ -329,13 +370,34 @@ class _Toplevel(tk.Frame):
             return {"width": w, "height": h}
         self._toplevel.resizable(val.get("width", False), val.get("height", False))
 
+    def _maxsize(self, val=None):
+        if val is None:
+            w, h = self._toplevel.maxsize()
+            return {"width": w, "height": h}
+        self._toplevel.maxsize(val.get("width"), val.get("height"))
+        self.max_size = list(self._toplevel.maxsize())
+        # compensate for title bar
+        self.max_size[1] += self.winfo_height() - self._toplevel.winfo_height()
+
+    def _minsize(self, val=None):
+        if val is None:
+            w, h = self._toplevel.minsize()
+            return {"width": w, "height": h}
+        self._toplevel.minsize(val.get("width"), val.get("height"))
+        self.max_size = list(self._toplevel.minsize())
+        # compensate for title bar
+        self.max_size[1] += self.winfo_height() - self._toplevel.winfo_height()
+
     def get_window_method_defaults(self):
         return dict(
-            title=Meth("title", None),
-            geometry=Meth("geometry", None),
+            title=Meth("title", False, None),
+            geometry=Meth("geometry", False, None),
             resizable=Meth("resizable", width=(1, int), height=(1, int)),
-            iconbitmap=Meth("iconbitmap", ''),
-            iconphoto=Meth("iconphoto", (1, int), ('', "image"))
+            iconbitmap=Meth("iconbitmap", False, ''),
+            iconphoto=Meth("iconphoto", False, (1, int), ('', "image")),
+            overrideredirect=Meth("overrideredirect", False, (0, int)),
+            minsize=Meth("minsize", False, width=1, height=1),
+            maxsize=Meth("maxsize", False, **self._fixed_maxsize)
         )
 
     def get_window_methods(self):
@@ -350,7 +412,10 @@ class _Toplevel(tk.Frame):
                 "iconphoto", True,
                 (int(iconphoto["default"]), int),
                 (iconphoto["image"], "image")
-            )
+            ),
+            Meth("overrideredirect", False, (int(bool(self._overrideredirect())), int)),
+            Meth("minsize", False, **self._minsize()),
+            Meth("maxsize", False, **self._maxsize())
         ]
 
     def handle_window_method(self, name, *args, **kwargs):

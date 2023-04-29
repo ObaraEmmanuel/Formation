@@ -191,6 +191,22 @@ def dimension_to_bounds(x, y, width, height):
     return x, y, x + width, y + height
 
 
+def constrain_bounds(bound, maxsize, minsize):
+    if maxsize:
+        max_w, max_h = maxsize
+    else:
+        max_w, max_h = float('inf'), float('inf')
+
+    if minsize:
+        min_w, min_h = minsize
+    else:
+        min_w, min_h = -1, -1
+
+    x1, y1, x2, y2 = bound
+
+    return x1, y1, x1 + max(min(max_w, x2 - x1), min_w), y1 + max(min(max_h, y2 - y1), min_h)
+
+
 def parse_geometry(geometry, default=None):
     """
     Parse a tk geometry string and return a dict with the width, height,
