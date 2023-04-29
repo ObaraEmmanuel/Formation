@@ -39,11 +39,17 @@ class Meth:
 
         for arg in self.args:
             val, typ, *_ = arg
-            Node(node, "arg", {"type": type_to_str(typ), "value": val})
+            attr = {"value": val}
+            if typ is not None:
+                attr["type"] = type_to_str(typ)
+            Node(node, "arg", attr)
 
         for name, arg in self.kwargs.items():
             val, typ, *_ = arg
-            Node(node, "arg", {"name": name, "type": type_to_str(typ), "value": val})
+            attr = {"name": name, "value": val}
+            if typ is not None:
+                attr["type"] = type_to_str(typ)
+            Node(node, "arg", attr)
 
         return node
 
