@@ -198,15 +198,16 @@ class _Toplevel(tk.Frame):
             self._toplevel = self.impl(master, use=window.winfo_id())
         else:
             # we cannot embed Tk instances
-            self._toplevel = tk.Toplevel(master, use=str(window.winfo_id()))
+            self._toplevel = tk.Toplevel(master, use=window.winfo_id())
 
         # get system default maxsize before toplevel is modified
         maxsize = self._toplevel.maxsize()
         self._fixed_maxsize = {"width": maxsize[0], "height": maxsize[1]}
-        self._iconphoto_default = True
+
+        self._toplevel_state = {}
         self._geom_is_setup = False
 
-        self._toplevel.title("title")
+        self._title("title")
         self._geometry_pos = 0, 0
         self._shadow = tk.Frame(self._toplevel)
         self._shadow.pack(fill='both', expand=True)
@@ -330,8 +331,8 @@ class _Toplevel(tk.Frame):
 
     def _overrideredirect(self, val=None):
         if val is None:
-            return self._toplevel.overrideredirect()
-        self._toplevel.overrideredirect(val)
+            return self._toplevel_state.get("overrideredirect", False)
+        self._toplevel_state["overrideredirect"] = val
 
         if val:
             self.title.grid_forget()
@@ -350,19 +351,19 @@ class _Toplevel(tk.Frame):
         if val is None:
             return {
                 "image": _ImageIntercept.get(self.label),
-                "default": self._iconphoto_default
+                "default": self._toplevel_state.get("iconphoto_default", True)
             }
         if args:
             val = {"default": val, "image": args[0]}
 
         _ImageIntercept.set(self.label, val["image"], width=20, height=20)
-        self._iconphoto_default = val["default"]
+        self._toplevel_state["iconphoto_default"] = val["default"]
 
     def _title(self, val=None):
         if val is None:
-            return self._toplevel.title()
+            return self._toplevel_state.get("title", "")
         self.label["text"] = "  " + str(val)
-        self._toplevel.title(val)
+        self._toplevel_state["title"] = val
 
     def _resizable(self, val=None):
         if val is None:
@@ -374,7 +375,10 @@ class _Toplevel(tk.Frame):
         if val is None:
             w, h = self._toplevel.maxsize()
             return {"width": w, "height": h}
-        self._toplevel.maxsize(val.get("width"), val.get("height"))
+        w, h = val.get("width", False), val.get("height", False)
+        if '' in (w, h):
+            return
+        self._toplevel.maxsize(w, h)
         self.max_size = list(self._toplevel.maxsize())
         # compensate for title bar
         self.max_size[1] += self.winfo_height() - self._toplevel.winfo_height()
@@ -383,7 +387,10 @@ class _Toplevel(tk.Frame):
         if val is None:
             w, h = self._toplevel.minsize()
             return {"width": w, "height": h}
-        self._toplevel.minsize(val.get("width"), val.get("height"))
+        w, h = val.get("width", False), val.get("height", False)
+        if '' in (w, h):
+            return
+        self._toplevel.minsize(w, h)
         self.max_size = list(self._toplevel.minsize())
         # compensate for title bar
         self.max_size[1] += self.winfo_height() - self._toplevel.winfo_height()

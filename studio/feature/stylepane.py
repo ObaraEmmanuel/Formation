@@ -606,7 +606,7 @@ class StylePaneFramework:
 
     def layout_for(self, widget):
         for group in self.groups:
-            if group.handles_layout:
+            if group.handles_layout and group.supports_widget(widget):
                 group.on_widget_change(widget)
         self.remove_loading()
 
