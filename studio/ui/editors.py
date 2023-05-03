@@ -378,7 +378,7 @@ class Duration(TextMixin, Editor):
         self._unit.set_values(Duration.UNITS)
         self._unit.pack(side="right")
         self._unit.on_change(self._change)
-        self._entry.pack(side='left', fill="x")
+        self._entry.pack(side='left', fill="x", expand=True)
         self.set_def(style_def)
 
     def set_def(self, definition):
@@ -438,7 +438,7 @@ class Dimension(TextMixin, Editor):
         self._unit.pack(side="right")
         self._unit.on_change(self._change)
         self.set_def(style_def)
-        self._entry.pack(side="left", fill="x")
+        self._entry.pack(side="left", fill="x", expand=True)
 
     def set_def(self, definition):
         super().set_def(definition)
@@ -691,9 +691,8 @@ class Compose(Editor):
         row = 0
         self.pref = get_active_pref(self)
         height = 25 * len(items)
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=1)
         max_columns = 1
+        self.columnconfigure(0, weight=1)
         self.editors = {}
 
         for item in filter(lambda x: isinstance(x, list), items):
