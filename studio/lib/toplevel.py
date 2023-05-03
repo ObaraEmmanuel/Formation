@@ -258,7 +258,7 @@ class _Toplevel(tk.Frame):
         # update_idletasks not strong enough to update the nested toplevel
         # let's force things with update
         self._shadow.update()
-        if not self._toplevel.overrideredirect():
+        if not self._overrideredirect():
             self.body.place_configure(height=-(self._shadow.winfo_rooty() - self.winfo_rooty()))
         else:
             self.body.place_configure(height=0)
@@ -391,9 +391,9 @@ class _Toplevel(tk.Frame):
         if '' in (w, h):
             return
         self._toplevel.minsize(w, h)
-        self.max_size = list(self._toplevel.minsize())
+        self.min_size = list(self._toplevel.minsize())
         # compensate for title bar
-        self.max_size[1] += self.winfo_height() - self._toplevel.winfo_height()
+        self.min_size[1] += self.winfo_height() - self._toplevel.winfo_height()
 
     def get_window_method_defaults(self):
         return dict(
