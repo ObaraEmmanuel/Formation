@@ -19,7 +19,11 @@ def parse_arg(value, type_=None):
     if type_ in _handlers:
         return _handlers[type_](value)
 
-    builtin = getattr(__builtins__, type_, None)
+    if isinstance(type_, str):
+        builtin = getattr(__builtins__, type_, None)
+    else:
+        builtin = type_
+
     if builtin:
         return builtin(value)
 

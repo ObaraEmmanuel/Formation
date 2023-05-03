@@ -15,17 +15,18 @@ image_props = (
 )
 
 
-_image_cache = {}
+def _resolve_path(path, base=None):
+    path = pathlib.Path(path)
+    if not path.is_absolute() and base is not None:
+        path = pathlib.Path(os.path.dirname(base), path)
+    return path
 
 
-def parse_image(path, cache=True, master=None):
-    if cache and path in _image_cache:
-        return _image_cache[path]
+def parse_image(path, master=None, base_path=None):
+    path = _resolve_path(path, base_path)
 
     image = Image.open(path)
     image = ImageTk.PhotoImage(image, master=master)
-    if cache:
-        _image_cache[path] = image
     return image
 
 
@@ -99,8 +100,6 @@ def handle(widget, config, **kwargs):
         if not props[prop]:
             # ignore empty values
             continue
-        path = pathlib.Path(props[prop])
-        if not path.is_absolute() and builder.path is not None:
-            path = pathlib.Path(os.path.dirname(builder.path), path)
+        path = _resolve_path(props[prop], builder.path)
         image = Image.open(path)
         load_image_to_widget(widget, image, prop, builder, handle_method)

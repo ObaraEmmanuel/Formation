@@ -267,7 +267,9 @@ class Builder:
 
     def _arg_parser(self, a, t):
         if t == "image":
-            return parse_image(a, master=self._root)
+            image = parse_image(a, master=self._root, base_path=self._path)
+            self._image_cache.append(image)
+            return image
         return parse_arg(a, t)
 
     def _get_adapter(self, widget_class):

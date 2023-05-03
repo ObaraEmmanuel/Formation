@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='utf-8'?>
-<tkinter.Toplevel xmlns:attr="http://www.hoversetformationstudio.com/styles/" xmlns:layout="http://www.hoversetformationstudio.com/layouts/" xmlns:menu="http://www.hoversetformationstudio.com/menu" name="toplevel1" attr:background="#e0ce84" attr:layout="grid" layout:width="500" layout:height="336" layout:x="43" layout:y="39">
+<tkinter.Tk xmlns:attr="http://www.hoversetformationstudio.com/styles/" xmlns:layout="http://www.hoversetformationstudio.com/layouts/" xmlns:menu="http://www.hoversetformationstudio.com/menu" name="toplevel1" attr:background="#e0ce84" attr:layout="grid" layout:width="500" layout:height="336" layout:x="43" layout:y="39">
   <meth name="title">
     <arg value="test window"/>
   </meth>
@@ -44,4 +44,4 @@
     </tkinter.Menu>
   </tkinter.Menu>
   <meta major="5" minor="0" name="version"/>
-</tkinter.Toplevel>
+</tkinter.Tk>

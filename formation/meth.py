@@ -5,6 +5,8 @@ from formation.handlers import parse_arg
 
 
 def type_to_str(typ):
+    if typ is None:
+        return None
     if hasattr(typ, "__name__"):
         return typ.__name__
     return str(typ)
@@ -26,7 +28,10 @@ class Meth:
     def init_arg(self, arg):
         if isinstance(arg, (tuple, list, set)):
             if len(arg) >= 2:
-                return arg
+                # string types do not need to be specified
+                if arg[1] in ('str', str):
+                    return arg[0], None
+                return arg[0], type_to_str(arg[1])
             else:
                 return arg[0], None
         else:
@@ -41,14 +46,14 @@ class Meth:
             val, typ, *_ = arg
             attr = {"value": val}
             if typ is not None:
-                attr["type"] = type_to_str(typ)
+                attr["type"] = typ
             Node(node, "arg", attr)
 
         for name, arg in self.kwargs.items():
             val, typ, *_ = arg
             attr = {"name": name, "value": val}
             if typ is not None:
-                attr["type"] = type_to_str(typ)
+                attr["type"] = typ
             Node(node, "arg", attr)
 
         return node
@@ -88,4 +93,3 @@ class Meth:
     def call_deferred(cls, context=None):
         for meth in cls._deferred.pop(context, []):
             meth()
-        cls._deferred.clear()
