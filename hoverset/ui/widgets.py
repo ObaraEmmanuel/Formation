@@ -471,7 +471,7 @@ class CenterWindowMixin:
         :return: tuple containing (width, height, x, y) in that order
         """
         self.update_idletasks()
-        return self.winfo_width(), self.winfo_height(), self.winfo_rootx(), self.winfo_rooty()
+        return self.winfo_width(), self.winfo_height(), self.winfo_x(), self.winfo_y()
 
 
 class PositionMixin:
