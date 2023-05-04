@@ -40,10 +40,10 @@ class _ImageIntercept:
     __slots__ = []
 
     @staticmethod
-    def set(widget, value, prop='image'):
+    def set(widget, value, prop='image', **kw):
         try:
             if os.path.isfile(str(value)):
-                image = load_image(value)
+                image = load_image(value, **kw)
                 load_image_to_widget(widget, image, prop)
             else:
                 # if value is invalid remove image
@@ -98,6 +98,7 @@ class PseudoWidget:
     group = Groups.widget
     icon = "play"
     impl = None
+    is_toplevel = False
     # special handlers (intercepts) for attributes that need additional processing
     # to interface with the studio easily
     _intercepts = {
@@ -119,6 +120,8 @@ class PseudoWidget:
         self.node = None
         self.__on_context = None
         self.last_menu_position = (0, 0)
+        self.max_size = None
+        self.min_size = None
         MenuUtils.bind_context(self, self.__handle_context_menu, add='+')
 
     def set_name(self, name):
@@ -228,12 +231,28 @@ class PseudoWidget:
         # Get options whose values are different from their default values
         return {opt: self.get_prop(opt) for opt in options if str(defaults.get(opt)) != str(self.get_prop(opt))}
 
+    def get_method_defaults(self):
+        return {}
+
+    def get_methods(self):
+        return {}
+
+    def get_resolved_methods(self):
+        # do not override
+        defaults = self.get_method_defaults()
+        return filter(lambda x: x != defaults.get(x.name), self.get_methods())
+
+    def handle_method(self, name, *args, **kwargs):
+        pass
+
 
 class Container(PseudoWidget):
     LAYOUTS = layouts.layouts
 
     def setup_widget(self):
         self.parent = self.designer = self._get_designer()
+        if not hasattr(self, 'body') or self.body is None:
+            self.body = self
         self._level = 0
         self._children = []
         self.temporal_children = []
@@ -258,8 +277,10 @@ class Container(PseudoWidget):
 
     def lift(self, above_this):
         super().lift(above_this)
+        if self.body != self:
+            self.body.lift(self)
         for child in self._children:
-            child.lift(self)
+            child.lift(self.body)
 
     def react(self, x, y):
         self.designer.set_active_container(self)
@@ -366,7 +387,7 @@ class Container(PseudoWidget):
         }
 
     def position(self, widget, bounds):
-        widget.place(in_=self, **self.parse_bounds(bounds), bordermode=tkinter.OUTSIDE)
+        widget.place(in_=self.body, **self.parse_bounds(bounds), bordermode=tkinter.OUTSIDE)
 
     #  =========================================== Rerouting methods ==================================================
 

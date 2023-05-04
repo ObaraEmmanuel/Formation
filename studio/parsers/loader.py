@@ -12,11 +12,14 @@ from studio.feature.variablepane import VariablePane
 from studio.feature.components import ComponentPane
 from studio.lib.variables import VariableItem, VariableManager
 from studio.lib import legacy, native
-from studio.lib.menu import menu_config, MENU_ITEM_TYPES
+from studio.lib.menu import menu_config
 from studio.lib.pseudo import Container, PseudoWidget
 from studio.lib.events import make_event
 from studio.lib.layouts import GridLayoutStrategy
 from studio.preferences import Preferences
+from formation.loader import _ignore_tags
+from formation.meth import Meth
+from formation.handlers import parse_arg
 import studio
 
 
@@ -99,6 +102,9 @@ class BaseStudioAdapter(BaseAdapter):
                     column_node.attrib["column"] = str(column)
                     column_node.attrib.update(modified)
 
+        for meth in widget.get_resolved_methods():
+            meth.to_node(node)
+
         return node
 
     @classmethod
@@ -134,6 +140,14 @@ class BaseStudioAdapter(BaseAdapter):
                     if not hasattr(obj, "_row_conf"):
                         obj._row_conf = set()
                     obj._row_conf.add(int(row))
+            elif sub_node.type == "meth":
+                meth = Meth.from_node(sub_node)
+                meth.call(
+                    obj.handle_method,
+                    with_name=True,
+                    context=designer,
+                    parser=designer.builder._arg_parser
+                )
         return obj
 
     @staticmethod
@@ -178,6 +192,9 @@ class MenuStudioAdapter(BaseStudioAdapter):
             if sub_node.type in MenuStudioAdapter._types and menu is not None:
                 menu.add(sub_node.type)
                 menu_config(menu, menu.index(tk.END), **attrib.get("menu", {}))
+                continue
+
+            if sub_node.type in _ignore_tags:
                 continue
 
             obj_class = cls._get_class(sub_node)
@@ -235,14 +252,9 @@ class DesignBuilder:
     _adapter_map = {
         legacy.Menubutton: MenuStudioAdapter,
         native.Menubutton: MenuStudioAdapter,
+        legacy.Toplevel: MenuStudioAdapter,
+        legacy.Tk: MenuStudioAdapter
     }
-
-    _ignore_tags = (
-        *MENU_ITEM_TYPES,
-        "event",
-        "grid",
-        "meta"
-    )
 
     def __init__(self, designer):
         self.designer = designer
@@ -315,10 +327,13 @@ class DesignBuilder:
             # We dont need to load child tags of non-container widgets
             return widget
         for sub_node in node:
-            if sub_node.is_var() or sub_node.type in self._ignore_tags:
+            if sub_node.is_var() or sub_node.type in _ignore_tags:
                 # ignore variables and non widget nodes
                 continue
+            if BaseStudioAdapter._get_class(sub_node) == legacy.Menu:
+                continue
             self._load_widgets(sub_node, designer, widget)
+        Meth.call_deferred(designer)
         return widget
 
     def to_tree(self, widget, parent=None, with_node=None):
@@ -357,6 +372,12 @@ class DesignBuilder:
         # load all required meta here
         _, major, minor = studio.__version__.split(".")
         self._gen_meta_node("version", parent, major=major, minor=minor)
+
+    def _arg_parser(self, arg, typ):
+        # bypass image conversion
+        if typ == "image":
+            return arg
+        return parse_arg(arg, typ)
 
     def write(self, path):
         """

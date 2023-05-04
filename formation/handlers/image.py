@@ -15,6 +15,21 @@ image_props = (
 )
 
 
+def _resolve_path(path, base=None):
+    path = pathlib.Path(path)
+    if not path.is_absolute() and base is not None:
+        path = pathlib.Path(os.path.dirname(base), path)
+    return path
+
+
+def parse_image(path, master=None, base_path=None):
+    path = _resolve_path(path, base_path)
+
+    image = Image.open(path)
+    image = ImageTk.PhotoImage(image, master=master)
+    return image
+
+
 def to_tk_image(image, widget=None):
     root = None
     if widget:
@@ -53,7 +68,7 @@ def load_image_to_widget(widget, image, prop, builder, handle_method=None):
         builder._image_cache.append(image)
         return
     # Animate the image only if there are more than one frames
-    frames = get_frames(image)
+    frames = get_frames(image, widget)
     frame_count = len(frames)
     if frame_count == 1:
         handle_method(**{prop: frames[0]})
@@ -85,8 +100,6 @@ def handle(widget, config, **kwargs):
         if not props[prop]:
             # ignore empty values
             continue
-        path = pathlib.Path(props[prop])
-        if not path.is_absolute() and builder.path is not None:
-            path = pathlib.Path(os.path.dirname(builder.path), path)
+        path = _resolve_path(props[prop], builder.path)
         image = Image.open(path)
         load_image_to_widget(widget, image, prop, builder, handle_method)

@@ -11,6 +11,7 @@ import itertools
 import os
 import shelve
 import math
+import hashlib
 
 from hoverset.data.utils import get_resource_path
 from hoverset.util.color import to_rgb, luminosity
@@ -113,6 +114,53 @@ def load_image(path, **kwargs):
     return image
 
 
+_hash_image_cache = dict()
+_hash_image_with_size_cache = dict()
+_hash_tk_image_cache = dict()
+
+
+def load_image_cached(path, **kwargs):
+    with open(path, "rb") as image_file:
+        h = hashlib.md5(image_file.read()).hexdigest()
+
+    if h in _hash_image_cache:
+        image = _hash_image_cache[h]
+    else:
+        image = Image.open(path)
+        _hash_image_cache[h] = image
+
+    width = kwargs.get("width", image.width)
+    height = kwargs.get("height", image.height)
+    size_key = (h, width, height)
+
+    if (width, height) != image.size:
+        if size_key in _hash_image_with_size_cache:
+            image = _hash_image_with_size_cache[size_key]
+        else:
+            image = image.copy()
+            image.thumbnail((width, height))
+            _hash_image_with_size_cache[size_key] = image
+
+    return image
+
+
+def _get_image_hash(image):
+    if not hasattr(image, "_img_hash"):
+        h = hashlib.md5(image.tobytes()).hexdigest()
+        setattr(image, "_img_hash", h)
+    return image._img_hash
+
+
+def to_tk_image_cached(image):
+    h = _get_image_hash(image)
+    if h not in _hash_tk_image_cache:
+        _hash_tk_image_cache[h] = ImageTk.PhotoImage(image)
+        print("Image cache: miss")
+    else:
+        print("Image cache: hit")
+    return _hash_tk_image_cache[h]
+
+
 def get_frames(image):
     # Get all frames present in an image
     frames = [to_tk_image(image)]
@@ -125,19 +173,20 @@ def get_frames(image):
     return frames
 
 
-def load_image_to_widget(widget, image, prop):
+def load_image_to_widget(widget, image, prop, load_func=None, animate=True):
+    load = widget.config if load_func is None else load_func
     # cancel any animate cycles present
     if hasattr(widget, '_animate_cycle'):
         widget.after_cancel(widget._animate_cycle)
     if not isinstance(image, Image.Image):
         # load non PIL image values
-        widget.config(**{prop: image})
+        load(**{prop: image})
         # store a reference to shield from garbage collection
         setattr(widget, prop, image)
         return
-    if not hasattr(image, "is_animated") or not image.is_animated:
+    if not animate or not hasattr(image, "is_animated") or not image.is_animated:
         image = to_tk_image(image)
-        widget.config(**{prop: image})
+        load(**{prop: image})
         # store a reference to shield from garbage collection
         setattr(widget, prop, image)
         return
@@ -145,7 +194,7 @@ def load_image_to_widget(widget, image, prop):
     frames = get_frames(image)
     frame_count = len(frames)
     if len(frames) == 1:
-        widget.config(**{prop: frames[0]})
+        load(**{prop: frames[0]})
         return
 
     # an infinite iterator to loop through the frames continuously
@@ -156,7 +205,7 @@ def load_image_to_widget(widget, image, prop):
 
     def cycle_frames():
         nonlocal loop_count
-        widget.config(**{prop: next(cycle)})
+        load(**{prop: next(cycle)})
         loop_count += 1
         if loop_count // frame_count >= loop:
             return

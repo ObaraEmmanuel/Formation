@@ -313,6 +313,20 @@ class FeaturePane(PanedWindow):
     # I don't expect anything close to 1000 features in a single pane
     MAX_PANES = 1000
 
+    def __init__(self, name, master=None, **cnf):
+        super().__init__(master, **cnf)
+        self.name = name
+
+    def save_size(self):
+        if self.name:
+            Preferences.acquire().set(f"studio::panes::{self.name}::width", self.winfo_width())
+
+    def restore_size(self):
+        pref = Preferences.acquire()
+        if self.name:
+            pref.set_default(f"studio::panes::{self.name}::width", 320)
+            self.master.paneconfig(self, width=pref.get(f"studio::panes::{self.name}::width"))
+
     def add(self, child: BaseFeature, **kw):
         kw["height"] = child.get_pref("pane::height") if kw.get("height") is None else kw.get("height")
         insert_index = child.get_pref("pane::index")

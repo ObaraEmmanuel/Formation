@@ -21,7 +21,7 @@ from hoverset.util.execution import Action, as_thread
 from studio.lib import NameGenerator
 from studio.lib.layouts import PlaceLayoutStrategy
 from studio.lib.pseudo import PseudoWidget, Container, Groups
-from studio.parsers.loader import DesignBuilder
+from studio.parsers.loader import DesignBuilder, BaseStudioAdapter
 from studio.ui import geometry
 from studio.ui.highlight import HighLight
 from studio.ui.widgets import DesignPad, CoordinateIndicator
@@ -217,7 +217,7 @@ class Designer(DesignPad, Container):
         width = max(self.width - self._padding * 2, 300)
         height = max(self.height - self._padding * 2, 300)
         self.add(
-            legacy.Frame, self._padding, self._padding,
+            legacy.Toplevel, self._padding, self._padding,
             width=width, height=height
         )
         self.builder.generate()
@@ -364,9 +364,17 @@ class Designer(DesignPad, Container):
             paste_to = self.current_obj
         if paste_to is None:
             return
+        obj_class = BaseStudioAdapter._get_class(node)
+        if obj_class.is_toplevel and paste_to != self:
+            self._show_toplevel_warning()
+            return
+        if obj_class.group != Groups.container and self.root_obj is None:
+            self._show_root_widget_warning()
+            return
+
         layout = paste_to if isinstance(paste_to, Container) else paste_to.layout
-        width = int(node["layout"]["width"] or 0)
-        height = int(node["layout"]["height"] or 0)
+        width = int(node["layout"].get("width", 10))
+        height = int(node["layout"].get("height", 10))
         x, y = self._last_click_pos or (self.winfo_rootx() + 50, self.winfo_rooty() + 50)
         self._last_click_pos = x + 5, y + 5  # slightly displace click position so multiple pastes are still visible
         bounds = geometry.resolve_bounds((x, y, x + width, y + height), self)
@@ -441,7 +449,18 @@ class Designer(DesignPad, Container):
         MessageDialog.show_warning(title='Invalid root widget', parent=self.studio,
                                    message='Only containers are allowed as root widgets')
 
+    def _show_toplevel_warning(self):
+        MessageDialog.show_warning(
+            title='Invalid parent',
+            parent=self.studio,
+            message='Toplevel widgets cannot be placed inside other widgets'
+        )
+
     def add(self, obj_class: PseudoWidget.__class__, x, y, **kwargs):
+        layout = kwargs.get("layout")
+        if obj_class.is_toplevel and layout not in (self, None):
+            self._show_toplevel_warning()
+            return
         if obj_class.group != Groups.container and self.root_obj is None:
             # We only need a container as the root widget
             self._show_root_widget_warning()
@@ -459,7 +478,6 @@ class Designer(DesignPad, Container):
             height = kwargs.get("height", self.WIDGET_INIT_HEIGHT)
         obj.layout = kwargs.get("intended_layout", None)
         self._attach(obj)  # apply extra bindings required
-        layout = kwargs.get("layout")
         # If the object has a layout which actually the layout at the point of creation prepare and pass it
         # to the layout
         if isinstance(layout, Container):
@@ -631,6 +649,9 @@ class Designer(DesignPad, Container):
         if container is not None and container != obj:
             container.clear_highlight()
             if self.current_action == self.MOVE:
+                if container != self and obj.is_toplevel:
+                    self._show_toplevel_warning()
+                    return
                 container.add_widget(obj, bound)
                 # If the enclosed widget was initially the root object, make the container the new root object
                 if obj == self.root_obj and obj != self:
@@ -694,6 +715,14 @@ class Designer(DesignPad, Container):
         if obj is None:
             return
         self.current_action = self.RESIZE
+        if self.current_obj.max_size or self.current_obj.min_size:
+            b = geometry.constrain_bounds(
+                new_bound,
+                self.current_obj.max_size,
+                self.current_obj.min_size
+            )
+            new_bound = b
+
         if isinstance(obj.layout, Container):
             obj.layout.resize_widget(obj, new_bound)
 

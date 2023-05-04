@@ -434,11 +434,6 @@ class ScrollableInterface:
 
 
 class CenterWindowMixin:
-    # match > digit x digit + signed digit + signed digit
-    #       > width x height + (-)x + (-)y
-    GEOMETRY_RGX = re.compile(
-        r"(\d+)x(\d+)\+(-?\d+)\+(-?\d+)"
-    )
 
     def enable_centering(self):
         self.centered = False
@@ -475,11 +470,8 @@ class CenterWindowMixin:
 
         :return: tuple containing (width, height, x, y) in that order
         """
-        search = self.GEOMETRY_RGX.search(self.geometry())
-        if search is None:
-            # not a valid geometry
-            return None
-        return tuple(map(int, search.groups()))
+        self.update_idletasks()
+        return self.winfo_width(), self.winfo_height(), self.winfo_x(), self.winfo_y()
 
 
 class PositionMixin:
@@ -1418,6 +1410,9 @@ class Screen:
 
     def get_geometry(self):
         return self.winfo_width(), self.winfo_height(), 0, 0
+
+    def update_idletasks(self):
+        pass
 
 
 class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, ContextMenuMixin, tk.Tk):

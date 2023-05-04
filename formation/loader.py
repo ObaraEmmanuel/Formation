@@ -13,7 +13,9 @@ import tkinter as tk
 import tkinter.ttk as ttk
 
 from formation.formats import Node, BaseAdapter, infer_format
-from formation.handlers import dispatch_to_handlers
+from formation.handlers import dispatch_to_handlers, parse_arg
+from formation.meth import Meth
+from formation.handlers.image import parse_image
 import formation
 
 logger = logging.getLogger(__name__)
@@ -41,6 +43,7 @@ _containers = (
     ttk.LabelFrame,
     ttk.Sizegrip,
     tk.Toplevel,
+    tk.Tk,
 )
 
 _menu_item_types = (
@@ -49,6 +52,14 @@ _menu_item_types = (
     tk.CHECKBUTTON,
     tk.SEPARATOR,
     tk.RADIOBUTTON,
+)
+
+_ignore_tags = (
+    *_menu_item_types,
+    "event",
+    "grid",
+    "meta",
+    "meth"
 )
 
 
@@ -81,6 +92,8 @@ class BaseLoaderAdapter(BaseAdapter):
         if obj_class == ttk.PanedWindow and "orient" in config.get("attr", {}):
             orient = config["attr"].pop("orient")
             obj = obj_class(parent, orient=orient)
+        elif obj_class == tk.Tk:
+            obj = obj_class()
         else:
             obj = obj_class(parent)
         parent_node = node.parent
@@ -105,6 +118,13 @@ class BaseLoaderAdapter(BaseAdapter):
                 elif sub_node.attrib.get("row"):
                     row = sub_node.attrib.pop("row")
                     obj.rowconfigure(row, **sub_node.attrib)
+            elif sub_node.type == "meth":
+                meth = Meth.from_node(sub_node)
+                meth.call(
+                    getattr(obj, sub_node.attrib["name"]),
+                    parser=builder._arg_parser,
+                    context=builder
+                )
         return obj
 
 
@@ -133,6 +153,8 @@ class MenuLoaderAdapter(BaseLoaderAdapter):
                 menu.add(sub_node.type)
                 index = menu.index(tk.END)
                 dispatch_to_handlers(menu, attrib, **kwargs, menu=menu, index=index)
+            elif sub_node.type in _ignore_tags:
+                continue
             elif cls._get_class(sub_node) == tk.Menu:
                 obj_class = cls._get_class(sub_node)
                 menu_obj = obj_class(widget)
@@ -167,7 +189,7 @@ class CanvasLoaderAdapter(BaseLoaderAdapter):
     def load(cls, node, builder, parent):
         canvas = BaseLoaderAdapter.load(node, builder, parent)
         for sub_node in node:
-            if sub_node.type in builder._ignore_tags:
+            if sub_node.type in _ignore_tags:
                 continue
             # just additional options that may be needed down the line
             kwargs = {
@@ -212,16 +234,11 @@ class Builder:
     _adapter_map = {
         tk.Menubutton: MenuLoaderAdapter,
         ttk.Menubutton: MenuLoaderAdapter,
+        tk.Tk: MenuLoaderAdapter,
+        tk.Toplevel: MenuLoaderAdapter,
         tk.Canvas: CanvasLoaderAdapter,
         # Add custom adapters here
     }
-
-    _ignore_tags = (
-        *_menu_item_types,
-        "event",
-        "grid",
-        "meta"
-    )
 
     def __init__(self, parent, **kwargs):
         self._parent = parent
@@ -245,6 +262,15 @@ class Builder:
             self.load_string(kwargs.get("string"), format_)
         elif kwargs.get("node") is not None:
             self.load_node(kwargs.get("node"))
+
+        Meth.call_deferred(self)
+
+    def _arg_parser(self, a, t):
+        if t == "image":
+            image = parse_image(a, master=self._root, base_path=self._path)
+            self._image_cache.append(image)
+            return image
+        return parse_arg(a, t)
 
     def _get_adapter(self, widget_class):
         return self._adapter_map.get(widget_class, BaseLoaderAdapter)
@@ -283,8 +309,10 @@ class Builder:
             # We dont need to load child tags of non-container widgets
             return widget
         for sub_node in node:
-            if sub_node.is_var() or sub_node.type in self._ignore_tags:
+            if sub_node.is_var() or sub_node.type in _ignore_tags:
                 # ignore variables and non widgets
+                continue
+            if BaseLoaderAdapter._get_class(sub_node) == tk.Menu:
                 continue
             self._load_widgets(sub_node, builder, widget)
         return widget
@@ -456,21 +484,32 @@ class AppBuilder(Builder):
     """
 
     def __init__(self, app=None, *args, **kwargs):
-        if app is None:
-            self._parent = self._app = tk.Tk(*args)
-        else:
-            self._parent = self._app = app
-
+        self._app = app
+        self._toplevel_args = args
         super().__init__(self._app, **kwargs)
 
     def _load_node(self, root_node):
+        if self._app is None:
+            # no external parent app provided
+            obj_class = BaseLoaderAdapter._get_class(root_node)
+            if obj_class not in (tk.Toplevel, tk.Tk):
+                # widget is not toplevel so we spin up a toplevel parent for it
+                self._parent = self._app = tk.Tk(*self._toplevel_args)
+        else:
+            # use external app as parent
+            self._parent = self._app
+
         layout = root_node.attrib.get("layout", {})
-        # Adjust toplevel window size to that of the root widget
-        self._app.geometry(
-            "{}x{}".format(layout.get("width", 200), layout.get("height", 200))
-        )
         root = super()._load_node(root_node)
-        root.pack(fill="both", expand=True)
+        if not isinstance(root, (tk.Tk, tk.Toplevel)):
+            # Adjust toplevel window size to that of the root widget
+            self._app.geometry(
+                "{}x{}".format(layout.get("width", 200), layout.get("height", 200))
+            )
+            root.pack(fill="both", expand=True)
+        elif not self._app:
+            # this means root is a toplevel so set it as the app and parent
+            self._app = root
         return root
 
     def mainloop(self, n: int = 0):

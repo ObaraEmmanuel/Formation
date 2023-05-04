@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tkinter.Tk xmlns:attr="http://www.hoversetformationstudio.com/styles/" xmlns:layout="http://www.hoversetformationstudio.com/layouts/" xmlns:menu="http://www.hoversetformationstudio.com/menu" name="toplevel1" attr:background="#e0ce84" attr:layout="grid" layout:width="500" layout:height="336" layout:x="43" layout:y="39">
+  <meth name="title">
+    <arg value="test window"/>
+  </meth>
+  <meth name="geometry">
+    <arg value="500x300+0+0"/>
+  </meth>
+  <meth name="resizable">
+    <arg name="width" value="0" type="int"/>
+    <arg name="height" value="1" type="int"/>
+  </meth>
+  <meth name="iconphoto" defer="True">
+    <arg value="1" type="int"/>
+    <arg value="images/okestr.png" type="image"/>
+  </meth>
+  <meth name="minsize">
+    <arg name="width" value="100"/>
+    <arg name="height" value="100"/>
+  </meth>
+  <meth name="maxsize">
+    <arg name="width" value="800"/>
+    <arg name="height" value="800"/>
+  </meth>
+  <tkinter.Menu attr:activeborderwidth="1" attr:borderwidth="1" attr:cursor="" attr:font="{Segoe UI} 9" attr:tearoff="0">
+    <tkinter.Menu attr:activeborderwidth="1" attr:borderwidth="1" attr:font="{Segoe UI} 9" attr:tearoff="0" menu:compound="none" menu:label="File" menu:state="normal">
+      <command menu:compound="none" menu:label="Command" menu:state="normal"/>
+      <command menu:compound="none" menu:label="Command" menu:state="normal"/>
+      <command menu:compound="none" menu:label="Command" menu:state="normal"/>
+    </tkinter.Menu>
+    <tkinter.Menu attr:activeborderwidth="1" attr:borderwidth="1" attr:font="{Segoe UI} 9" attr:tearoff="0" menu:compound="none" menu:label="Edit" menu:state="normal">
+      <command menu:compound="none" menu:label="Command" menu:state="normal"/>
+      <command menu:compound="none" menu:label="Command" menu:state="normal"/>
+      <command menu:compound="none" menu:label="Command" menu:state="normal"/>
+    </tkinter.Menu>
+    <tkinter.Menu attr:activeborderwidth="1" attr:borderwidth="1" attr:font="{Segoe UI} 9" attr:tearoff="0" menu:compound="none" menu:label="Code" menu:state="normal">
+      <command menu:compound="none" menu:label="Command" menu:state="normal"/>
+      <command menu:compound="none" menu:label="Command" menu:state="normal"/>
+      <command menu:compound="none" menu:label="Command" menu:state="normal"/>
+    </tkinter.Menu>
+    <tkinter.Menu attr:activeborderwidth="1" attr:borderwidth="1" attr:font="{Segoe UI} 9" attr:tearoff="0" menu:compound="none" menu:label="Tools" menu:state="normal">
+      <command menu:compound="none" menu:label="Command" menu:state="normal"/>
+      <command menu:compound="none" menu:label="Command" menu:state="normal"/>
+    </tkinter.Menu>
+  </tkinter.Menu>
+  <meta major="5" minor="0" name="version"/>
+</tkinter.Tk>
