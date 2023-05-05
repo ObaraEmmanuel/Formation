@@ -1,5 +1,6 @@
 import platform
 import sys
+import tkinter
 
 from hoverset.ui.widgets import Frame, Label, Application
 from hoverset.ui.dialogs import MessageDialog
@@ -27,13 +28,14 @@ class About(Frame):
         image = load_tk_image(get_resource_path("studio", 'resources/images/logo.png'), 320, 103)
         Label(self, image=image, **self.style.surface).pack(side="top", fill="y", pady=20, padx=50)
         About.Spec(self, "python", sys.version_info)
+        About.Spec(self, "tcl/tk", tkinter.TkVersion)
         About.Spec(self, "loader version", version_description(formation.__version__))
         About.Spec(self, "studio version", version_description(studio.__version__))
         About.Spec(self, "Platform", platform.platform())
 
         Label(self, text="Make designing user interfaces in python a breeze!",
               **self.style.text).pack(side="top", fill="y", pady=5)
-        copy_right = "Copyright © 2019-2022 Hoverset group"
+        copy_right = "Copyright © 2019-2023 Hoverset group"
         Label(self, text=copy_right, **self.style.text_passive).pack(side="top", fill="y")
         self.pack(fill="both", expand=True)
 
@@ -42,6 +44,7 @@ def about_window(parent):
     dialog = MessageDialog(parent, About)
     dialog.title("Formation")
     dialog.focus_set()
+    import ttkbootstrap
     return dialog
 
 
