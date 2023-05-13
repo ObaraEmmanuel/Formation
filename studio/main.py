@@ -10,6 +10,8 @@ import tkinter
 import webbrowser
 from tkinter import filedialog, Toplevel
 
+import tkinterDnD
+
 from studio.feature.design import DesignContext, MultiSaveDialog
 from studio.feature import FEATURES, StylePane
 from studio.feature._base import BaseFeature, FeaturePane
@@ -37,7 +39,7 @@ from hoverset.data.keymap import ShortcutManager, CharKey, KeyMap, BlankKey
 from hoverset.platform import platform_is, MAC
 
 from formation import AppBuilder
-from formation.formats import get_file_types
+from formation.formats import get_file_types, get_file_extensions
 
 pref = Preferences.acquire()
 
@@ -232,6 +234,8 @@ class StudioApplication(Application):
         self.context = None
         self.contexts = []
         self.tab_view = TabView(self._center)
+        self.tab_view.register_drop_target(tkinterDnD.FILE)
+        self.tab_view.bind("<<Drop:File>>", lambda e: self.open_file(e.data))
         self.tab_view.malleable(True)
         self.tab_view.bind("<<TabSelectionChanged>>", self.on_context_switch)
         self.tab_view.bind("<<TabClosed>>", self.on_context_close)
@@ -535,6 +539,13 @@ class StudioApplication(Application):
                 parent=self,
                 title="Missing File",
                 message="File {} does not exist".format(path),
+            )
+            return
+        elif path.split(".")[-1] not in get_file_extensions():
+            MessageDialog.show_error(
+                parent=self,
+                title="Unsupported type",
+                message=f"File {path} is not of a supported file type ({get_file_extensions()}).",
             )
             return
         if path:

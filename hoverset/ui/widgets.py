@@ -29,6 +29,8 @@ from hoverset.ui.windows import DragWindow
 from hoverset.ui.menu import MenuUtils, LoadLater
 import hoverset.ui
 
+from tkinterDnD.tk import _init_tkdnd
+
 __all__ = (
     "Application",
     "Button",
@@ -1435,6 +1437,7 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
                 pass
 
         super().__init__(*args, **kwargs)
+        _init_tkdnd(self)
         self.position_ref = Screen(self)
         self.bind_all("<MouseWheel>", self._on_mousewheel, '+')
         # linux bindings

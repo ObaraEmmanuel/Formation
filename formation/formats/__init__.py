@@ -16,6 +16,13 @@ def get_file_types():
     return [(f.name, " ".join([f".{ext}" for ext in f.extensions])) for f in FORMATS]
 
 
+def get_file_extensions():
+    extensions = []
+    for f in FORMATS:
+        extensions.extend(f.extensions)
+    return extensions
+
+
 def infer_format(path):
     import os
     _, extension = os.path.splitext(path)

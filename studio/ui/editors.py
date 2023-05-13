@@ -276,6 +276,10 @@ class Color(Editor):
 
 class TextMixin:
 
+    def dnd_init(self):
+        self._entry.register_drop_target('*')
+        self._entry.bind("<<Drop>>", lambda e: [self._entry.set(e.data), self._change()])
+
     def _change(self, *_):
         if self._on_change:
             self._on_change(self.get())
@@ -304,6 +308,7 @@ class Text(TextMixin, Editor):
         self._entry.configure(**self.style.no_highlight)
         self._entry.pack(fill="x")
         self._entry.on_entry(self._change)
+        self.dnd_init()
         self.set_def(style_def)
 
 
@@ -316,6 +321,7 @@ class Textarea(TextMixin, Editor):
         self._entry.configure(**self.style.no_highlight)
         self._entry.pack(fill="x")
         self._entry.on_change(self._change)
+        self.dnd_init()
         self.set_def(style_def)
 
     def get(self):
