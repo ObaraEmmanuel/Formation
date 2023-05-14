@@ -83,9 +83,9 @@ class StudioApplication(Application):
         self._clipboard = None
         self.current_preview = None
 
-        self._pane.add(self._left, minsize=320, width=320, stretch="never")
-        self._pane.add(self._center, minsize=400, stretch="always")
-        self._pane.add(self._right, minsize=320, width=320, stretch="never")
+        self._pane.add(self._left, minsize=320, width=320, sticky='nswe', stretch='never')
+        self._pane.add(self._center, minsize=400, stretch="always", sticky='nswe')
+        self._pane.add(self._right, minsize=320, width=320, sticky='nswe', stretch='never')
 
         self._left.restore_size()
         self._right.restore_size()
@@ -262,6 +262,9 @@ class StudioApplication(Application):
         self._startup()
         self._exit_failures = 0
         self._is_shutting_down = False
+
+        self._left.restore_size()
+        self._right.restore_size()
 
     def on_context_switch(self, _):
         selected = self.tab_view.selected
@@ -612,11 +615,10 @@ class StudioApplication(Application):
         self._save_position()
 
     def _adjust_pane(self, pane):
-        if len(pane.panes()) == 0:
-            self._pane.paneconfig(pane, minsize=0, width=0)
-            self._pane.paneconfig(self._center, width=16000)
+        if not pane.panes():
+            pane.hide()
         else:
-            self._pane.paneconfig(pane, minsize=320)
+            pane.show()
 
     def minimize(self, feature):
         feature.pane.forget(feature)

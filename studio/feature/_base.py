@@ -274,6 +274,7 @@ class BaseFeature(Pane):
         self.set_pref("mode", "window")
         self.studio._adjust_pane(self.pane)
         self.transient(self.master.window)
+        self.lift()
         self.save_window_pos()
         if self.focus_get() != self and self.get_pref("inactive_transparency"):
             self.window_handle.wm_attributes('-alpha', 0.3)
@@ -316,16 +317,21 @@ class FeaturePane(PanedWindow):
     def __init__(self, name, master=None, **cnf):
         super().__init__(master, **cnf)
         self.name = name
+        pref = Preferences.acquire()
+        pref.set_default(f"studio::panes::{self.name}::width", 320)
+        self.w = pref.get(f"studio::panes::{self.name}::width")
 
     def save_size(self):
-        if self.name:
+        if self.name and self.winfo_ismapped():
             Preferences.acquire().set(f"studio::panes::{self.name}::width", self.winfo_width())
+        else:
+            Preferences.acquire().set(f"studio::panes::{self.name}::width", self.w)
 
     def restore_size(self):
-        pref = Preferences.acquire()
-        if self.name:
-            pref.set_default(f"studio::panes::{self.name}::width", 320)
-            self.master.paneconfig(self, width=pref.get(f"studio::panes::{self.name}::width"))
+        if self.name and self.panes():
+            self.master.paneconfig(self, width=self.w)
+        else:
+            self.master.paneconfig(self, hide=1)
 
     def add(self, child: BaseFeature, **kw):
         kw["height"] = child.get_pref("pane::height") if kw.get("height") is None else kw.get("height")
@@ -343,11 +349,28 @@ class FeaturePane(PanedWindow):
         super().add(child, **kw)
         child.update_idletasks()
 
+        if len(self.panes()) == 1 and not self.winfo_ismapped():
+            self.show()
+
+    def hide(self):
+        if not self.winfo_ismapped():
+            return
+        self.w = self.winfo_width()
+        self.master.paneconfig(self, hide=1)
+
+    def show(self):
+        if self.winfo_ismapped():
+            return
+        self.master.paneconfig(self, hide=0, width=self.w)
+
     def remove(self, child: BaseFeature):
         super().remove(child)
         for i, pane in enumerate(self._panes()):
             pane.set_pref("pane::index", i)
         child.set_pref("pane::index", self.MAX_PANES)
+
+        if not self.panes():
+            self.hide()
 
     forget = remove
 
