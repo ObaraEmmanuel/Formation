@@ -217,6 +217,7 @@ class StudioApplication(Application):
                 ("cascade", "Tools", None, None, {"menu": (LoadLater(self.tool_manager.get_tools_as_menu), )}),
                 ("cascade", "Help", None, None, {"menu": (
                     ("command", "Help", icon('dialog_info', 14, 14), actions.get('STUDIO_HELP'), {}),
+                    ("command", "Report issue", blank_img, self.report_issue, {}),
                     ("command", "Check for updates", icon("cloud", 14, 14), self._check_updates, {}),
                     ("separator",),
                     ("command", "About Formation", icon("formation", 14, 14), lambda: about_window(self), {}),
@@ -822,6 +823,10 @@ class StudioApplication(Application):
     def get_help(self):
         # Entry point for studio help functionality
         webbrowser.open("https://formation-studio.readthedocs.io/en/latest/")
+
+    def report_issue(self):
+        # open issues on github
+        webbrowser.open("https://github.com/ObaraEmmanuel/Formation/issues")
 
     def settings(self):
         open_preferences(self)

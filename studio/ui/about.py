@@ -2,7 +2,7 @@ import platform
 import sys
 import tkinter
 
-from hoverset.ui.widgets import Frame, Label, Application
+from hoverset.ui.widgets import Frame, Label, Application, Hyperlink
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.data.images import load_tk_image
 from hoverset.data.utils import get_resource_path
@@ -33,6 +33,18 @@ class About(Frame):
         About.Spec(self, "studio version", version_description(studio.__version__))
         About.Spec(self, "Platform", platform.platform())
 
+        f = Frame(self, **self.style.surface)
+        f.pack(side="top", padx=10, pady=3)
+        Hyperlink(
+            f, link="https://formation-studio.readthedocs.io/en/latest/", text="doucumentation"
+        ).pack(side='left', anchor='e', padx=3)
+        Hyperlink(
+            f, link="https://github.com/ObaraEmmanuel/Formation", text="contribute"
+        ).pack(side='right', anchor='w', padx=3)
+        Hyperlink(
+            f, link="https://github.com/ObaraEmmanuel/Formation/issues", text="report issue"
+        ).pack(side='right', anchor='w', padx=3)
+
         Label(self, text="Make designing user interfaces in python a breeze!",
               **self.style.text).pack(side="top", fill="y", pady=5)
         copy_right = "Copyright © 2019-2023 Hoverset group"
@@ -44,7 +56,6 @@ def about_window(parent):
     dialog = MessageDialog(parent, About)
     dialog.title("Formation")
     dialog.focus_set()
-    import ttkbootstrap
     return dialog
 
 
