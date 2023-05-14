@@ -282,6 +282,8 @@
 
 .hyperlink{
     foreground: #228b22;
+    cursor: hand2;
+    background: #f0f0f0;
 }
 
 .textarea {

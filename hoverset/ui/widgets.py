@@ -3121,24 +3121,33 @@ class ProgressBar(Widget, tk.Canvas):
 
 
 class Hyperlink(Label):
-    def __init__(self, master=None, **kwargs):
-        self.setup(master)
+    def __init__(self, master=None, link='', **kwargs):
+        self._link = link
         super().__init__(master)
+        kwargs['text'] = kwargs.get('text', link)
         self.configure(**self.style.hyperlink, takefocus=True, **kwargs)
-        self.font_ = font.Font(self, self.cget('font'))
-        self.bind('<Enter>', lambda font_: self.font_.configure(underline=True))
-        self.bind('<FocusIn>', lambda font_: self.font_.configure(underline=True))
-        self.bind('<Leave>', lambda font_: self.font_.configure(underline=False))
-        self.bind('<FocusOut>', lambda font_: self.font_.configure(underline=False))
-        self.bind('<Return>', self._open_in_browser)
-        self.bind('<Button-1>', self._open_in_browser)
-        self.configure(font=self.font_)
+        self.bind('<Return>', lambda e: webbrowser.open(self._link))
+        self.bind('<Button-1>', lambda e: webbrowser.open(self._link))
 
-    # TODO   Add the link to the hyperlink (override configure method)
+    def cget(self, key: str):
+        if key == 'link':
+            return self._link
+        return super().cget(key)
 
-    def _open_in_browser(self, event):
-        if self['text']:
-            webbrowser.open(self['text'])
+    __getitem__ = cget
+
+    def configure(self, cnf=None, **kw):
+        cnf = cnf or {}
+        cnf.update(kw)
+        if cnf:
+            self._link = cnf.pop('link', self._link)
+            return super().configure(cnf)
+        else:
+            configs = super().config()
+            configs['link'] = ('link', 'link', 'link', '', self._link)
+            return configs
+
+    config = configure
 
 
 class TabView(Frame):
