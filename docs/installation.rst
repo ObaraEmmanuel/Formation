@@ -3,7 +3,7 @@
 Installation
 *************
 
-To use Formation studio, python 3.6 or higher is required. You can download and install python
+To use Formation studio, python 3.7 or higher is required. You can download and install python
 `here <https://www.python.org/downloads/>`_. 
 
 Formation studio can be installed using pip:

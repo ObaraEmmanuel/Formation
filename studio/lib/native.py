@@ -1,4 +1,3 @@
-from sys import version_info
 import tkinter as tk
 import tkinter.ttk as ttk
 
@@ -324,6 +323,21 @@ class Sizegrip(Container, ttk.Sizegrip):
         self.setup_widget()
 
 
+class Spinbox(PseudoWidget, ttk.Spinbox):
+    display_name = 'Spinbox'
+    group = Groups.input
+    icon = "play"
+    impl = ttk.Spinbox
+
+    DEF_OVERRIDES = _dimension_override
+
+    def __init__(self, master, id_):
+        super().__init__(master)
+        self.id = id_
+        self.setup_widget()
+        self.state(['disabled'])
+
+
 class Treeview(PseudoWidget, ttk.Treeview):
     display_name = 'Treeview'
     group = Groups.container
@@ -345,27 +359,5 @@ class Treeview(PseudoWidget, ttk.Treeview):
 
 widgets = (
     Button, Checkbutton, Combobox, Entry, Frame, HorizontalPanedWindow, Label, LabeledScale, Labelframe, Menubutton,
-    Notebook, Progressbar, Radiobutton, Scale, Scrollbar, Separator, Sizegrip, Treeview, VerticalPanedWindow
+    Notebook, Progressbar, Radiobutton, Scale, Scrollbar, Separator, Spinbox, Sizegrip, Treeview, VerticalPanedWindow
 )
-
-if (version_info.major, version_info.minor) > (3, 6):
-    # Spinbox is supported only in 3.7 or later
-    class Spinbox(PseudoWidget, ttk.Spinbox):
-        display_name = 'Spinbox'
-        group = Groups.input
-        icon = "play"
-        impl = ttk.Spinbox
-
-        DEF_OVERRIDES = _dimension_override
-
-        def __init__(self, master, id_):
-            super().__init__(master)
-            self.id = id_
-            self.setup_widget()
-            self.state(['disabled'])
-
-        def set_name(self, name):
-            self.config(text=name)
-
-
-    widgets += (Spinbox,)
