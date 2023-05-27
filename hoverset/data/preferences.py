@@ -1,10 +1,10 @@
-import appdirs
 import atexit
 import os
 import shelve
 import pickle
 import glob
 import logging
+import platformdirs
 import tkinter as tk
 import typing
 from pathlib import Path
@@ -56,7 +56,7 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
 
     def __init__(self, app, author, file, defaults):
         self._file = file
-        self._app_dir = appdirs.AppDirs(app, author)
+        self._app_dir = platformdirs.AppDirs(app, author)
         self._listeners = defaultdict(list)
         files = self._get_files()
 

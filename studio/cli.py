@@ -1,9 +1,9 @@
 import argparse
 import sys
-import appdirs
 import logging
 import shutil
 import os
+import platformdirs
 
 from hoverset.util.execution import elevate
 from hoverset.platform import platform_is, WINDOWS
@@ -11,7 +11,7 @@ from hoverset.platform import platform_is, WINDOWS
 import studio
 from studio.preferences import Preferences
 
-dirs = appdirs.AppDirs(appname="formation", appauthor="hoverset")
+dirs = platformdirs.AppDirs(appname="formation", appauthor="hoverset")
 logger = logging.getLogger('formation-cli')
 handler = logging.StreamHandler()
 formatter = logging.Formatter("%(levelname)s >> %(message)s")

@@ -1,4 +1,3 @@
-import appdirs
 import os
 import shelve
 
@@ -62,10 +61,10 @@ class ResourceLoader(Application):
     def _cache_exists(cls, path):
         if os.path.exists(path):
             return True
-        # for windows we may need the extension
+        # for windows, we may need the extension
         if os.path.exists(path + ".dat"):
             return True
-            # for mac we need ".db" extension
+            # for mac, we need ".db" extension
         return os.path.exists(path + ".db")
 
     @classmethod

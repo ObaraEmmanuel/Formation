@@ -178,10 +178,11 @@ class Debugger(Window):
         if path is None:
             if len(sys.argv) > 1:
                 path = sys.argv[1]
-                # remove ourself from sys args
+                # remove ourselves from sys args
                 # just incase the program reads sys args
                 sys.argv.pop(0)
             else:
+                logger.error("No python file supplied")
                 return
         ResourceLoader.load(Preferences.acquire())
         cls._hook()
@@ -190,5 +191,9 @@ class Debugger(Window):
         exec(code, {'__name__': '__main__'})
 
 
-if __name__ == '__main__':
+def main():
     Debugger.run()
+
+
+if __name__ == '__main__':
+    main()

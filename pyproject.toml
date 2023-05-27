@@ -1,0 +1,65 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "formation-studio"
+description = "Simplify GUI development in python"
+readme = "README.md"
+authors = [
+    {name = "Emmanuel Obara", email = "emmanuelobarany@gmail.com"},
+]
+requires-python = ">=3.6"
+keywords = ["formation", "gui", "graphical-user-interface", "drag drop", "tkinter", "hoverset", "python"]
+license = {text = "MIT"}
+dynamic = ["version"]
+dependencies = [
+    "pyscreenshot; sys_platform != 'win32' and sys_platform != 'darwin'",
+    "Pillow",
+    "platformdirs",
+    "python-tkdnd >= 0.2.1",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+    "Topic :: Software Development :: User Interfaces",
+    "Operating System :: OS Independent"
+]
+
+[project.urls]
+Documentation = "https://formation-studio.readthedocs.io/en/latest/"
+Issues = "https://github.com/ObaraEmmanuel/Formation/issues"
+Source = "https://github.com/ObaraEmmanuel/Formation"
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = ["*.tests*", "venv"]
+namespaces = false
+
+[tool.setuptools.package-data]
+"hoverset.data" = ["image.*"]
+"hoverset.ui" = ["themes/*", "*.tcl"]
+studio = ["resources/*/*"]
+
+[project.scripts]
+formation-studio = "studio.launcher:main"
+formation-cli = "studio.cli:main"
+formation-dbg = "studio.debugtools.debugger:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "formation.__version__"}
+
+[project.optional-dependencies]
+lxml = ["lxml"]
+docs = ["Sphinx==4.0.3", "sphinx-rtd-theme==1.0.0"]
