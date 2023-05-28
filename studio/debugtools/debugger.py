@@ -5,7 +5,10 @@
 import sys
 import tkinter
 import logging
+import subprocess
 
+from hoverset.data.images import load_tk_image
+from hoverset.data.utils import get_resource_path
 from hoverset.ui.widgets import *
 
 from studio.ui.highlight import WidgetHighlighter
@@ -14,6 +17,7 @@ from studio.debugtools.element_pane import ElementPane
 from studio.debugtools.style_pane import StylePane
 
 from studio.resource_loader import ResourceLoader
+import studio
 
 logger = logging.getLogger("Debugger")
 
@@ -48,6 +52,8 @@ class Debugger(Window):
         self.set_up_mousewheel()
         self.wm_transient(master)
         self.wm_title("Formation Debugger")
+        icon_image = load_tk_image(get_resource_path(studio, "resources/images/formation_icon.png"))
+        self.wm_iconphoto(False, icon_image)
 
         self.tabs = TabView(self)
         self.tabs.pack(fill="both", expand=True)
@@ -189,6 +195,10 @@ class Debugger(Window):
         with open(path) as file:
             code = compile(file.read(), path, 'exec')
         exec(code, {'__name__': '__main__'})
+
+    @classmethod
+    def run_process(cls, path) -> subprocess.Popen:
+        return subprocess.Popen(["formation-dbg", path])
 
 
 def main():
