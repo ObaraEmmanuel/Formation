@@ -250,18 +250,19 @@ class Builder:
         # stores command names for deferred connection to methods
         self._command_map = []
         self._root = None
-        self._path = None
+        path = kwargs.get("path")
+        self._path = path if path is None else os.path.abspath(path)
         self._meta = {}
 
-        if kwargs.get("path"):
-            self.load_path(kwargs.get("path"))
+        if kwargs.get("node"):
+            self.load_node(kwargs.get("node"))
         elif kwargs.get("string"):
             format_ = kwargs.get("format")
             if format_ is None:
                 raise ValueError("format not provided, cannot infer format from string")
             self.load_string(kwargs.get("string"), format_)
-        elif kwargs.get("node") is not None:
-            self.load_node(kwargs.get("node"))
+        elif self._path:
+            self.load_path(self._path)
 
         Meth.call_deferred(self)
 
@@ -422,7 +423,6 @@ class Builder:
         :param path: Path to design file to be loaded
         :return: root widget
         """
-        self._path = os.path.abspath(path)
         tree = infer_format(path)(path=path)
         tree.load()
         self._root = self._load_node(tree.root)

@@ -765,12 +765,12 @@ class StudioApplication(Application):
             return
         # close previous preview if any
         self.close_preview()
-        self.current_preview = AppBuilder(node=self.designer.to_tree())._app
+        self.current_preview = AppBuilder(node=self.designer.to_tree(), path=self.designer.design_path)
 
     def close_preview(self):
         if self.current_preview:
             try:
-                self.current_preview.destroy()
+                self.current_preview._app.destroy()
             except tkinter.TclError:
                 pass
             self.current_preview = None
@@ -838,6 +838,18 @@ class StudioApplication(Application):
             message="We are working hard to bring this feature to you. Hang in there.",
             icon="clock"
         )
+
+    def _open_debugtools(self):
+        from studio.debugtools.debugger import Debugger
+
+        # close previous process if any
+        proc = getattr(self, "_dbg_process", None)
+        if proc:
+            proc.terminate()
+
+        path = filedialog.askopenfilename(parent=self, filetypes=(("python", ".py .pyw .pyc"), ))
+        if path:
+            self._dbg_process = Debugger.run_process(path)
 
     def _check_updates(self):
         Updater.check(self)

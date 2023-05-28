@@ -810,6 +810,7 @@ class DesignContext(BaseContext):
     def save(self, new_path=None):
         path = self.designer.save(new_path)
         if path:
+            self.path = path
             self.name = self.name_from_path(path)
             self.tab_handle.config_tab(text=self.name, **self.style.text)
 
