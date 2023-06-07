@@ -195,6 +195,10 @@ templates = {
                 "path": "designer::xml::pretty_print",
                 "element": Check,
             },
+            {
+                "element": Note,
+                "desc": "(Requires lxml)"
+            }
         ),
         "JSON options": (
             {
