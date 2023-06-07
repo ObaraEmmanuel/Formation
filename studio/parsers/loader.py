@@ -389,10 +389,11 @@ class DesignBuilder:
         pref = Preferences.acquire()
         pref_path = f"designer::{file_loader.name.lower()}"
         pref.set_default(pref_path, {})
+        # generate an upto-date tree first
+        self.generate()
+        content = file_loader(node=self.root).generate(**pref.get(pref_path))
         with open(path, 'w') as dump:
-            # generate an upto-date tree first
-            self.generate()
-            dump.write(file_loader(node=self.root).generate(**pref.get(pref_path)))
+            dump.write(content)
 
     def __eq__(self, other):
         if isinstance(other, DesignBuilder):
