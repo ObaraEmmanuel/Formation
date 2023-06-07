@@ -8,10 +8,12 @@ from collections import defaultdict
 try:
     from lxml import etree
     element_class = etree._Element
+    _using_lxml = True
 except ModuleNotFoundError:
     # use default xml library; features may be limited
     import xml.etree.ElementTree as etree
     element_class = etree.Element
+    _using_lxml = False
 
 from formation.formats._base import BaseFormat, Node
 
@@ -87,11 +89,16 @@ class XMLFormat(BaseFormat):
 
     def generate(self, **kw):
         x_node = self._generate_node(None, self.root)
-        etree.cleanup_namespaces(x_node, top_nsmap=namespaces)
+        if _using_lxml:
+            etree.cleanup_namespaces(x_node, top_nsmap=namespaces)
+            return etree.tostring(
+                x_node, pretty_print=kw.get("pretty_print", True),
+                encoding="utf-8", xml_declaration=kw.get("xml_declaration", True)
+            ).decode('utf-8')
+
         return etree.tostring(
-            x_node, pretty_print=kw.get("pretty_print", True),
-            encoding="utf-8", xml_declaration=kw.get("xml_declaration", True)
-        ).decode('utf-8')
+            x_node, encoding="utf-8", xml_declaration=kw.get("xml_declaration", True)
+        ).decode("utf-8")
 
 
 if __name__ == "__main__":
