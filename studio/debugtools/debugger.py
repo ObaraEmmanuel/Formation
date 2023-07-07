@@ -2,6 +2,8 @@
 # Copyright (C) 2022 Hoverset Group.                                      #
 # ======================================================================= #
 
+_global_freeze = dict(globals())
+
 import sys
 import tkinter
 import logging
@@ -197,7 +199,10 @@ class Debugger(Window):
         cls._hook()
         with open(path) as file:
             code = compile(file.read(), path, 'exec')
-        exec(code, {'__name__': '__main__'})
+
+        # Ensure hooked application thinks it is running as __main__
+        _global_freeze.update({"__name__": "__main__", "__file__": path})
+        exec(code, _global_freeze)
 
     @classmethod
     def run_process(cls, path) -> subprocess.Popen:
