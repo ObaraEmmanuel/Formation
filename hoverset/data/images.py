@@ -88,7 +88,7 @@ def get_image(identifier: str, width=25, height=25, **kwargs):
     # Resize the image to required size
     if color:
         image = _recolor(image, color)
-    image.thumbnail((width, height), Image.ANTIALIAS)
+    image.thumbnail((width, height), Image.LANCZOS)
     return image
 
 
