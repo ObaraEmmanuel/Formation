@@ -8,7 +8,7 @@ import sys
 import time
 import tkinter
 import webbrowser
-from tkinter import filedialog, Toplevel
+from tkinter import filedialog
 
 import tkinterDnD
 

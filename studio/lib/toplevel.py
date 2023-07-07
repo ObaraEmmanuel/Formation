@@ -159,7 +159,6 @@ def _menu_hook(menu, callback):
 
 
 class _Toplevel(tk.Frame):
-    impl = tk.Toplevel
     _images = None
 
     def __init__(self, master, id_):
@@ -452,6 +451,7 @@ class Toplevel(ToplevelContainer, _Toplevel):
     is_toplevel = True
     display_name = 'Toplevel'
     impl = tk.Toplevel
+    initial_dimensions = 200, 230
 
 
 class Tk(ToplevelContainer, _Toplevel):
@@ -460,3 +460,4 @@ class Tk(ToplevelContainer, _Toplevel):
     is_toplevel = True
     display_name = 'Tk'
     impl = tk.Tk
+    initial_dimensions = 200, 230

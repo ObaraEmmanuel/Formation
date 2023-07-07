@@ -217,7 +217,7 @@ class Designer(DesignPad, Container):
         width = max(self.width - self._padding * 2, 300)
         height = max(self.height - self._padding * 2, 300)
         self.add(
-            legacy.Toplevel, self._padding, self._padding,
+            legacy.Tk, self._padding, self._padding,
             width=width, height=height
         )
         self.builder.generate()
@@ -468,14 +468,13 @@ class Designer(DesignPad, Container):
         silent = kwargs.get("silently", False)
         name = self._get_unique(obj_class)
         obj = obj_class(self, name)
-        if hasattr(obj, 'initial_dimensions'):
-            width, height = obj.initial_dimensions
-        else:
-            width = kwargs.get(
-                "width",
-                self._base_font.measure(name) + self.WIDGET_INIT_PADDING
-            )
-            height = kwargs.get("height", self.WIDGET_INIT_HEIGHT)
+        width, height = getattr(obj, "initial_dimensions", (
+            self._base_font.measure(name) + self.WIDGET_INIT_PADDING,
+            self.WIDGET_INIT_HEIGHT
+        ))
+        width = kwargs.get("width", width)
+        height = kwargs.get("height", height)
+
         obj.layout = kwargs.get("intended_layout", None)
         self._attach(obj)  # apply extra bindings required
         # If the object has a layout which actually the layout at the point of creation prepare and pass it
