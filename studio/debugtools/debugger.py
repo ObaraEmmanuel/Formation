@@ -19,6 +19,8 @@ from studio.debugtools.style_pane import StylePane
 from studio.resource_loader import ResourceLoader
 import studio
 
+from tkinterDnD.tk import _init_tkdnd
+
 logger = logging.getLogger("Debugger")
 
 
@@ -44,6 +46,7 @@ class Debugger(Window):
         self.pref = Preferences.acquire()
         Application.load_styles(self, self.pref.get("resource::theme"))
         super(Window, self).__init__(master)
+        _init_tkdnd(self)
         self.geometry(self.pref.get("debugger::geometry"))
         self.set_up_mousewheel()
         Debugger._instance = self
