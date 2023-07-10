@@ -1,6 +1,8 @@
 import tkinter as tk
+from collections import defaultdict
 
 from hoverset.platform import platform_is, WINDOWS, LINUX
+from hoverset.ui.widgets import EventMask
 from studio.ui import geometry
 from studio.ui.widgets import DesignPad
 
@@ -16,10 +18,152 @@ def resize_cursor() -> tuple:
     if platform_is(LINUX):
         return "bottom_right_corner", "bottom_left_corner"
     # Use circles for other platforms
-    return ("circle",)*2
+    return ("circle",) * 2
 
 
-class HighLight:
+class Dot(tk.Frame):
+    _corner_cursors = resize_cursor()
+    _cursor_map = dict(
+        n="sb_v_double_arrow",
+        s="sb_v_double_arrow",
+        e="sb_h_double_arrow",
+        w="sb_h_double_arrow",
+        c="fleur",
+        nw=_corner_cursors[0],
+        ne=_corner_cursors[1],
+        sw=_corner_cursors[1],
+        se=_corner_cursors[0],
+        all="fleur"
+    )
+
+    def __init__(self, handle, direction):
+        super().__init__(handle.master)
+        self.direction = direction
+        color = handle.master.style.colors["accent"]
+        self.config(width=6, height=6, bg=color, cursor=self._cursor_map[direction])
+        self.handle = handle
+        self.bind("<ButtonPress>", self.on_press)
+        self.bind("<ButtonRelease>", self.on_release)
+        self.bind("<Motion>", self.on_move)
+        self.fix = (0, 0)
+
+    def on_move(self, event):
+        if not event.state & EventMask.MOUSE_BUTTON_1:
+            return
+        x, y = self.fix
+        self.fix = (event.x_root, event.y_root)
+        self.handle.on_dot_move(self.direction, (event.x_root - x, event.y_root - y))
+
+    def on_press(self, event):
+        self.fix = (event.x_root, event.y_root)
+        self.handle.set_direction(self.direction)
+
+    def on_release(self, _):
+        self.handle.set_direction(None)
+
+
+class Handle:
+
+    _pool = defaultdict(list)
+
+    def __init__(self, widget, master=None):
+        self.widget = widget
+        self.master = widget if master is None else master
+        self.active_direction = None
+        self.dots = []
+        self._hover = False
+        self._showing = False
+
+    def set_direction(self, direction):
+        if direction is None:
+            self.widget.handle_inactive(self.active_direction)
+            self.active_direction = None
+            return
+        self.active_direction = direction
+        self.widget.handle_active(direction)
+
+    def on_dot_move(self, direction, delta):
+        self.widget.handle_resize(direction, delta)
+
+    def redraw(self):
+        raise NotImplementedError
+
+    def show(self):
+        if self._showing:
+            return
+        self._showing = True
+        self.redraw()
+
+    def hide(self):
+        if not self._showing:
+            return
+        for dot in self.dots:
+            dot.place_forget()
+        self._showing = False
+        if not self._hover:
+            self.release()
+
+    def hover(self):
+        if self._hover:
+            return
+        self._hover = True
+        self.redraw()
+
+    def unhover(self):
+        if not self._hover:
+            return
+        self._hover = False
+        self.redraw()
+        if not self._showing:
+            self.release()
+
+    def release(self):
+        Handle._pool[(self.__class__, self.master)].append(self)
+
+    @classmethod
+    def acquire(cls, widget, master=None):
+        master = widget if master is None else master
+        if not cls._pool[(cls, master)]:
+            obj = cls(widget, master)
+        else:
+            obj = cls._pool[(cls, master)].pop()
+            obj.widget = widget
+        return obj
+
+
+class BoxHandle(Handle):
+
+    def __init__(self, widget, master=None):
+        super().__init__(widget, master)
+        self.directions = ["n", "s", "e", "w", "nw", "ne", "sw", "se", "all"]
+        self.dots = [Dot(self, direction) for direction in self.directions]
+
+    def redraw(self):
+        n, s, e, w, nw, ne, sw, se, c = self.dots
+        radius = 2
+        # border-mode has to be outside so the highlight covers the entire widget
+        extra = dict(in_=self.widget, bordermode="outside")
+        nw.place(**extra, x=-radius, y=-radius)
+        ne.place(**extra, relx=1, x=-radius, y=-radius)
+        sw.place(**extra, x=-radius, rely=1, y=-radius)
+        se.place(**extra, relx=1, x=-radius, rely=1, y=-radius)
+        n.place(**extra, relx=0.5, x=-radius, y=-radius)
+        s.place(**extra, relx=0.5, x=-radius, rely=1, y=-radius)
+        e.place(**extra, relx=1, x=-radius, rely=0.5, y=-radius)
+        w.place(**extra, x=-radius, rely=0.5, y=-radius)
+        c.place(**extra, relx=0.5, rely=0.5, x=-radius, y=-radius)
+
+
+class LinearHandle(Handle):
+
+    def __init__(self, widget, master=None):
+        super().__init__(widget, master)
+
+    def redraw(self):
+        pass
+
+
+class _HighLight:
     """
     This class is responsible for the Highlight on selected objects on the designer. It allows resizing, moving and
     access to the currently selected widget. It also provides a way to attach listeners for any changes to the
@@ -48,10 +192,10 @@ class HighLight:
 
         h_background = self.designer.style.colors["accent"]
         h_force_visible = dict(relief="groove", bd=1)
-        self.l = tk.Frame(parent, bg=h_background, width=self.OUTLINE, cursor="fleur", **h_force_visible)
-        self.r = tk.Frame(parent, bg=h_background, width=self.OUTLINE, cursor="fleur", **h_force_visible)
-        self.t = tk.Frame(parent, bg=h_background, height=self.OUTLINE, cursor="fleur", **h_force_visible)
-        self.b = tk.Frame(parent, bg=h_background, height=self.OUTLINE, cursor="fleur", **h_force_visible)
+        # self.l = tk.Frame(parent, bg=h_background, width=self.OUTLINE, cursor="fleur", **h_force_visible)
+        # self.r = tk.Frame(parent, bg=h_background, width=self.OUTLINE, cursor="fleur", **h_force_visible)
+        # self.t = tk.Frame(parent, bg=h_background, height=self.OUTLINE, cursor="fleur", **h_force_visible)
+        # self.b = tk.Frame(parent, bg=h_background, height=self.OUTLINE, cursor="fleur", **h_force_visible)
 
         _cursors = resize_cursor()
         self.nw = tk.Frame(parent, bg=h_background, width=self.SIZER_LENGTH, height=self.SIZER_LENGTH,
@@ -85,7 +229,7 @@ class HighLight:
         self.w.bind("<ButtonPress>", lambda e: self.set_function(self.w_resize, e))
 
         self._elements = [
-            self.l, self.r, self.t, self.b, self.nw, self.ne, self.sw, self.se, self.n, self.s, self.e, self.w
+            self.nw, self.ne, self.sw, self.se, self.n, self.s, self.e, self.w
         ]
 
         # ============================================== bindings =====================================================
@@ -208,10 +352,10 @@ class HighLight:
         # border-mode has to be outside so the highlight covers the entire widget
         extra = dict(in_=widget, bordermode="outside")
 
-        self.l.place(**extra, relheight=1)
-        self.r.place(**extra, relx=1, relheight=1)
-        self.t.place(**extra, relwidth=1)
-        self.b.place(**extra, rely=1, relwidth=1)
+        # self.l.place(**extra, relheight=1)
+        # self.r.place(**extra, relx=1, relheight=1)
+        # self.t.place(**extra, relwidth=1)
+        # self.b.place(**extra, rely=1, relwidth=1)
 
         self.nw.place(**extra, x=-radius, y=-radius)
         self.ne.place(**extra, relx=1, x=-radius, y=-radius)

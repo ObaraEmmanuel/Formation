@@ -77,8 +77,8 @@ class ComponentTree(BaseFeature):
         self.body = Frame(self, **self.style.surface)
         self.body.pack(side="top", fill="both", expand=True)
         self._empty_label = Label(self.body, **self.style.text_passive)
+        self.studio.bind("<<SelectionChanged>>", self._select, "+")
 
-        self._selected = None
         self._expanded = False
         self._tree = None
 
@@ -92,6 +92,7 @@ class ComponentTree(BaseFeature):
                 self._tree = self.studio.designer.node
             else:
                 self._tree = ComponentTreeView(self.body)
+                self._tree.allow_multi_select(True)
                 self._tree.on_select(self._trigger_select)
                 self.studio.designer.node = self._tree
             self._tree.pack(fill="both", expand=True)
@@ -142,38 +143,52 @@ class ComponentTree(BaseFeature):
         )
 
     def _trigger_select(self):
-        if self._selected and self._selected.widget == self._tree.get().widget:
+        if self.studio.selection == self.selection():
             return
-        self.studio.select(self._tree.get().widget, self)
-        self._selected = self._tree.get()
 
-    def select(self, widget):
-        if widget:
+        self.studio.selection.set(self.selection())
+
+    def _select(self, _):
+        if self.studio.selection == self.selection():
+            return
+
+        if not self._tree:
+            return
+        nodes = self.studio_selection()
+
+        for node in list(self._tree.get()):
+            if node not in nodes:
+                self._tree.deselect(node)
+
+        for node in nodes:
+            if not node.selected:
+                node.select(silently=True)
+
+    def selection(self):
+        if not self._tree:
+            return []
+        return [i.widget for i in self._tree.get()]
+
+    def studio_selection(self):
+        return [i.node for i in self.studio.selection]
+
+    def on_widget_delete(self, widgets, silently=False):
+        for widget in widgets:
+            widget.node.remove()
+
+    def on_widget_restore(self, widgets):
+        for widget in widgets:
+            widget.layout.node.add(widget.node)
+
+    def on_widget_layout_change(self, widgets):
+        for widget in widgets:
             node = widget.node
-            self._selected = node
-            node.select(None, True)  # Select node silently to avoid triggering a duplicate selection event
-        elif widget is None:
-            if self._selected:
-                self._selected.deselect()
-                self._selected = None
-
-    def on_select(self, widget):
-        self.select(widget)
-
-    def on_widget_delete(self, widget, silently=False):
-        widget.node.remove()
-
-    def on_widget_restore(self, widget):
-        widget.layout.node.add(widget.node)
-
-    def on_widget_layout_change(self, widget):
-        node = widget.node
-        if widget.layout == self.studio.designer:
-            parent = self._tree
-        else:
-            parent = widget.layout.node
-        if node.parent_node != parent:
-            parent.insert(None, node)
+            if widget.layout == self.studio.designer:
+                parent = self._tree
+            else:
+                parent = widget.layout.node
+            if node.parent_node != parent:
+                parent.insert(None, node)
 
     def on_context_close(self, context):
         if hasattr(context, "designer"):

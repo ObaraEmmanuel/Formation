@@ -12,7 +12,7 @@ from hoverset.util.execution import import_path
 from studio.lib import layouts
 from studio.lib.variables import VariableManager
 from studio.lib.properties import get_properties
-from studio.ui.highlight import WidgetHighlighter
+from studio.ui.highlight import BoxHandle
 from studio.ui.tree import MalleableTree
 
 
@@ -112,9 +112,11 @@ class PseudoWidget:
     }
 
     def setup_widget(self):
+        self.designer = self.master
         self.level = 0
         self.layout = None
         self.recent_layout_info = None
+        self.last_stable_bounds = None
         self._properties = get_properties(self)
         self.set_name(self.id)
         self.node = None
@@ -123,8 +125,66 @@ class PseudoWidget:
         self.max_size = None
         self.min_size = None
         MenuUtils.bind_context(self, self.__handle_context_menu, add='+')
+        self._handle = None
+
+        self._on_handle_active = getattr(self, "_on_handle_active", None)
+        self._on_handle_inactive = getattr(self, "_on_handle_inactive", None)
+        self._on_handle_resize = getattr(self, "_on_handle_resize", None)
+        self._on_handle_move = getattr(self, "_on_handle_move", None)
 
     def set_name(self, name):
+        pass
+
+    def get_bounds(self):
+        self.update_idletasks()
+        x1 = self.winfo_x()
+        y1 = self.winfo_y()
+        x2 = self.winfo_width() + x1
+        y2 = self.winfo_height() + y1
+        return x1, y1, x2, y2
+
+    def show_highlight(self, *_):
+        if not self._handle:
+            self._handle = BoxHandle.acquire(self, self.master)
+        self._handle.show()
+
+    def clear_highlight(self):
+        if not self._handle:
+            return
+        self._handle.hide()
+        self._handle = None
+
+    def show_hover(self, *_):
+        pass
+
+    def clear_hover(self):
+        pass
+
+    def on_handle_active(self, callback):
+        self._on_handle_active = callback
+
+    def on_handle_inactive(self, callback):
+        self._on_handle_inactive = callback
+
+    def on_handle_resize(self, callback):
+        self._on_handle_resize = callback
+
+    def on_handle_move(self, callback):
+        self._on_handle_move = callback
+
+    def handle_active(self, direction):
+        if self._on_handle_active:
+            self._on_handle_active(self, direction)
+
+    def handle_inactive(self, direction):
+        if self._on_handle_inactive:
+            self._on_handle_inactive(self, direction)
+
+    def handle_resize(self, direction, delta):
+        if self._on_handle_resize:
+            self._on_handle_resize(self, direction, delta)
+
+    def handle_move(self):
         pass
 
     def get_image_path(self):
@@ -245,6 +305,9 @@ class PseudoWidget:
     def handle_method(self, name, *args, **kwargs):
         pass
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}<{self.id}>"
+
 
 class Container(PseudoWidget):
     LAYOUTS = layouts.layouts
@@ -256,7 +319,6 @@ class Container(PseudoWidget):
         self._level = 0
         self._children = []
         self.temporal_children = []
-        self._highlighter = WidgetHighlighter(self.master)
         if len(self.LAYOUTS) == 0:
             raise ValueError("No layouts have been defined")
         self.layout_strategy = layouts.PlaceLayoutStrategy(self)
@@ -266,14 +328,6 @@ class Container(PseudoWidget):
 
     def _get_designer(self):
         return self.master
-
-    def show_highlight(self, *_):
-        self._highlighter.highlight(self)
-
-    def clear_highlight(self):
-        self._highlighter.clear()
-        self._temporal_children = []
-        self.layout_strategy.clear_indicators()
 
     def lift(self, above_this):
         super().lift(above_this)
@@ -286,6 +340,19 @@ class Container(PseudoWidget):
         self.designer.set_active_container(self)
         self.react_to_pos(x, y)
         self.show_highlight()
+
+    def clear_highlight(self):
+        super().clear_highlight()
+        self._temporal_children = []
+        self.layout_strategy.clear_indicators()
+
+    @property
+    def allow_resize(self):
+        return self.layout_strategy.allow_resize
+
+    @property
+    def realtime_support(self):
+        return self.layout_strategy.realtime_support
 
     @property
     def level(self):
@@ -406,8 +473,11 @@ class Container(PseudoWidget):
     def move_widget(self, widget, bounds):
         self.layout_strategy.move_widget(widget, bounds)
 
-    def resize_widget(self, widget, bounds):
-        self.layout_strategy.resize_widget(widget, bounds)
+    def end_move(self):
+        self.layout_strategy.end_move()
+
+    def resize_widget(self, widget, direction, delta):
+        self.layout_strategy.resize_widget(widget, direction, delta)
 
     def get_restore(self, widget):
         return self.layout_strategy.get_restore(widget)

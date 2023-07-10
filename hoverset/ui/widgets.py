@@ -2559,6 +2559,10 @@ class Tree(abc.ABC):
             cls.__icons_loaded = True
 
         @property
+        def selected(self):
+            return self._selected
+
+        @property
         def depth(self):
             return self._depth
 
@@ -2718,8 +2722,7 @@ class Tree(abc.ABC):
                     self._set_expander(self.BLANK)
 
         def expand(self):
-            if len(self.nodes) == 0:
-                # There is nothing to expand
+            if self._expanded:
                 return
             self.pack_propagate(True)
             for node in filter(lambda n: n._visible, self.nodes):
@@ -2728,8 +2731,7 @@ class Tree(abc.ABC):
             self._expanded = True
 
         def collapse(self):
-            if len(self.nodes) == 0:
-                # There is nothing to collapse
+            if not self._expanded:
                 return
             for node in self.nodes:
                 node.pack_forget()

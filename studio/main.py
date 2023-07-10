@@ -12,34 +12,34 @@ from tkinter import filedialog
 
 import tkinterDnD
 
-from studio.feature.design import DesignContext, MultiSaveDialog
-from studio.feature import FEATURES, StylePane
-from studio.feature._base import BaseFeature, FeaturePane
-from studio.tools import ToolManager
-from studio.ui.widgets import SideBar
-from studio.ui.about import about_window
-from studio.preferences import Preferences, open_preferences
-from studio.resource_loader import ResourceLoader
-from studio.updates import Updater
-from studio.context import BaseContext
 import studio
-
+from formation import AppBuilder
+from formation.formats import get_file_types, get_file_extensions
+from hoverset.data import actions
+from hoverset.data.images import load_tk_image
+from hoverset.data.keymap import ShortcutManager, CharKey, KeyMap, BlankKey
+from hoverset.data.utils import get_resource_path
+from hoverset.platform import platform_is, MAC
+from hoverset.ui.dialogs import MessageDialog
+from hoverset.ui.icons import get_icon_image
+from hoverset.ui.menu import MenuUtils, EnableIf, dynamic_menu, LoadLater
 from hoverset.ui.widgets import (
     Application, Frame, PanedWindow, Button,
     ActionNotifier, TabView, Label
 )
-from hoverset.ui.icons import get_icon_image
-from hoverset.data.images import load_tk_image
 from hoverset.util.execution import Action
-from hoverset.data.utils import get_resource_path
-from hoverset.ui.dialogs import MessageDialog
-from hoverset.ui.menu import MenuUtils, EnableIf, dynamic_menu, LoadLater
-from hoverset.data import actions
-from hoverset.data.keymap import ShortcutManager, CharKey, KeyMap, BlankKey
-from hoverset.platform import platform_is, MAC
-
-from formation import AppBuilder
-from formation.formats import get_file_types, get_file_extensions
+from studio.context import BaseContext
+from studio.feature import FEATURES, StylePane
+from studio.feature._base import BaseFeature, FeaturePane
+from studio.feature.design import DesignContext, MultiSaveDialog
+from studio.preferences import Preferences, open_preferences
+from studio.resource_loader import ResourceLoader
+from studio.selection import Selection
+from studio.tools import ToolManager
+from studio.ui import geometry
+from studio.ui.about import about_window
+from studio.ui.widgets import SideBar
+from studio.updates import Updater
 
 pref = Preferences.acquire()
 
@@ -99,10 +99,10 @@ class StudioApplication(Application):
         icon = get_icon_image
 
         self.actions = (
-            ("Delete", icon("delete", 20, 20), lambda e: self.delete(), "Delete selected widget"),
+            ("Delete", icon("delete", 20, 20), lambda e: self.delete(), "Delete selected widgets"),
             ("Undo", icon("undo", 20, 20), lambda e: self.undo(), "Undo action"),
             ("Redo", icon("redo", 20, 20), lambda e: self.redo(), "Redo action"),
-            ("Cut", icon("cut", 20, 20), lambda e: self.cut(), "Cut selected widget"),
+            ("Cut", icon("cut", 20, 20), lambda e: self.cut(), "Cut selected widgets"),
             ("separator",),
             ("Fullscreen", icon("image_editor", 20, 20), lambda e: self.close_all(), "Design mode"),
             ("Separate", icon("separate", 20, 20), lambda e: self.features_as_windows(),
@@ -116,7 +116,7 @@ class StudioApplication(Application):
         )
 
         self.init_toolbar()
-        self.selected = None
+        self._selection = Selection(self)
         # set the image option to blank if there is no image for the menu option
         self.blank_img = blank_img = icon("blank", 14, 14)
 
@@ -124,12 +124,12 @@ class StudioApplication(Application):
 
         # -------------------------------------------- menu definition ------------------------------------------------
         self.menu_template = (EnableIf(
-            lambda: self.selected,
+            lambda: bool(self.selection),
             ("separator",),
             ("command", "copy", icon("copy", 14, 14), actions.get('STUDIO_COPY'), {}),
             ("command", "duplicate", icon("copy", 14, 14), actions.get('STUDIO_DUPLICATE'), {}),
             EnableIf(
-                lambda: self._clipboard is not None,
+                lambda: self._clipboard is not None and len(self.selection) < 2,
                 ("command", "paste", icon("clipboard", 14, 14), actions.get('STUDIO_PASTE'), {})
             ),
             ("command", "cut", icon("cut", 14, 14), actions.get('STUDIO_CUT'), {}),
@@ -257,7 +257,7 @@ class StudioApplication(Application):
         self.style_pane = self.get_feature(StylePane)
 
         # initialize tools with everything ready
-        self.tool_manager.initialize()
+        # self.tool_manager.initialize()
 
         self._ignore_tab_status = False
         self._startup()
@@ -266,6 +266,10 @@ class StudioApplication(Application):
 
         self._left.restore_size()
         self._right.restore_size()
+
+    @property
+    def selection(self):
+        return self._selection
 
     def on_context_switch(self, _):
         selected = self.tab_view.selected
@@ -287,9 +291,9 @@ class StudioApplication(Application):
 
         # switch selection to that of the new context
         if self.designer:
-            self.select(self.designer.current_obj, self.designer)
+            self.selection.set(self.designer.selected)
         else:
-            self.select(None)
+            self.selection.clear()
         self.save_tab_status()
 
     def on_context_close(self, context):
@@ -365,7 +369,7 @@ class StudioApplication(Application):
             if self.wm_attributes("-zoomed"):
                 return 'zoomed'
             return 'normal'
-        except:
+        except tkinter.TclError:
             # works for windows and mac os
             return self.state()
 
@@ -373,7 +377,7 @@ class StudioApplication(Application):
         try:
             # works in windows and mac os
             self.state(state)
-        except:
+        except tkinter.TclError:
             self.wm_attributes('-zoomed', state == 'zoomed')
 
     def _save_position(self):
@@ -416,11 +420,6 @@ class StudioApplication(Application):
     def pop_last_action(self, key=None):
         if self.context:
             self.context.pop_last_action(key)
-
-    def copy(self):
-        if self.designer and self.selected:
-            # store the current object as  node in the clipboard
-            self._clipboard = self.designer.as_node(self.selected)
 
     def install_status_widget(self, widget_class, *args, **kwargs):
         widget = widget_class(self._statusbar, *args, **kwargs)
@@ -631,16 +630,6 @@ class StudioApplication(Application):
         feature.bar.select(feature)
         self._adjust_pane(feature.pane)
 
-    def select(self, widget, source=None):
-        self.selected = widget
-        if self.designer and source != self.designer:
-            # Select from the designer explicitly so the selection does not end up being re-fired
-            self.designer.select(widget, True)
-        for feature in self.features:
-            if feature != source:
-                feature.on_select(widget)
-        self.tool_manager.on_select(widget)
-
     def add(self, widget, parent=None):
         for feature in self.features:
             feature.on_widget_add(widget, parent)
@@ -654,45 +643,67 @@ class StudioApplication(Application):
             self.designer.on_widget_change(widget1, widget2)
         self.tool_manager.on_widget_change(widget1, widget2)
 
-    def widget_layout_changed(self, widget):
+    def widget_layout_changed(self, widgets):
         for feature in self.features:
-            feature.on_widget_layout_change(widget)
-        self.tool_manager.on_widget_layout_change(widget)
+            feature.on_widget_layout_change(widgets)
+        self.tool_manager.on_widget_layout_change(widgets)
 
-    def delete(self, widget=None, source=None):
-        widget = self.selected if widget is None else widget
-        if widget is None:
+    def make_clipboard(self, widgets):
+        bounds = geometry.overall_bounds([w.get_bounds() for w in widgets])
+        data = []
+        for widget in widgets:
+            data.append((
+                self.designer.as_node(widget),
+                geometry.relative_to_bounds(widget.get_bounds(), bounds),
+            ))
+        return data
+
+    def copy(self):
+        if self.designer and self.selection:
+            # store the current objects as  nodes in the clipboard
+            self._clipboard = self.make_clipboard(self.selection.compact())
+        pass
+
+    def delete(self, widgets=None, source=None):
+        widgets = list(self.selection.compact()) if widgets is None else widgets
+        if not widgets:
             return
-        if self.selected == widget:
-            self.select(None)
-        if self.designer and source != self.designer:
-            self.designer.delete(widget)
-        for feature in self.features:
-            feature.on_widget_delete(widget)
-        self.tool_manager.on_widget_delete(widget)
 
-    def cut(self, widget=None, source=None):
+        if any(widget in self.selection for widget in widgets):
+            self.selection.clear()
+
+        if self.designer and source != self.designer:
+            self.designer.delete(widgets)
+
+        for feature in self.features:
+            feature.on_widget_delete(widgets)
+        self.tool_manager.on_widget_delete(widgets)
+
+    def cut(self, widgets=None, source=None):
         if not self.designer:
             return
-        widget = self.selected if widget is None else widget
-        if not widget:
+
+        widgets = list(self.selection.compact()) if widgets is None else widgets
+        if not widgets:
             return
-        if self.selected == widget:
-            self.select(None)
-        self._clipboard = self.designer.as_node(widget)
+
+        if any(widget in self.selection for widget in widgets):
+            self.selection.clear()
+
+        self._clipboard = self.make_clipboard(widgets)
         if source != self.designer:
-            self.designer.delete(widget, True)
+            self.designer.delete(widgets)
         for feature in self.features:
-            feature.on_widget_delete(widget, True)
-        self.tool_manager.on_widget_delete(widget)
+            feature.on_widget_delete(widgets, True)
+        self.tool_manager.on_widget_delete(widgets)
 
     def duplicate(self):
-        if self.designer and self.selected:
-            self.designer.paste(self.designer.as_node(self.selected))
+        if self.designer and self.selection:
+            self.designer.paste(self.make_clipboard(self.selection.compact()))
 
-    def on_restore(self, widget):
+    def on_restore(self, widgets):
         for feature in self.features:
-            feature.on_widget_restore(widget)
+            feature.on_widget_restore(widgets)
 
     def on_feature_change(self, new, old):
         self.features.insert(self.features.index(old), new)
@@ -859,11 +870,11 @@ class StudioApplication(Application):
         routine = actions.Routine
         # These actions are best bound separately to avoid interference with text entry widgets
         actions.add(
-            routine(self.cut, 'STUDIO_CUT', 'Cut selected widget', 'studio', CTRL + CharKey('x')),
-            routine(self.copy, 'STUDIO_COPY', 'Copy selected widget', 'studio', CTRL + CharKey('c')),
-            routine(self.paste, 'STUDIO_PASTE', 'Paste selected widget', 'studio', CTRL + CharKey('v')),
-            routine(self.delete, 'STUDIO_DELETE', 'Delete selected widget', 'studio', KeyMap.DELETE),
-            routine(self.duplicate, 'STUDIO_DUPLICATE', 'Duplicate selected widget', 'studio', CTRL + CharKey('d')),
+            routine(self.cut, 'STUDIO_CUT', 'Cut selected widgets', 'studio', CTRL + CharKey('x')),
+            routine(self.copy, 'STUDIO_COPY', 'Copy selected widgets', 'studio', CTRL + CharKey('c')),
+            routine(self.paste, 'STUDIO_PASTE', 'Paste selected widgets', 'studio', CTRL + CharKey('v')),
+            routine(self.delete, 'STUDIO_DELETE', 'Delete selected widgets', 'studio', KeyMap.DELETE),
+            routine(self.duplicate, 'STUDIO_DUPLICATE', 'Duplicate selected widgets', 'studio', CTRL + CharKey('d')),
         )
         self.shortcuts.add_routines(
             routine(self.undo, 'STUDIO_UNDO', 'Undo last action', 'studio', CTRL + CharKey('Z')),

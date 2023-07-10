@@ -56,6 +56,7 @@ class BaseLayoutStrategy:
     manager = "place"  # Default layout manager in use
     realtime_support = False  # dictates whether strategy supports realtime updates to its values, most do not
     dimensions_in_px = False  # Whether to use pixel units for width and height
+    allow_resize = False  # Whether to allow resizing of widgets
 
     def __init__(self, container):
         self.parent = container.parent
@@ -90,9 +91,11 @@ class BaseLayoutStrategy:
 
     def change_start(self, widget):
         widget.recent_layout_info = self.get_restore(widget)
+        widget.last_stable_bounds = widget.get_bounds()
 
     def move_widget(self, widget, bounds):
         if widget in self.children:
+            bounds = widget.last_stable_bounds
             self.remove_widget(widget)
         if widget not in self.temporal_children:
             self.temporal_children.append(widget)
@@ -105,13 +108,17 @@ class BaseLayoutStrategy:
                 pass
         self._move(widget, bounds)
 
+    def end_move(self):
+        # empty temporal children
+        self.temporal_children.clear()
+
     def _move(self, widget, bounds):
         # Make the bounds relative to the layout for proper positioning
         bounds = geometry.relative_bounds(bounds, self.container.body)
         self.container.position(widget, bounds)
 
-    def resize_widget(self, widget, bounds):
-        self._move(widget, bounds)
+    def resize_widget(self, widget, direction, delta):
+        raise NotImplementedError("Layout should provide resize method")
 
     def restore_widget(self, widget, data=None):
         raise NotImplementedError("Layout should provide restoration method")
@@ -230,6 +237,7 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
     manager = "place"
     realtime_support = True
     dimensions_in_px = True
+    allow_resize = True
 
     def clear_all(self):
         for child in self.children:
@@ -243,6 +251,32 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
         kwargs['in'] = self.container.body
         widget.place_configure(**kwargs)
         self.children.append(widget)
+
+    def _info_with_delta(self, widget, direction, delta):
+        info = self.info(widget)
+        info.update(x=int(info["x"]), y=int(info["y"]), width=int(info["width"]), height=int(info["height"]))
+        dx, dy = delta
+        if direction == "n":
+            info.update(y=info["y"] + dy, height=info["height"] - dy)
+        elif direction == "s":
+            info["height"] = info["height"] + dy
+        elif direction == "e":
+            info["width"] = info["width"] + dx
+        elif direction == "w":
+            info.update(x=info["x"] + dx, width=info["width"] - dx)
+        elif direction == "nw":
+            info.update(x=info["x"] + dx, y=info["y"] + dy, width=info["width"] - dx, height=info["height"] - dy)
+        elif direction == "ne":
+            info.update(y=info["y"] + dy, width=info["width"] + dx, height=info["height"] - dy)
+        elif direction == "sw":
+            info.update(x=info["x"] + dx, width=info["width"] - dx, height=info["height"] + dy)
+        elif direction == "se":
+            info.update(width=info["width"] + dx, height=info["height"] + dy)
+        return info
+
+    def resize_widget(self, widget, direction, delta):
+        info = self._info_with_delta(widget, direction, delta)
+        widget.place_configure(**info)
 
     def remove_widget(self, widget):
         super().remove_widget(widget)
@@ -345,10 +379,8 @@ class PackLayoutStrategy(BaseLayoutStrategy):
         for child in affected:
             child.pack(**cache.get(child, {}))
 
-    def resize_widget(self, widget, bounds):
-        if not self.temp_info:
-            self.temp_info = self._pack_info(widget)
-        self._move(widget, bounds)
+    def resize_widget(self, widget, direction, delta):
+        pass
 
     def _pack_info(self, widget):
         try:
@@ -491,8 +523,7 @@ class GenericLinearLayoutStrategy(BaseLayoutStrategy):
             self.attach(child, *dimensions[child])
             self._children.append(child)
 
-    def resize_widget(self, widget, bounds):
-        super().resize_widget(widget, bounds)
+    def resize_widget(self, widget, direction, delta):
         widget.update_idletasks()
         self.redraw(widget)
 
@@ -688,14 +719,16 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         self._temp = None
         self.clear_indicators()
 
-    def resize_widget(self, widget, bounds):
-        if not self._temp:
-            self._temp = self._grid_info(widget)
-        self._move(widget, bounds)
+    def resize_widget(self, widget, direction, delta):
+        pass
 
     def _move(self, widget, bounds):
         super()._move(widget, bounds)
         self._location_analysis(bounds)
+
+    def end_move(self):
+        super().end_move()
+        self.clear_indicators()
 
     def add_widget(self, widget, bounds=None, **kwargs):
         super().remove_widget(widget)
@@ -715,6 +748,9 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         return self.container.body.grid_slaves(column, row)
 
     def _location_analysis(self, bounds):
+        if len(self.temporal_children) > 1:
+            # cannot perform analysis with more than one widget
+            return
         self.clear_indicators()
         self._edge_indicator.update_idletasks()
         bounds = geometry.relative_bounds(bounds, self.container.body)
@@ -891,7 +927,7 @@ class TabLayoutStrategy(BaseLayoutStrategy):
             self.container.body.add(child)
             self.container.body.tab(child, **cache.get(child, {}))
 
-    def resize_widget(self, widget, bounds):
+    def resize_widget(self, widget, direction, delta):
         pass
 
     def add_widget(self, widget, bounds=None, **kwargs):
@@ -1001,7 +1037,7 @@ class PanedLayoutStrategy(BaseLayoutStrategy):
     def clear_all(self):
         pass
 
-    def resize_widget(self, widget, bounds):
+    def resize_widget(self, widget, direction, delta):
         pass
 
     def add_widget(self, widget, bounds=None, **kwargs):
