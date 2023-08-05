@@ -186,15 +186,14 @@ class MenuStudioAdapter(BaseStudioAdapter):
     @classmethod
     def _menu_from_xml(cls, node, menu=None, widget=None):
         for sub_node in node:
-            if sub_node.type == "event":
-                continue
-            attrib = sub_node.attrib
-            if sub_node.type in MenuStudioAdapter._types and menu is not None:
-                menu.add(sub_node.type)
-                menu_config(menu, menu.index(tk.END), **attrib.get("menu", {}))
+            if sub_node.type in _ignore_tags and sub_node.type not in MenuStudioAdapter._types or sub_node.is_var():
                 continue
 
-            if sub_node.type in _ignore_tags:
+            attrib = sub_node.attrib
+            if sub_node.type in MenuStudioAdapter._types:
+                if menu is not None:
+                    menu.add(sub_node.type)
+                    menu_config(menu, menu.index(tk.END), **attrib.get("menu", {}))
                 continue
 
             obj_class = cls._get_class(sub_node)

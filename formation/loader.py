@@ -141,20 +141,21 @@ class MenuLoaderAdapter(BaseLoaderAdapter):
     @classmethod
     def _menu_load(cls, node, builder, menu=None, widget=None):
         for sub_node in node:
-            if sub_node.type == "event":
+            if sub_node.type in _ignore_tags and sub_node.type not in _menu_item_types or sub_node.is_var():
                 continue
+
             attrib = sub_node.attrib
             kwargs = {
                 "parent_node": sub_node.parent,
                 "node": sub_node,
                 "builder": builder,
             }
-            if sub_node.type in MenuLoaderAdapter._types and menu is not None:
+            if sub_node.type in MenuLoaderAdapter._types:
+                if menu is None:
+                    continue
                 menu.add(sub_node.type)
                 index = menu.index(tk.END)
                 dispatch_to_handlers(menu, attrib, **kwargs, menu=menu, index=index)
-            elif sub_node.type in _ignore_tags:
-                continue
             elif cls._get_class(sub_node) == tk.Menu:
                 obj_class = cls._get_class(sub_node)
                 menu_obj = obj_class(widget)
@@ -189,7 +190,7 @@ class CanvasLoaderAdapter(BaseLoaderAdapter):
     def load(cls, node, builder, parent):
         canvas = BaseLoaderAdapter.load(node, builder, parent)
         for sub_node in node:
-            if sub_node.type in _ignore_tags:
+            if sub_node.type in _ignore_tags or sub_node.is_var():
                 continue
             # just additional options that may be needed down the line
             kwargs = {
