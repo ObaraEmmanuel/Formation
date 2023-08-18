@@ -3,7 +3,6 @@ import tkinter as tk
 from studio.lib.pseudo import (
     PseudoWidget, Groups, Container, PanedContainer, _dimension_override
 )
-from studio.lib.toplevel import Toplevel
 from studio.lib.toplevel import Toplevel, Tk
 
 

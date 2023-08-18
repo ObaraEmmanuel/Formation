@@ -291,6 +291,10 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
         widget.layout = self.container
         widget.level = self.level + 1
         widget.place_configure(**data.get("info", {}))
+        try:
+            widget.lift((self.children[-1:] or [self.container.body])[0])
+        except Exception:
+            pass
 
     def get_restore(self, widget):
         return {
@@ -653,6 +657,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         widget.level = self.level + 1
         widget.layout = self.container
         widget.grid(in_=self.container.body)
+        widget.lift()
         self.config_widget(widget, data.get("info", {}))
 
     def react_to(self, bounds):
@@ -750,7 +755,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
     def _location_analysis(self, bounds):
         if len(self.temporal_children) > 1:
             # cannot perform analysis with more than one widget
-            return
+            return 0, 0, 0, 0
         self.clear_indicators()
         self._edge_indicator.update_idletasks()
         bounds = geometry.relative_bounds(bounds, self.container.body)

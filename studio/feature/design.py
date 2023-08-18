@@ -23,7 +23,6 @@ from studio.lib.layouts import PlaceLayoutStrategy
 from studio.lib.pseudo import PseudoWidget, Container, Groups
 from studio.parsers.loader import DesignBuilder, BaseStudioAdapter
 from studio.ui import geometry
-from studio.ui.highlight import WidgetHighlighter
 from studio.ui.widgets import DesignPad, CoordinateIndicator
 from studio.context import BaseContext
 from studio import __version__
@@ -45,7 +44,7 @@ class DesignLayoutStrategy(PlaceLayoutStrategy):
         self.container.position(widget, self.container.canvas_bounds(bounds))
 
     def add_widget(self, widget, bounds=None, **kwargs):
-        super(PlaceLayoutStrategy, self).add_widget(widget, bounds=None, **kwargs)
+        super(PlaceLayoutStrategy, self).add_widget(widget, bounds=bounds, **kwargs)
         super(PlaceLayoutStrategy, self).remove_widget(widget)
         if bounds is None:
             x = kwargs.get("x", 10)
@@ -114,6 +113,7 @@ class Designer(DesignPad, Container):
         self.studio = studio
         self.name_generator = NameGenerator(self.studio.pref)
         self.setup_widget()
+        self.designer = self
         self.parent = self
         self.config(**self.style.bright, takefocus=True)
         self.objects = []
@@ -127,7 +127,6 @@ class Designer(DesignPad, Container):
         self._frame.bind("<Button-1>", lambda _: self.focus_set(), '+')
         self._frame.bind("<Button-1>", self.set_pos, '+')
         self._frame.bind('<Motion>', self.on_motion, '+')
-        self._frame.bind('<KeyRelease>', self._stop_displace, '+')
         self._padding = 30
         self.design_path = None
         self.builder = DesignBuilder(self)
@@ -170,8 +169,6 @@ class Designer(DesignPad, Container):
         self._studio_bindings = []
         self._move_selection = []
         self._all_bound = None
-        self._bound_highlight = WidgetHighlighter(self, self.style)
-        self._container_highlight = WidgetHighlighter(self, self.style)
 
         # These variables help in skipping of several rendering frames to reduce lag when dragging items
         self._skip_var = 0
@@ -225,13 +222,6 @@ class Designer(DesignPad, Container):
             actions.get('STUDIO_PASTE'),
             actions.get('STUDIO_DUPLICATE'),
         )
-        # allow control of widget position using arrow keys
-        # shortcut_mgr.add_shortcut(
-        #     (lambda: self.displace('right'), KeyMap.RIGHT),
-        #     (lambda: self.displace('left'), KeyMap.LEFT),
-        #     (lambda: self.displace('up'), KeyMap.UP),
-        #     (lambda: self.displace('down'), KeyMap.DOWN),
-        # )
 
     def _open_default(self):
         self.update_idletasks()
@@ -411,11 +401,9 @@ class Designer(DesignPad, Container):
         if direction == "all":
             if not self.current_container:
                 return
-            self._bound_highlight.clear()
-            self._container_highlight.clear()
             container = self.current_container
             self.current_container = None
-            container.clear_hover()
+            container.clear_highlight()
             objs = self.studio.selection.siblings(widget)
             toplevel_warning = False
             for obj in objs:
@@ -437,7 +425,7 @@ class Designer(DesignPad, Container):
                 layouts_changed.append(obj)
 
         self.create_restore(layouts_changed)
-        self.studio.widget_layout_changed(layouts_changed)
+        self.studio.widgets_layout_changed(layouts_changed)
         self._skip_var = 0
 
     def _on_handle_resize(self, widget, direction, delta):
@@ -460,7 +448,7 @@ class Designer(DesignPad, Container):
 
         # TODO handle realtime layout changes
         # if obj.layout.layout_strategy.realtime_support:
-        #     self.studio.widget_layout_changed(obj)
+        #     self.studio.widgets_layout_changed(obj)
 
     def _on_handle_move(self, _, delta):
         dx, dy = delta
@@ -476,15 +464,13 @@ class Designer(DesignPad, Container):
         current = self.current_container
         container = self.layout_at(all_bound)
         self._all_bound = all_bound
-        self._container_highlight.highlight(container)
-        # self._bound_highlight.highlight_bounds(all_bound)
 
         if container != current and current is not None:
             current.end_move()
-            current.clear_hover()
+            current.clear_highlight()
 
         if container is not None and container != current:
-            container.show_hover()
+            container.show_highlight()
             self.current_container = current = container
 
         for w in objs:
@@ -517,7 +503,6 @@ class Designer(DesignPad, Container):
 
         MenuUtils.bind_all_context(obj, lambda e: self.show_menu(e, obj), add='+')
         obj.bind_all('<Motion>', self.on_motion, '+')
-        obj.bind_all('<KeyRelease>', self._stop_displace, '+')
 
         if "text" in obj.keys():
             obj.bind_all("<Double-Button-1>", lambda _: self._show_text_editor(obj))
@@ -539,7 +524,7 @@ class Designer(DesignPad, Container):
         self._last_click_pos = event.x_root, event.y_root
         if event.state & EventMask.CONTROL:
             self.studio.selection.toggle(obj)
-        else:
+        elif obj not in self.studio.selection:
             self.studio.selection.set(obj)
 
     def load(self, obj_class, name, container, attributes, layout, bounds=None):
@@ -723,10 +708,10 @@ class Designer(DesignPad, Container):
             return
 
         for w in self._selected - current_selection:
-            w.clear_highlight()
+            w.clear_handle()
 
         for w in current_selection - self._selected:
-            w.show_highlight()
+            w.show_handle()
 
         self._selected = current_selection
         self.focus_set()
@@ -734,37 +719,6 @@ class Designer(DesignPad, Container):
     @property
     def selected(self):
         return self._selected
-
-    def _stop_displace(self, _):
-        if self._displace_active:
-            # this ensures event is added to undo redo stack
-            self._on_release(geometry.bounds(self.current_obj))
-            # mark the latest action as designer displace
-            latest = self.studio.last_action()
-            if latest is not None:
-                latest.key = "designer_displace"
-            self._displace_active = False
-
-    def displace(self, side):
-        if not self.current_obj:
-            return
-        if time.time() - self._last_displace < .5:
-            self.studio.pop_last_action("designer_displace")
-
-        self._on_start()
-        self._displace_active = True
-        self._last_displace = time.time()
-        bounds = geometry.bounds(self.current_obj)
-        x1, y1, x2, y2 = bounds
-        if side == 'right':
-            bounds = x1 + 1, y1, x2 + 1, y2
-        elif side == 'left':
-            bounds = x1 - 1, y1, x2 - 1, y2
-        elif side == 'up':
-            bounds = x1, y1 - 1, x2, y2 - 1
-        elif side == 'down':
-            bounds = x1, y1 + 1, x2, y2 + 1
-        self._on_move(bounds)
 
     def _on_start(self):
         obj = self.current_obj
@@ -789,20 +743,23 @@ class Designer(DesignPad, Container):
                     widgets, prev_restore_points, containers, prev_containers):
                 container.remove_widget(widget)
                 prev_container.restore_widget(widget, prev_restore_point)
+            self.studio.widgets_layout_changed(widgets)
 
         def redo(_):
             for widget, cur_restore_point, container, prev_container in zip(
                     widgets, cur_restore_points, containers, prev_containers):
                 prev_container.remove_widget(widget)
                 container.restore_widget(widget, cur_restore_point)
+            self.studio.widgets_layout_changed(widgets)
 
         self.studio.new_action(Action(undo, redo))
 
     def _text_change(self):
-        self.studio.style_pane.apply_style("text", self._text_editor.get_all(), list(self.selected)[0])
+        self.studio.style_pane.apply_style("text", self._text_editor.get_all())
 
     def _show_text_editor(self, widget):
-        assert widget in self.selected
+        if any("text" not in w.keys() for w in self.selected):
+            return
         self._text_editor.lift(widget)
         cnf = self._collect_text_config(widget)
         self._text_editor.config(**cnf)
@@ -833,7 +790,7 @@ class Designer(DesignPad, Container):
     def _text_hide(self, *_):
         self._text_editor.place_forget()
 
-    def on_widget_change(self, old_widget, new_widget=None):
+    def on_widgets_change(self, widgets):
         pass
 
     def on_widget_add(self, widget, parent):

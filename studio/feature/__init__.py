@@ -7,7 +7,7 @@ from studio.feature.eventspane import EventPane
 FEATURES = (
     ComponentPane,
     ComponentTree,
-    #StylePane,
+    StylePane,
     #EventPane,
     #VariablePane,
 )

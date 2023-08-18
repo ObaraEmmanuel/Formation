@@ -633,20 +633,26 @@ class StudioApplication(Application):
     def add(self, widget, parent=None):
         for feature in self.features:
             feature.on_widget_add(widget, parent)
-        self.tool_manager.on_widget_add(widget, parent)
 
-    def widget_modified(self, widget1, source=None, widget2=None):
+        # TODO refactor tools
+        # self.tool_manager.on_widget_add(widget, parent)
+
+    def widgets_modified(self, widgets, source=None):
         for feature in self.features:
             if feature != source:
-                feature.on_widget_change(widget1, widget2)
+                feature.on_widgets_change(widgets)
         if self.designer and self.designer != source:
-            self.designer.on_widget_change(widget1, widget2)
-        self.tool_manager.on_widget_change(widget1, widget2)
+            self.designer.on_widgets_change(widgets)
 
-    def widget_layout_changed(self, widgets):
+        # TODO refactor tools
+        # self.tool_manager.on_widget_change(widgets)
+
+    def widgets_layout_changed(self, widgets):
         for feature in self.features:
-            feature.on_widget_layout_change(widgets)
-        self.tool_manager.on_widget_layout_change(widgets)
+            feature.on_widgets_layout_change(widgets)
+
+        # TODO refactor tools
+        # self.tool_manager.on_widget_layout_change(widgets)
 
     def make_clipboard(self, widgets):
         bounds = geometry.overall_bounds([w.get_bounds() for w in widgets])
@@ -676,8 +682,10 @@ class StudioApplication(Application):
             self.designer.delete(widgets)
 
         for feature in self.features:
-            feature.on_widget_delete(widgets)
-        self.tool_manager.on_widget_delete(widgets)
+            feature.on_widgets_delete(widgets)
+
+        # TODO refactor tools
+        # self.tool_manager.on_widget_delete(widgets)
 
     def cut(self, widgets=None, source=None):
         if not self.designer:
@@ -694,8 +702,10 @@ class StudioApplication(Application):
         if source != self.designer:
             self.designer.delete(widgets)
         for feature in self.features:
-            feature.on_widget_delete(widgets, True)
-        self.tool_manager.on_widget_delete(widgets)
+            feature.on_widgets_delete(widgets, True)
+
+        # TODO refactor tools
+        # self.tool_manager.on_widget_delete(widgets)
 
     def duplicate(self):
         if self.designer and self.selection:
@@ -703,7 +713,7 @@ class StudioApplication(Application):
 
     def on_restore(self, widgets):
         for feature in self.features:
-            feature.on_widget_restore(widgets)
+            feature.on_widgets_restore(widgets)
 
     def on_feature_change(self, new, old):
         self.features.insert(self.features.index(old), new)

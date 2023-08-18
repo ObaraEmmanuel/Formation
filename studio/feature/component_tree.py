@@ -172,15 +172,15 @@ class ComponentTree(BaseFeature):
     def studio_selection(self):
         return [i.node for i in self.studio.selection]
 
-    def on_widget_delete(self, widgets, silently=False):
+    def on_widgets_delete(self, widgets, silently=False):
         for widget in widgets:
             widget.node.remove()
 
-    def on_widget_restore(self, widgets):
+    def on_widgets_restore(self, widgets):
         for widget in widgets:
             widget.layout.node.add(widget.node)
 
-    def on_widget_layout_change(self, widgets):
+    def on_widgets_layout_change(self, widgets):
         for widget in widgets:
             node = widget.node
             if widget.layout == self.studio.designer:
@@ -199,9 +199,9 @@ class ComponentTree(BaseFeature):
     def on_session_clear(self):
         self._tree.clear()
 
-    def on_widget_change(self, old_widget, new_widget=None):
-        new_widget = new_widget if new_widget else old_widget
-        new_widget.node.widget_modified(new_widget)
+    def on_widgets_change(self, widgets):
+        for widget in widgets:
+            widget.node.widget_modified(widget)
 
     def on_search_query(self, query: str):
         self._tree.search(query)

@@ -64,6 +64,7 @@ class Component(Frame):
         widget = self.event_first(event, self, Container)
         if isinstance(widget, Container):
             widget.add_new(self.component, *self.window.drag_window.get_center())
+            widget.clear_highlight()
 
 
 class SelectableComponent(Component):

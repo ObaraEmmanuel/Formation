@@ -8,11 +8,12 @@ from enum import Enum
 from hoverset.data.images import load_tk_image, load_image, load_image_to_widget
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.menu import MenuUtils
+from hoverset.ui.widgets import EventMask
 from hoverset.util.execution import import_path
 from studio.lib import layouts
 from studio.lib.variables import VariableManager
 from studio.lib.properties import get_properties
-from studio.ui.highlight import BoxHandle
+from studio.lib.handles import BoxHandle
 from studio.ui.tree import MalleableTree
 
 
@@ -122,15 +123,23 @@ class PseudoWidget:
         self.node = None
         self.__on_context = None
         self.last_menu_position = (0, 0)
+        self._pos_fix = (0, 0)
         self.max_size = None
         self.min_size = None
         MenuUtils.bind_context(self, self.__handle_context_menu, add='+')
+        self._handle_cls = getattr(self.__class__, "handle_class", BoxHandle)
         self._handle = None
 
         self._on_handle_active = getattr(self, "_on_handle_active", None)
         self._on_handle_inactive = getattr(self, "_on_handle_inactive", None)
         self._on_handle_resize = getattr(self, "_on_handle_resize", None)
         self._on_handle_move = getattr(self, "_on_handle_move", None)
+
+        self.bind("<ButtonPress-1>", self._on_press, add='+')
+        self.bind("<ButtonRelease>", self._on_release, add='+')
+        self.bind("<Motion>", self._on_drag, add='+')
+
+        self._active = False
 
     def set_name(self, name):
         pass
@@ -143,22 +152,53 @@ class PseudoWidget:
         y2 = self.winfo_height() + y1
         return x1, y1, x2, y2
 
-    def show_highlight(self, *_):
+    def _on_press(self, event):
         if not self._handle:
-            self._handle = BoxHandle.acquire(self, self.master)
+            return
+        self._pos_fix = (event.x_root, event.y_root)
+        self.handle_active('all')
+        self._active = True
+
+    def _on_release(self, _):
+        if not self._active:
+            return
+        self.handle_inactive('all')
+        self._active = False
+
+    def _on_drag(self, event):
+        if not self._active or not event.state & EventMask.MOUSE_BUTTON_1:
+            return
+        x, y = self._pos_fix
+        self._pos_fix = (event.x_root, event.y_root)
+        self.handle_resize('all', (event.x_root - x, event.y_root - y))
+
+    def show_handle(self, *_):
+        if not self._handle_cls:
+            return
+        if not self._handle:
+            self._handle = self._handle_cls.acquire(self, self.master)
         self._handle.show()
+
+    def clear_handle(self):
+        if not self._handle:
+            return
+        self._handle.hide()
+        if not self._handle.active():
+            self._handle = None
+
+    def show_highlight(self, *_):
+        if not self._handle_cls:
+            return
+        if not self._handle:
+            self._handle = self._handle_cls.acquire(self, self.master)
+        self._handle.hover()
 
     def clear_highlight(self):
         if not self._handle:
             return
-        self._handle.hide()
-        self._handle = None
-
-    def show_hover(self, *_):
-        pass
-
-    def clear_hover(self):
-        pass
+        self._handle.unhover()
+        if not self._handle.active():
+            self._handle = None
 
     def on_handle_active(self, callback):
         self._on_handle_active = callback
@@ -237,7 +277,10 @@ class PseudoWidget:
             if intercept:
                 intercept.set(self, kw[opt], opt)
                 kw.pop(opt)
-        return super().config(**kw)
+        ret = super().config(**kw)
+        if kw and self._handle:
+            self._handle.widget_config_changed()
+        return ret
 
     def bind_all(self, sequence, func=None, add=None):
         # we should be able to bind studio events
@@ -426,7 +469,7 @@ class Container(PseudoWidget):
         return super().configure(**kwargs)
 
     def _set_layout(self, layout):
-        self.designer.studio.style_pane.apply_style("layout", layout, self)
+        self.designer.studio.style_pane.apply_style("layout", [layout], [self])
 
     def _get_layouts_as_menu(self):
         layout_templates = [

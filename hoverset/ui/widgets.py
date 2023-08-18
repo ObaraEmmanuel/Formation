@@ -2714,10 +2714,10 @@ class Tree(abc.ABC):
                 self.collapse()
                 self.nodes.remove(node)
                 node.pack_forget()
-                if was_expanded:
+                if was_expanded and len(self.nodes) > 0:
                     # If the parent was expanded when we began removal we expand it again
                     self.expand()
-                if len(self.nodes) == 0:
+                if not self.nodes:
                     # remove the expansion icon
                     self._set_expander(self.BLANK)
 
