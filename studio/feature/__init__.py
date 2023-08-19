@@ -8,8 +8,8 @@ FEATURES = (
     ComponentPane,
     ComponentTree,
     StylePane,
-    #EventPane,
-    #VariablePane,
+    EventPane,
+    VariablePane,
 )
 
 

@@ -275,12 +275,12 @@ class ComponentPane(BaseFeature):
         self._selected = None
         self._component_cache = None
         self._extern_groups = []
-        self._widget = None
         self.collect_groups(self.get_pref("widget_set"))
         # add custom widgets config to settings
         templates.update(_widget_pref_template)
         self._custom_group = None
         self._custom_widgets = []
+        self.studio.bind("<<SelectionChanged>>", self.on_widget_select, add='+')
         Preferences.acquire().add_listener(self._custom_pref_path, self._init_custom)
         self._reload_custom()
 
@@ -439,7 +439,7 @@ class ComponentPane(BaseFeature):
 
     def render_extern_groups(self):
         for group in self._extern_groups:
-            if group.supports(self._widget):
+            if all(group.supports(w) for w in self.studio.widgets):
                 self.add_selector(group.selector)
             else:
                 self.remove_selector(group.selector)
@@ -481,8 +481,7 @@ class ComponentPane(BaseFeature):
             self._extern_groups.remove(group)
             self._auto_select()
 
-    def on_select(self, widget):
-        self._widget = widget
+    def on_widget_select(self, _):
         self.render_extern_groups()
 
     def start_search(self, *_):
