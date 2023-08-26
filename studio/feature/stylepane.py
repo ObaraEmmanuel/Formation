@@ -288,7 +288,7 @@ class AttributeGroup(StyleGroup):
         self._prev_classes = set()
 
     def get_definition(self):
-        if all(isinstance(widget, PseudoWidget) for widget in self.widgets):
+        if self.widgets and all(isinstance(widget, PseudoWidget) for widget in self.widgets):
             return get_combined_properties(self.widgets)
         return {}
 
@@ -375,7 +375,7 @@ class ColumnConfig(StyleGroup):
             self._index.set(self.widgets[0].grid_info()["column"])
 
     def on_widgets_change(self):
-        if all(self.is_grid(widget) for widget in self.widgets):
+        if self.widgets and all(self.is_grid(widget) for widget in self.widgets):
             super().on_widgets_change()
             self._index._editor.set_def(self._get_index_def())
             self._update_index()

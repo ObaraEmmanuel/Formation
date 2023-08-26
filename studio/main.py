@@ -257,7 +257,7 @@ class StudioApplication(Application):
         self.style_pane = self.get_feature(StylePane)
 
         # initialize tools with everything ready
-        # self.tool_manager.initialize()
+        self.tool_manager.initialize()
 
         self._ignore_tab_status = False
         self._startup()
@@ -634,8 +634,7 @@ class StudioApplication(Application):
         for feature in self.features:
             feature.on_widget_add(widget, parent)
 
-        # TODO refactor tools
-        # self.tool_manager.on_widget_add(widget, parent)
+        self.tool_manager.on_widget_add(widget, parent)
 
     def widgets_modified(self, widgets, source=None):
         for feature in self.features:
@@ -644,15 +643,13 @@ class StudioApplication(Application):
         if self.designer and self.designer != source:
             self.designer.on_widgets_change(widgets)
 
-        # TODO refactor tools
-        # self.tool_manager.on_widget_change(widgets)
+        self.tool_manager.on_widgets_change(widgets)
 
     def widgets_layout_changed(self, widgets):
         for feature in self.features:
             feature.on_widgets_layout_change(widgets)
 
-        # TODO refactor tools
-        # self.tool_manager.on_widget_layout_change(widgets)
+        self.tool_manager.on_widgets_layout_change(widgets)
 
     def make_clipboard(self, widgets):
         bounds = geometry.overall_bounds([w.get_bounds() for w in widgets])
@@ -684,8 +681,7 @@ class StudioApplication(Application):
         for feature in self.features:
             feature.on_widgets_delete(widgets)
 
-        # TODO refactor tools
-        # self.tool_manager.on_widget_delete(widgets)
+        self.tool_manager.on_widgets_delete(widgets)
 
     def cut(self, widgets=None, source=None):
         if not self.designer:
@@ -704,8 +700,7 @@ class StudioApplication(Application):
         for feature in self.features:
             feature.on_widgets_delete(widgets, True)
 
-        # TODO refactor tools
-        # self.tool_manager.on_widget_delete(widgets)
+        self.tool_manager.on_widgets_delete(widgets)
 
     def duplicate(self):
         if self.designer and self.selection:

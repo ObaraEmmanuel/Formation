@@ -580,8 +580,8 @@ class CanvasStyleGroup(StyleGroup):
         # selected canvas items
         return self.tool.selected_items
 
-    def supports_widget(self, widget):
-        return isinstance(widget, Canvas)
+    def supports_widgets(self):
+        return len(self.widgets) == 1 and isinstance(self.widgets[0], Canvas)
 
     def can_optimize(self):
         # probably needs a rethink if we consider definition overrides
@@ -604,10 +604,10 @@ class CanvasStyleGroup(StyleGroup):
                 # id cannot be set for multi-selected items
                 self.prop_keys.remove('id')
 
-    def on_widget_change(self, widget):
+    def on_widgets_change(self):
         self._prev_prop_keys = self.prop_keys
         self.compute_prop_keys()
-        super(CanvasStyleGroup, self).on_widget_change(widget)
+        super(CanvasStyleGroup, self).on_widgets_change()
         self.style_pane.remove_loading()
 
     def _get_prop(self, prop, widget):
@@ -621,13 +621,13 @@ class CanvasStyleGroup(StyleGroup):
     def _get_action_data(self, widget, prop):
         return {item: {prop: item.cget(prop)} for item in self.cv_items}
 
-    def _apply_action(self, prop, value, widget, data):
+    def _apply_action(self, prop, value, widgets, data):
         for item in data:
             item.configure(data[item])
             if item._controller:
                 item._controller.update()
-        if self.tool.canvas == widget:
-            self.on_widget_change(widget)
+        if self.tool.canvas == widgets[0]:
+            self.on_widgets_change()
         self.tool.on_items_modified(data.keys())
 
     def _set_prop(self, prop, value, widget):
@@ -874,6 +874,8 @@ class CanvasTool(BaseTool):
                  self._get_routine('CV_PASTE'), {})
             ),
         ), self.studio, self.studio.style)
+
+        self.studio.bind("<<SelectionChanged>>", self.on_select, "+")
 
     @property
     def _ids(self):
@@ -1154,12 +1156,12 @@ class CanvasTool(BaseTool):
 
     def selection_changed(self):
         # called when canvas item selection changes
-        self.style_group.on_widget_change(self.canvas)
+        self.style_group.on_widgets_change()
 
     def _update_selection(self, canvas):
         # update selections from the canvas tree
         if canvas != self.canvas:
-            self.studio.select(canvas)
+            self.studio.selection.set(canvas)
         # call to studio should cause canvas to be selected
         assert self.canvas == canvas
         selected = set(self.selected_items)
@@ -1226,7 +1228,12 @@ class CanvasTool(BaseTool):
 
         self.selection_changed()
 
-    def on_select(self, widget):
+    def on_select(self, _):
+        if len(self.studio.selection) == 1:
+            widget = self.studio.selection[0]
+        else:
+            widget = None
+
         if self.canvas == widget:
             return
         if self.canvas is not None:
@@ -1271,10 +1278,11 @@ class CanvasTool(BaseTool):
         for item in items:
             item.node.widget_modified(item)
 
-    def on_widget_delete(self, widget):
-        if isinstance(widget, Canvas):
-            if widget in self.items:
-                self.items.remove(widget)
+    def on_widgets_delete(self, widgets):
+        for widget in widgets:
+            if isinstance(widget, Canvas):
+                if widget in self.items:
+                    self.items.remove(widget)
 
     def propagate_move(self, delta_x, delta_y, source=None):
         for item in self.selected_items:

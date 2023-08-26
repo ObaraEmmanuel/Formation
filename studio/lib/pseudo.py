@@ -100,6 +100,7 @@ class PseudoWidget:
     icon = "play"
     impl = None
     is_toplevel = False
+    allow_direct_move = True
     # special handlers (intercepts) for attributes that need additional processing
     # to interface with the studio easily
     _intercepts = {
@@ -137,7 +138,9 @@ class PseudoWidget:
 
         self.bind("<ButtonPress-1>", self._on_press, add='+')
         self.bind("<ButtonRelease>", self._on_release, add='+')
-        self.bind("<Motion>", self._on_drag, add='+')
+
+        if self.allow_direct_move:
+            self.bind("<Motion>", self._on_drag, add='+')
 
         self._active = False
 
@@ -354,6 +357,7 @@ class PseudoWidget:
 
 class Container(PseudoWidget):
     LAYOUTS = layouts.layouts
+    allow_direct_move = False
 
     def setup_widget(self):
         self.parent = self.designer = self._get_designer()

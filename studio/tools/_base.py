@@ -24,18 +24,16 @@ class BaseTool:
         # default behaviour is to return an empty template
         return ()
 
-    def supports(self, widget):
+    def supports(self, widgets=None):
         """
         Checks whether the tool can work on a given widget. This information is
         useful for the studio to allow it render dropdown menus correctly
-        :param widget: A tk Widget to be checked
+        :param widgets: A list of tk Widgets to be checked, if None, current studio selection is used
         :return: True if tool can work on the widget otherwise false
         """
-
-    def on_select(self, widget):
         pass
 
-    def on_widget_delete(self, widget):
+    def on_widgets_delete(self, widgets):
         pass
 
     def on_app_close(self):
@@ -47,10 +45,10 @@ class BaseTool:
     def on_widget_add(self, widget, parent):
         pass
 
-    def on_widget_change(self, old_widget, new_widget):
+    def on_widgets_change(self, widgets):
         pass
 
-    def on_widget_layout_change(self, widget):
+    def on_widgets_layout_change(self, widgets):
         pass
 
     def on_context_switch(self):

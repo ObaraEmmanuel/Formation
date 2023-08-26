@@ -33,6 +33,7 @@ class Canvas(PseudoWidget, tk.Canvas):
     group = Groups.container
     icon = "paint"
     impl = tk.Canvas
+    allow_direct_move = False
 
     def __init__(self, master, id_):
         super().__init__(master)

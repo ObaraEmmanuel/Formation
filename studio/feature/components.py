@@ -439,7 +439,7 @@ class ComponentPane(BaseFeature):
 
     def render_extern_groups(self):
         for group in self._extern_groups:
-            if all(group.supports(w) for w in self.studio.widgets):
+            if self.studio.selection and all(group.supports(w) for w in self.studio.selection):
                 self.add_selector(group.selector)
             else:
                 self.remove_selector(group.selector)

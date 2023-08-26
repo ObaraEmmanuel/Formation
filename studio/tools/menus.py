@@ -387,21 +387,22 @@ class MenuTool(BaseTool):
             widget.configure(menu=self._deleted.get(widget))
             self._deleted.pop(widget)
 
-    def supports(self, widget):
-        if widget is None:
-            return widget
-        return 'menu' in widget.keys()
+    def supports(self, widgets=None):
+        widgets = widgets or self.studio.selection
+        if not widgets:
+            return False
+        return all('menu' in w.keys() for w in widgets)
 
     def get_menu(self, studio):
         icon = get_icon_image
         return (
-            ('command', 'Edit', icon('edit', 14, 14), lambda: self.edit(studio.selected), {}),
+            ('command', 'Edit', icon('edit', 14, 14), lambda: self.edit(studio.selection[0]), {}),
             EnableIf(
-                lambda: studio.selected and studio.selected['menu'] != '',
-                ('command', 'Remove', icon('delete', 14, 14), lambda: self.remove(studio.selected), {})),
+                lambda: studio.selection and studio.selection[0]['menu'] != '',
+                ('command', 'Remove', icon('delete', 14, 14), lambda: self.remove(studio.selection[0]), {})),
             EnableIf(
-                lambda: studio.selected and studio.selected in self._deleted,
-                ('command', 'Restore', icon('undo', 14, 14), lambda: self.restore(studio.selected), {})),
+                lambda: studio.selection and studio.selection[0] in self._deleted,
+                ('command', 'Restore', icon('undo', 14, 14), lambda: self.restore(studio.selection[0]), {})),
             EnableIf(
                 lambda: MenuEditor._tool_map,
                 ('command', 'Close all editors', icon('close', 14, 14), self.close_editors, {}))

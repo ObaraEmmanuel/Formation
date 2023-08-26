@@ -515,7 +515,7 @@ class Designer(DesignPad, Container):
         self._shortcut_mgr.bind_widget(obj)
 
     def show_menu(self, event, obj=None):
-        if not self._selected:
+        if obj and obj not in self._selected:
             self.studio.selection.set(obj)
         MenuUtils.popup(event, self._context_menu)
 
@@ -644,6 +644,8 @@ class Designer(DesignPad, Container):
         for container, widget, restore_point in zip(containers, widgets, restore_points):
             container.restore_widget(widget, restore_point)
             self._replace_all(widget)
+        if self.root_obj in widgets:
+            self._show_empty(False)
         self.studio.on_restore(widgets)
 
     def _replace_all(self, widget):
