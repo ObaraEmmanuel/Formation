@@ -22,7 +22,7 @@ from hoverset.data.utils import get_resource_path
 from hoverset.platform import platform_is, MAC
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.icons import get_icon_image
-from hoverset.ui.menu import MenuUtils, EnableIf, dynamic_menu, LoadLater
+from hoverset.ui.menu import MenuUtils, EnableIf, dynamic_menu, LoadLater, ShowIf
 from hoverset.ui.widgets import (
     Application, Frame, PanedWindow, Button,
     ActionNotifier, TabView, Label
@@ -133,6 +133,17 @@ class StudioApplication(Application):
                 ("command", "paste", icon("clipboard", 14, 14), actions.get('STUDIO_PASTE'), {})
             ),
             ("command", "cut", icon("cut", 14, 14), actions.get('STUDIO_CUT'), {}),
+            ("separator",),
+            ShowIf(
+                lambda: self.selection[0].layout.layout_strategy.stacking_support,
+                EnableIf(
+                    lambda: self.selection.is_same_parent(),
+                    ("command", "send to back", icon("send_to_back", 14, 14), actions.get('STUDIO_BACK'), {}),
+                    ("command", "bring to front", icon("bring_to_front", 14, 14), actions.get('STUDIO_FRONT'), {}),
+                    ("command", "back one step", icon("send_to_back", 14, 14), actions.get('STUDIO_BACK_1'), {}),
+                    ("command", "forward one step", icon("bring_to_front", 14, 14), actions.get('STUDIO_FRONT_1'), {}),
+                ),
+            ),
             ("separator",),
             ("command", "delete", icon("delete", 14, 14), actions.get('STUDIO_DELETE'), {}),
         ),)
@@ -426,6 +437,15 @@ class StudioApplication(Application):
         widget.pack(side='right', padx=2, fill='y')
         return widget
 
+    def send_back(self, steps=0):
+        if self.designer and self.selection:
+            self.designer.send_back(steps)
+
+    def bring_front(self, steps=0):
+        if self.designer and self.selection:
+            self.designer.bring_front(steps)
+
+
     def get_pane_info(self, pane):
         return self._panes.get(pane, [self._right, self._right_bar])
 
@@ -650,6 +670,13 @@ class StudioApplication(Application):
             feature.on_widgets_layout_change(widgets)
 
         self.tool_manager.on_widgets_layout_change(widgets)
+
+    def reorder_widgets(self, indices, source=None):
+        for feature in self.features:
+            if feature != source:
+                feature.on_widgets_reorder(indices)
+
+        self.tool_manager.on_widgets_reorder(indices)
 
     def make_clipboard(self, widgets):
         bounds = geometry.overall_bounds([w.get_bounds() for w in widgets])
@@ -884,6 +911,14 @@ class StudioApplication(Application):
         self.shortcuts.add_routines(
             routine(self.undo, 'STUDIO_UNDO', 'Undo last action', 'studio', CTRL + CharKey('Z')),
             routine(self.redo, 'STUDIO_REDO', 'Redo action', 'studio', CTRL + CharKey('Y')),
+            routine(self.send_back, 'STUDIO_BACK', 'Send selected widgets to back', 'studio', CharKey(']')),
+            routine(self.bring_front, 'STUDIO_FRONT', 'Bring selected widgets to front', 'studio', CharKey('[')),
+            routine(
+                lambda: self.send_back(1),
+                'STUDIO_BACK_1', 'Move selected widgets back one step', 'studio', CTRL + CharKey(']')),
+            routine(
+                lambda: self.bring_front(1),
+                'STUDIO_FRONT_1', 'Bring selected widgets up one step', 'studio', CTRL + CharKey('[')),
             # -----------------------------
             routine(self.open_new, 'STUDIO_NEW', 'Open new design', 'studio', CTRL + CharKey('n')),
             routine(self.open_file, 'STUDIO_OPEN', 'Open design from file', 'studio', CTRL + CharKey('o')),

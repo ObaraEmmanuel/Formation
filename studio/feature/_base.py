@@ -134,6 +134,13 @@ class BaseFeature(Pane):
         """
         pass
 
+    def on_widgets_reorder(self, indices):
+        """
+        Called when the widgets in the designer are reordered within their parent.
+        Used to change stacking order of widgets
+        """
+        pass
+
     def on_widget_add(self, widget, parent):
         """
         Called when a new widget is added to the designer

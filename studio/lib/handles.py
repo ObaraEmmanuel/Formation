@@ -106,6 +106,12 @@ class Handle:
     def widget_config_changed(self):
         pass
 
+    def lift(self):
+        for dot in self.dots:
+            dot.lift()
+        for edge in self.edges:
+            edge.lift()
+
     def redraw(self):
         raise NotImplementedError
 
@@ -154,6 +160,7 @@ class Handle:
         else:
             obj = cls._pool[(cls, master)].pop()
             obj.widget = widget
+        obj.lift()
         return obj
 
 

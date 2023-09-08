@@ -143,6 +143,7 @@ class PseudoWidget:
             self.bind("<Motion>", self._on_drag, add='+')
 
         self._active = False
+        self.prev_stack_index = None
 
     def set_name(self, name):
         pass
@@ -154,6 +155,20 @@ class PseudoWidget:
         x2 = self.winfo_width() + x1
         y2 = self.winfo_height() + y1
         return x1, y1, x2, y2
+
+    def lift(self, above_this):
+        if isinstance(above_this, Container):
+            # first lift above container if possible
+            try:
+                super().lift(above_this.body)
+            except tkinter.TclError:
+                pass
+
+            # then lift above highest child if any
+            if above_this._children:
+                super().lift(above_this._children[-1])
+        else:
+            super().lift(above_this)
 
     def _on_press(self, event):
         if not self._handle:
@@ -380,8 +395,8 @@ class Container(PseudoWidget):
         super().lift(above_this)
         if self.body != self:
             self.body.lift(self)
-        for child in self._children:
-            child.lift(self.body)
+        if self._children:
+            self.layout_strategy._update_stacking()
 
     def react(self, x, y):
         self.designer.set_active_container(self)

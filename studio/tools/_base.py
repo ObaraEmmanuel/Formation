@@ -51,6 +51,9 @@ class BaseTool:
     def on_widgets_layout_change(self, widgets):
         pass
 
+    def on_widgets_reorder(self, indices):
+        pass
+
     def on_context_switch(self):
         pass
 

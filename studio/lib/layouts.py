@@ -57,6 +57,7 @@ class BaseLayoutStrategy:
     realtime_support = False  # dictates whether strategy supports realtime updates to its values, most do not
     dimensions_in_px = False  # Whether to use pixel units for width and height
     allow_resize = False  # Whether to allow resizing of widgets
+    stacking_support = True  # Whether to allow modification of stacking order
 
     def __init__(self, container):
         self.parent = container.parent
@@ -80,11 +81,24 @@ class BaseLayoutStrategy:
     def add_widget(self, widget, bounds=None, **kwargs):
         widget.level = self.level + 1
         widget.layout = self.container
-        try:
-            widget.lift(self.container.body)
-        except Exception:
-            pass
         self.container.clear_highlight()
+
+    def _insert(self, widget, index=None):
+        if index is None:
+            self.children.append(widget)
+        else:
+            self.children.insert(index, widget)
+            self._update_stacking()
+
+        if widget.prev_stack_index is None:
+            widget.prev_stack_index = len(self.children) - 1
+
+    def _update_stacking(self):
+        for index, widget in enumerate(self.children):
+            if index > 0:
+                widget.lift(self.children[index - 1])
+            else:
+                widget.lift(self.container.body)
 
     def widget_released(self, widget):
         pass
@@ -99,13 +113,14 @@ class BaseLayoutStrategy:
             self.remove_widget(widget)
         if widget not in self.temporal_children:
             self.temporal_children.append(widget)
+            if widget.layout != self.container:
+                # if widget was originally in a different layout
+                # Lift widget above the last child of layout if any otherwise lift above the layout
+                widget.lift((self.children[-1:] or [self.container.body])[0])
+
             widget.level = self.level + 1
             widget.layout = self.container
-            # Lift widget above the last child of layout if any otherwise lift above the layout
-            try:
-                widget.lift((self.children[-1:] or [self.container.body])[0])
-            except Exception:
-                pass
+
         self._move(widget, bounds)
 
     def end_move(self):
@@ -250,7 +265,7 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
             self.move_widget(widget, bounds)
         kwargs['in'] = self.container.body
         widget.place_configure(**kwargs)
-        self.children.append(widget)
+        self._insert(widget, widget.prev_stack_index if widget.layout == self.container else None)
 
     def _info_with_delta(self, widget, direction, delta):
         info = self.info(widget)
@@ -287,14 +302,11 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
 
     def restore_widget(self, widget, data=None):
         data = widget.recent_layout_info if data is None else data
-        self.children.append(widget)
+        self._insert(widget, widget.prev_stack_index if widget.layout == self.container else None)
+
         widget.layout = self.container
         widget.level = self.level + 1
         widget.place_configure(**data.get("info", {}))
-        try:
-            widget.lift((self.children[-1:] or [self.container.body])[0])
-        except Exception:
-            pass
 
     def get_restore(self, widget):
         return {
@@ -313,7 +325,7 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
         info = from_.place_info()
         info["in_"] = self.container.body
         widget.place(**info)
-        self.children.append(widget)
+        self._insert(widget)
         super().add_widget(widget, (0, 0, 0, 0))
 
 
@@ -352,6 +364,7 @@ class PackLayoutStrategy(BaseLayoutStrategy):
     name = "pack"
     icon = "frame"
     manager = "pack"
+    stacking_support = False
 
     def __init__(self, container):
         super().__init__(container)
@@ -368,7 +381,7 @@ class PackLayoutStrategy(BaseLayoutStrategy):
         elif self._orientation == self.VERTICAL:
             widget.pack(in_=self.container.body, side="left")
         self.config_widget(widget, kwargs)
-        self.children.append(widget)
+        self._insert(widget)
 
     def redraw(self):
         for widget in self.children:
@@ -464,7 +477,7 @@ class PackLayoutStrategy(BaseLayoutStrategy):
         info = from_.pack_info()
         info["in_"] = self.container.body
         widget.pack(**info)
-        self.children.append(widget)
+        self._insert(widget)
         super().add_widget(widget, (0, 0, 0, 0))
 
     def clear_all(self):
@@ -509,7 +522,7 @@ class GenericLinearLayoutStrategy(BaseLayoutStrategy):
         super().add_widget(widget, bounds, **kwargs)
         width, height = geometry.dimensions(bounds)
         self.attach(widget, width, height)
-        self.children.append(widget)
+        self._insert(widget)
 
     def attach(self, widget, width, height):
         y = self.get_last()
@@ -525,7 +538,7 @@ class GenericLinearLayoutStrategy(BaseLayoutStrategy):
             child.place_forget()
         for child in temp:
             self.attach(child, *dimensions[child])
-            self._children.append(child)
+            self._insert(child)
 
     def resize_widget(self, widget, direction, delta):
         widget.update_idletasks()
@@ -541,7 +554,7 @@ class GenericLinearLayoutStrategy(BaseLayoutStrategy):
         self._children = self._children[:from_]
         for child in temp:
             self.attach(child, *dimensions[child])
-            self._children.append(child)
+            self._insert(child)
 
     def clear_children(self):
         for child in self.children:
@@ -653,11 +666,10 @@ class GridLayoutStrategy(BaseLayoutStrategy):
 
     def restore_widget(self, widget, data=None):
         data = widget.recent_layout_info if data is None else data
-        self.children.append(widget)
+        self._insert(widget, widget.prev_stack_index if widget.layout == self.container else None)
         widget.level = self.level + 1
         widget.layout = self.container
         widget.grid(in_=self.container.body)
-        widget.lift()
         self.config_widget(widget, data.get("info", {}))
 
     def react_to(self, bounds):
@@ -746,7 +758,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         else:
             widget.grid(in_=self.container.body)
             self.config_widget(widget, kwargs)
-        self.children.append(widget)
+        self._insert(widget, widget.prev_stack_index if widget.layout == self.container else None)
         self.clear_indicators()
 
     def _widget_at(self, row, column):
@@ -836,7 +848,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         info = from_.grid_info()
         info["in_"] = self.container.body
         widget.grid(**info)
-        self.children.append(widget)
+        self._insert(widget)
         super().add_widget(widget, (0, 0, 0, 0))
 
     def clear_all(self):
@@ -847,9 +859,6 @@ class GridLayoutStrategy(BaseLayoutStrategy):
 
 class TabLayoutStrategy(BaseLayoutStrategy):
     # TODO Extend support for side specific padding
-    name = "TabLayout"
-    icon = "notebook"
-    manager = "tab"
     DEFINITION = {
         "text": {
             "display_name": "tab text",
@@ -897,6 +906,10 @@ class TabLayoutStrategy(BaseLayoutStrategy):
             "default": 'normal'
         }
     }
+    name = "TabLayout"
+    icon = "notebook"
+    manager = "tab"
+    stacking_support = False
 
     def __init__(self, master):
         super().__init__(master)
@@ -940,7 +953,7 @@ class TabLayoutStrategy(BaseLayoutStrategy):
         super().add_widget(widget, bounds, **kwargs)
         self.container.body.add(widget, text=widget.id)
         self.container.body.tab(widget, **kwargs)
-        self.children.append(widget)
+        self._insert(widget)
 
     def remove_widget(self, widget):
         super().remove_widget(widget)
@@ -975,9 +988,6 @@ class TabLayoutStrategy(BaseLayoutStrategy):
 
 
 class PanedLayoutStrategy(BaseLayoutStrategy):
-    name = "PanedLayout"
-    icon = "flip_horizontal"
-    manager = "pane"
     DEFINITION = {
         **BaseLayoutStrategy.DEFINITION,  # width and height definition
         "padx": COMMON_DEFINITION.get("padx"),
@@ -1009,6 +1019,10 @@ class PanedLayoutStrategy(BaseLayoutStrategy):
             "name": "minsize",
         }
     }
+    name = "PanedLayout"
+    icon = "flip_horizontal"
+    manager = "pane"
+    stacking_support = False
 
     def get_restore(self, widget):
         return {
@@ -1050,7 +1064,7 @@ class PanedLayoutStrategy(BaseLayoutStrategy):
         super().add_widget(widget, bounds, **kwargs)
         self.container.body.add(widget)
         self._config(widget, **kwargs)
-        self.children.append(widget)
+        self._insert(widget)
 
     def _config(self, widget, **kwargs):
         if not kwargs:

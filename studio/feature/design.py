@@ -55,7 +55,7 @@ class DesignLayoutStrategy(PlaceLayoutStrategy):
         else:
             x1, y1, x2, y2 = self.container.canvas_bounds(bounds)
             self.container.place_child(widget, x=x1, y=y1, width=x2 - x1, height=y2 - y1)
-        self.children.append(widget)
+        self._insert(widget, widget.prev_stack_index if widget.layout == self.container else None)
 
     def remove_widget(self, widget):
         super().remove_widget(widget)
@@ -68,7 +68,7 @@ class DesignLayoutStrategy(PlaceLayoutStrategy):
 
     def restore_widget(self, widget, data=None):
         data = widget.recent_layout_info if data is None else data
-        self.children.append(widget)
+        self._insert(widget, widget.prev_stack_index if widget.layout == self.container else None)
         widget.layout = self.container
         widget.level = self.level + 1
         self.container.place_child(widget, **data.get("info", {}))
@@ -333,6 +333,7 @@ class Designer(DesignPad, Container):
             accelerator = actions.get_routine("STUDIO_RELOAD").accelerator
             text = f"{str(e)}\nPress {accelerator} to reload" if accelerator else f"{str(e)} \n reload design"
             self._show_empty(True, text=text, image=get_tk_image("dialog_error", 50, 50))
+            raise e
             # MessageDialog.show_error(parent=self.studio, title='Error loading design', message=str(e))
         finally:
             if progress:
@@ -762,10 +763,10 @@ class Designer(DesignPad, Container):
     def _show_text_editor(self, widget):
         if any("text" not in w.keys() for w in self.selected):
             return
-        self._text_editor.lift(widget)
         cnf = self._collect_text_config(widget)
         self._text_editor.config(**cnf)
         self._text_editor.place(in_=widget, relwidth=1, relheight=1, x=0, y=0)
+        self._text_editor.lift(widget)
         self._text_editor.clear()
         self._text_editor.focus_set()
         # suppress change event while we set initial value
@@ -791,6 +792,65 @@ class Designer(DesignPad, Container):
 
     def _text_hide(self, *_):
         self._text_editor.place_forget()
+
+    def send_back(self, steps=0):
+        if not (self.studio.selection and self.studio.selection.is_same_parent()):
+            return
+
+        child_list = next(iter(self.studio.selection)).layout._children
+        widgets = sorted(self.studio.selection, key=child_list.index)
+
+        if steps == 0:
+            self._update_stacking({w: index for index, w in enumerate(widgets)})
+        else:
+            self._update_stacking({w: max(0, child_list.index(w) - steps) for w in widgets})
+
+    def bring_front(self, steps=0):
+        if not (self.studio.selection and self.studio.selection.is_same_parent()):
+            return
+
+        child_list = next(iter(self.studio.selection)).layout._children
+        widgets = sorted(self.studio.selection, key=child_list.index)
+
+        end = len(child_list) - 1
+        if steps == 0:
+            self._update_stacking({w: end for w in widgets})
+        else:
+            self._update_stacking({w: min(end, child_list.index(w) + steps) for w in widgets})
+
+    def _update_stacking(self, indices, silently=False):
+        if not indices:
+            return
+
+        child_list = next(iter(indices)).layout._children
+        # reorder child list based on indices
+        for widget in indices:
+            child_list.remove(widget)
+        for widget, index in indices.items():
+            child_list.insert(index, widget)
+
+        prev_data = {}
+        data = {}
+        for index, widget in enumerate(child_list):
+            if widget.prev_stack_index != index:
+                prev_data[widget] = widget.prev_stack_index
+                data[widget] = index
+            widget.prev_stack_index = index
+            if index > 0:
+                widget.lift(child_list[index - 1])
+            else:
+                widget.lift(widget.layout.body)
+
+        prev_data = dict(sorted(prev_data.items(), key=lambda x: x[1]))
+
+        if not silently and prev_data != data:
+            self.studio.new_action(Action(
+                lambda _: self._update_stacking(prev_data, True),
+                lambda _: self._update_stacking(data, True)
+            ))
+
+    def on_widgets_reorder(self, indices):
+        pass
 
     def on_widgets_change(self, widgets):
         pass

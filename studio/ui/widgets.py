@@ -318,6 +318,11 @@ class DesignPad(ScrollableInterface, Frame):
             self._frame.delete(self._child_map[child])
             self._child_map.pop(child)
 
+    def lift_child(self, child, above_this=None):
+        above_this = self._child_map[above_this] if above_this in self._child_map else 'all'
+        if self._child_map.get(child) is not None:
+            self._frame.tag_raise(self._child_map[child], above_this)
+
     def configure(self, cnf=None, **kw):
         self._frame.configure(cnf, **kw)
         return super().configure(cnf, **kw)

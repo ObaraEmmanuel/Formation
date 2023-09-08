@@ -108,6 +108,9 @@ class ToolManager:
     def on_widgets_layout_change(self, widgets):
         self.dispatch("on_widgets_layout_change", widgets)
 
+    def on_widgets_reorder(self, indices):
+        self.dispatch("on_widgets_reorder", indices)
+
     def on_context_switch(self):
         self.dispatch("on_context_switch")
 
