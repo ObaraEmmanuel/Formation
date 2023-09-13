@@ -139,8 +139,7 @@ class PseudoWidget:
         self.bind("<ButtonPress-1>", self._on_press, add='+')
         self.bind("<ButtonRelease>", self._on_release, add='+')
 
-        if self.allow_direct_move:
-            self.bind("<Motion>", self._on_drag, add='+')
+        self.bind("<Motion>", self._on_drag, add='+')
 
         self._active = False
         self.prev_stack_index = None
@@ -185,6 +184,8 @@ class PseudoWidget:
 
     def _on_drag(self, event):
         if not self._active or not event.state & EventMask.MOUSE_BUTTON_1:
+            return
+        if not self.allow_direct_move and not event.state & EventMask.SHIFT:
             return
         x, y = self._pos_fix
         self._pos_fix = (event.x_root, event.y_root)
