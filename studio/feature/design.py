@@ -824,9 +824,15 @@ class Designer(DesignPad, Container):
 
         child_list = next(iter(indices)).layout._children
         # reorder child list based on indices
-        for widget in indices:
+
+        indices = sorted(
+            indices.items(),
+            key=lambda x: (x[1], -child_list.index(x[0]) if x[1] == 0 else child_list.index(x[0]))
+        )
+        for widget, _ in indices:
             child_list.remove(widget)
-        for widget, index in indices.items():
+
+        for widget, index in indices:
             child_list.insert(index, widget)
 
         prev_data = {}

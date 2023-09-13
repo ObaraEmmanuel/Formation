@@ -1,3 +1,4 @@
+import tkinter
 import tkinter as tk
 
 from studio.lib.pseudo import (
@@ -41,7 +42,10 @@ class Canvas(PseudoWidget, tk.Canvas):
         self.setup_widget()
 
     def lift(self, above_this=None):
-        tk.Misc.lift(self, above_this)
+        try:
+            tk.Misc.lift(self, above_this)
+        except tkinter.TclError:
+            pass
 
 
 class Checkbutton(PseudoWidget, tk.Checkbutton):

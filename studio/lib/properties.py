@@ -634,7 +634,8 @@ def get_properties(widget, extern_overrides=None):
     for prop in properties:
         definition = get_resolved(prop, overrides, PROPERTY_TABLE)
         if definition:
-            definition.update(value=widget.get_prop(prop))
+            # TODO Remove this fix when no longer needed
+            definition.update(value=widget.get_prop(prop) if hasattr(widget, "get_prop") else widget[prop])
             resolved_properties[prop] = definition
 
     return resolved_properties
@@ -673,18 +674,4 @@ def get_combined_properties(widgets):
     # get all the properties for each widget
     properties = [widget.properties for widget in widgets]
 
-    # find the intersection of all the property names
-    common_properties = set.intersection(*[set(p.keys()) for p in properties])
-
-    # get the first definition for each common property
-    common_properties = {prop: properties[0][prop] for prop in common_properties}
-
-    # check that the values are the same for each widget
-    for prop, definition in common_properties.items():
-        for widget_properties in properties[1:]:
-            if widget_properties[prop]['value'] != definition['value']:
-                common_properties[prop]['value'] = ''
-                break
-
-    return common_properties
-
+    return combine_properties(properties)

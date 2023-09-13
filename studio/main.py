@@ -17,7 +17,7 @@ from formation import AppBuilder
 from formation.formats import get_file_types, get_file_extensions
 from hoverset.data import actions
 from hoverset.data.images import load_tk_image
-from hoverset.data.keymap import ShortcutManager, CharKey, KeyMap, BlankKey
+from hoverset.data.keymap import ShortcutManager, CharKey, KeyMap, BlankKey, Symbol
 from hoverset.data.utils import get_resource_path
 from hoverset.platform import platform_is, MAC
 from hoverset.ui.dialogs import MessageDialog
@@ -135,7 +135,7 @@ class StudioApplication(Application):
             ("command", "cut", icon("cut", 14, 14), actions.get('STUDIO_CUT'), {}),
             ("separator",),
             ShowIf(
-                lambda: self.selection[0].layout.layout_strategy.stacking_support,
+                lambda: self.selection and self.selection[0].layout.layout_strategy.stacking_support,
                 EnableIf(
                     lambda: self.selection.is_same_parent(),
                     ("command", "send to back", icon("send_to_back", 14, 14), actions.get('STUDIO_BACK'), {}),
@@ -911,14 +911,14 @@ class StudioApplication(Application):
         self.shortcuts.add_routines(
             routine(self.undo, 'STUDIO_UNDO', 'Undo last action', 'studio', CTRL + CharKey('Z')),
             routine(self.redo, 'STUDIO_REDO', 'Redo action', 'studio', CTRL + CharKey('Y')),
-            routine(self.send_back, 'STUDIO_BACK', 'Send selected widgets to back', 'studio', CharKey(']')),
-            routine(self.bring_front, 'STUDIO_FRONT', 'Bring selected widgets to front', 'studio', CharKey('[')),
+            routine(self.send_back, 'STUDIO_BACK', 'Send selected widgets to back', 'studio', Symbol(']')),
+            routine(self.bring_front, 'STUDIO_FRONT', 'Bring selected widgets to front', 'studio', Symbol('[')),
             routine(
                 lambda: self.send_back(1),
-                'STUDIO_BACK_1', 'Move selected widgets back one step', 'studio', CTRL + CharKey(']')),
+                'STUDIO_BACK_1', 'Move selected widgets back one step', 'studio', CTRL + Symbol(']')),
             routine(
                 lambda: self.bring_front(1),
-                'STUDIO_FRONT_1', 'Bring selected widgets up one step', 'studio', CTRL + CharKey('[')),
+                'STUDIO_FRONT_1', 'Bring selected widgets up one step', 'studio', CTRL + Symbol('[')),
             # -----------------------------
             routine(self.open_new, 'STUDIO_NEW', 'Open new design', 'studio', CTRL + CharKey('n')),
             routine(self.open_file, 'STUDIO_OPEN', 'Open design from file', 'studio', CTRL + CharKey('o')),
