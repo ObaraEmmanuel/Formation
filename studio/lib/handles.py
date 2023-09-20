@@ -42,9 +42,10 @@ class Dot(tk.Frame):
         super().__init__(handle.master)
         self.direction = direction
         color = handle.master.style.colors["accent"]
+        border = handle.master.style.colors["primarydarkaccent"]
         self.config(
             width=6, height=6, bg=color, cursor=self._cursor_map[direction],
-            highlightthickness=1, highlightbackground="#000"
+            highlightthickness=1, highlightbackground=border
         )
         self.handle = handle
         self.bind("<ButtonPress>", self.on_press)
