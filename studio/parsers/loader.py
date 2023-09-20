@@ -130,13 +130,13 @@ class BaseStudioAdapter(BaseAdapter):
                 sub_attrib = dict(sub_node.attrib)
                 if sub_attrib.get("column"):
                     column = sub_attrib.pop("column")
-                    obj.columnconfigure(column, sub_attrib)
+                    obj.body.columnconfigure(column, sub_attrib)
                     if not hasattr(obj, "_column_conf"):
                         obj._column_conf = set()
                     obj._column_conf.add(int(column))
                 elif sub_attrib.get("row"):
                     row = sub_attrib.pop("row")
-                    obj.rowconfigure(row, sub_attrib)
+                    obj.body.rowconfigure(row, sub_attrib)
                     if not hasattr(obj, "_row_conf"):
                         obj._row_conf = set()
                     obj._row_conf.add(int(row))

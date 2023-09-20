@@ -342,12 +342,12 @@ class ColumnConfig(StyleGroup):
         return definition
 
     def _get_prop(self, prop, widget):
-        info = widget.layout.columnconfigure(widget.grid_info()["column"])
+        info = widget.layout.body.columnconfigure(widget.grid_info()["column"])
         return info.get(prop)
 
     def _set_prop(self, prop, value, widget):
         column = int(widget.grid_info()["column"])
-        widget.layout.columnconfigure(column, **{prop: value})
+        widget.layout.body.columnconfigure(column, **{prop: value})
         if not hasattr(widget.layout, "_column_conf"):
             widget.layout._column_conf = {column}
         else:
@@ -396,12 +396,12 @@ class RowConfig(ColumnConfig):
         return definition
 
     def _get_prop(self, prop, widget):
-        info = widget.layout.rowconfigure(widget.grid_info()["row"])
+        info = widget.layout.body.rowconfigure(widget.grid_info()["row"])
         return info.get(prop)
 
     def _set_prop(self, prop, value, widget):
         row = int(widget.grid_info()["row"])
-        widget.layout.rowconfigure(row, **{prop: value})
+        widget.layout.body.rowconfigure(row, **{prop: value})
         if not hasattr(widget.layout, "_row_conf"):
             widget.layout._row_conf = {row}
         else:

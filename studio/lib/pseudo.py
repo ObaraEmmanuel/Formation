@@ -112,6 +112,9 @@ class PseudoWidget:
         "variable": _VariableIntercept,
         "listvariable": _VariableIntercept
     }
+    _no_defaults = {
+        "text",
+    }
 
     def setup_widget(self):
         self.designer = self.master
@@ -351,7 +354,9 @@ class PseudoWidget:
             return {}
         options = self.properties
         # Get options whose values are different from their default values
-        return {opt: self.get_prop(opt) for opt in options if str(defaults.get(opt)) != str(self.get_prop(opt))}
+        return {
+            opt: self.get_prop(opt) for opt in options if opt in self._no_defaults or str(defaults.get(opt)) != str(self.get_prop(opt))
+        }
 
     def get_method_defaults(self):
         return {}
