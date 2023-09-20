@@ -445,7 +445,6 @@ class StudioApplication(Application):
         if self.designer and self.selection:
             self.designer.bring_front(steps)
 
-
     def get_pane_info(self, pane):
         return self._panes.get(pane, [self._right, self._right_bar])
 
@@ -455,7 +454,7 @@ class StudioApplication(Application):
 
     def close_all_on_side(self, side):
         for feature in self.features:
-            if feature.side == side:
+            if feature._side.get() == side:
                 feature.minimize()
         # To avoid errors when side is not a valid pane identifier we default to the right pane
         self._panes.get(side, (self._right, self._right_bar))[1].close_all()
@@ -517,12 +516,13 @@ class StudioApplication(Application):
         return obj
 
     def show_all_windows(self):
-        for feature in self.features:
+        for feature in self.features: 
             feature.maximize()
 
     def features_as_windows(self):
         for feature in self.features:
-            feature.open_as_window()
+            if feature.is_visible.get():
+                feature.open_as_window()
 
     def features_as_docked(self):
         for feature in self.features:
