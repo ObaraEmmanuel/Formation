@@ -585,8 +585,8 @@ class Designer(DesignPad, Container):
             if not silent:
                 self.studio.new_action(Action(
                     # Delete silently to prevent adding the event to the undo/redo stack
-                    lambda _: self.delete(obj, True),
-                    lambda _: self.restore(obj, restore_point, obj.layout)
+                    lambda _: self.delete([obj], True),
+                    lambda _: self.restore([obj], [restore_point], [obj.layout])
                 ))
         elif obj.layout is None:
             # This only happens when adding the main layout. We dont need to add this action to the undo/redo stack
