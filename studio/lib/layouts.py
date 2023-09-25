@@ -6,6 +6,7 @@ Layout classes uses in the studio
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
 from collections import defaultdict
+from copy import deepcopy
 
 from studio.ui import geometry
 from studio.ui.highlight import WidgetHighlighter, EdgeIndicator
@@ -84,12 +85,8 @@ class BaseLayoutStrategy:
         self.container.clear_highlight()
 
     def _insert(self, widget, index=None):
-        if index is None:
-            self.children.append(widget)
-        else:
-            self.children.insert(index, widget)
-            self._update_stacking()
-
+        # actual insert logic does not work, we'll stick with append for now
+        self.children.append(widget)
         if widget.prev_stack_index is None:
             widget.prev_stack_index = len(self.children) - 1
 
@@ -98,7 +95,7 @@ class BaseLayoutStrategy:
             if index > 0:
                 widget.lift(self.children[index - 1])
             else:
-                widget.lift(self.container.body)
+                widget.lift(self.container)
 
     def widget_released(self, widget):
         pass
@@ -171,8 +168,8 @@ class BaseLayoutStrategy:
         # May be overridden to return dynamic definitions based on the widget
         # Always use a copy to avoid messing with definition
         if self.dimensions_in_px:
-            return dict(self.DEFINITION)
-        props = dict(self.DEFINITION)
+            return deepcopy(self.DEFINITION)
+        props = deepcopy(self.DEFINITION)
         overrides = getattr(widget, 'DEF_OVERRIDES', {})
         for key in ('width', 'height'):
             if key in props and key in overrides:
@@ -772,6 +769,7 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         self._edge_indicator.update_idletasks()
         bounds = geometry.relative_bounds(bounds, self.container.body)
         x, y = bounds[0], bounds[1]
+        w, h = geometry.dimensions(bounds)
         col, row = self.container.body.grid_location(x, y)
         x, y = geometry.upscale_bounds(bounds, self.container.body)[:2]
         slaves = self.container.body.grid_slaves(max(0, row), max(0, col))
@@ -781,6 +779,9 @@ class GridLayoutStrategy(BaseLayoutStrategy):
             bounds = *bbox[:2], bbox[0] + bbox[2], bbox[1] + bbox[3]
             # Make bounds relative to designer
             bounds = geometry.upscale_bounds(bounds, self.container.body)
+            if geometry.dimensions(bounds) == (0, 0):
+                w, h = w or 50, h or 25
+                bounds = bounds[0], bounds[1], bounds[0] + w, bounds[1] + h
         else:
             bounds = geometry.bounds(slaves[0])
         y_offset, x_offset = 10, 10  # 0.15*(bounds[3] - bounds[1]), 0.15*(bounds[2] - bounds[0])
@@ -812,7 +813,8 @@ class GridLayoutStrategy(BaseLayoutStrategy):
             widget.grid_configure(**{prop: value})
 
     def react_to_pos(self, x, y):
-        self._location_analysis((*geometry.resolve_position((x, y), self.container.parent), 0, 0))
+        x, y = geometry.resolve_position((x, y), self.container.parent)
+        self._location_analysis((x, y, x, y))
 
     def info(self, widget):
         info = widget.grid_info() or {}
@@ -1062,7 +1064,8 @@ class PanedLayoutStrategy(BaseLayoutStrategy):
     def add_widget(self, widget, bounds=None, **kwargs):
         super().remove_widget(widget)
         super().add_widget(widget, bounds, **kwargs)
-        self.container.body.add(widget)
+        if str(widget) not in self.container.body.panes():
+            self.container.body.add(widget)
         self._config(widget, **kwargs)
         self._insert(widget)
 
@@ -1117,7 +1120,7 @@ class NPanedLayoutStrategy(PanedLayoutStrategy):
 
     def _config(self, widget, **kwargs):
         if not kwargs:
-            return self.container.pane(widget)
+            return self.container.body.pane(widget)
         self.container.body.pane(widget, **kwargs)
 
     def copy_layout(self, widget, from_):

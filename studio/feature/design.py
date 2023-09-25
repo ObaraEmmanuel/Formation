@@ -46,15 +46,14 @@ class DesignLayoutStrategy(PlaceLayoutStrategy):
     def add_widget(self, widget, bounds=None, **kwargs):
         super(PlaceLayoutStrategy, self).add_widget(widget, bounds=bounds, **kwargs)
         super(PlaceLayoutStrategy, self).remove_widget(widget)
-        if bounds is None:
+        if bounds:
+            self.move_widget(widget, bounds)
+        else:
             x = kwargs.get("x", 10)
             y = kwargs.get("y", 10)
             width = kwargs.get("width", 20)
             height = kwargs.get("height", 20)
             self.container.place_child(widget, x=x, y=y, width=width, height=height)
-        else:
-            x1, y1, x2, y2 = self.container.canvas_bounds(bounds)
-            self.container.place_child(widget, x=x1, y=y1, width=x2 - x1, height=y2 - y1)
         self._insert(widget, widget.prev_stack_index if widget.layout == self.container else None)
 
     def remove_widget(self, widget):
@@ -182,6 +181,9 @@ class Designer(DesignPad, Container):
             "designer::frame_skip",
             self._update_throttling
         )
+        self._sorted_containers = []
+        self._realtime_layout_update = False
+        self._handle_active_data = None
 
     def clear_studio_bindings(self):
         for binding in self._studio_bindings:
@@ -385,19 +387,40 @@ class Designer(DesignPad, Container):
             self._frame.canvasy(event.y)
         )
 
+    def _on_handle_active_start(self, widget, direction):
+        self._handle_active_data = widget, direction
+
     def _on_handle_active(self, widget, direction):
         if direction == "all":
             self._move_selection = self.studio.selection.siblings(widget)
+            self.current_container = self._move_selection[0].layout
+            self.current_container.show_highlight()
+            self._sorted_containers = sorted(
+                filter(lambda x: isinstance(x, Container) and x not in self._move_selection, self.objects),
+                key=lambda x: -x.level
+            )
             self._all_bound = geometry.overall_bounds([w.get_bounds() for w in self._move_selection])
+            self._realtime_layout_update = True
             for obj in self._move_selection:
                 obj.layout.change_start(obj)
+                # disable realtime layout update if any widget's layout doesn't support it
+                if not obj.layout.layout_strategy.realtime_support:
+                    self._realtime_layout_update = False
         else:
             for obj in self._selected:
                 if not obj.layout.allow_resize:
                     continue
                 obj.layout.change_start(obj)
 
+            if all(w.layout.layout_strategy.realtime_support for w in self._selected):
+                self._realtime_layout_update = True
+
     def _on_handle_inactive(self, widget, direction):
+        if self._handle_active_data is not None:
+            # no movement occurred so we can skip the post-processing
+            self._handle_active_data = None
+            return
+
         layouts_changed = []
         if direction == "all":
             if not self.current_container:
@@ -427,9 +450,14 @@ class Designer(DesignPad, Container):
 
         self.create_restore(layouts_changed)
         self.studio.widgets_layout_changed(layouts_changed)
+        self._realtime_layout_update = False
         self._skip_var = 0
 
     def _on_handle_resize(self, widget, direction, delta):
+        if self._handle_active_data is not None:
+            self._on_handle_active(*self._handle_active_data)
+            self._handle_active_data = None
+
         if self._skip_var < self._skip_max:
             self._skip_var += 1
             self._surge_delta = (self._surge_delta[0] + delta[0], self._surge_delta[1] + delta[1])
@@ -443,13 +471,11 @@ class Designer(DesignPad, Container):
             for obj in self._selected:
                 if obj.layout.allow_resize:
                     obj.layout.resize_widget(obj, direction, delta)
+            if self._realtime_layout_update:
+                self.studio.widgets_layout_changed(self._selected)
         else:
             # move
             self._on_handle_move(widget, delta)
-
-        # TODO handle realtime layout changes
-        # if obj.layout.layout_strategy.realtime_support:
-        #     self.studio.widgets_layout_changed(obj)
 
     def _on_handle_move(self, _, delta):
         dx, dy = delta
@@ -478,28 +504,33 @@ class Designer(DesignPad, Container):
             x1, y1, x2, y2 = w.get_bounds()
             current.move_widget(w, [x1 + dx, y1 + dy, x2 + dx, y2 + dy])
 
+        if self.current_container.layout_strategy.realtime_support:
+            self.studio.widgets_layout_changed(objs)
+
     def set_active_container(self, container):
         if self.current_container is not None:
             self.current_container.clear_highlight()
         self.current_container = container
 
     def layout_at(self, bounds):
-        for container in sorted(filter(lambda x: isinstance(x, Container) and x not in self._selected, self.objects),
-                                key=lambda x: len(self.objects) - x.level):
-            if isinstance(self.current_obj, Container) and self.current_obj.level < container.level:
-                continue
+        candidate = None
+        for container in self._sorted_containers:
             if geometry.is_within(geometry.bounds(container), bounds):
-                return container
+                candidate = container
+                break
         if self.current_container and geometry.compute_overlap(geometry.bounds(self.current_container), bounds):
+            if candidate and candidate.level > self.current_container.level:
+                return candidate
             return self.current_container
-        return self
+
+        return candidate or self
 
     def _attach(self, obj):
         # bind events for context menu and object selection
         # all widget additions call this method so clear empty message
         self._show_empty(False)
         obj.on_handle_resize(self._on_handle_resize)
-        obj.on_handle_active(self._on_handle_active)
+        obj.on_handle_active(self._on_handle_active_start)
         obj.on_handle_inactive(self._on_handle_inactive)
 
         MenuUtils.bind_all_context(obj, lambda e: self.show_menu(e, obj), add='+')

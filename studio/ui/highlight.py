@@ -62,7 +62,7 @@ class EdgeIndicator(tk.Frame):
         self.place(x=x, y=y, height=1.5, width=bounds[2] - bounds[0])
 
     def right(self, bounds):
-        x, y = bounds[2], bounds[3]
+        x, y = bounds[2], bounds[1]
         self.lift()
         self.place(x=x, y=y, height=bounds[3] - bounds[1], width=1.5)
 
