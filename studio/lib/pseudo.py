@@ -167,7 +167,7 @@ class PseudoWidget:
                 pass
 
             # then lift above highest child if any
-            if above_this._children:
+            if above_this._children and self.layout != above_this:
                 super().lift(above_this._children[-1])
         else:
             super().lift(above_this)

@@ -85,8 +85,12 @@ class BaseLayoutStrategy:
         self.container.clear_highlight()
 
     def _insert(self, widget, index=None):
-        # actual insert logic does not work, we'll stick with append for now
-        self.children.append(widget)
+        if index is None:
+            self.children.append(widget)
+        else:
+            self.children.insert(index, widget)
+            self._update_stacking()
+
         if widget.prev_stack_index is None:
             widget.prev_stack_index = len(self.children) - 1
 
