@@ -24,6 +24,7 @@ from studio.lib.pseudo import PseudoWidget, Container, Groups
 from studio.parsers.loader import DesignBuilder, BaseStudioAdapter
 from studio.ui import geometry
 from studio.ui.widgets import DesignPad, CoordinateIndicator
+from studio.ui.highlight import RegionHighlighter
 from studio.context import BaseContext
 from studio import __version__
 
@@ -132,6 +133,7 @@ class Designer(DesignPad, Container):
         self._shortcut_mgr = KeyMap(self._frame)
         self._set_shortcuts()
         self._last_click_pos = None
+        self._region_highlight = RegionHighlighter(self, self.style)
 
         self._empty = Label(
             self,
@@ -524,6 +526,23 @@ class Designer(DesignPad, Container):
             return self.current_container
 
         return candidate or self
+
+    def show_select_region(self, bounds):
+        bounds = geometry.resolve_bounds(bounds, self)
+        self._region_highlight.highlight_bounds(bounds)
+
+    def clear_select_region(self):
+        self._region_highlight.clear()
+
+    def select_in_region(self, widget, bounds):
+        if isinstance(widget, Container):
+            bounds = geometry.resolve_bounds(bounds, self)
+            to_select = []
+            for child in widget._children:
+                if geometry.compute_overlap(child.get_bounds(), bounds):
+                    to_select.append(child)
+            if to_select:
+                self.studio.selection.set(to_select)
 
     def _attach(self, obj):
         # bind events for context menu and object selection

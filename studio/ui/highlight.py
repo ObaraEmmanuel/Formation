@@ -41,6 +41,10 @@ class WidgetHighlighter:
             element.place_forget()
 
 
+class RegionHighlighter(WidgetHighlighter):
+    OUTLINE = 1
+
+
 class EdgeIndicator(tk.Frame):
     """
     Generates a conspicuous line at the edges of a widget for various indication purposes

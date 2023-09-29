@@ -35,6 +35,7 @@ class Canvas(PseudoWidget, tk.Canvas):
     icon = "paint"
     impl = tk.Canvas
     allow_direct_move = False
+    allow_drag_select = False
 
     def __init__(self, master, id_):
         super().__init__(master)

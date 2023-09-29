@@ -101,6 +101,7 @@ class PseudoWidget:
     impl = None
     is_toplevel = False
     allow_direct_move = True
+    allow_drag_select = False
     # special handlers (intercepts) for attributes that need additional processing
     # to interface with the studio easily
     _intercepts = {
@@ -145,6 +146,8 @@ class PseudoWidget:
         self.bind("<Motion>", self._on_drag, add='+')
 
         self._active = False
+        self._select_mode_active = False
+        self._select_bounds = None
         self.prev_stack_index = None
 
     def set_name(self, name):
@@ -173,6 +176,12 @@ class PseudoWidget:
             super().lift(above_this)
 
     def _on_press(self, event):
+        if not self.allow_direct_move and not event.state & EventMask.SHIFT:
+            if not self.allow_drag_select:
+                return
+            self._select_mode_active = True
+            self._pos_fix = (event.x_root, event.y_root)
+            return
         if not self._handle:
             return
         self._pos_fix = (event.x_root, event.y_root)
@@ -180,15 +189,27 @@ class PseudoWidget:
         self._active = True
 
     def _on_release(self, _):
+        if self._select_mode_active:
+            self.designer.clear_select_region()
+            self._select_mode_active = False
+            if self._select_bounds is not None:
+                self.designer.select_in_region(self, self._select_bounds)
+                self._select_bounds = None
+
         if not self._active:
             return
         self.handle_inactive('all')
         self._active = False
 
     def _on_drag(self, event):
+        if self._select_mode_active:
+            x1, y1 = self._pos_fix
+            x2, y2 = event.x_root, event.y_root
+            bounds = min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2)
+            self._select_bounds = bounds
+            self.designer.show_select_region(bounds)
+
         if not self._active or not event.state & EventMask.MOUSE_BUTTON_1:
-            return
-        if not self.allow_direct_move and not event.state & EventMask.SHIFT:
             return
         x, y = self._pos_fix
         self._pos_fix = (event.x_root, event.y_root)
@@ -379,6 +400,7 @@ class PseudoWidget:
 class Container(PseudoWidget):
     LAYOUTS = layouts.layouts
     allow_direct_move = False
+    allow_drag_select = True
 
     def setup_widget(self):
         self.parent = self.designer = self._get_designer()
