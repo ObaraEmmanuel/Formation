@@ -921,7 +921,7 @@ def restart():
 def main():
     # load resources first
     ResourceLoader.load(pref)
-    StudioApplication().mainloop()
+    StudioApplication(className='Formation Studio').mainloop()
 
 
 if __name__ == "__main__":
