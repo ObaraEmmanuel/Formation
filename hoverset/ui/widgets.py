@@ -2415,7 +2415,7 @@ class Spinner(Frame):
         popup.on_close(self._close_popup)
 
     def _close_popup(self):
-        # self._popup_window = None
+        self._popup_window = None
         # This fails at times during program close up
         try:
             self._button.config(image=self.EXPAND)
