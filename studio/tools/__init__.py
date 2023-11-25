@@ -9,7 +9,7 @@ from studio.tools._base import BaseTool
 
 TOOLS = (
     MenuTool,
-    CanvasTool
+    CanvasTool,
 )
 
 
@@ -52,7 +52,7 @@ class ToolManager:
             else:
                 template = template[0]
             templates += (
-                manipulator(partial(tool.supports, self.studio.selected), template),
+                manipulator(partial(tool.supports, self.studio.selection), template),
             )
         # prepend a separator for context menus
         if templates and hide_unsupported:
@@ -86,11 +86,8 @@ class ToolManager:
         for tool in self._tools:
             getattr(tool, action)(*args)
 
-    def on_select(self, widget):
-        self.dispatch("on_select", widget)
-
-    def on_widget_delete(self, widget):
-        self.dispatch("on_widget_delete", widget)
+    def on_widgets_delete(self, widgets):
+        self.dispatch("on_widgets_delete", widgets)
 
     def on_app_close(self):
         for tool in self._tools:
@@ -105,11 +102,14 @@ class ToolManager:
     def on_widget_add(self, widget, parent):
         self.dispatch("on_widget_add", widget, parent)
 
-    def on_widget_change(self, old_widget, new_widget):
-        self.dispatch("on_widget_change", old_widget, new_widget)
+    def on_widgets_change(self, widgets):
+        self.dispatch("on_widgets_change", widgets)
 
-    def on_widget_layout_change(self, widget):
-        self.dispatch("on_widget_layout_change", widget)
+    def on_widgets_layout_change(self, widgets):
+        self.dispatch("on_widgets_layout_change", widgets)
+
+    def on_widgets_reorder(self, indices):
+        self.dispatch("on_widgets_reorder", indices)
 
     def on_context_switch(self):
         self.dispatch("on_context_switch")

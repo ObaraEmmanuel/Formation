@@ -1,9 +1,9 @@
+import tkinter
 import tkinter as tk
 
 from studio.lib.pseudo import (
     PseudoWidget, Groups, Container, PanedContainer, _dimension_override
 )
-from studio.lib.toplevel import Toplevel
 from studio.lib.toplevel import Toplevel, Tk
 
 
@@ -34,6 +34,8 @@ class Canvas(PseudoWidget, tk.Canvas):
     group = Groups.container
     icon = "paint"
     impl = tk.Canvas
+    allow_direct_move = False
+    allow_drag_select = False
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -41,7 +43,10 @@ class Canvas(PseudoWidget, tk.Canvas):
         self.setup_widget()
 
     def lift(self, above_this=None):
-        tk.Misc.lift(self, above_this)
+        try:
+            tk.Misc.lift(self, above_this)
+        except tkinter.TclError:
+            pass
 
 
 class Checkbutton(PseudoWidget, tk.Checkbutton):

@@ -15,9 +15,10 @@ from hoverset.platform import platform_is, LINUX
 from studio.feature._base import BaseFeature
 from studio.ui.editors import StyleItem, get_display_name, get_editor
 from studio.ui.widgets import CollapseFrame
-from studio.lib.pseudo import Container
+from studio.lib.pseudo import Container, PseudoWidget
 from studio.lib.layouts import GridLayoutStrategy
-from studio.preferences import Preferences, get_active_pref
+from studio.preferences import Preferences
+from studio.lib.properties import get_combined_properties, combine_properties
 
 
 class ReusableStyleItem(StyleItem):
@@ -100,20 +101,20 @@ class StyleGroup(CollapseFrame):
 
     def __init__(self, master, pane, **cnf):
         super().__init__(master)
+        self.pane_row = 0
         self.style_pane = pane
         self.configure(**{**self.style.surface, **cnf})
         self._empty_message = "Select an item to see styles"
         self._empty = Frame(self.body, **self.style.surface)
         self._empty_label = Label(self._empty, **self.style.text_passive,)
         self._empty_label.pack(fill="both", expand=True, pady=15)
-        self._widget = None
         self._prev_widget = None
         self._has_initialized = False  # Flag to mark whether Style Items have been created
         self.items = {}
 
     @property
-    def widget(self):
-        return self._widget
+    def widgets(self):
+        return self.style_pane.selection
 
     def can_optimize(self):
         return False
@@ -163,9 +164,8 @@ class StyleGroup(CollapseFrame):
     def _remove_empty(self):
         self._empty.pack_forget()
 
-    def on_widget_change(self, widget):
-        self._widget = widget
-        if widget is None:
+    def on_widgets_change(self):
+        if not self.widgets:
             self.collapse()
             return
         definitions = self.get_definition()
@@ -180,7 +180,7 @@ class StyleGroup(CollapseFrame):
             ReusableStyleItem.free_all(self.items.values())
             self.items.clear()
             add = self.add
-            list(map(lambda p: add(ReusableStyleItem.acquire(self, definitions[p], self.apply), ), definitions))
+            list(map(lambda p: add(ReusableStyleItem.acquire(self, definitions[p], self.apply), ), sorted(definitions)))
             if not self.items:
                 self._show_empty()
             else:
@@ -188,43 +188,47 @@ class StyleGroup(CollapseFrame):
             # self.style_pane.body.scroll_to_start()
 
         self._has_initialized = True
-        self._prev_widget = widget
+        self._prev_widgets = self.widgets
 
-    def _apply_action(self, prop, value, widget, data):
-        self.apply(prop, value, widget, True)
+    def _apply_action(self, prop, value, widgets, data):
+        self.apply(prop, value, widgets, True)
 
     def _get_action_data(self, widget, prop):
         return {}
 
-    def _get_key(self, widget, prop):
-        return f"{widget}:{self.__class__.__name__}:{prop}"
+    def _get_key(self, widgets, prop):
+        return f"{'.'.join([w.id for w in widgets])}:{self.__class__.__name__}:{prop}"
 
-    def apply(self, prop, value, widget=None, silent=False):
-        is_external = widget is not None
-        widget = self.widget if widget is None else widget
-        if widget is None:
+    def apply(self, prop, value, widgets=None, silent=False):
+        is_external = widgets is not None
+        widgets = self.widgets if widgets is None else widgets
+        if not widgets:
             return
         try:
-            prev_val = self._get_prop(prop, widget)
-            data = self._get_action_data(widget, prop)
-            self._set_prop(prop, value, widget)
-            new_data = self._get_action_data(widget, prop)
-            self.style_pane.widget_modified(widget)
+            prev_val = [self._get_prop(prop, widget) for widget in widgets]
+            data = [self._get_action_data(widget, prop) for widget in widgets]
             if is_external:
-                if widget == self.widget:
+                list(map(lambda x: self._set_prop(prop, x[0], x[1]), zip(value, widgets)))
+            else:
+                [self._set_prop(prop, value, widget) for widget in widgets]
+            new_data = [self._get_action_data(widget, prop) for widget in widgets]
+            self.style_pane.widgets_modified(widgets)
+            if is_external:
+                if widgets == self.widgets:
                     self.items[prop].set_silently(value)
             if silent:
                 return
-            key = self._get_key(widget, prop)
+            key = self._get_key(widgets, prop)
             action = self.style_pane.last_action()
+
             if action is None or action.key != key:
                 self.style_pane.new_action(Action(
-                    lambda _: self._apply_action(prop, prev_val, widget, data),
-                    lambda _: self._apply_action(prop, value, widget, new_data),
+                    lambda _: self._apply_action(prop, prev_val, widgets, data),
+                    lambda _: self._apply_action(prop, [value for _ in widgets], widgets, new_data),
                     key=key,
                 ))
             else:
-                action.update_redo(lambda _: self._apply_action(prop, value, widget, new_data))
+                action.update_redo(lambda _: self._apply_action(prop, [value for _ in widgets], widgets, new_data))
         except Exception as e:
             # Empty string values are too common to be useful in logger debug
             if value != '':
@@ -234,7 +238,7 @@ class StyleGroup(CollapseFrame):
     def get_definition(self):
         return {}
 
-    def supports_widget(self, widget):
+    def supports_widgets(self):
         return True
 
     def on_search_query(self, query):
@@ -263,12 +267,17 @@ class IdentityGroup(StyleGroup):
         self.label = "Widget identity"
 
     def get_definition(self):
-        if hasattr(self.widget, 'identity'):
-            return self.widget.identity
+        if not self.widgets:
+            return
+        if hasattr(self.widgets[0], 'identity'):
+            return self.widgets[0].identity
         return None
 
     def can_optimize(self):
         return self._has_initialized
+
+    def supports_widgets(self):
+        return len(self.widgets) == 1
 
 
 class AttributeGroup(StyleGroup):
@@ -276,10 +285,11 @@ class AttributeGroup(StyleGroup):
     def __init__(self, master, pane, **cnf):
         super().__init__(master, pane, **cnf)
         self.label = "Attributes"
+        self._prev_classes = set()
 
     def get_definition(self):
-        if hasattr(self.widget, 'properties'):
-            return self.widget.properties
+        if self.widgets and all(isinstance(widget, PseudoWidget) for widget in self.widgets):
+            return get_combined_properties(self.widgets)
         return {}
 
     def _get_action_data(self, widget, prop):
@@ -287,15 +297,24 @@ class AttributeGroup(StyleGroup):
             return widget.get_all_info()
         super()._get_action_data(widget, prop)
 
-    def _apply_action(self, prop, value, widget, data):
-        self.apply(prop, value, widget, True)
-        if prop == "layout" and data and isinstance(widget, Container):
-            widget.config_all_widgets(data)
-            if self.widget in widget._children:
-                self.style_pane._layout_group.on_widget_change(self.widget)
+    def _apply_action(self, prop, value, widgets, data):
+        self.apply(prop, value, widgets, True)
+        if prop == "layout":
+            has_change = False
+            for widget, info in zip(widgets, data):
+                widget.config_all_widgets(info)
+                if any(w in widget._children for w in self.widgets):
+                    has_change = True
+
+            if has_change:
+                self.style_pane._layout_group.on_widgets_change(self.widgets)
 
     def can_optimize(self):
-        return self._widget.__class__ == self._prev_widget.__class__ and self._has_initialized
+        classes = set(w.__class__ for w in self.widgets)
+        if classes != self._prev_classes:
+            self._prev_classes = classes
+            return False
+        return True
 
 
 class ColumnConfig(StyleGroup):
@@ -312,17 +331,23 @@ class ColumnConfig(StyleGroup):
 
     def _get_index_def(self):
         definition = dict(GridLayoutStrategy.COLUMN_DEF)
-        column = self.widget.grid_info()["column"] if self.is_grid(self.widget) else 0
-        definition["value"] = column
+        if self.widgets:
+            definition["value"] = self.widgets[0].grid_info()["column"]
+
+        for w in self.widgets:
+            if w.grid_info()["column"] != definition["value"]:
+                definition["value"] = ''
+                break
+
         return definition
 
     def _get_prop(self, prop, widget):
-        info = widget.layout.columnconfigure(widget.grid_info()["column"])
+        info = widget.layout.body.columnconfigure(widget.grid_info()["column"])
         return info.get(prop)
 
     def _set_prop(self, prop, value, widget):
         column = int(widget.grid_info()["column"])
-        widget.layout.columnconfigure(column, **{prop: value})
+        widget.layout.body.columnconfigure(column, **{prop: value})
         if not hasattr(widget.layout, "_column_conf"):
             widget.layout._column_conf = {column}
         else:
@@ -334,9 +359,9 @@ class ColumnConfig(StyleGroup):
         return widget.layout.layout_strategy.__class__ == GridLayoutStrategy
 
     def get_definition(self):
-        if not self.is_grid(self.widget):
+        if not self.widgets and self.is_grid(self.widgets[0]):
             return {}
-        return self.widget.layout.layout_strategy.get_column_def(self.widget)
+        return combine_properties([w.layout.layout_strategy.get_column_def(w) for w in self.widgets])
 
     def can_optimize(self):
         return self._has_initialized
@@ -346,11 +371,12 @@ class ColumnConfig(StyleGroup):
             self._hide(child)
 
     def _update_index(self):
-        self._index.set(self.widget.grid_info()["column"])
+        if self.widgets:
+            self._index.set(self.widgets[0].grid_info()["column"])
 
-    def on_widget_change(self, widget):
-        if self.is_grid(widget):
-            super().on_widget_change(widget)
+    def on_widgets_change(self):
+        if self.widgets and all(self.is_grid(widget) for widget in self.widgets):
+            super().on_widgets_change()
             self._index._editor.set_def(self._get_index_def())
             self._update_index()
 
@@ -359,29 +385,36 @@ class RowConfig(ColumnConfig):
 
     def _get_index_def(self):
         definition = dict(GridLayoutStrategy.ROW_DEF)
-        row = self.widget.grid_info()["row"] if self.is_grid(self.widget) else 0
-        definition["value"] = row
+        if self.widgets:
+            definition["value"] = self.widgets[0].grid_info()["row"]
+
+        for w in self.widgets:
+            if w.grid_info()["row"] != definition["value"]:
+                definition["value"] = ''
+                break
+
         return definition
 
     def _get_prop(self, prop, widget):
-        info = widget.layout.rowconfigure(widget.grid_info()["row"])
+        info = widget.layout.body.rowconfigure(widget.grid_info()["row"])
         return info.get(prop)
 
     def _set_prop(self, prop, value, widget):
         row = int(widget.grid_info()["row"])
-        widget.layout.rowconfigure(row, **{prop: value})
+        widget.layout.body.rowconfigure(row, **{prop: value})
         if not hasattr(widget.layout, "_row_conf"):
             widget.layout._row_conf = {row}
         else:
             widget.layout._row_conf.add(row)
 
     def _update_index(self):
-        self._index.set(self.widget.grid_info()["row"])
+        if self.widgets:
+            self._index.set(self.widgets[0].grid_info()["column"])
 
     def get_definition(self):
-        if not self.is_grid(self.widget):
+        if not self.widgets and self.is_grid(self.widgets[0]):
             return {}
-        return self.widget.layout.layout_strategy.get_row_def(self.widget)
+        return combine_properties([w.layout.layout_strategy.get_row_def(w) for w in self.widgets])
 
 
 class GridConfig(Frame):
@@ -407,6 +440,7 @@ class LayoutGroup(StyleGroup):
         self.label = "Layout"
         self._prev_layout = None
         self._grid_config = GridConfig(self.body, pane)
+        self._last_keys = set()
 
     def _get_prop(self, prop, widget):
         info = widget.layout.layout_strategy.info(widget)
@@ -415,15 +449,17 @@ class LayoutGroup(StyleGroup):
     def _set_prop(self, prop, value, widget):
         widget.layout.apply(prop, value, widget)
 
-    def on_widget_change(self, widget):
-        super().on_widget_change(widget)
-        self._prev_layout = widget.layout.layout_strategy
-        if widget:
-            self.label = f"Layout ({widget.layout.layout_strategy.name})"
+    def on_widgets_change(self):
+        super().on_widgets_change()
+        layout_strategy = self.widgets[0].layout.layout_strategy if self.widgets else None
+        self._prev_layout = layout_strategy
+
+        if self.widgets:
+            self.label = f"Layout ({self.widgets[0].layout.layout_strategy.name})"
         else:
             self.label = "Layout"
 
-        if widget.layout.layout_strategy.__class__ == GridLayoutStrategy:
+        if layout_strategy.__class__ == GridLayoutStrategy:
             self._show_grid_conf(True)
         else:
             self._show_grid_conf(False)
@@ -436,13 +472,17 @@ class LayoutGroup(StyleGroup):
             self._grid_config.pack_forget()
 
     def can_optimize(self):
-        layout_strategy = self.widget.layout.layout_strategy
-        return layout_strategy.__class__ == self._prev_layout.__class__ \
-               and self._layout_equal(self.widget, self._prev_widget)
+        keys = set(self.get_definition().keys())
+        layout = self.widgets[0].layout.layout_strategy if self.widgets else None
+        if self._last_keys != keys or self._prev_layout != layout:
+            self._last_keys = keys
+            self._prev_layout = layout
+            return False
+        return True
 
     def get_definition(self):
-        if self.widget is not None:
-            return self.widget.layout.definition_for(self.widget)
+        if self.widgets:
+            return combine_properties([w.layout.definition_for(w) for w in self.widgets])
         return {}
 
     def _layout_equal(self, widget1, widget2):
@@ -450,9 +490,15 @@ class LayoutGroup(StyleGroup):
         def2 = widget2.layout.layout_strategy.get_def(widget2)
         return def1 == def2
 
-    def supports_widget(self, widget):
+    def supports_widgets(self):
         # toplevel widgets do not need layout
-        return not widget.is_toplevel
+        if any(widget.is_toplevel for widget in self.widgets):
+            return False
+        if not self.widgets:
+            return False
+        strategy = self.widgets[0].layout.layout_strategy
+        # only support widgets with the same layout strategy
+        return all(widget.layout.layout_strategy == strategy for widget in self.widgets)
 
 
 class WindowGroup(StyleGroup):
@@ -474,12 +520,12 @@ class WindowGroup(StyleGroup):
         return True
 
     def get_definition(self):
-        if self.widget is not None:
-            return self.widget.window_definition()
+        if self.widgets:
+            return combine_properties([widget.window_definition() for widget in self.widgets])
         return {}
 
-    def supports_widget(self, widget):
-        return widget.is_toplevel
+    def supports_widgets(self):
+        return all(widget.is_toplevel for widget in self.widgets)
 
 
 class StylePaneFramework:
@@ -503,17 +549,29 @@ class StylePaneFramework:
 
         self._empty_frame = Frame(self.body)
         self.show_empty()
+        self._selection = []
         self._current = None
         self._expanded = False
         self._is_loading = False
         self._search_query = None
+        self._current_row = 0
+
+        self.body.body.columnconfigure(0, weight=1)
 
     def get_header(self):
         raise NotImplementedError()
 
     @property
+    def selection(self):
+        return self._selection
+
+    @property
+    def widgets(self):
+        return self._selection
+
+    @property
     def supported_groups(self):
-        return [group for group in self.groups if group.supports_widget(self._current)]
+        return [group for group in self.groups if group.supports_widgets(self._current)]
 
     def create_menu(self):
         return (
@@ -522,10 +580,10 @@ class StylePaneFramework:
             ("command", "Collapse all", get_icon_image("chevron_up", 14, 14), self.collapse_all, {})
         )
 
-    def extern_apply(self, group_class, prop, value, widget=None, silent=False):
+    def extern_apply(self, group_class, prop, value, widgets=None, silent=False):
         for group in self.groups:
             if group.__class__ == group_class:
-                group.apply(prop, value, widget, silent)
+                group.apply(prop, value, widgets, silent)
                 return
         raise ValueError(f"Class {group_class.__class__.__name__} not found")
 
@@ -535,13 +593,15 @@ class StylePaneFramework:
     def new_action(self, action):
         raise NotImplementedError()
 
-    def widget_modified(self, widget):
+    def widgets_modified(self, widgets):
         raise NotImplementedError()
 
     def add_group(self, group_class, **kwargs) -> StyleGroup:
         if not issubclass(group_class, StyleGroup):
             raise ValueError('type required.')
         group = group_class(self.body.body, self, **kwargs)
+        group.pane_row = self._current_row
+        self._current_row += 1
         self.groups.append(group)
         self.show_group(group)
         return group
@@ -549,6 +609,8 @@ class StylePaneFramework:
     def add_group_instance(self, group_instance, show=False):
         if not isinstance(group_instance, StyleGroup):
             raise ValueError('Expected object of type StyleGroup.')
+        group_instance.pane_row = self._current_row
+        self._current_row += 1
         self.groups.append(group_instance)
         if show:
             self.show_group(group_instance)
@@ -557,13 +619,17 @@ class StylePaneFramework:
         if group.self_positioned:
             group._hide_group()
             return
-        group.pack_forget()
+        if not group.winfo_ismapped():
+            return
+        group.grid_forget()
 
     def show_group(self, group):
         if group.self_positioned:
             group._show_group()
             return
-        group.pack(side='top', fill='x', pady=12)
+        if group.winfo_ismapped():
+            return
+        group.grid(row=group.pane_row, column=0, sticky="nsew", pady=12)
 
     def show_empty(self):
         self.remove_empty()
@@ -590,36 +656,40 @@ class StylePaneFramework:
         self.remove_empty()
         self._is_loading = False
 
-    def styles_for(self, widget):
-        self._current = widget
-        if widget is None:
+    def render_styles(self):
+        if not self.widgets:
             self.show_empty()
             return
+
         for group in self.groups:
-            if group.supports_widget(widget):
+            if group.supports_widgets():
                 self.show_group(group)
-                group.on_widget_change(widget)
+                group.on_widgets_change()
             else:
                 self.hide_group(group)
         self.remove_loading()
         self.body.update_idletasks()
 
-    def layout_for(self, widget):
+    def render_layouts(self):
         for group in self.groups:
-            if group.handles_layout and group.supports_widget(widget):
-                group.on_widget_change(widget)
+            if group.handles_layout and group.supports_widgets():
+                group.on_widgets_change()
         self.remove_loading()
 
-    def on_select(self, widget):
-        self.styles_for(widget)
+    def _select(self, _):
+        selection = list(self.studio.selection)
+        if selection == self._selection:
+            return
+        self._selection = selection
+        self.render_styles()
 
-    def on_widget_change(self, old_widget, new_widget=None):
-        if new_widget is None:
-            new_widget = old_widget
-        self.styles_for(new_widget)
+    def on_widgets_change(self, widgets):
+        if any(w in self.widgets for w in widgets):
+            self.render_styles()
 
-    def on_widget_layout_change(self, widget):
-        self.layout_for(widget)
+    def on_widgets_layout_change(self, widgets):
+        if any(w in self.widgets for w in widgets):
+            self.render_layouts()
 
     def expand_all(self):
         for group in self.groups:
@@ -680,7 +750,7 @@ class StylePane(StylePaneFramework, BaseFeature):
         self.setup_style_pane()
 
         pref: Preferences = Preferences.acquire()
-        pref.add_listener("designer::descriptive_names", lambda _: self.styles_for(self._current))
+        pref.add_listener("designer::descriptive_names", lambda _: [self.render_styles(), self.render_layouts()])
 
         self._identity_group = self.add_group(IdentityGroup)
         self._layout_group = self.add_group(LayoutGroup)
@@ -690,11 +760,13 @@ class StylePane(StylePaneFramework, BaseFeature):
         self.add_group_instance(self._layout_group._grid_config.column_config)
         self.add_group_instance(self._layout_group._grid_config.row_config)
 
-    def apply_style(self, prop, value, widget=None, silent=False):
-        self._attribute_group.apply(prop, value, widget, silent)
+        self.studio.bind("<<SelectionChanged>>", self._select, add='+')
 
-    def apply_layout(self, prop, value, widget=None, silent=False):
-        self._layout_group.apply(prop, value, widget, silent)
+    def apply_style(self, prop, value, widgets=None, silent=False):
+        self._attribute_group.apply(prop, value, widgets, silent)
+
+    def apply_layout(self, prop, value, widgets=None, silent=False):
+        self._layout_group.apply(prop, value, widgets, silent)
 
     def get_header(self):
         return self._header
@@ -705,5 +777,5 @@ class StylePane(StylePaneFramework, BaseFeature):
     def new_action(self, action):
         self.studio.new_action(action)
 
-    def widget_modified(self, widget):
-        self.studio.widget_modified(widget, self, None)
+    def widgets_modified(self, widgets):
+        self.studio.widgets_modified(widgets, None)

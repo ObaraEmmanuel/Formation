@@ -3,7 +3,7 @@ from hoverset.ui.widgets import (
     Label, CompoundList, Entry, Frame, Checkbutton, Button
 )
 from studio.feature._base import BaseFeature
-from studio.lib.events import EventBinding, make_event
+from studio.lib.events import EventBinding, make_event, event_equal
 
 
 class BindingsTable(CompoundList):
@@ -33,13 +33,10 @@ class BindingsTable(CompoundList):
 
         def render(self):
             self.config(height=40)
-            seq_frame = Frame(self, **self.style.highlight)
-            seq_frame.grid(row=0, column=0, sticky="nsew")
-            seq_frame.pack_propagate(False)
-            self.sequence = Entry(seq_frame, **self.style.input)
-            self.sequence.place(x=0, y=0, relwidth=1, relheight=1, width=-40)
+            self.sequence = Entry(self, **self.style.input)
+            self.sequence.grid(row=0, column=0, sticky="nsew")
             self.sequence.set(self.value.sequence)
-            self.sequence.configure(**self.style.no_highlight)
+            self.sequence.configure(**self.style.highlight)
             self.sequence.focus_set()
             self.handler = Entry(self, **self.style.input)
             self.handler.grid(row=0, column=1, sticky="ew")
@@ -56,7 +53,7 @@ class BindingsTable(CompoundList):
             del_btn.bind("<Button-1>", self._delete_entry)
             # set the first two columns to expand evenly
             for column in range(2):
-                self.grid_columnconfigure(column, weight=1, uniform=1)
+                self.grid_columnconfigure(column, weight=1)
 
             for widget in (self.sequence, self.handler):
                 widget.on_change(self._on_value_change)
@@ -174,6 +171,8 @@ class EventPane(BaseFeature):
         self.bindings.on_item_delete(self.delete_item)
         self.bindings.pack(fill="both", expand=True)
 
+        self._multimap = {}
+
         self._add = Button(
             self._header, **self.style.button, width=25, height=25,
             image=get_icon_image("add", 15, 15)
@@ -192,6 +191,9 @@ class EventPane(BaseFeature):
         self._empty_frame = Label(self.bindings, **self.style.text_passive)
         self._show_empty(self.NO_SELECTION_MSG)
 
+        self.studio.bind("<<SelectionChanged>>", self._on_select, "+")
+        self._suppress_change = False
+
     def _show_empty(self, message):
         self._empty_frame.place(x=0, y=0, relwidth=1, relheight=1)
         self._empty_frame["text"] = message
@@ -199,38 +201,71 @@ class EventPane(BaseFeature):
     def _remove_empty(self):
         self._empty_frame.place_forget()
 
-    def add_new(self, *_):
-        if self.studio.selected is None:
-            return
-        self._remove_empty()
-        new_binding = make_event("<>", "", False)
-        widget = self.studio.selected
+    def _enforce_event_map(self, widget):
         if not hasattr(widget, "_event_map_"):
             setattr(widget, "_event_map_", {})
-        widget._event_map_[new_binding.id] = new_binding
+
+    def add_new(self, *_):
+        if not self.studio.selection:
+            return
+        self._remove_empty()
+
+        target_widget = self.studio.selection[0]
+        new_binding = make_event("<>", "", False)
+        target_widget._event_map_[new_binding.id] = new_binding
+        self._multimap[new_binding.id] = [(new_binding.id, target_widget)]
+
+        for widget in self.studio.selection[1:]:
+            self._enforce_event_map(widget)
+            binding = make_event("<>", "", False)
+            widget._event_map_[binding.id] = binding
+            self._multimap[new_binding.id].append((binding.id, widget))
         self.bindings.add(new_binding)
 
     def delete_item(self, item):
-        widget = self.studio.selected
-        if widget is None:
-            return
-        widget._event_map_.pop(item.id)
+        for ev_id, widget in self._multimap[item.id]:
+            widget._event_map_.pop(ev_id)
+        self._multimap.pop(item.id)
         self.bindings.remove(item.id)
 
     def modify_item(self, value: EventBinding):
-        widget = self.studio.selected
-        widget._event_map_[value.id] = value
+        if self._suppress_change:
+            return
+        for ev_id, widget in self._multimap[value.id]:
+            widget._event_map_[ev_id] = EventBinding(ev_id, value.sequence, value.handler, value.add)
 
-    def on_select(self, widget):
-        if widget is None:
+    def _on_select(self, _):
+        if not self.studio.selection:
             self._show_empty(self.NO_SELECTION_MSG)
             return
         self._remove_empty()
-        bindings = getattr(widget, "_event_map_", {})
-        values = bindings.values()
+        bindings = []
+        self._multimap.clear()
+        target_widget = self.studio.selection[0]
+        self._enforce_event_map(target_widget)
+
+        for binding in target_widget._event_map_.values():
+            is_common = True
+            ids = []
+            for widget in self.studio.selection[1:]:
+                self._enforce_event_map(widget)
+                for b in widget._event_map_.values():
+                    if event_equal(binding, b):
+                        ids.append((b.id, widget))
+                        break
+                else:
+                    is_common = False
+                    break
+            if is_common:
+                bindings.append(binding)
+                ids.append((binding.id, target_widget))
+                self._multimap[binding.id] = ids
+
         self.bindings.clear()
-        self.bindings.add(*values)
-        if not values:
+        self._suppress_change = True
+        self.bindings.add(*bindings)
+        self._suppress_change = False
+        if not bindings:
             self._show_empty(self.NO_EVENT_MSG)
 
     def start_search(self, *_):

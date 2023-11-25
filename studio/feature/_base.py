@@ -118,28 +118,26 @@ class BaseFeature(Pane):
     def get_instance(cls):
         return cls._instance
 
-    def on_select(self, widget):
+    def on_widgets_change(self, widgets):
         """
-        Called when a widget is selected in the designer
-        :param widget: selected widget
-        :return:None
-        """
-        pass
-
-    def on_widget_change(self, old_widget, new_widget=None):
-        """
-        Called when a widget is fundamentally altered
-        :param old_widget: Altered widget
-        :param new_widget: The new widget taking the older widgets place
+        Called when the widgets in the designer are changed
+        :param widgets: list of widgets
         :return: None
         """
         pass
 
-    def on_widget_layout_change(self, widget):
+    def on_widgets_layout_change(self, widgets):
         """
-        Called when layout options of a widget are changed
-        :param widget: Widget with altered layout options
+        Called when layout options of a widgets are changed
+        :param widgets: Widgets with altered layout options
         :return: None
+        """
+        pass
+
+    def on_widgets_reorder(self, indices):
+        """
+        Called when the widgets in the designer are reordered within their parent.
+        Used to change stacking order of widgets
         """
         pass
 
@@ -152,10 +150,10 @@ class BaseFeature(Pane):
         """
         pass
 
-    def on_widget_delete(self, widget, silently=False):
+    def on_widgets_delete(self, widgets, silently=False):
         """
-        Called when a widget is deleted from the designer
-        :param widget: deleted widget
+        Called when widgets are deleted from the designer
+        :param widgets: deleted widgets
         :param silently: flag indicating whether the deletion should be treated implicitly
         which is useful for instance when you don't want the deletion to be logged in the
         undo stack
@@ -163,10 +161,10 @@ class BaseFeature(Pane):
         """
         pass
 
-    def on_widget_restore(self, widget):
+    def on_widgets_restore(self, widgets):
         """
         Called when a deleted widget is restored
-        :param widget: restored widget
+        :param widgets: widgets to be restored
         :return: None
         """
         pass

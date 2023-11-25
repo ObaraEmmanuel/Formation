@@ -86,6 +86,17 @@ def relative_bounds(bd, widget):
     return bd[0] - ref[0], bd[1] - ref[1], bd[2] - ref[0], bd[3] - ref[1]
 
 
+def relative_to_bounds(bound1, bound2):
+    """
+    Convert bounds ``bound1`` to be relative to ``bound2``
+
+    :param bound1: bounds to be converted
+    :param bound2: bounds to which ``bound1`` is to be relative to
+    :return: relative bound tuple
+    """
+    return bound1[0] - bound2[0], bound1[1] - bound2[1], bound1[2] - bound2[0], bound1[3] - bound2[1]
+
+
 def resolve_position(position, widget):
     """
     Convert an absolute position such that it is relative to a ``widget``
@@ -138,6 +149,18 @@ def center(bound):
     return (bound[2] - bound[0]) // 2, (bound[3] - bound[1]) // 2
 
 
+def displace(bound, dx, dy):
+    """
+    Displace a bound by ``dx`` and ``dy``
+
+    :param bound: a bound tuple
+    :param dx: displacement along x-axis
+    :param dy: displacement along y-axis
+    :return: displaced bound tuple
+    """
+    return bound[0] + dx, bound[1] + dy, bound[2] + dx, bound[3] + dy
+
+
 def is_within(bound1, bound2) -> bool:
     """
     Checks whether bound2 is within bound1 i.e bound1 completely encloses bound2
@@ -147,9 +170,7 @@ def is_within(bound1, bound2) -> bool:
     :return: ``True`` if ``bound1`` encloses ``bound2`` else ``False``
     """
     overlap = compute_overlap(bound1, bound2)
-    if overlap == bound2:
-        return True
-    return False
+    return overlap == bound2
 
 
 def dimensions(bound):
@@ -205,6 +226,23 @@ def constrain_bounds(bound, maxsize, minsize):
     x1, y1, x2, y2 = bound
 
     return x1, y1, x1 + max(min(max_w, x2 - x1), min_w), y1 + max(min(max_h, y2 - y1), min_h)
+
+
+def overall_bounds(bound_list):
+    """
+    Get the bounds of a set of bounds
+
+    :param bound_list: A list of bounds
+    :return: A bound tuple containing the bounds of all the bounds
+        in the list
+    """
+    x1, y1, x2, y2 = float('inf'), float('inf'), -float('inf'), -float('inf')
+    for bound in bound_list:
+        x1 = min(x1, bound[0])
+        y1 = min(y1, bound[1])
+        x2 = max(x2, bound[2])
+        y2 = max(y2, bound[3])
+    return x1, y1, x2, y2
 
 
 def parse_geometry(geometry, default=None):

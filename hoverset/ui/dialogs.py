@@ -115,12 +115,12 @@ class MessageDialog(Window):
             "SHOW_PROGRESS": self._show_progress,
             "BUILDER": self._builder  # Allows building custom dialogs
         }
+        self.enable_centering()
         if render_routine in routines:
             # Completely custom dialogs
             routines[render_routine](**kw)  # noqa
         elif render_routine is not None:
             render_routine(self)
-        self.enable_centering()
         self.value = None
         # quirk that prevents explicit window centering on linux for best results
         add = "+" if platform_is(WINDOWS, MAC) else None

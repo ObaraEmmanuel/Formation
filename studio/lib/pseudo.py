@@ -8,11 +8,12 @@ from enum import Enum
 from hoverset.data.images import load_tk_image, load_image, load_image_to_widget
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.menu import MenuUtils
+from hoverset.ui.widgets import EventMask
 from hoverset.util.execution import import_path
 from studio.lib import layouts
 from studio.lib.variables import VariableManager
 from studio.lib.properties import get_properties
-from studio.ui.highlight import WidgetHighlighter
+from studio.lib.handles import BoxHandle
 from studio.ui.tree import MalleableTree
 
 
@@ -99,6 +100,8 @@ class PseudoWidget:
     icon = "play"
     impl = None
     is_toplevel = False
+    allow_direct_move = True
+    allow_drag_select = False
     # special handlers (intercepts) for attributes that need additional processing
     # to interface with the studio easily
     _intercepts = {
@@ -110,21 +113,161 @@ class PseudoWidget:
         "variable": _VariableIntercept,
         "listvariable": _VariableIntercept
     }
+    _no_defaults = {
+        "text",
+    }
 
     def setup_widget(self):
+        self.designer = self.master
         self.level = 0
         self.layout = None
         self.recent_layout_info = None
+        self.last_stable_bounds = None
         self._properties = get_properties(self)
         self.set_name(self.id)
         self.node = None
         self.__on_context = None
         self.last_menu_position = (0, 0)
+        self._pos_fix = (0, 0)
         self.max_size = None
         self.min_size = None
         MenuUtils.bind_context(self, self.__handle_context_menu, add='+')
+        self._handle_cls = getattr(self.__class__, "handle_class", BoxHandle)
+        self._handle = None
+
+        self._on_handle_active = getattr(self, "_on_handle_active", None)
+        self._on_handle_inactive = getattr(self, "_on_handle_inactive", None)
+        self._on_handle_resize = getattr(self, "_on_handle_resize", None)
+        self._on_handle_move = getattr(self, "_on_handle_move", None)
+
+        self.bind("<ButtonPress-1>", self._on_press, add='+')
+        self.bind("<ButtonRelease>", self._on_release, add='+')
+
+        self.bind("<Motion>", self._on_drag, add='+')
+
+        self._active = False
+        self._select_mode_active = False
+        self._select_bounds = None
+        self.prev_stack_index = None
 
     def set_name(self, name):
+        pass
+
+    def get_bounds(self):
+        self.update_idletasks()
+        x1 = self.winfo_x()
+        y1 = self.winfo_y()
+        x2 = self.winfo_width() + x1
+        y2 = self.winfo_height() + y1
+        return x1, y1, x2, y2
+
+    def lift(self, above_this):
+        if isinstance(above_this, Container):
+            # first lift above container if possible
+            try:
+                super().lift(above_this.body)
+            except tkinter.TclError:
+                pass
+
+            # then lift above highest child if any
+            if above_this._children and self.layout != above_this:
+                super().lift(above_this._children[-1])
+        else:
+            super().lift(above_this)
+
+    def _on_press(self, event):
+        if not self.allow_direct_move and not event.state & EventMask.SHIFT:
+            if not self.allow_drag_select:
+                return
+            self._select_mode_active = True
+            self._pos_fix = (event.x_root, event.y_root)
+            return
+        if not self._handle:
+            return
+        self._pos_fix = (event.x_root, event.y_root)
+        self.handle_active('all')
+        self._active = True
+
+    def _on_release(self, _):
+        if self._select_mode_active:
+            self.designer.clear_select_region()
+            self._select_mode_active = False
+            if self._select_bounds is not None:
+                self.designer.select_in_region(self, self._select_bounds)
+                self._select_bounds = None
+
+        if not self._active:
+            return
+        self.handle_inactive('all')
+        self._active = False
+
+    def _on_drag(self, event):
+        if self._select_mode_active:
+            x1, y1 = self._pos_fix
+            x2, y2 = event.x_root, event.y_root
+            bounds = min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2)
+            self._select_bounds = bounds
+            self.designer.show_select_region(bounds)
+
+        if not self._active or not event.state & EventMask.MOUSE_BUTTON_1:
+            return
+        x, y = self._pos_fix
+        self._pos_fix = (event.x_root, event.y_root)
+        self.handle_resize('all', (event.x_root - x, event.y_root - y))
+
+    def show_handle(self, *_):
+        if not self._handle_cls:
+            return
+        if not self._handle:
+            self._handle = self._handle_cls.acquire(self, self.master)
+        self._handle.show()
+
+    def clear_handle(self):
+        if not self._handle:
+            return
+        self._handle.hide()
+        if not self._handle.active():
+            self._handle = None
+
+    def show_highlight(self, *_):
+        if not self._handle_cls:
+            return
+        if not self._handle:
+            self._handle = self._handle_cls.acquire(self, self.master)
+        self._handle.hover()
+
+    def clear_highlight(self):
+        if not self._handle:
+            return
+        self._handle.unhover()
+        if not self._handle.active():
+            self._handle = None
+
+    def on_handle_active(self, callback):
+        self._on_handle_active = callback
+
+    def on_handle_inactive(self, callback):
+        self._on_handle_inactive = callback
+
+    def on_handle_resize(self, callback):
+        self._on_handle_resize = callback
+
+    def on_handle_move(self, callback):
+        self._on_handle_move = callback
+
+    def handle_active(self, direction):
+        if self._on_handle_active:
+            self._on_handle_active(self, direction)
+
+    def handle_inactive(self, direction):
+        if self._on_handle_inactive:
+            self._on_handle_inactive(self, direction)
+
+    def handle_resize(self, direction, delta):
+        if self._on_handle_resize:
+            self._on_handle_resize(self, direction, delta)
+
+    def handle_move(self):
         pass
 
     def get_image_path(self):
@@ -177,7 +320,10 @@ class PseudoWidget:
             if intercept:
                 intercept.set(self, kw[opt], opt)
                 kw.pop(opt)
-        return super().config(**kw)
+        ret = super().config(**kw)
+        if kw and self._handle:
+            self._handle.widget_config_changed()
+        return ret
 
     def bind_all(self, sequence, func=None, add=None):
         # we should be able to bind studio events
@@ -229,7 +375,9 @@ class PseudoWidget:
             return {}
         options = self.properties
         # Get options whose values are different from their default values
-        return {opt: self.get_prop(opt) for opt in options if str(defaults.get(opt)) != str(self.get_prop(opt))}
+        return {
+            opt: self.get_prop(opt) for opt in options if opt in self._no_defaults or str(defaults.get(opt)) != str(self.get_prop(opt))
+        }
 
     def get_method_defaults(self):
         return {}
@@ -245,9 +393,14 @@ class PseudoWidget:
     def handle_method(self, name, *args, **kwargs):
         pass
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}<{self.id}>"
+
 
 class Container(PseudoWidget):
     LAYOUTS = layouts.layouts
+    allow_direct_move = False
+    allow_drag_select = True
 
     def setup_widget(self):
         self.parent = self.designer = self._get_designer()
@@ -256,7 +409,6 @@ class Container(PseudoWidget):
         self._level = 0
         self._children = []
         self.temporal_children = []
-        self._highlighter = WidgetHighlighter(self.master)
         if len(self.LAYOUTS) == 0:
             raise ValueError("No layouts have been defined")
         self.layout_strategy = layouts.PlaceLayoutStrategy(self)
@@ -267,25 +419,30 @@ class Container(PseudoWidget):
     def _get_designer(self):
         return self.master
 
-    def show_highlight(self, *_):
-        self._highlighter.highlight(self)
-
-    def clear_highlight(self):
-        self._highlighter.clear()
-        self._temporal_children = []
-        self.layout_strategy.clear_indicators()
-
     def lift(self, above_this):
         super().lift(above_this)
         if self.body != self:
             self.body.lift(self)
-        for child in self._children:
-            child.lift(self.body)
+        if self._children:
+            self.layout_strategy._update_stacking()
 
     def react(self, x, y):
         self.designer.set_active_container(self)
         self.react_to_pos(x, y)
         self.show_highlight()
+
+    def clear_highlight(self):
+        super().clear_highlight()
+        self._temporal_children = []
+        self.layout_strategy.clear_indicators()
+
+    @property
+    def allow_resize(self):
+        return self.layout_strategy.allow_resize
+
+    @property
+    def realtime_support(self):
+        return self.layout_strategy.realtime_support
 
     @property
     def level(self):
@@ -359,7 +516,7 @@ class Container(PseudoWidget):
         return super().configure(**kwargs)
 
     def _set_layout(self, layout):
-        self.designer.studio.style_pane.apply_style("layout", layout, self)
+        self.designer.studio.style_pane.apply_style("layout", [layout], [self])
 
     def _get_layouts_as_menu(self):
         layout_templates = [
@@ -406,8 +563,11 @@ class Container(PseudoWidget):
     def move_widget(self, widget, bounds):
         self.layout_strategy.move_widget(widget, bounds)
 
-    def resize_widget(self, widget, bounds):
-        self.layout_strategy.resize_widget(widget, bounds)
+    def end_move(self):
+        self.layout_strategy.end_move()
+
+    def resize_widget(self, widget, direction, delta):
+        self.layout_strategy.resize_widget(widget, direction, delta)
 
     def get_restore(self, widget):
         return self.layout_strategy.get_restore(widget)

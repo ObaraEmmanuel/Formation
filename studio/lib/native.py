@@ -2,6 +2,7 @@ import tkinter as tk
 import tkinter.ttk as ttk
 
 from studio.lib.layouts import NPanedLayoutStrategy
+from studio.lib.handles import LinearHandle
 from studio.lib.pseudo import (
     PseudoWidget, Groups, Container, TabContainer, PanedContainer,
     _dimension_override
@@ -304,6 +305,7 @@ class Separator(PseudoWidget, ttk.Separator):
     icon = "play"
     impl = ttk.Separator
     initial_dimensions = 150, 1
+    handle_class = LinearHandle
 
     def __init__(self, master, id_):
         super().__init__(master)

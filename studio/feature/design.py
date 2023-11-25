@@ -12,7 +12,7 @@ from tkinter import filedialog, ttk
 from hoverset.data import actions
 from hoverset.data.keymap import KeyMap
 from hoverset.data.images import get_tk_image
-from hoverset.ui.widgets import Label, Text, FontStyle, Checkbutton, CompoundList
+from hoverset.ui.widgets import Label, Text, FontStyle, Checkbutton, CompoundList, EventMask
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.icons import get_icon_image as icon
 from hoverset.ui.menu import MenuUtils, LoadLater, EnableIf
@@ -23,8 +23,8 @@ from studio.lib.layouts import PlaceLayoutStrategy
 from studio.lib.pseudo import PseudoWidget, Container, Groups
 from studio.parsers.loader import DesignBuilder, BaseStudioAdapter
 from studio.ui import geometry
-from studio.ui.highlight import HighLight
 from studio.ui.widgets import DesignPad, CoordinateIndicator
+from studio.ui.highlight import RegionHighlighter
 from studio.context import BaseContext
 from studio import __version__
 
@@ -37,22 +37,25 @@ class DesignLayoutStrategy(PlaceLayoutStrategy):
     def add_new(self, widget, x, y):
         self.container.add(widget, x, y, layout=self.container)
 
+    def resize_widget(self, widget, direction, delta):
+        info = self._info_with_delta(widget, direction, delta)
+        self.container.place_child(widget, **info)
+
     def _move(self, widget, bounds):
         self.container.position(widget, self.container.canvas_bounds(bounds))
 
     def add_widget(self, widget, bounds=None, **kwargs):
-        super(PlaceLayoutStrategy, self).add_widget(widget, bounds=None, **kwargs)
+        super(PlaceLayoutStrategy, self).add_widget(widget, bounds=bounds, **kwargs)
         super(PlaceLayoutStrategy, self).remove_widget(widget)
-        if bounds is None:
+        if bounds:
+            self.move_widget(widget, bounds)
+        else:
             x = kwargs.get("x", 10)
             y = kwargs.get("y", 10)
             width = kwargs.get("width", 20)
             height = kwargs.get("height", 20)
             self.container.place_child(widget, x=x, y=y, width=width, height=height)
-        else:
-            x1, y1, x2, y2 = self.container.canvas_bounds(bounds)
-            self.container.place_child(widget, x=x1, y=y1, width=x2 - x1, height=y2 - y1)
-        self.children.append(widget)
+        self._insert(widget, widget.prev_stack_index if widget.layout == self.container else None)
 
     def remove_widget(self, widget):
         super().remove_widget(widget)
@@ -65,7 +68,7 @@ class DesignLayoutStrategy(PlaceLayoutStrategy):
 
     def restore_widget(self, widget, data=None):
         data = widget.recent_layout_info if data is None else data
-        self.children.append(widget)
+        self._insert(widget, widget.prev_stack_index if widget.layout == self.container else None)
         widget.layout = self.container
         widget.level = self.level + 1
         self.container.place_child(widget, **data.get("info", {}))
@@ -105,25 +108,17 @@ class Designer(DesignPad, Container):
     def __init__(self, master, studio):
         super().__init__(master)
         self.id = None
+        self._level = -1
         self.context = master
         self.studio = studio
         self.name_generator = NameGenerator(self.studio.pref)
         self.setup_widget()
+        self.designer = self
         self.parent = self
         self.config(**self.style.bright, takefocus=True)
         self.objects = []
         self.root_obj = None
         self.layout_strategy = DesignLayoutStrategy(self)
-        self.highlight = HighLight(self)
-        self.highlight.on_resize(self._on_size_changed)
-        self.highlight.on_move(self._on_move)
-        self.highlight.on_release(self._on_release)
-        self.highlight.on_start(self._on_start)
-        self._update_throttling()
-        self.studio.pref.add_listener(
-            "designer::frame_skip",
-            self._update_throttling
-        )
         self.current_obj = None
         self.current_container = None
         self.current_action = None
@@ -132,13 +127,13 @@ class Designer(DesignPad, Container):
         self._frame.bind("<Button-1>", lambda _: self.focus_set(), '+')
         self._frame.bind("<Button-1>", self.set_pos, '+')
         self._frame.bind('<Motion>', self.on_motion, '+')
-        self._frame.bind('<KeyRelease>', self._stop_displace, '+')
         self._padding = 30
         self.design_path = None
         self.builder = DesignBuilder(self)
         self._shortcut_mgr = KeyMap(self._frame)
         self._set_shortcuts()
         self._last_click_pos = None
+        self._region_highlight = RegionHighlighter(self, self.style)
 
         self._empty = Label(
             self,
@@ -152,7 +147,8 @@ class Designer(DesignPad, Container):
         self._context_menu = MenuUtils.make_dynamic(
             self.studio.menu_template +
             (LoadLater(self.studio.tool_manager.get_tool_menu), ) +
-            (LoadLater(lambda: self.current_obj.create_menu() if self.current_obj else ()),),
+            # Allow widget specific menu only when a single widget is selected
+            (LoadLater(lambda: self.studio.selection[0].create_menu() if self.studio.selection.is_single() else ()),),
             self.studio,
             self.style
         )
@@ -170,6 +166,33 @@ class Designer(DesignPad, Container):
         self._text_editor.on_change(self._text_change)
         self._text_editor.bind("<FocusOut>", self._text_hide)
         self._base_font = FontStyle()
+        self._selected = set()
+        self._studio_bindings = []
+        self._move_selection = []
+        self._all_bound = None
+
+        # These variables help in skipping of several rendering frames to reduce lag when dragging items
+        self._skip_var = 0
+        # The maximum rendering to skip (currently 80%) for every one successful render. Ensure its
+        # not too big otherwise we won't be moving and resizing items at all and not too small otherwise the lag would
+        # be unbearable
+        self._skip_max = 4
+        self._surge_delta = (0, 0)
+        self._update_throttling()
+        self.studio.pref.add_listener(
+            "designer::frame_skip",
+            self._update_throttling
+        )
+        self._sorted_containers = []
+        self._realtime_layout_update = False
+        self._handle_active_data = None
+
+    def clear_studio_bindings(self):
+        for binding in self._studio_bindings:
+            self.studio.unbind(binding)
+
+    def add_studio_binding(self, *args):
+        self._studio_bindings.append(self.studio.bind(*args))
 
     def _get_designer(self):
         return self
@@ -182,7 +205,7 @@ class Designer(DesignPad, Container):
         self._last_click_pos = event.x_root, event.y_root
 
     def _update_throttling(self, *_):
-        self.highlight.set_skip_max(self.studio.pref.get("designer::frame_skip"))
+        self._skip_max = self.studio.pref.get("designer::frame_skip")
 
     def _show_empty(self, flag, **kw):
         if flag:
@@ -202,13 +225,6 @@ class Designer(DesignPad, Container):
             actions.get('STUDIO_DELETE'),
             actions.get('STUDIO_PASTE'),
             actions.get('STUDIO_DUPLICATE'),
-        )
-        # allow control of widget position using arrow keys
-        shortcut_mgr.add_shortcut(
-            (lambda: self.displace('right'), KeyMap.RIGHT),
-            (lambda: self.displace('left'), KeyMap.LEFT),
-            (lambda: self.displace('up'), KeyMap.UP),
-            (lambda: self.displace('down'), KeyMap.DOWN),
         )
 
     def _open_default(self):
@@ -284,7 +300,7 @@ class Designer(DesignPad, Container):
     def clear(self):
         # Warning: this method deletes elements irreversibly
         # remove the current root objects and their descendants
-        self.studio.select(None)
+        self.studio.selection.clear()
         # create a copy since self.objects will mostly change during iteration
         # remove root and dangling objects
         for widget in self.objects:
@@ -321,6 +337,7 @@ class Designer(DesignPad, Container):
             accelerator = actions.get_routine("STUDIO_RELOAD").accelerator
             text = f"{str(e)}\nPress {accelerator} to reload" if accelerator else f"{str(e)} \n reload design"
             self._show_empty(True, text=text, image=get_tk_image("dialog_error", 50, 50))
+            raise e
             # MessageDialog.show_error(parent=self.studio, title='Error loading design', message=str(e))
         finally:
             if progress:
@@ -359,36 +376,6 @@ class Designer(DesignPad, Container):
             builder = DesignBuilder(self)
         return builder.to_tree(widget)
 
-    def paste(self, node, silently=False, paste_to=None):
-        if paste_to is None:
-            paste_to = self.current_obj
-        if paste_to is None:
-            return
-        obj_class = BaseStudioAdapter._get_class(node)
-        if obj_class.is_toplevel and paste_to != self:
-            self._show_toplevel_warning()
-            return
-        if obj_class.group != Groups.container and self.root_obj is None:
-            self._show_root_widget_warning()
-            return
-
-        layout = paste_to if isinstance(paste_to, Container) else paste_to.layout
-        width = int(node["layout"].get("width", 10))
-        height = int(node["layout"].get("height", 10))
-        x, y = self._last_click_pos or (self.winfo_rootx() + 50, self.winfo_rooty() + 50)
-        self._last_click_pos = x + 5, y + 5  # slightly displace click position so multiple pastes are still visible
-        bounds = geometry.resolve_bounds((x, y, x + width, y + height), self)
-        obj = self.builder.load_section(node, layout, bounds)
-        restore_point = layout.get_restore(obj)
-        # Create an undo redo point if add is not silent
-        if not silently:
-            self.studio.new_action(Action(
-                # Delete silently to prevent adding the event to the undo/redo stack
-                lambda _: self.delete(obj, True),
-                lambda _: self.restore(obj, restore_point, obj.layout)
-            ))
-        return obj
-
     def _get_unique(self, obj_class):
         """
         Generate a unique id for widget belonging to a given class
@@ -396,24 +383,181 @@ class Designer(DesignPad, Container):
         return self.name_generator.generate(obj_class, self._ids)
 
     def on_motion(self, event):
-        self.highlight.resize(event)
         geometry.make_event_relative(event, self)
         self._coord_indicator.set_coord(
             self._frame.canvasx(event.x),
             self._frame.canvasy(event.y)
         )
 
+    def _on_handle_active_start(self, widget, direction):
+        self._handle_active_data = widget, direction
+
+    def _on_handle_active(self, widget, direction):
+        if direction == "all":
+            self._move_selection = self.studio.selection.siblings(widget)
+            self.current_container = self._move_selection[0].layout
+            self.current_container.show_highlight()
+            self._sorted_containers = sorted(
+                filter(lambda x: isinstance(x, Container) and x not in self._move_selection, self.objects),
+                key=lambda x: -x.level
+            )
+            self._all_bound = geometry.overall_bounds([w.get_bounds() for w in self._move_selection])
+            self._realtime_layout_update = True
+            for obj in self._move_selection:
+                obj.layout.change_start(obj)
+                # disable realtime layout update if any widget's layout doesn't support it
+                if not obj.layout.layout_strategy.realtime_support:
+                    self._realtime_layout_update = False
+        else:
+            for obj in self._selected:
+                if not obj.layout.allow_resize:
+                    continue
+                obj.layout.change_start(obj)
+
+            if all(w.layout.layout_strategy.realtime_support for w in self._selected):
+                self._realtime_layout_update = True
+
+    def _on_handle_inactive(self, widget, direction):
+        if self._handle_active_data is not None:
+            # no movement occurred so we can skip the post-processing
+            self._handle_active_data = None
+            return
+
+        layouts_changed = []
+        if direction == "all":
+            if not self.current_container:
+                return
+            container = self.current_container
+            self.current_container = None
+            container.clear_highlight()
+            objs = self.studio.selection.siblings(widget)
+            toplevel_warning = False
+            for obj in objs:
+                if obj.is_toplevel and container != self:
+                    toplevel_warning = True
+                    continue
+                container.add_widget(obj, obj.get_bounds())
+                layouts_changed.append(obj)
+                if obj == self.root_obj and container != self:
+                    self.root_obj = container
+
+            if toplevel_warning:
+                self._show_toplevel_warning()
+        else:
+            for obj in self._selected:
+                if not obj.layout.allow_resize:
+                    continue
+                obj.layout.widget_released(obj)
+                layouts_changed.append(obj)
+
+        self.create_restore(layouts_changed)
+        self.studio.widgets_layout_changed(layouts_changed)
+        self._realtime_layout_update = False
+        self._skip_var = 0
+
+    def _on_handle_resize(self, widget, direction, delta):
+        if self._handle_active_data is not None:
+            self._on_handle_active(*self._handle_active_data)
+            self._handle_active_data = None
+
+        if self._skip_var < self._skip_max:
+            self._skip_var += 1
+            self._surge_delta = (self._surge_delta[0] + delta[0], self._surge_delta[1] + delta[1])
+            return
+        self._skip_var = 0
+        delta = (self._surge_delta[0] + delta[0], self._surge_delta[1] + delta[1])
+        self._surge_delta = (0, 0)
+
+        if direction != "all":
+            # resize
+            for obj in self._selected:
+                if obj.layout.allow_resize:
+                    obj.layout.resize_widget(obj, direction, delta)
+            if self._realtime_layout_update:
+                self.studio.widgets_layout_changed(self._selected)
+        else:
+            # move
+            self._on_handle_move(widget, delta)
+
+    def _on_handle_move(self, _, delta):
+        dx, dy = delta
+        objs = self._move_selection
+        all_bound = self._all_bound
+        dx = 0 if all_bound[0] + dx < 0 else dx
+        dy = 0 if all_bound[1] + dy < 0 else dy
+
+        if dx == dy == 0:
+            return
+
+        all_bound = (all_bound[0] + dx, all_bound[1] + dy, all_bound[2] + dx, all_bound[3] + dy)
+        current = self.current_container
+        container = self.layout_at(all_bound)
+        self._all_bound = all_bound
+
+        if container != current and current is not None:
+            current.end_move()
+            current.clear_highlight()
+
+        if container is not None and container != current:
+            container.show_highlight()
+            self.current_container = current = container
+
+        for w in objs:
+            x1, y1, x2, y2 = w.get_bounds()
+            current.move_widget(w, [x1 + dx, y1 + dy, x2 + dx, y2 + dy])
+
+        if self.current_container.layout_strategy.realtime_support:
+            self.studio.widgets_layout_changed(objs)
+
+    def set_active_container(self, container):
+        if self.current_container is not None:
+            self.current_container.clear_highlight()
+        self.current_container = container
+
+    def layout_at(self, bounds):
+        candidate = None
+        for container in self._sorted_containers:
+            if geometry.is_within(geometry.bounds(container), bounds):
+                candidate = container
+                break
+        if self.current_container and geometry.compute_overlap(geometry.bounds(self.current_container), bounds):
+            if candidate and candidate.level > self.current_container.level:
+                return candidate
+            return self.current_container
+
+        return candidate or self
+
+    def show_select_region(self, bounds):
+        bounds = geometry.resolve_bounds(bounds, self)
+        self._region_highlight.highlight_bounds(bounds)
+
+    def clear_select_region(self):
+        self._region_highlight.clear()
+
+    def select_in_region(self, widget, bounds):
+        if isinstance(widget, Container):
+            bounds = geometry.resolve_bounds(bounds, self)
+            to_select = []
+            for child in widget._children:
+                if geometry.compute_overlap(child.get_bounds(), bounds):
+                    to_select.append(child)
+            if to_select:
+                self.studio.selection.set(to_select)
+
     def _attach(self, obj):
         # bind events for context menu and object selection
         # all widget additions call this method so clear empty message
         self._show_empty(False)
+        obj.on_handle_resize(self._on_handle_resize)
+        obj.on_handle_active(self._on_handle_active_start)
+        obj.on_handle_inactive(self._on_handle_inactive)
+
         MenuUtils.bind_all_context(obj, lambda e: self.show_menu(e, obj), add='+')
-        obj.bind_all('<Shift-ButtonPress-1>', lambda e: self.highlight.set_function(self.highlight.move, e), add='+')
         obj.bind_all('<Motion>', self.on_motion, '+')
-        obj.bind_all('<ButtonRelease>', self.highlight.clear_resize, '+')
-        obj.bind_all('<KeyRelease>', self._stop_displace, '+')
+
         if "text" in obj.keys():
             obj.bind_all("<Double-Button-1>", lambda _: self._show_text_editor(obj))
+
         self.objects.append(obj)
         if self.root_obj is None:
             self.root_obj = obj
@@ -422,15 +566,17 @@ class Designer(DesignPad, Container):
         self._shortcut_mgr.bind_widget(obj)
 
     def show_menu(self, event, obj=None):
-        # select object generating the context menu event first
-        if obj is not None:
-            self.select(obj)
+        if obj and obj not in self._selected:
+            self.studio.selection.set(obj)
         MenuUtils.popup(event, self._context_menu)
 
     def _handle_select(self, obj, event):
         # store the click position for effective widget pasting
         self._last_click_pos = event.x_root, event.y_root
-        self.select(obj)
+        if event.state & EventMask.CONTROL:
+            self.studio.selection.toggle(obj)
+        elif obj not in self.studio.selection:
+            self.studio.selection.set(obj)
 
     def load(self, obj_class, name, container, attributes, layout, bounds=None):
         obj = obj_class(self, name)
@@ -489,8 +635,8 @@ class Designer(DesignPad, Container):
             if not silent:
                 self.studio.new_action(Action(
                     # Delete silently to prevent adding the event to the undo/redo stack
-                    lambda _: self.delete(obj, True),
-                    lambda _: self.restore(obj, restore_point, obj.layout)
+                    lambda _: self.delete([obj], True),
+                    lambda _: self.restore([obj], [restore_point], [obj.layout])
                 ))
         elif obj.layout is None:
             # This only happens when adding the main layout. We dont need to add this action to the undo/redo stack
@@ -501,13 +647,57 @@ class Designer(DesignPad, Container):
 
         return obj
 
+    def paste(self, clipboard, silently=False, paste_to=None):
+        if paste_to is None and len(self.studio.selection) != 1:
+            return
+
+        if paste_to is None:
+            paste_to = self.studio.selection[0]
+
+        if paste_to is None:
+            return
+
+        x, y = self._last_click_pos or (self.winfo_rootx() + 50, self.winfo_rooty() + 50)
+        # slightly displace click position so multiple pastes are still visible
+        self._last_click_pos = x + 5, y + 5
+
+        objs = []
+        restore_points = []
+
+        for node, bound in clipboard:
+            obj_class = BaseStudioAdapter._get_class(node)
+            if obj_class.is_toplevel and paste_to != self:
+                self._show_toplevel_warning()
+                return
+            if obj_class.group != Groups.container and self.root_obj is None:
+                self._show_root_widget_warning()
+                return
+
+            layout = paste_to if isinstance(paste_to, Container) else paste_to.layout
+            bound = geometry.resolve_bounds(geometry.displace(bound, x, y), self)
+            obj = self.builder.load_section(node, layout, bound)
+            objs.append(obj)
+            restore_points.append(layout.get_restore(obj))
+            # Create an undo redo point if add is not silent
+
+        if not silently:
+            self.studio.new_action(Action(
+                # Delete silently to prevent adding the event to the undo/redo stack
+                lambda _: self.delete(objs, True),
+                lambda _: self.restore(objs, restore_points, [w.layout for w in objs])
+            ))
+        return objs
+
     def select_layout(self, layout: Container):
         pass
 
-    def restore(self, widget, restore_point, container):
-        container.restore_widget(widget, restore_point)
-        self.studio.on_restore(widget)
-        self._replace_all(widget)
+    def restore(self, widgets, restore_points, containers):
+        for container, widget, restore_point in zip(containers, widgets, restore_points):
+            container.restore_widget(widget, restore_point)
+            self._replace_all(widget)
+        if self.root_obj in widgets:
+            self._show_empty(False)
+        self.studio.on_restore(widgets)
 
     def _replace_all(self, widget):
         # Recursively add widget and all its children to objects
@@ -518,26 +708,29 @@ class Designer(DesignPad, Container):
             for child in widget._children:
                 self._replace_all(child)
 
-    def delete(self, widget, silently=False):
-        if not widget:
+    def delete(self, widgets, silently=False):
+        if not widgets:
             return
         if not silently:
-            restore_point = widget.layout.get_restore(widget)
+            restore_points = [widget.layout.get_restore(widget) for widget in widgets]
+            layouts = [widget.layout for widget in widgets]
             self.studio.new_action(Action(
-                lambda _: self.restore(widget, restore_point, widget.layout),
-                lambda _: self.studio.delete(widget, True)
+                lambda _: self.restore(widgets, restore_points, layouts),
+                lambda _: self.studio.delete(widgets, True)
             ))
         else:
-            self.studio.delete(widget, self)
-        widget.layout.remove_widget(widget)
-        if widget == self.root_obj:
-            # try finding another toplevel widget that can be a root obj otherwise leave it as none
-            self.root_obj = None
-            for w in self.layout_strategy.children:
-                if isinstance(w, Container) or w.group == Groups.container:
-                    self.root_obj = w
-                    break
-        self._uproot_widget(widget)
+            self.studio.delete(widgets, self)
+
+        for widget in widgets:
+            widget.layout.remove_widget(widget)
+            if widget == self.root_obj:
+                # try finding another toplevel widget that can be a root obj otherwise leave it as none
+                self.root_obj = None
+                for w in self.layout_strategy.children:
+                    if isinstance(w, Container) or w.group == Groups.container:
+                        self.root_obj = w
+                        break
+            self._uproot_widget(widget)
         if not self.objects:
             self._show_empty(True)
 
@@ -548,23 +741,6 @@ class Designer(DesignPad, Container):
         if isinstance(widget, Container):
             for child in widget._children:
                 self._uproot_widget(child)
-
-    def set_active_container(self, container):
-        if self.current_container is not None:
-            self.current_container.clear_highlight()
-        self.current_container = container
-
-    def compute_overlap(self, bound1, bound2):
-        return geometry.compute_overlap(bound1, bound2)
-
-    def layout_at(self, bounds):
-        for container in sorted(filter(lambda x: isinstance(x, Container) and x != self.current_obj, self.objects),
-                                key=lambda x: len(self.objects) - x.level):
-            if isinstance(self.current_obj, Container) and self.current_obj.level < container.level:
-                continue
-            if self.compute_overlap(geometry.bounds(container), bounds):
-                return container
-        return None
 
     def parse_bounds(self, bounds):
         return {
@@ -577,169 +753,76 @@ class Designer(DesignPad, Container):
     def position(self, widget, bounds):
         self.place_child(widget, **self.parse_bounds(bounds))
 
-    def select(self, obj, explicit=False):
-        if obj is None:
-            self.clear_obj_highlight()
-            self.studio.select(None, self)
-            self.highlight.clear()
+    def _select(self, _):
+        if self.studio.designer != self:
             return
+        current_selection = set(self.studio.selection.widgets)
+        if current_selection == self._selected:
+            return
+
+        for w in self._selected - current_selection:
+            w.clear_handle()
+
+        for w in current_selection - self._selected:
+            w.show_handle()
+
+        self._selected = current_selection
         self.focus_set()
-        if self.current_obj == obj:
-            return
-        self.clear_obj_highlight()
-        self.current_obj = obj
-        self.draw_highlight(obj)
-        if not explicit:
-            # The event is originating from the designer
-            self.studio.select(obj, self)
 
-    def draw_highlight(self, obj):
-        self.highlight.surround(obj)
-
-    def _stop_displace(self, _):
-        if self._displace_active:
-            # this ensures event is added to undo redo stack
-            self._on_release(geometry.bounds(self.current_obj))
-            # mark the latest action as designer displace
-            latest = self.studio.last_action()
-            if latest is not None:
-                latest.key = "designer_displace"
-            self._displace_active = False
-
-    def displace(self, side):
-        if not self.current_obj:
-            return
-        if time.time() - self._last_displace < .5:
-            self.studio.pop_last_action("designer_displace")
-
-        self._on_start()
-        self._displace_active = True
-        self._last_displace = time.time()
-        bounds = geometry.bounds(self.current_obj)
-        x1, y1, x2, y2 = bounds
-        if side == 'right':
-            bounds = x1 + 1, y1, x2 + 1, y2
-        elif side == 'left':
-            bounds = x1 - 1, y1, x2 - 1, y2
-        elif side == 'up':
-            bounds = x1, y1 - 1, x2, y2 - 1
-        elif side == 'down':
-            bounds = x1, y1 + 1, x2, y2 + 1
-        self._on_move(bounds)
-
-    def clear_obj_highlight(self):
-        if self.highlight is not None:
-            self.highlight.clear()
-            self.current_obj = None
-            if self.current_container is not None:
-                self.current_container.clear_highlight()
-                self.current_container = None
+    @property
+    def selected(self):
+        return self._selected
 
     def _on_start(self):
         obj = self.current_obj
         if obj is not None:
             obj.layout.change_start(obj)
 
-    def _on_release(self, bound):
-        obj = self.current_obj
-        container = self.current_container
-        if obj is None:
+    def create_restore(self, widgets):
+        if not widgets:
             return
-        if container is not None and container != obj:
-            container.clear_highlight()
-            if self.current_action == self.MOVE:
-                if container != self and obj.is_toplevel:
-                    self._show_toplevel_warning()
-                    return
-                container.add_widget(obj, bound)
-                # If the enclosed widget was initially the root object, make the container the new root object
-                if obj == self.root_obj and obj != self:
-                    self.root_obj = self.current_container
-            else:
-                obj.layout.widget_released(obj)
-            self.studio.widget_layout_changed(obj)
-            self.current_action = None
-            self.create_restore(obj)
-        elif obj.layout == self and self.current_action == self.MOVE:
-            self.create_restore(obj)
-        elif self.current_action == self.RESIZE:
-            obj.layout.widget_released(obj)
-            self.current_action = None
-            self.create_restore(obj)
 
-    def create_restore(self, widget):
-        prev_restore_point = widget.recent_layout_info
-        cur_restore_point = widget.layout.get_restore(widget)
-        if prev_restore_point == cur_restore_point:
+        prev_restore_points = [widget.recent_layout_info for widget in widgets]
+        cur_restore_points = [widget.layout.get_restore(widget) for widget in widgets]
+
+        if prev_restore_points == cur_restore_points:
             return
-        prev_container = prev_restore_point["container"]
-        container = widget.layout
+
+        prev_containers = [i["container"] for i in prev_restore_points]
+        containers = [widget.layout for widget in widgets]
 
         def undo(_):
-            container.remove_widget(widget)
-            prev_container.restore_widget(widget, prev_restore_point)
+            for widget, prev_restore_point, container, prev_container in zip(
+                    widgets, prev_restore_points, containers, prev_containers):
+                container.remove_widget(widget)
+                prev_container.restore_widget(widget, prev_restore_point)
+            self.studio.widgets_layout_changed(widgets)
 
         def redo(_):
-            prev_container.remove_widget(widget)
-            container.restore_widget(widget, cur_restore_point)
+            for widget, cur_restore_point, container, prev_container in zip(
+                    widgets, cur_restore_points, containers, prev_containers):
+                prev_container.remove_widget(widget)
+                container.restore_widget(widget, cur_restore_point)
+            self.studio.widgets_layout_changed(widgets)
 
         self.studio.new_action(Action(undo, redo))
 
-    def _on_move(self, new_bound):
-        obj = self.current_obj
-        current = self.current_container
-        if obj is None:
-            return
-        self.current_action = self.MOVE
-        container: Container = self.layout_at(new_bound)
-        if container is not None and obj != container:
-            if container != current:
-                if current is not None:
-                    current.clear_highlight()
-                container.show_highlight()
-                self.current_container = container
-            container.move_widget(obj, new_bound)
-        else:
-            if current is not None:
-                current.clear_highlight()
-                self.current_container = self
-            obj.level = 0
-            obj.layout = self
-            self.move_widget(obj, new_bound)
-        if obj.layout.layout_strategy.realtime_support:
-            self.studio.widget_layout_changed(obj)
-
-    def _on_size_changed(self, new_bound):
-        obj = self.current_obj
-        if obj is None:
-            return
-        self.current_action = self.RESIZE
-        if self.current_obj.max_size or self.current_obj.min_size:
-            b = geometry.constrain_bounds(
-                new_bound,
-                self.current_obj.max_size,
-                self.current_obj.min_size
-            )
-            new_bound = b
-
-        if isinstance(obj.layout, Container):
-            obj.layout.resize_widget(obj, new_bound)
-
-        if obj.layout.layout_strategy.realtime_support:
-            self.studio.widget_layout_changed(obj)
-
     def _text_change(self):
-        self.studio.style_pane.apply_style("text", self._text_editor.get_all(), self.current_obj)
+        self.studio.style_pane.apply_style("text", self._text_editor.get_all())
 
     def _show_text_editor(self, widget):
-        assert widget == self.current_obj
-        self._text_editor.lift(widget)
+        if any("text" not in w.keys() for w in self.selected):
+            return
         cnf = self._collect_text_config(widget)
         self._text_editor.config(**cnf)
         self._text_editor.place(in_=widget, relwidth=1, relheight=1, x=0, y=0)
+        self._text_editor.lift(widget)
         self._text_editor.clear()
         self._text_editor.focus_set()
+        # suppress change event while we set initial value
+        self._text_editor.on_change(lambda *_: None)
         self._text_editor.insert("1.0", widget["text"])
+        self._text_editor.on_change(self._text_change)
 
     def _collect_text_config(self, widget):
         s = ttk.Style()
@@ -760,10 +843,72 @@ class Designer(DesignPad, Container):
     def _text_hide(self, *_):
         self._text_editor.place_forget()
 
-    def on_select(self, widget):
-        self.select(widget)
+    def send_back(self, steps=0):
+        if not (self.studio.selection and self.studio.selection.is_same_parent()):
+            return
 
-    def on_widget_change(self, old_widget, new_widget=None):
+        child_list = next(iter(self.studio.selection)).layout._children
+        widgets = sorted(self.studio.selection, key=child_list.index)
+
+        if steps == 0:
+            self._update_stacking({w: index for index, w in enumerate(widgets)})
+        else:
+            self._update_stacking({w: max(0, child_list.index(w) - steps) for w in widgets})
+
+    def bring_front(self, steps=0):
+        if not (self.studio.selection and self.studio.selection.is_same_parent()):
+            return
+
+        child_list = next(iter(self.studio.selection)).layout._children
+        widgets = sorted(self.studio.selection, key=child_list.index)
+
+        end = len(child_list) - 1
+        if steps == 0:
+            self._update_stacking({w: end for w in widgets})
+        else:
+            self._update_stacking({w: min(end, child_list.index(w) + steps) for w in widgets})
+
+    def _update_stacking(self, indices, silently=False):
+        if not indices:
+            return
+
+        child_list = next(iter(indices)).layout._children
+        # reorder child list based on indices
+
+        indices = sorted(
+            indices.items(),
+            key=lambda x: (x[1], -child_list.index(x[0]) if x[1] == 0 else child_list.index(x[0]))
+        )
+        for widget, _ in indices:
+            child_list.remove(widget)
+
+        for widget, index in indices:
+            child_list.insert(index, widget)
+
+        prev_data = {}
+        data = {}
+        for index, widget in enumerate(child_list):
+            if widget.prev_stack_index != index:
+                prev_data[widget] = widget.prev_stack_index
+                data[widget] = index
+            widget.prev_stack_index = index
+            if index > 0:
+                widget.lift(child_list[index - 1])
+            else:
+                widget.lift(widget.layout.body)
+
+        prev_data = dict(sorted(prev_data.items(), key=lambda x: x[1]))
+
+        if not silently and prev_data != data:
+            self.studio.new_action(Action(
+                lambda _: self._update_stacking(prev_data, True),
+                lambda _: self._update_stacking(data, True)
+            ))
+
+    def on_widgets_reorder(self, indices):
+        pass
+
+    def on_widgets_change(self, widgets):
         pass
 
     def on_widget_add(self, widget, parent):
@@ -827,6 +972,10 @@ class DesignContext(BaseContext):
                 self.designer.open_new()
             self._loaded = True
         self.studio.set_path(self.path)
+        self.designer.add_studio_binding("<<SelectionChanged>>", self.designer._select, "+")
+
+    def on_context_unset(self):
+        self.designer.clear_studio_bindings()
 
     def on_load_complete(self):
         # the design load thread is done
@@ -878,9 +1027,6 @@ class DesignContext(BaseContext):
 
     def can_persist(self):
         return self.path is not None
-
-    def on_context_unset(self):
-        pass
 
     def on_app_close(self):
         return self.designer.on_app_close()
