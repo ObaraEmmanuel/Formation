@@ -2,9 +2,10 @@ import platform
 import sys
 import tkinter
 
-from hoverset.ui.widgets import Frame, Label, Application, Hyperlink
+from hoverset.ui.widgets import Frame, Label, Application, Hyperlink, Button
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.data.images import load_tk_image
+from hoverset.ui.icons import get_icon_image
 from hoverset.data.utils import get_resource_path
 from hoverset.util import version_description
 
@@ -33,6 +34,18 @@ class About(Frame):
         About.Spec(self, "studio version", version_description(studio.__version__))
         About.Spec(self, "Platform", platform.platform())
 
+        copy_button = Button(
+            self,
+            text="  Copy",
+            height=25,
+            image=get_icon_image("copy", 20, 20),
+            compound="left",
+            **self.style.button,
+        )
+        copy_button.pack(side="top", pady=8)
+        copy_button.configure(width=copy_button.measure_text("  Copy") + 25, **self.style.highlight_active)
+        copy_button.on_click(self.copy_to_clipboard)
+
         f = Frame(self, **self.style.surface)
         f.pack(side="top", padx=10, pady=3)
         Hyperlink(
@@ -50,6 +63,16 @@ class About(Frame):
         copy_right = "Copyright © 2019-2023 Hoverset group"
         Label(self, text=copy_right, **self.style.text_passive).pack(side="top", fill="y")
         self.pack(fill="both", expand=True)
+
+    def copy_to_clipboard(self, _=None):
+        self.clipboard_clear()
+        self.clipboard_append(
+            f"Python: {platform.python_version()} {sys.version_info.releaselevel} {sys.version_info.serial}\n"
+            f"Tcl/Tk: {tkinter.TkVersion}\n"
+            f"Loader: {formation.__version__}\n"
+            f"Studio: {studio.__version__}\n"
+            f"Platform: {platform.platform()}"
+        )
 
 
 def about_window(parent):
