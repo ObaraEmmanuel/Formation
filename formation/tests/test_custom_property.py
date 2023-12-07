@@ -39,6 +39,10 @@ class CustomPropertyMixinTestCase(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.widget = SampleWidget()
 
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.widget.winfo_toplevel().destroy()
+
     def test_configure(self):
         cnf = self.widget.configure()
         self.assertEqual(cnf["custom1"][:-1], ("custom1", "custom1", "Custom1", 20))

@@ -9,6 +9,10 @@ class StudioMainTestCase(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.studio = TestStudioApp.get_instance()
 
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.studio.destroy()
+
     def test_get_feature(self):
         self.assertIsNone(self.studio.get_feature(str))
         self.assertIsNotNone(self.studio.get_feature(ComponentTree))

@@ -11,6 +11,9 @@ class Binding(unittest.TestCase):
         self.builder = AppBuilder(path=get_resource("bindings.xml"))
         self.builder.connect_callbacks(self)
 
+    def tearDown(self) -> None:
+        self.builder._app.destroy()
+
     def on_clk(self, *_):
         self.clicked = True
 

@@ -10,6 +10,10 @@ class PlaceLayoutTestCase(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.builder = AppBuilder(path=get_resource("common_layout.xml"))
 
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.builder._app.destroy()
+
     def test_loading(self):
         children = self.builder.place_frame.winfo_children()
         self.assertEqual(len(children), 6, "Loading incomplete")
@@ -37,6 +41,10 @@ class GridLayoutTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.builder = AppBuilder(path=get_resource("common_layout.xml"))
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.builder._app.destroy()
 
     def test_loading(self):
         children = self.builder.grid_frame.winfo_children()
@@ -72,6 +80,10 @@ class GridConfigTestCase(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.builder = AppBuilder(path=get_resource("grid_conf.xml"))
 
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.builder._app.destroy()
+
     def test_row_conf(self):
         row_inf = self.builder.frame.rowconfigure(0)
         self.assertEqual(row_inf["minsize"], 10)
@@ -94,6 +106,10 @@ class PackLayoutTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.builder = AppBuilder(path=get_resource("common_layout.xml"))
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.builder._app.destroy()
 
     def test_loading(self):
         children = self.builder.pack_frame.winfo_children()
@@ -130,6 +146,10 @@ class OldLayoutCompatTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.builder = AppBuilder(path=get_resource("layout_compat.xml"))
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.builder._app.destroy()
 
     def test_place(self):
         info = self.builder.place_btn.place_info()

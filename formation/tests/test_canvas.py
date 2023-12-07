@@ -13,6 +13,10 @@ class CanvasTestCase(unittest.TestCase):
         cls.canvas1 = cls.builder.canvas1
         cls.canvas2 = cls.builder.canvas2
 
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.builder._app.destroy()
+
     def test_loading(self):
         self.assertEqual(len(self.canvas1.find_all()), 19)
         self.assertEqual(len(self.canvas2.find_all()), 6)

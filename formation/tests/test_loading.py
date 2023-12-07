@@ -33,17 +33,20 @@ class XMLLoadingTextCase(unittest.TestCase):
         builder = AppBuilder(path=get_resource("all_legacy.xml"))
         self.assertIsInstance(builder.Frame_2, tk.Frame)
         self.assertEqual(builder.Frame_2["background"], "#e3e3e3")
+        builder._app.destroy()
 
     def test_load_path_explicit(self):
         builder = AppBuilder()
         builder.load_path(path=get_resource("all_legacy.xml"))
         self.assertIsInstance(builder.Frame_2, tk.Frame)
         self.assertEqual(builder.Frame_2["background"], "#e3e3e3")
+        builder._app.destroy()
 
     def test_load_string_implicit(self):
         builder = AppBuilder(string=self.xml_string, format=XMLFormat)
         self.assertIsInstance(builder.Frame_1, tk.Frame)
         self.assertEqual(builder.Frame_2["background"], "#e3e3e3")
+        builder._app.destroy()
 
     def test_load_string_implicit_format_requirement(self):
         self.assertRaises(ValueError, lambda: AppBuilder(string=self.xml_string))
@@ -53,12 +56,14 @@ class XMLLoadingTextCase(unittest.TestCase):
         builder.load_string(self.xml_string, XMLFormat)
         self.assertIsInstance(builder.Frame_1, tk.Frame)
         self.assertEqual(builder.Frame_2["background"], "#e3e3e3")
+        builder._app.destroy()
 
     def test_load_node_implicit(self):
         node = XMLFormat(path=get_resource("all_legacy.xml")).load()
         builder = AppBuilder(node=node)
         self.assertIsInstance(builder.Frame_1, tk.Frame)
         self.assertEqual(builder.Frame_2["background"], "#e3e3e3")
+        builder._app.destroy()
 
     def test_load_node_explicit(self):
         node = XMLFormat(path=get_resource("all_legacy.xml")).load()
@@ -66,12 +71,17 @@ class XMLLoadingTextCase(unittest.TestCase):
         builder.load_node(node)
         self.assertIsInstance(builder.Frame_1, tk.Frame)
         self.assertEqual(builder.Frame_2["background"], "#e3e3e3")
+        builder._app.destroy()
 
 
 class CompatibilityTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.builder = AppBuilder(path=get_resource("compat.xml"))
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.builder._app.destroy()
 
     def test_tk_compatibility(self):
         # Both tests should pass in python 2 and 3
@@ -89,6 +99,10 @@ class LegacyWidgetCreationTestCase(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.builder = AppBuilder(path=get_resource("all_legacy.xml"))
 
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.builder._app.destroy()
+
     def test_creation(self):
         for widget_class in tk_supported:
             with self.subTest(widget_class=widget_class):
@@ -101,6 +115,10 @@ class WidgetCreationTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.builder = AppBuilder(path=get_resource("all_native.xml"))
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.builder._app.destroy()
 
     def test_panedwindow_creation(self):
         self.assertEqual(str(self.builder.Panedwindow_1["orient"]), tk.HORIZONTAL)
@@ -119,6 +137,10 @@ class MetaLoadingTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.builder = AppBuilder(path=get_resource("meta.xml"))
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls.builder._app.destroy()
 
     def test_meta_loading(self):
         self.assertEqual(self.builder._meta["version"]["major"], "3")

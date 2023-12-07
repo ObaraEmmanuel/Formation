@@ -44,4 +44,5 @@
     </tkinter.Menu>
   </tkinter.Menu>
   <meta major="5" minor="0" name="version"/>
+  <tkinter.StringVar attr:name="string_var" attr:value="Sample text"/>
 </tkinter.Toplevel>
