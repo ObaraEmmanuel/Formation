@@ -153,8 +153,10 @@ class KeyMap(metaclass=_KeymapDispatch):
 
     EVENT_MASK = {
         0x0004: CONTROL,
-        0x20000: ALT,  # Windows
-        0x0008: ALT,  # Linux
+        # Alt keys are buggy when using event masks
+        # Fix if you can
+        # 0x20000: ALT,  # Windows
+        # 0x0008: ALT,  # Linux
         0x0001: SHIFT,
         0x0002: CAPS_LOCK,
 
@@ -168,7 +170,7 @@ class KeyMap(metaclass=_KeymapDispatch):
     def _bind(self, widget):
         widget.bind('<Key>', self._dispatch)
         # Alt key must be manually bound to work
-        widget.bind('<Alt-Key>', self._dispatch)
+        widget.bind('<Alt-Key>', self._dispatch_alt)
 
     def bind_all(self):
         """
@@ -177,7 +179,7 @@ class KeyMap(metaclass=_KeymapDispatch):
         """
         self.window.bind_all('<Key>', self._dispatch)
         # Alt key must be manually bound to work
-        self.window.bind_all('<Alt-Key>', self._dispatch)
+        self.window.bind_all('<Alt-Key>', self._dispatch_alt)
 
     def bind(self):
         """
@@ -194,8 +196,12 @@ class KeyMap(metaclass=_KeymapDispatch):
         routine_key()
 
     @classmethod
-    def get_key(cls, event):
-        key = None
+    def get_key(cls, event, with_alt=False):
+        if with_alt:
+            key = cls.ALT
+        else:
+            key = None
+
         for mod in cls.EVENT_MASK:
             if event.state & mod:
                 if key is None:
@@ -208,8 +214,11 @@ class KeyMap(metaclass=_KeymapDispatch):
         key = main_key if key is None else key + main_key
         return key
 
-    def _dispatch(self, event):
-        key = self.get_key(event)
+    def _dispatch_alt(self, event):
+        self._dispatch(event, with_alt=True)
+
+    def _dispatch(self, event, with_alt=False):
+        key = self.get_key(event, with_alt)
         if key in self.bindings:
             routine_key = self.bindings[key]
             self._invoke(routine_key)
@@ -263,10 +272,10 @@ class ShortcutManager(KeyMap):
             self.bindings[routine.shortcut] = routine.key
             self.reversed_bindings[routine.key] = routine.shortcut
 
-    def _dispatch(self, event):
+    def _dispatch(self, event, with_alt=False):
         # allow dispatch if and only if hotkeys are allowed
         if self.preferences.get("allow_hotkeys"):
-            super()._dispatch(event)
+            super()._dispatch(event, with_alt)
 
     def _invoke(self, routine_key):
         # Things get slightly complicated, we need to use the key to
@@ -303,8 +312,8 @@ class ShortcutPicker(MessageDialog):
         self.key = None
         self.shortcut_pane = shortcut_pane
 
-    def on_key_change(self, event):
-        self.key = KeyMap.get_key(event)
+    def on_key_change(self, event, with_alt=False):
+        self.key = KeyMap.get_key(event, with_alt)
         if self.shortcut_pane is not None:
             routine = self.shortcut_pane.routine_from_shortcut(self.key)
             if routine is not None and self.shortcut_pane:
@@ -316,6 +325,9 @@ class ShortcutPicker(MessageDialog):
         # returning break ensures this event does not propagate
         # preventing the event from invoking currently set bindings
         return "break"
+
+    def on_key_change_alt(self, event):
+        self.on_key_change(event, with_alt=True)
 
     def render(self, _):
         self.detail = Label(self, **self.style.text, text=self.message)
@@ -340,7 +352,7 @@ class ShortcutPicker(MessageDialog):
         )
         self.event_pad.bind("<Any-KeyPress>", self.on_key_change)
         # for some reason alt needs to be bound separately
-        self.event_pad.bind("<Alt-KeyPress>", self.on_key_change)
+        self.event_pad.bind("<Alt-KeyPress>", self.on_key_change_alt)
         self.event_pad.bind("<Button-1>", lambda e: self.event_pad.focus_set())
         self.event_pad.pack(fill="both", expand=True)
 
@@ -443,11 +455,14 @@ class ShortcutPane(Component, Frame):
         if self.shortcut_list.get():
             item = self.shortcut_list.get()
             routine = actions.get_routine(item.value[0])
+            # Temporary disable hotkeys to avoid conflicts
+            self.pref.set("allow_hotkeys", False)
             key = ShortcutPicker.pick(
                 self.window,
                 routine.desc,
                 self
             )
+            self.pref.set("allow_hotkeys", True)
             if key:
                 # overwrite any present bindings by replacing with blank key
                 overwritten = self.routine_from_shortcut(key)
