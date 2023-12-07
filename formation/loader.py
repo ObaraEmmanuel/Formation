@@ -175,13 +175,31 @@ class VariableLoaderAdapter(BaseLoaderAdapter):
 
     @classmethod
     def load(cls, node, builder, __=None):
-        # we do not need the designer and parent attributes hence the _ and __
         obj_class = cls._get_class(node)
         attributes = node.attrib.get("attr", {})
         _id = attributes.pop("name")
-        obj = obj_class(**attributes)
-        setattr(builder, _id, obj)
-        return obj
+
+        # set up lazy loading for variable attributes using dynamic properties
+        # because variables should not be loaded until a root window is available
+
+        def _getter(self):
+            # Load variable
+            var = obj_class(**attributes)
+            # detach lazy loading property
+            delattr(builder.__class__, _id)
+            setattr(builder, _id, var)
+            return var
+
+        def _setter(self, var):
+            # detach lazy loading property
+            delattr(builder.__class__, _id)
+            setattr(builder, _id, var)
+
+        # set up lazy loading attributes
+        setattr(builder.__class__, _id, property(
+            fget=_getter,
+            fset=_setter,
+        ))
 
 
 class CanvasLoaderAdapter(BaseLoaderAdapter):
@@ -281,6 +299,7 @@ class Builder:
         # load meta and variables first
         self._load_meta(root_node, self)
         self._verify_version()
+        # lazy load variables
         self._load_variables(root_node, self)
         return self._load_widgets(root_node, self, self._parent)
 
