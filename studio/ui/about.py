@@ -2,7 +2,7 @@ import platform
 import sys
 import tkinter
 
-from hoverset.ui.widgets import Frame, Label, Application, Hyperlink, Button
+from hoverset.ui.widgets import Frame, Label, Application, Hyperlink, Button, ActionNotifier
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.data.images import load_tk_image
 from hoverset.ui.icons import get_icon_image
@@ -38,13 +38,13 @@ class About(Frame):
             self,
             text="  Copy",
             height=25,
-            image=get_icon_image("copy", 20, 20),
+            image=get_icon_image("copy", 14, 14),
             compound="left",
             **self.style.button,
         )
         copy_button.pack(side="top", pady=8)
         copy_button.configure(width=copy_button.measure_text("  Copy") + 25, **self.style.highlight_active)
-        copy_button.on_click(self.copy_to_clipboard)
+        ActionNotifier.bind_event("<Button-1>", copy_button, self.copy_to_clipboard, text="Copied")
 
         f = Frame(self, **self.style.surface)
         f.pack(side="top", padx=10, pady=3)
@@ -67,11 +67,11 @@ class About(Frame):
     def copy_to_clipboard(self, _=None):
         self.clipboard_clear()
         self.clipboard_append(
-            f"Python: {platform.python_version()} {sys.version_info.releaselevel} {sys.version_info.serial}\n"
-            f"Tcl/Tk: {tkinter.TkVersion}\n"
-            f"Loader: {formation.__version__}\n"
-            f"Studio: {studio.__version__}\n"
-            f"Platform: {platform.platform()}"
+            f"- **Python**: {platform.python_version()} {sys.version_info.releaselevel} {sys.version_info.serial}\n"
+            f"- **Tcl/Tk**: {tkinter.TkVersion}\n"
+            f"- **Loader**: {formation.__version__}\n"
+            f"- **Studio**: {studio.__version__}\n"
+            f"- **Platform**: {platform.platform()}"
         )
 
 
