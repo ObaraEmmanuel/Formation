@@ -2722,7 +2722,7 @@ class Tree(abc.ABC):
                     self._set_expander(self.BLANK)
 
         def expand(self):
-            if self._expanded:
+            if self._expanded or not self.nodes:
                 return
             self.pack_propagate(True)
             for node in filter(lambda n: n._visible, self.nodes):
