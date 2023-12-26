@@ -178,28 +178,10 @@ class VariableLoaderAdapter(BaseLoaderAdapter):
         obj_class = cls._get_class(node)
         attributes = node.attrib.get("attr", {})
         _id = attributes.pop("name")
+        if not hasattr(builder, "_var_cache"):
+            builder._var_cache = {}
 
-        # set up lazy loading for variable attributes using dynamic properties
-        # because variables should not be loaded until a root window is available
-
-        def _getter(self):
-            # Load variable
-            var = obj_class(**attributes)
-            # detach lazy loading property
-            delattr(builder.__class__, _id)
-            setattr(builder, _id, var)
-            return var
-
-        def _setter(self, var):
-            # detach lazy loading property
-            delattr(builder.__class__, _id)
-            setattr(builder, _id, var)
-
-        # set up lazy loading attributes
-        setattr(builder.__class__, _id, property(
-            fget=_getter,
-            fset=_setter,
-        ))
+        builder._var_cache[_id] = (obj_class, attributes, None)
 
 
 class CanvasLoaderAdapter(BaseLoaderAdapter):
@@ -301,12 +283,33 @@ class Builder:
         self._verify_version()
         # lazy load variables
         self._load_variables(root_node, self)
-        return self._load_widgets(root_node, self, self._parent)
+        node = self._load_widgets(root_node, self, self._parent)
+        self._flush_var_cache()
+        return node
 
     def _load_variables(self, node, builder):
         for sub_node in node:
             if sub_node.is_var():
                 VariableLoaderAdapter.load(sub_node, builder)
+
+    def _get_var(self, name):
+        if not hasattr(self, "_var_cache"):
+            return None
+        if name not in self._var_cache:
+            return None
+        obj_class, attributes, obj = self._var_cache[name]
+        if obj is None:
+            obj = obj_class(**attributes)
+            self._var_cache[name] = (obj_class, attributes, obj)
+            setattr(self, name, obj)
+        return obj
+
+    def _flush_var_cache(self):
+        if not hasattr(self, "_var_cache"):
+            return
+        for name in self._var_cache:
+            self._get_var(name)
+        delattr(self, "_var_cache")
 
     def _verify_version(self):
         if self._meta.get("version"):
