@@ -148,7 +148,8 @@ class MessageDialog(Window):
             self._reaction = -1
             return
         try:
-            *_, x, y = self.get_geometry()
+            _, *xy = self.geometry().split("+")
+            x, y = map(int, xy)
             x += step
             self.geometry('+{}+{}'.format(x, y))
             self.after(100, lambda: self._react(step * -1))
