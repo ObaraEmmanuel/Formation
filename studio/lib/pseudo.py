@@ -219,7 +219,7 @@ class PseudoWidget:
         if not self._handle_cls:
             return
         if not self._handle:
-            self._handle = self._handle_cls.acquire(self, self.master)
+            self._handle = self._handle_cls.acquire(self, self.master, self.allow_direct_move)
         self._handle.show()
 
     def clear_handle(self):

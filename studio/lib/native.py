@@ -53,6 +53,7 @@ class Combobox(PseudoWidget, ttk.Combobox):
     group = Groups.input
     icon = "combobox"
     impl = ttk.Combobox
+    allow_direct_move = False
 
     DEF_OVERRIDES = {
         "state": {
@@ -75,6 +76,7 @@ class Entry(PseudoWidget, ttk.Entry):
     group = Groups.input
     icon = "entry"
     impl = ttk.Entry
+    allow_direct_move = False
 
     DEF_OVERRIDES = _dimension_override
 
@@ -144,6 +146,7 @@ class LabeledScale(PseudoWidget, ttk.LabeledScale):
     icon = "scale"
     impl = ttk.LabeledScale
     initial_dimensions = 150, 40
+    allow_direct_move = False
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -157,6 +160,7 @@ class Menubutton(PseudoWidget, ttk.Menubutton):
     group = Groups.widget
     icon = "menubutton"
     impl = ttk.Menubutton
+    allow_direct_move = False
 
     DEF_OVERRIDES = _dimension_override
 
@@ -276,6 +280,7 @@ class Scale(PseudoWidget, ttk.Scale):
     icon = "scale"
     impl = ttk.Scale
     initial_dimensions = 150, 20
+    allow_direct_move = False
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -330,6 +335,7 @@ class Spinbox(PseudoWidget, ttk.Spinbox):
     group = Groups.input
     icon = "play"
     impl = ttk.Spinbox
+    allow_direct_move = False
 
     DEF_OVERRIDES = _dimension_override
 

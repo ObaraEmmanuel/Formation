@@ -92,6 +92,7 @@ class Handle:
         self.edges = []
         self._hover = False
         self._showing = False
+        self.allow_move = False
 
     def set_direction(self, direction):
         if direction is None:
@@ -154,7 +155,7 @@ class Handle:
         Handle._pool[(self.__class__, self.master)].append(self)
 
     @classmethod
-    def acquire(cls, widget, master=None):
+    def acquire(cls, widget, master=None, move=False):
         master = widget if master is None else master
         if not cls._pool[(cls, master)]:
             obj = cls(widget, master)
@@ -162,6 +163,7 @@ class Handle:
             obj = cls._pool[(cls, master)].pop()
             obj.widget = widget
         obj.lift()
+        obj.allow_move = move
         return obj
 
 
@@ -171,11 +173,12 @@ class BoxHandle(Handle):
         super().__init__(widget, master)
         self.directions = ["n", "s", "e", "w", "nw", "ne", "sw", "se", "all"]
         self.dots = [Dot(self, direction) for direction in self.directions]
+        self.dots[-1].config(width=10, height=10)
 
     def redraw(self):
         if self._showing:
             n, s, e, w, nw, ne, sw, se, c = self.dots
-            radius = 2
+            radius = 3
             # border-mode has to be outside so the highlight covers the entire widget
             extra = dict(in_=self.widget, bordermode="outside")
             nw.place(**extra, x=-radius, y=-radius)
@@ -186,7 +189,9 @@ class BoxHandle(Handle):
             s.place(**extra, relx=0.5, x=-radius, rely=1, y=-radius)
             e.place(**extra, relx=1, x=-radius, rely=0.5, y=-radius)
             w.place(**extra, x=-radius, rely= 0.5, y=-radius)
-            c.place(**extra, relx=0.5, rely=0.5, x=-radius, y=-radius)
+
+            if not self.allow_move:
+                c.place(**extra, relx=1, x=-20, rely=1, y=-5)
 
         if self._hover:
             if not self.edges:

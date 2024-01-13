@@ -71,6 +71,7 @@ class Entry(PseudoWidget, tk.Entry):
     group = Groups.input
     icon = "entry"
     impl = tk.Entry
+    allow_direct_move = False
 
     DEF_OVERRIDES = {
         "state": {
@@ -139,6 +140,7 @@ class Listbox(PseudoWidget, tk.Listbox):
     group = Groups.container
     icon = "listbox"
     impl = tk.Listbox
+    allow_direct_move = False
 
     DEF_OVERRIDES = _dimension_override
 
@@ -167,6 +169,7 @@ class Menubutton(PseudoWidget, tk.Menubutton):
     group = Groups.widget
     icon = "menubutton"
     impl = tk.Menubutton
+    allow_direct_move = False
 
     DEF_OVERRIDES = _dimension_override
 
@@ -229,6 +232,7 @@ class Scale(PseudoWidget, tk.Scale):
     icon = "scale"
     impl = tk.Scale
     initial_dimensions = 45, 100
+    allow_direct_move = False
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -256,6 +260,7 @@ class Spinbox(PseudoWidget, tk.Spinbox):
     group = Groups.input
     icon = "entry"
     impl = tk.Spinbox
+    allow_direct_move = False
 
     DEF_OVERRIDES = _dimension_override
 
@@ -273,6 +278,7 @@ class Text(PseudoWidget, tk.Text):
     group = Groups.input
     icon = "text"
     impl = tk.Text
+    allow_direct_move = False
 
     DEF_OVERRIDES = {
         "wrap": {
