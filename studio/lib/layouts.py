@@ -249,7 +249,7 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
         }
     }
     name = "place"
-    icon = "frame"
+    icon = "place"
     manager = "place"
     realtime_support = True
     dimensions_in_px = True
@@ -363,7 +363,7 @@ class PackLayoutStrategy(BaseLayoutStrategy):
         },
     }
     name = "pack"
-    icon = "frame"
+    icon = "pack"
     manager = "pack"
     stacking_support = False
 

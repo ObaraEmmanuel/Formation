@@ -19,7 +19,7 @@ from hoverset.data import actions
 from hoverset.data.images import load_tk_image
 from hoverset.data.keymap import ShortcutManager, CharKey, KeyMap, BlankKey, Symbol
 from hoverset.data.utils import get_resource_path
-from hoverset.platform import platform_is, MAC
+from hoverset.platform import platform_is, MAC, WINDOWS
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.menu import MenuUtils, EnableIf, dynamic_menu, LoadLater, ShowIf
@@ -45,15 +45,18 @@ pref = Preferences.acquire()
 
 
 class StudioApplication(Application):
-    ICON_PATH = get_resource_path(studio, "resources/images/formation_icon.png")
+    if platform_is(WINDOWS):
+        ICON_PATH = get_resource_path(studio, "resources/images/formation.ico")
+    else:
+        ICON_PATH = get_resource_path(studio, "resources/images/formation_icon.png")
     THEME_PATH = pref.get("resource::theme")
 
     def __init__(self, master=None, **cnf):
         super().__init__(master, **cnf)
         # Load icon asynchronously to prevent issues which have been known to occur when loading it synchronously
-        icon_image = load_tk_image(self.ICON_PATH)
+        self.icon_image = load_tk_image(self.ICON_PATH)
         self.load_styles(self.THEME_PATH)
-        self.iconphoto(True, icon_image)
+        self.iconphoto(True, self.icon_image)
         self.pref = pref
         self._restore_position()
         self.title('Formation Studio')
@@ -99,15 +102,15 @@ class StudioApplication(Application):
         icon = get_icon_image
 
         self.actions = (
-            ("Delete", icon("delete", 20, 20), lambda e: self.delete(), "Delete selected widgets"),
+            ("Delete", icon("remove", 20, 20), lambda e: self.delete(), "Delete selected widgets"),
             ("Undo", icon("undo", 20, 20), lambda e: self.undo(), "Undo action"),
             ("Redo", icon("redo", 20, 20), lambda e: self.redo(), "Redo action"),
             ("Cut", icon("cut", 20, 20), lambda e: self.cut(), "Cut selected widgets"),
             ("separator",),
-            ("Fullscreen", icon("image_editor", 20, 20), lambda e: self.close_all(), "Design mode"),
-            ("Separate", icon("separate", 20, 20), lambda e: self.features_as_windows(),
+            ("Fullscreen", icon("fullscreen", 20, 20), lambda e: self.close_all(), "Design mode"),
+            ("Separate", icon("undock", 20, 20), lambda e: self.features_as_windows(),
              "Open features in window mode"),
-            ("Dock", icon("flip_horizontal", 15, 15), lambda e: self.features_as_docked(),
+            ("Dock", icon("dock_horizontal", 15, 15), lambda e: self.features_as_docked(),
              "Dock all features"),
             ("separator",),
             ("New", icon("add", 20, 20), lambda e: self.open_new(), "New design"),
@@ -118,7 +121,7 @@ class StudioApplication(Application):
         self.init_toolbar()
         self._selection = Selection(self)
         # set the image option to blank if there is no image for the menu option
-        self.blank_img = blank_img = icon("blank", 14, 14)
+        self.blank_img = blank_img = icon("blank", 18, 18)
 
         self.tool_manager = ToolManager(self)
 
@@ -126,26 +129,26 @@ class StudioApplication(Application):
         self.menu_template = (EnableIf(
             lambda: bool(self.selection),
             ("separator",),
-            ("command", "copy", icon("copy", 14, 14), actions.get('STUDIO_COPY'), {}),
-            ("command", "duplicate", icon("copy", 14, 14), actions.get('STUDIO_DUPLICATE'), {}),
+            ("command", "copy", icon("copy", 18, 18), actions.get('STUDIO_COPY'), {}),
+            ("command", "duplicate", icon("blank", 18, 18), actions.get('STUDIO_DUPLICATE'), {}),
             EnableIf(
                 lambda: self._clipboard is not None and len(self.selection) < 2,
-                ("command", "paste", icon("clipboard", 14, 14), actions.get('STUDIO_PASTE'), {})
+                ("command", "paste", icon("clipboard", 18, 18), actions.get('STUDIO_PASTE'), {})
             ),
-            ("command", "cut", icon("cut", 14, 14), actions.get('STUDIO_CUT'), {}),
+            ("command", "cut", icon("cut", 18, 18), actions.get('STUDIO_CUT'), {}),
             ("separator",),
             ShowIf(
                 lambda: self.selection and self.selection[0].layout.layout_strategy.stacking_support,
                 EnableIf(
                     lambda: self.selection.is_same_parent(),
-                    ("command", "send to back", icon("send_to_back", 14, 14), actions.get('STUDIO_BACK'), {}),
-                    ("command", "bring to front", icon("bring_to_front", 14, 14), actions.get('STUDIO_FRONT'), {}),
-                    ("command", "back one step", icon("send_to_back", 14, 14), actions.get('STUDIO_BACK_1'), {}),
-                    ("command", "forward one step", icon("bring_to_front", 14, 14), actions.get('STUDIO_FRONT_1'), {}),
+                    ("command", "send to back", icon("send_to_back", 18, 18), actions.get('STUDIO_BACK'), {}),
+                    ("command", "bring to front", icon("bring_to_front", 18, 18), actions.get('STUDIO_FRONT'), {}),
+                    ("command", "back one step", icon("send_to_back", 18, 18), actions.get('STUDIO_BACK_1'), {}),
+                    ("command", "forward one step", icon("bring_to_front", 18, 18), actions.get('STUDIO_FRONT_1'), {}),
                 ),
             ),
             ("separator",),
-            ("command", "delete", icon("delete", 14, 14), actions.get('STUDIO_DELETE'), {}),
+            ("command", "delete", icon("delete", 18, 18), actions.get('STUDIO_DELETE'), {}),
         ),)
 
         self.menu_bar = MenuUtils.make_dynamic(
@@ -153,53 +156,53 @@ class StudioApplication(Application):
                  ("cascade", "formation", None, None, {"menu": (
                      ("command", "Restart", None, actions.get('STUDIO_RESTART'), {}),
                      ("separator", ),
-                     ("command", "About Formation", icon("formation", 14, 14), lambda: about_window(self), {}),
+                     ("command", "About Formation", icon("formation", 18, 18), lambda: about_window(self), {}),
                  ), "name": "apple"}),
              ) if platform_is(MAC) else ()) +
             (
                 ("cascade", "File", None, None, {"menu": (
-                    ("command", "New", icon("add", 14, 14), actions.get('STUDIO_NEW'), {}),
-                    ("command", "Open", icon("folder", 14, 14), actions.get('STUDIO_OPEN'), {}),
-                    ("cascade", "Recent", icon("clock", 14, 14), None, {"menu": self._create_recent_menu()}),
+                    ("command", "New", icon("add", 18, 18), actions.get('STUDIO_NEW'), {}),
+                    ("command", "Open", icon("folder", 18, 18), actions.get('STUDIO_OPEN'), {}),
+                    ("cascade", "Recent", icon("recent", 18, 18), None, {"menu": self._create_recent_menu()}),
                     ("separator",),
                     EnableIf(
                         lambda: self.designer,
-                        ("command", "Save", icon("save", 14, 14), actions.get('STUDIO_SAVE'), {}),
-                        ("command", "Save As", icon("blank", 14, 14), actions.get('STUDIO_SAVE_AS'), {})
+                        ("command", "Save", icon("save", 18, 18), actions.get('STUDIO_SAVE'), {}),
+                        ("command", "Save As", icon("blank", 18, 18), actions.get('STUDIO_SAVE_AS'), {})
                     ),
                     EnableIf(
                         # more than one design contexts open
                         lambda: len([i for i in self.contexts if isinstance(i, DesignContext)]) > 1,
-                        ("command", "Save All", icon("blank", 14, 14), actions.get('STUDIO_SAVE_ALL'), {})
+                        ("command", "Save All", icon("blank", 18, 18), actions.get('STUDIO_SAVE_ALL'), {})
                     ),
                     ("separator",),
-                    ("command", "Settings", icon("settings", 14, 14), actions.get('STUDIO_SETTINGS'), {}),
-                    ("command", "Restart", icon("blank", 14, 14), actions.get('STUDIO_RESTART'), {}),
-                    ("command", "Exit", icon("close", 14, 14), actions.get('STUDIO_EXIT'), {}),
+                    ("command", "Settings", icon("settings", 18, 18), actions.get('STUDIO_SETTINGS'), {}),
+                    ("command", "Restart", icon("blank", 18, 18), actions.get('STUDIO_RESTART'), {}),
+                    ("command", "Exit", icon("close", 18, 18), actions.get('STUDIO_EXIT'), {}),
                 )}),
                 ("cascade", "Edit", None, None, {"menu": (
                     EnableIf(lambda: self.context and self.context.has_undo(),
-                             ("command", "undo", icon("undo", 14, 14), actions.get('STUDIO_UNDO'), {})),
+                             ("command", "undo", icon("undo", 18, 18), actions.get('STUDIO_UNDO'), {})),
                     EnableIf(lambda: self.context and self.context.has_redo(),
-                             ("command", "redo", icon("redo", 14, 14), actions.get('STUDIO_REDO'), {})),
+                             ("command", "redo", icon("redo", 18, 18), actions.get('STUDIO_REDO'), {})),
                     *self.menu_template,
                 )}),
                 ("cascade", "Code", None, None, {"menu": (
                     EnableIf(
                         lambda: self.designer and self.designer.root_obj,
-                        ("command", "Preview design", icon("play", 14, 14), actions.get('STUDIO_PREVIEW'), {}),
-                        ("command", "close preview", icon("close", 14, 14), actions.get('STUDIO_PREVIEW_CLOSE'), {}),
+                        ("command", "Preview design", icon("play", 18, 18), actions.get('STUDIO_PREVIEW'), {}),
+                        ("command", "close preview", icon("close", 18, 18), actions.get('STUDIO_PREVIEW_CLOSE'), {}),
                         ("separator", ),
                         EnableIf(
                             lambda: self.designer and self.designer.design_path,
-                            ("command", "Reload design file", icon("rotate_clockwise", 14, 14),
+                            ("command", "Reload design file", icon("reload", 18, 18),
                              actions.get('STUDIO_RELOAD'), {}),
                         ),
                     )
                 )}),
                 ("cascade", "View", None, None, {"menu": (
                     ("command", "show all panes", blank_img, actions.get('FEATURE_SHOW_ALL'), {}),
-                    ("command", "close all panes", icon("close", 14, 14), actions.get('FEATURE_CLOSE_ALL'), {}),
+                    ("command", "close all panes", icon("close", 18, 18), actions.get('FEATURE_CLOSE_ALL'), {}),
                     ("command", "close all panes on the right", blank_img, actions.get('FEATURE_CLOSE_RIGHT'), {}),
                     ("command", "close all panes on the left", blank_img, actions.get('FEATURE_CLOSE_LEFT'), {}),
                     ("separator",),
@@ -210,7 +213,7 @@ class StudioApplication(Application):
                     ("separator",),
                     EnableIf(
                         lambda: self.context,
-                        ("command", "close tab", icon("close", 14, 14), actions.get('CONTEXT_CLOSE'), {}),
+                        ("command", "close tab", icon("close", 18, 18), actions.get('CONTEXT_CLOSE'), {}),
                         ("command", "close all tabs", blank_img, actions.get('CONTEXT_CLOSE_ALL'), {}),
                         EnableIf(
                             lambda: self.context and len(self.tab_view.tabs()) > 1,
@@ -227,11 +230,11 @@ class StudioApplication(Application):
                 )}),
                 ("cascade", "Tools", None, None, {"menu": (LoadLater(self.tool_manager.get_tools_as_menu), )}),
                 ("cascade", "Help", None, None, {"menu": (
-                    ("command", "Help", icon('dialog_info', 14, 14), actions.get('STUDIO_HELP'), {}),
+                    ("command", "Help", icon('dialog_info', 18, 18), actions.get('STUDIO_HELP'), {}),
                     ("command", "Report issue", blank_img, self.report_issue, {}),
-                    ("command", "Check for updates", icon("cloud", 14, 14), self._check_updates, {}),
+                    ("command", "Check for updates", blank_img, self._check_updates, {}),
                     ("separator",),
-                    ("command", "About Formation", icon("formation", 14, 14), lambda: about_window(self), {}),
+                    ("command", "About Formation", icon("formation", 18, 18), lambda: about_window(self), {}),
                 )})
             ), self, self.style, False)
 
@@ -256,7 +259,7 @@ class StudioApplication(Application):
         self._center.add(self.tab_view, sticky='nswe')
         self._tab_view_empty = Label(
             self.tab_view, **self.style.text_passive, compound='top',
-            image=get_icon_image("paint", 60, 60)
+            image=get_icon_image("design", 60, 60)
         )
         self._tab_view_empty.config(**self.style.bright)
 
@@ -540,7 +543,7 @@ class StudioApplication(Application):
     @dynamic_menu
     def _create_recent_menu(self, menu):
         # Dynamically create recent file menu every time menu is posted
-        menu.image = get_icon_image("close", 14, 14)
+        menu.image = get_icon_image("close", 18, 18)
         menu.config(**self.style.context_menu)
         recent = pref.get_recent()
         for path, label in recent:

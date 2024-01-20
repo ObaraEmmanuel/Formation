@@ -122,15 +122,15 @@ class VariablePane(BaseFeature):
         return [(
             tk.COMMAND,
             _types[i].get("name"),
-            get_icon_image(_types[i].get("icon"), 14, 14),
+            get_icon_image(_types[i].get("icon"), 18, 18),
             functools.partial(self.menu_add_var, i), {}
         ) for i in _types]
 
     def create_menu(self):
         return (
-            ("cascade", "Add", get_icon_image("add", 14, 14), None, {"menu": self._get_add_menu()}),
-            ("command", "Delete", get_icon_image("delete", 14, 14), self._delete, {}),
-            ("command", "Search", get_icon_image("search", 14, 14), self.start_search, {}),
+            ("cascade", "Add", get_icon_image("add", 18, 18), None, {"menu": self._get_add_menu()}),
+            ("command", "Delete", get_icon_image("delete", 18, 18), self._delete, {}),
+            ("command", "Search", get_icon_image("search", 18, 18), self.start_search, {}),
         )
 
     def _show_overlay(self, flag=True, **kwargs):

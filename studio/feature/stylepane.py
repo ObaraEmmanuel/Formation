@@ -575,9 +575,9 @@ class StylePaneFramework:
 
     def create_menu(self):
         return (
-            ("command", "Search", get_icon_image("search", 14, 14), self.start_search, {}),
-            ("command", "Expand all", get_icon_image("chevron_down", 14, 14), self.expand_all, {}),
-            ("command", "Collapse all", get_icon_image("chevron_up", 14, 14), self.collapse_all, {})
+            ("command", "Search", get_icon_image("search", 18, 18), self.start_search, {}),
+            ("command", "Expand all", get_icon_image("chevron_down", 18, 18), self.expand_all, {}),
+            ("command", "Collapse all", get_icon_image("chevron_up", 18, 18), self.collapse_all, {})
         )
 
     def extern_apply(self, group_class, prop, value, widgets=None, silent=False):

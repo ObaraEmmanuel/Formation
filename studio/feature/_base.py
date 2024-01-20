@@ -85,7 +85,7 @@ class BaseFeature(Pane):
                              "checkbutton", "Transparent when inactive", None, None,
                              {"variable": self._transparency_flag}),
                      )})),
-            ("command", "Close", get_icon_image("close", 14, 14), self.minimize, {}),
+            ("command", "Close", get_icon_image("close", 18, 18), self.minimize, {}),
             ("separator",),
             *self.create_menu()
         ), self._pref)

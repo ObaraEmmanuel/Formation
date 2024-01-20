@@ -24,7 +24,7 @@ class VariableItem(Label):
         },
         tk.BooleanVar: {
             "name": "Boolean",
-            "icon": "checkbutton",
+            "icon": "checkbox",
             "type": "boolean",
         },
         tk.IntVar: {
@@ -34,7 +34,7 @@ class VariableItem(Label):
         },
         tk.DoubleVar: {
             "name": "Double",
-            "icon": "math",
+            "icon": "ratio",
             "type": "number",
         }
     }

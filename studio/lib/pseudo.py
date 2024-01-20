@@ -520,12 +520,12 @@ class Container(PseudoWidget):
 
     def _get_layouts_as_menu(self):
         layout_templates = [
-            ("radiobutton", i.name, get_icon_image(i.icon, 14, 14),
+            ("radiobutton", i.name, get_icon_image(i.icon, 18, 18),
              functools.partial(self._set_layout, i),
              {"value": i.name, "variable": self.layout_var}
              ) for i in self.LAYOUTS
         ]
-        return (("cascade", "Change layout", get_icon_image("grid", 14, 14), None, {"menu": (
+        return (("cascade", "Change layout", get_icon_image("grid", 18, 18), None, {"menu": (
             layout_templates
         )}),)
 
@@ -613,7 +613,7 @@ class TabContainer(Container):
 
     def create_menu(self):
         return super().create_menu() + (
-            ("command", "Add tab", get_icon_image("add", 14, 14), self._add_tab, {}),
+            ("command", "Add tab", get_icon_image("add", 18, 18), self._add_tab, {}),
         )
 
     def _add_tab(self):
@@ -654,7 +654,7 @@ class PanedContainer(TabContainer):
 
     def create_menu(self):
         return super(TabContainer, self).create_menu() + (
-            ("command", "Add pane", get_icon_image("add", 14, 14), self._add_pane, {}),
+            ("command", "Add pane", get_icon_image("add", 18, 18), self._add_pane, {}),
         )
 
     def _add_pane(self):

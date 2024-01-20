@@ -427,7 +427,7 @@ class Bitmap(CanvasItem):
 
 
 class Image(CanvasItem):
-    icon = "image_dark"
+    icon = "image"
     display_name = "Image"
 
     def __init__(self, canvas, x, y, **options):
@@ -438,7 +438,7 @@ class Image(CanvasItem):
 
 
 class Line(CanvasItem):
-    icon = "line"
+    icon = "polyline"
     display_name = "Line"
     defaults = dict(width=2)
 

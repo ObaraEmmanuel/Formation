@@ -344,7 +344,7 @@ class _HsvModel(Frame):
 class FontPicker(Button):
 
     def __init__(self, master=None, **cnf):
-        super().__init__(master, **cnf, image=get_icon_image("eye", 15, 15))
+        super().__init__(master, **cnf, image=get_icon_image("colorpicker", 15, 15, color="#A235D4"))
         self.tooltip("Pick Font")
         self.bind_all('<Button-1>', self.pick, add='+')
         self.bind_all('<Motion>', self._render, add='+')

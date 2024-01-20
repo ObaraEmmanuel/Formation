@@ -7,6 +7,7 @@ from collections import defaultdict
 
 from hoverset.platform import platform_is, WINDOWS, LINUX
 from hoverset.ui.widgets import EventMask
+from hoverset.ui.icons import get_icon_image
 
 
 def resize_cursor() -> tuple:
@@ -168,12 +169,24 @@ class Handle:
 
 
 class BoxHandle(Handle):
+    move_icon = None
 
     def __init__(self, widget, master=None):
         super().__init__(widget, master)
         self.directions = ["n", "s", "e", "w", "nw", "ne", "sw", "se", "all"]
         self.dots = [Dot(self, direction) for direction in self.directions]
-        self.dots[-1].config(width=10, height=10)
+        BoxHandle.move_icon = BoxHandle.move_icon or get_icon_image("move", 12, 12, color="#ffffff")
+        label = tk.Label(
+            self.dots[-1],
+            image=BoxHandle.move_icon,
+            bg=master.style.colors["accent"]
+        )
+        label.pack(fill="both", expand=True)
+        self.dots[-1].config(width=12, height=12)
+        self.dots[-1].pack_propagate(False)
+        label.bind("<ButtonPress>", self.dots[-1].on_press)
+        label.bind("<ButtonRelease>", self.dots[-1].on_release)
+        label.bind("<Motion>", self.dots[-1].on_move)
 
     def redraw(self):
         if self._showing:
@@ -191,7 +204,7 @@ class BoxHandle(Handle):
             w.place(**extra, x=-radius, rely= 0.5, y=-radius)
 
             if not self.allow_move:
-                c.place(**extra, relx=1, x=-20, rely=1, y=-5)
+                c.place(**extra, relx=1, x=-24, rely=1, y=-6)
 
         if self._hover:
             if not self.edges:

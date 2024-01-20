@@ -137,7 +137,7 @@ class Designer(DesignPad, Container):
 
         self._empty = Label(
             self,
-            image=get_tk_image("paint", 30, 30), compound="top", text=" ",
+            image=get_tk_image("design", 30, 30), compound="top", text=" ",
             **self.style.text_passive
         )
         self._empty.config(**self.style.bright)
@@ -155,7 +155,7 @@ class Designer(DesignPad, Container):
         design_menu = (
             EnableIf(
                 lambda: self.studio._clipboard is not None,
-                ("command", "paste", icon("clipboard", 14, 14),
+                ("command", "paste", icon("clipboard", 18, 18),
                  lambda: self.paste(self.studio._clipboard, paste_to=self), {})
             ),)
         self.set_up_context(design_menu)
@@ -209,7 +209,7 @@ class Designer(DesignPad, Container):
 
     def _show_empty(self, flag, **kw):
         if flag:
-            kw['image'] = kw.get('image', get_tk_image('paint', 30, 30))
+            kw['image'] = kw.get('image', get_tk_image('design', 30, 30))
             kw['text'] = kw.get('text', "Drag or paste a container here to start")
             self._empty.configure(**kw, wraplength=max(400, self.width))
             self._empty.place(relwidth=1, relheight=1)
@@ -935,12 +935,17 @@ class Designer(DesignPad, Container):
 class DesignContext(BaseContext):
     _untitled_count = 0
 
+    _formats = {
+        "xml": "file_xml",
+        "json": "file_json",
+    }
+
     def __init__(self, master, studio, path=None):
         super(DesignContext, self).__init__(master, studio)
         self.designer = Designer(self, studio)
         self.designer.pack(fill="both", expand=True)
         self.path = path
-        self.icon = get_tk_image("paint", 15, 15)
+        self.icon = get_tk_image(self._formats.get(self.format_from_path(path), "file"), 15, 15)
         self.name = self.name_from_path(path) if path else self._create_name()
         self._loaded = False
 
@@ -951,12 +956,23 @@ class DesignContext(BaseContext):
     def name_from_path(self, path):
         return os.path.basename(path)
 
+    def format_from_path(self, path):
+        if not path:
+            return ""
+        # get file extension
+        _, ext = os.path.splitext(path)
+        return ext[1:].lower()
+
     def save(self, new_path=None):
         path = self.designer.save(new_path)
         if path:
             self.path = path
             self.name = self.name_from_path(path)
-            self.tab_handle.config_tab(text=self.name, **self.style.text)
+            self.icon = get_tk_image(self._formats.get(self.format_from_path(path), "file"), 15, 15)
+            self.tab_handle.config_tab(
+                text=self.name, **self.style.text,
+                icon=self.icon
+            )
 
             if self.tab_view._selected == self.tab_handle:
                 # re-apply selection style
@@ -985,7 +1001,7 @@ class DesignContext(BaseContext):
         return (
             EnableIf(
                 lambda: self.studio.context == self and self.designer.design_path,
-                ("command", "Reload", icon("rotate_clockwise", 14, 14), self.designer.reload, {})
+                ("command", "Reload", icon("reload", 18, 18), self.designer.reload, {})
             ),
         )
 

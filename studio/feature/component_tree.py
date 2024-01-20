@@ -101,8 +101,8 @@ class ComponentTree(BaseFeature):
 
     def create_menu(self):
         return (
-            ("command", "Expand all", get_icon_image("chevron_down", 14, 14), self._expand, {}),
-            ("command", "Collapse all", get_icon_image("chevron_up", 14, 14), self._collapse, {})
+            ("command", "Expand all", get_icon_image("chevron_down", 18, 18), self._expand, {}),
+            ("command", "Collapse all", get_icon_image("chevron_up", 18, 18), self._collapse, {})
         )
 
     def show_empty(self, text):

@@ -29,7 +29,7 @@ class Button(PseudoWidget, ttk.Button):
 class Checkbutton(PseudoWidget, ttk.Checkbutton):
     display_name = 'Checkbutton'
     group = Groups.widget
-    icon = "checkbutton"
+    icon = "checkbox"
     impl = ttk.Checkbutton
 
     DEF_OVERRIDES = {
@@ -51,7 +51,7 @@ class Checkbutton(PseudoWidget, ttk.Checkbutton):
 class Combobox(PseudoWidget, ttk.Combobox):
     display_name = 'Combobox'
     group = Groups.input
-    icon = "combobox"
+    icon = "menubutton"
     impl = ttk.Combobox
     allow_direct_move = False
 
@@ -104,7 +104,7 @@ class Frame(Container, ttk.Frame):
 class Label(PseudoWidget, ttk.Label):
     display_name = 'Label'
     group = Groups.widget
-    icon = "text"
+    icon = "label"
     impl = ttk.Label
 
     DEF_OVERRIDES = {
@@ -176,7 +176,7 @@ class Menubutton(PseudoWidget, ttk.Menubutton):
 class Notebook(TabContainer, ttk.Notebook):
     display_name = 'Notebook'
     group = Groups.container
-    icon = "notebook"
+    icon = "tabs"
     impl = ttk.Notebook
 
     def __init__(self, master, id_):
@@ -188,7 +188,7 @@ class Notebook(TabContainer, ttk.Notebook):
 class VerticalPanedWindow(PanedContainer, ttk.PanedWindow):
     display_name = 'VerticalPanedWindow'
     group = Groups.container
-    icon = "flip_vertical"
+    icon = "dock_vertical"
     impl = ttk.PanedWindow
 
     def __init__(self, master, id_):
@@ -213,7 +213,7 @@ class VerticalPanedWindow(PanedContainer, ttk.PanedWindow):
 class HorizontalPanedWindow(PanedContainer, ttk.PanedWindow):
     display_name = 'HorizontalPanedWindow'
     group = Groups.container
-    icon = "flip_horizontal"
+    icon = "dock_horizontal"
     impl = ttk.PanedWindow
 
     def __init__(self, master, id_):
@@ -293,7 +293,7 @@ class Scale(PseudoWidget, ttk.Scale):
 class Scrollbar(PseudoWidget, ttk.Scrollbar):
     display_name = 'Scrollbar'
     group = Groups.widget
-    icon = "play"
+    icon = "scrollbar"
     impl = ttk.Scrollbar
     initial_dimensions = 20, 100
 
@@ -307,7 +307,7 @@ class Scrollbar(PseudoWidget, ttk.Scrollbar):
 class Separator(PseudoWidget, ttk.Separator):
     display_name = 'Separator'
     group = Groups.widget
-    icon = "play"
+    icon = "line"
     impl = ttk.Separator
     initial_dimensions = 150, 1
     handle_class = LinearHandle
@@ -321,7 +321,7 @@ class Separator(PseudoWidget, ttk.Separator):
 class Sizegrip(Container, ttk.Sizegrip):
     display_name = 'Sizegrip'
     group = Groups.container
-    icon = "sizegrip"
+    icon = "frame"
     impl = ttk.Sizegrip
 
     def __init__(self, master, id_):
@@ -333,7 +333,7 @@ class Sizegrip(Container, ttk.Sizegrip):
 class Spinbox(PseudoWidget, ttk.Spinbox):
     display_name = 'Spinbox'
     group = Groups.input
-    icon = "play"
+    icon = "entry"
     impl = ttk.Spinbox
     allow_direct_move = False
 

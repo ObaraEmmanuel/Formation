@@ -1,5 +1,7 @@
 import os
 import shelve
+from hashlib import md5
+import shutil
 
 from hoverset.data.images import (
     set_image_resource_path,
@@ -58,6 +60,18 @@ class ResourceLoader(Application):
         self._progress_text["text"] = text
 
     @classmethod
+    def _actual_cache_icon_path(cls, path):
+        if os.path.exists(path):
+            return path
+        # for windows, we may need the extension
+        if os.path.exists(path + ".dat"):
+            return path + ".dat"
+            # for mac, we need ".db" extension
+        if os.path.exists(path + ".db"):
+            return path + ".db"
+        return None
+
+    @classmethod
     def _cache_exists(cls, path):
         if os.path.exists(path):
             return True
@@ -68,12 +82,31 @@ class ResourceLoader(Application):
         return os.path.exists(path + ".db")
 
     @classmethod
-    def _cache_is_stale(cls):
+    def _cache_is_stale(cls, cache_path):
         # check whether cache is outdated
-        with shelve.open(cls._cache_icon_path) as cache:
-            with shelve.open(cls._default_icon_path) as defaults:
-                # return false if all keys in default are in cache
-                return len(defaults.keys() - cache.keys())
+        default = cls._default_icon_checksum()
+        current = cls._icon_cache_checksum(cache_path)
+
+        if default is None:
+            # the cache is all we got so don't mark it as stale
+            return False
+        return default != current
+
+    @classmethod
+    def _default_icon_checksum(cls):
+        path = cls._default_icon_path + ".dat"
+        if not os.path.exists(path):
+            return None
+        with open(path, "rb") as dat:
+            return md5(dat.read()).hexdigest()
+
+    @classmethod
+    def _icon_cache_checksum(cls, cache_path):
+        path = os.path.join(cache_path, "ic_checksum")
+        if not os.path.exists(path):
+            return None
+        with open(path, "r") as checksum:
+            return checksum.read()
 
     @classmethod
     def load(cls, pref):
@@ -82,10 +115,11 @@ class ResourceLoader(Application):
         cache_path = pref.get_cache_dir()
         cls._cache_icon_path = os.path.join(cache_path, "image")
         if style.colors["accent"] != cache_color \
-                or not cls._cache_exists(cls._cache_icon_path)\
-                or cls._cache_is_stale():
-            if not os.path.exists(cache_path):
-                make_path(cache_path)
+                or not cls._actual_cache_icon_path(cls._cache_icon_path)\
+                or cls._cache_is_stale(cache_path):
+            # delete cache to ensure hard refresh
+            shutil.rmtree(cache_path, ignore_errors=True)
+            make_path(cache_path)
             cls(pref).mainloop()
 
         set_image_resource_path(cls._cache_icon_path)
@@ -104,6 +138,11 @@ class ResourceLoader(Application):
                     else:
                         cache[image] = defaults[image]
                     self.update_progress(step)
+
+        # save default icon checksum
+        with open(self._default_icon_path + ".dat", "rb") as cache:
+            with open(os.path.join(self.pref.get_cache_dir(), "ic_checksum"), "w") as checksum:
+                checksum.write(md5(cache.read()).hexdigest())
 
 
 if __name__ == "__main__":

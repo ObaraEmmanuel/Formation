@@ -312,10 +312,10 @@ class LinearController(Controller):
         if item:
             self.highlight(item)
         self._link_context = MenuUtils.make_dynamic((
-            ("command", "add point", icon("add", 14, 14), self._add_point, {}),
+            ("command", "add point", icon("add", 18, 18), self._add_point, {}),
         ), tool.studio, tool.studio.style)
         self._coord_context = MenuUtils.make_dynamic((
-            ("command", "remove", icon("close", 14, 14), self._remove_point, {}),
+            ("command", "remove", icon("close", 18, 18), self._remove_point, {}),
         ), tool.studio, tool.studio.style)
         self._active_link = None
         self._active_coord = None
@@ -664,7 +664,7 @@ class CanvasTreeView(NestedTreeView):
             self._color = self.style.colors["secondary1"]
             self.name_pad.configure(text=self.item.name)
             self.icon_pad.configure(
-                image=icon(self.item.icon, 15, 15, color=self._color)
+                image=icon(self.item.icon, 15, 15)
             )
             self.editable = True
             self.strict_mode = True
@@ -774,7 +774,7 @@ class CanvasStudioAdapter(BaseStudioAdapter):
 
 class CanvasTool(BaseTool):
     name = "Canvas"
-    icon = "paint"
+    icon = "object"
 
     def __init__(self, studio, manager):
         super(CanvasTool, self).__init__(studio, manager)
@@ -800,7 +800,7 @@ class CanvasTool(BaseTool):
         self._clipboard = None
         self._latch_pos = 0, 0
 
-        self._image_placeholder = icon("image_dark", 60, 60)
+        self._image_placeholder = icon("image", 60, 60)
 
         self.square_draw = SquareDraw(self)
         self.line_draw = LinearDraw(self)
@@ -850,27 +850,27 @@ class CanvasTool(BaseTool):
             EnableIf(
                 lambda: self.selected_items,
                 ("separator",),
-                ("command", "copy", icon("copy", 14, 14), self._get_routine('CV_COPY'), {}),
-                ("command", "duplicate", icon("copy", 14, 14), self._get_routine('CV_DUPLICATE'), {}),
+                ("command", "copy", icon("copy", 18, 18), self._get_routine('CV_COPY'), {}),
+                ("command", "duplicate", icon("blank", 18, 18), self._get_routine('CV_DUPLICATE'), {}),
                 EnableIf(
                     lambda: self._clipboard is not None,
-                    ("command", "paste", icon("clipboard", 14, 14), self._get_routine('CV_PASTE'), {})
+                    ("command", "paste", icon("clipboard", 18, 18), self._get_routine('CV_PASTE'), {})
                 ),
-                ("command", "cut", icon("cut", 14, 14), self._get_routine('CV_CUT'), {}),
+                ("command", "cut", icon("cut", 18, 18), self._get_routine('CV_CUT'), {}),
                 ("separator",),
-                ("command", "delete", icon("delete", 14, 14), self._get_routine('CV_DELETE'), {}),
+                ("command", "delete", icon("delete", 18, 18), self._get_routine('CV_DELETE'), {}),
                 ("separator",),
-                ("command", "send to back", icon("send_to_back", 14, 14), self._get_routine('CV_BACK'), {}),
-                ("command", "bring to front", icon("bring_to_front", 14, 14), self._get_routine('CV_FRONT'), {}),
-                ("command", "back one step", icon("send_to_back", 14, 14), self._get_routine('CV_BACK_1'), {}),
-                ("command", "forward one step", icon("bring_to_front", 14, 14), self._get_routine('CV_FRONT_1'), {}),
+                ("command", "send to back", icon("send_to_back", 18, 18), self._get_routine('CV_BACK'), {}),
+                ("command", "bring to front", icon("bring_to_front", 18, 18), self._get_routine('CV_FRONT'), {}),
+                ("command", "back one step", icon("send_to_back", 18, 18), self._get_routine('CV_BACK_1'), {}),
+                ("command", "forward one step", icon("bring_to_front", 18, 18), self._get_routine('CV_FRONT_1'), {}),
             ),
         ), self.studio, self.studio.style)
 
         self._canvas_menu = MenuUtils.make_dynamic((
             EnableIf(
                 lambda: self._clipboard is not None,
-                ("command", "paste", icon("clipboard", 14, 14),
+                ("command", "paste", icon("clipboard", 18, 18),
                  self._get_routine('CV_PASTE'), {})
             ),
         ), self.studio, self.studio.style)

@@ -365,13 +365,13 @@ class ComponentPane(BaseFeature):
         return (
             (
                 "command", "Reload custom widgets",
-                get_icon_image("rotate_clockwise", 14, 14), self._reload_custom, {}
+                get_icon_image("reload", 18, 18), self._reload_custom, {}
             ),
             (
                 "command", "Search",
-                get_icon_image("search", 14, 14), self.start_search, {}
+                get_icon_image("search", 18, 18), self.start_search, {}
             ),
-            ("cascade", "Widget set", get_icon_image("blank", 14, 14), None, {"menu": (
+            ("cascade", "Widget set", get_icon_image("blank", 18, 18), None, {"menu": (
                 *self._widget_sets_as_menu(),
             )}),
         )

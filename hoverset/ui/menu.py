@@ -161,6 +161,8 @@ class MenuUtils:
                         # look which tends to render incorrectly
                         config.update(**style.context_menu_disabled, state=tk.NORMAL)
                         command = None
+                        # Would be nice to gray out the icon but that is not possible, so we just remove it
+                        icon = None
                         # block the menu as well
                         if 'menu' in config:
                             config['menu'] = None

@@ -25,8 +25,8 @@ class MenuTree(MalleableTreeView):
         _type_def = {
             tk.CASCADE: ("menubutton",),
             tk.COMMAND: ("play",),
-            tk.CHECKBUTTON: ("checkbutton",),
-            tk.SEPARATOR: ("division",),
+            tk.CHECKBUTTON: ("checkbox",),
+            tk.SEPARATOR: ("line",),
             tk.RADIOBUTTON: ("radiobutton",),
         }
 
@@ -35,7 +35,7 @@ class MenuTree(MalleableTreeView):
             self._menu = config.get("menu")
             self.name_pad.config(text=config.get("label"))
             icon = self._type_def.get(config.get("type"))[0]
-            self.icon_pad.configure(image=get_icon_image(icon, 14, 14))
+            self.icon_pad.configure(image=get_icon_image(icon, 18, 18))
             self.editable = True
             self.type = config.get("type")
             if config.get("type") == tk.CASCADE:
@@ -194,25 +194,25 @@ class MenuEditor(BaseToolWindow):
 
         self._add = MenuButton(self._tool_bar, **self.style.button)
         self._add.pack(side="left")
-        self._add.configure(image=get_icon_image("add", 15, 15))
+        self._add.configure(image=get_icon_image("add", 18, 18))
         _types = MenuTree.Node._type_def
         menu_types = self._tool_bar.make_menu(
             [(
                 tk.COMMAND,
                 i.title(),
-                get_icon_image(_types[i][0], 14, 14),
+                get_icon_image(_types[i][0], 18, 18),
                 functools.partial(self.add_item, i), {}
             ) for i in _types],
             self._add, title="Add menu item")
         menu_types.configure(tearoff=True)
         self._add.config(menu=menu_types)
-        self._delete_btn = Button(self._tool_bar, image=get_icon_image("delete", 15, 15), **self.style.button,
+        self._delete_btn = Button(self._tool_bar, image=get_icon_image("delete", 18, 18), **self.style.button,
                                   width=25,
                                   height=25)
         self._delete_btn.pack(side="left")
         self._delete_btn.on_click(self._delete)
 
-        self._preview_btn = Button(self._tool_bar, image=get_icon_image("play", 15, 15), **self.style.button,
+        self._preview_btn = Button(self._tool_bar, image=get_icon_image("play", 18, 18), **self.style.button,
                                    width=25, height=25)
         self._preview_btn.pack(side="left")
         self._preview_btn.on_click(self._preview)
@@ -396,16 +396,16 @@ class MenuTool(BaseTool):
     def get_menu(self, studio):
         icon = get_icon_image
         return (
-            ('command', 'Edit', icon('edit', 14, 14), lambda: self.edit(studio.selection[0]), {}),
+            ('command', 'Edit', icon('edit', 18, 18), lambda: self.edit(studio.selection[0]), {}),
             EnableIf(
                 lambda: studio.selection and studio.selection[0]['menu'] != '',
-                ('command', 'Remove', icon('delete', 14, 14), lambda: self.remove(studio.selection[0]), {})),
+                ('command', 'Remove', icon('delete', 18, 18), lambda: self.remove(studio.selection[0]), {})),
             EnableIf(
                 lambda: studio.selection and studio.selection[0] in self._deleted,
-                ('command', 'Restore', icon('undo', 14, 14), lambda: self.restore(studio.selection[0]), {})),
+                ('command', 'Restore', icon('undo', 18, 18), lambda: self.restore(studio.selection[0]), {})),
             EnableIf(
                 lambda: MenuEditor._tool_map,
-                ('command', 'Close all editors', icon('close', 14, 14), self.close_editors, {}))
+                ('command', 'Close all editors', icon('close', 18, 18), self.close_editors, {}))
         )
 
     def on_context_close(self, context):

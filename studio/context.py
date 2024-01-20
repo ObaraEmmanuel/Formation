@@ -15,7 +15,7 @@ class BaseContext(Frame):
         self._redo_stack = []
         self.tab_handle = None
         self.name = "tab"
-        self.icon = icon("data", 15, 15)
+        self.icon = icon("file", 15, 15)
         self.bind("<<TabDeleted>>", self._close_context)
         self.bind("<<TabToClose>>", self._close_check)
         self._force_close = False
@@ -44,14 +44,14 @@ class BaseContext(Frame):
     def on_context_mount(self):
         self.tab_handle.config_tab(text=self.name)
         self.tab_handle.set_up_context((
-            ("command", "close", icon("blank", 14, 14), self.close, {}),
+            ("command", "close", icon("blank", 18, 18), self.close, {}),
             EnableIf(
                 lambda: len(self.tab_view.tabs()) > 1,
-                ("command", "close other tabs", icon("blank", 14, 14), self.close_other, {})
+                ("command", "close other tabs", icon("blank", 18, 18), self.close_other, {})
             ),
             EnableIf(
                 lambda: self._contexts_right(),
-                ("command", "close tabs to the right", icon("blank", 14, 14), self.close_other_right, {})
+                ("command", "close tabs to the right", icon("blank", 18, 18), self.close_other_right, {})
             ),
             ("separator", ),
             *self.get_tab_menu()

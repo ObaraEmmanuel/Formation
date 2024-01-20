@@ -47,7 +47,7 @@ class BindingsTable(CompoundList):
             self.add_arg.set(self.value.add)
             del_btn = Label(
                 self, **self.style.button,
-                image=get_icon_image("delete", 14, 14)
+                image=get_icon_image("delete", 18, 18)
             )
             del_btn.grid(row=0, column=3, sticky='nswe')
             del_btn.bind("<Button-1>", self._delete_entry)

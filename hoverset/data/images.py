@@ -46,10 +46,8 @@ def _recolor(image, color):
 
     for x in range(image.size[0]):
         for y in range(image.size[1]):
-            if luminosity(pix[x, y]) > 65:
+            if pix[x, y][3] != 0:
                 pix[x, y] = color
-            else:
-                pix[x, y] = (0, 0, 0, 0)
 
     return image
 

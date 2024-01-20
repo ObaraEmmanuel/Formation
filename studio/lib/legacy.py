@@ -32,7 +32,7 @@ class Button(PseudoWidget, tk.Button):
 class Canvas(PseudoWidget, tk.Canvas):
     display_name = 'Canvas'
     group = Groups.container
-    icon = "paint"
+    icon = "object"
     impl = tk.Canvas
     allow_direct_move = False
     allow_drag_select = False
@@ -52,7 +52,7 @@ class Canvas(PseudoWidget, tk.Canvas):
 class Checkbutton(PseudoWidget, tk.Checkbutton):
     display_name = 'Checkbutton'
     group = Groups.widget
-    icon = "checkbutton"
+    icon = "checkbox"
     impl = tk.Checkbutton
 
     DEF_OVERRIDES = _dimension_override
@@ -106,7 +106,7 @@ class Frame(Container, tk.Frame):
 class Label(PseudoWidget, tk.Label):
     display_name = 'Label'
     group = Groups.widget
-    icon = "text"
+    icon = "label"
     impl = tk.Label
 
     DEF_OVERRIDES = _dimension_override
@@ -185,7 +185,7 @@ class Menubutton(PseudoWidget, tk.Menubutton):
 class Message(PseudoWidget, tk.Message):
     display_name = 'Message'
     group = Groups.input
-    icon = "multiline_text"
+    icon = "message"
     impl = tk.Message
 
     def __init__(self, master, id_):
@@ -200,7 +200,7 @@ class Message(PseudoWidget, tk.Message):
 class PanedWindow(PanedContainer, tk.PanedWindow):
     display_name = 'PanedWindow'
     group = Groups.container
-    icon = "flip_horizontal"
+    icon = "dock_horizontal"
     impl = tk.PanedWindow
 
     def __init__(self, master, id_):
@@ -245,7 +245,7 @@ class Scale(PseudoWidget, tk.Scale):
 class Scrollbar(PseudoWidget, tk.Scrollbar):
     display_name = 'Scrollbar'
     group = Groups.widget
-    icon = "play"
+    icon = "scrollbar"
     impl = tk.Scrollbar
     initial_dimensions = 20, 100
 

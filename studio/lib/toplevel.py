@@ -175,7 +175,7 @@ class _Toplevel(tk.Frame):
             self._images = (
                 get_tk_image("close", 15, 15, color="#303030"),
                 get_tk_image("minimize", 15, 15, color="#000000"),
-                get_tk_image("rectangle", 10, 10, color="#000000"),
+                get_tk_image("maximize", 10, 10, color="#303030"),
                 get_tk_image("formation", 20, 20)
             )
 
