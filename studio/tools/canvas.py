@@ -1225,6 +1225,7 @@ class CanvasTool(BaseTool):
             elif self.set_controller(item):
                 self.selected_items = [item]
                 item.node.select(silently=True)
+            item.node.tree.see(item.node)
 
         self.selection_changed()
 

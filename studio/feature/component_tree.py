@@ -162,6 +162,7 @@ class ComponentTree(BaseFeature):
 
         for node in nodes:
             if not node.selected:
+                self._tree.see(node)
                 node.select(silently=True)
 
     def selection(self):

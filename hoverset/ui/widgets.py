@@ -1376,6 +1376,27 @@ class ScrolledFrame(ContainerMixin, Widget, ScrollableInterface, ContextMenuMixi
         self._canvas.yview_moveto(0.0)
         self._canvas.xview_moveto(0.0)
 
+    def scroll_to(self, widget):
+        self._canvas.update_idletasks()
+        widget.update_idletasks()
+        bbox = self._canvas.bbox('all')
+
+        if self._scroll_x.winfo_ismapped():
+            r_x = self._canvas.winfo_rootx()
+            w_x = widget.winfo_rootx()
+            w = bbox[2] - bbox[0]
+            x_off = self._canvas.xview()[0] * w
+            x = w_x - r_x + x_off
+            self._canvas.xview_moveto(x / w)
+
+        if self._scroll_y.winfo_ismapped():
+            r_y = self._canvas.winfo_rooty()
+            w_y = widget.winfo_rooty()
+            h = bbox[3] - bbox[1]
+            y_off = self._canvas.yview()[0] * h
+            y = w_y - r_y + y_off
+            self._canvas.yview_moveto(y / h)
+
     def xview_scroll(self, n, what):
         return self._canvas.xview_scroll(n, what)
 
@@ -2973,6 +2994,26 @@ class Tree(abc.ABC):
         """
         for node in self.nodes:
             node.expand_all()
+
+    def see(self, node):
+        """
+        Expand all nodes from the root to the given node so that the node is visible
+
+        :param node: The node to be expanded to
+        """
+        hierarchy = []
+        orig_node = node
+        while hasattr(node.parent_node, "parent_node"):
+            hierarchy.append(node.parent_node)
+            node = node.parent_node
+
+        for node in reversed(hierarchy):
+            if hasattr(node, "expand"):
+                node.expand()
+
+        scrollframe: ScrolledFrame = Widget.ancestor_first(orig_node, ScrolledFrame)
+        if scrollframe:
+            scrollframe.scroll_to(orig_node)
 
     def selected_count(self) -> int:
         """
