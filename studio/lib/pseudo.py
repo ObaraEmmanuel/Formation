@@ -312,7 +312,10 @@ class PseudoWidget:
         intercept = self._intercepts.get(prop)
         if intercept:
             return intercept.get(self, prop)
-        return self[prop]
+        prop = self[prop]
+        if isinstance(prop, (tuple, list)):
+            prop = " ".join(map(str, prop))
+        return prop
 
     def configure(self, options=None, **kw):
         for opt in list(kw.keys()):
