@@ -63,25 +63,19 @@ class BaseLayoutStrategy:
     def __init__(self, container):
         self.parent = container.parent
         self.container = container
+        self.children = []
+        self.temporal_children = []
 
     @property
     def level(self):
         return self.container.level
-
-    @property
-    def children(self):
-        return self.container._children
-
-    @property
-    def temporal_children(self):
-        return self.container.temporal_children
 
     def bounds(self):
         return geometry.bounds(self.container)
 
     def add_widget(self, widget, bounds=None, **kwargs):
         widget.level = self.level + 1
-        widget.layout = self.container
+        widget.set_layout(self)
         self.container.clear_highlight()
 
     def _insert(self, widget, index=None):
@@ -220,6 +214,9 @@ class BaseLayoutStrategy:
         # This method is important in removing all child widgets before we switch layouts
         # (especially from grid to pack and vice versa) which may raise errors when used simultaneously
         raise NotImplementedError("Clear all procedure required")
+
+    def can_mix_with(self, layout_class):
+        return True
 
 
 class PlaceLayoutStrategy(BaseLayoutStrategy):
@@ -484,6 +481,9 @@ class PackLayoutStrategy(BaseLayoutStrategy):
     def clear_all(self):
         for child in self.children:
             child.pack_forget()
+
+    def can_mix_with(self, layout_class):
+        return not issubclass(layout_class, GridLayoutStrategy)
 
 
 class GenericLinearLayoutStrategy(BaseLayoutStrategy):
@@ -862,6 +862,9 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         for child in self.children:
             child.grid_forget()
 
+    def can_mix_with(self, layout_class):
+        return not issubclass(layout_class, PackLayoutStrategy)
+
 
 class TabLayoutStrategy(BaseLayoutStrategy):
     # TODO Extend support for side specific padding
@@ -1152,3 +1155,19 @@ aliases = {
     "LinearLayout": "pack",
     "FrameLayout": "place"
 }
+
+
+def get_layout_by_name(name):
+    layout = list(
+        filter(
+            lambda l: l.name == name or l.name == aliases.get(name),
+            layouts
+        )
+    )
+
+    if len(layout) == 1:
+        return layout[0]
+    if len(layout) == 0:
+        raise ValueError(f"No layout with name {name} found!")
+    else:
+        raise ValueError(f"Multiple implementations of layout {name} found")

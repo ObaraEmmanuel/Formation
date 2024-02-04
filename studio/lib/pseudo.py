@@ -116,6 +116,7 @@ class PseudoWidget:
     _no_defaults = {
         "text",
     }
+    LAYOUTS = layouts.layouts
 
     def setup_widget(self):
         self.designer = self.master
@@ -150,8 +151,21 @@ class PseudoWidget:
         self._select_bounds = None
         self.prev_stack_index = None
 
+        self.layout_var = tkinter.StringVar()
+        self.layout_var.set('')
+
     def set_name(self, name):
         pass
+
+    @property
+    def container(self):
+        if not self.layout:
+            return None
+        return self.layout.container
+
+    def set_layout(self, layout):
+        self.layout = layout
+        self.layout_var.set(layout.name)
 
     def get_bounds(self):
         self.update_idletasks()
@@ -170,7 +184,7 @@ class PseudoWidget:
                 pass
 
             # then lift above highest child if any
-            if above_this._children and self.layout != above_this:
+            if above_this._children and self.container != above_this:
                 super().lift(above_this._children[-1])
         else:
             super().lift(above_this)
@@ -309,6 +323,10 @@ class PseudoWidget:
         }
 
     def get_prop(self, prop):
+        if prop == 'layout':
+            if not self.layout:
+                return ''
+            return self.layout.name
         intercept = self._intercepts.get(prop)
         if intercept:
             return intercept.get(self, prop)
@@ -318,6 +336,9 @@ class PseudoWidget:
         return prop
 
     def configure(self, options=None, **kw):
+        if 'layout' in kw:
+            self._switch_layout(kw['layout'])
+            kw.pop('layout')
         for opt in list(kw.keys()):
             intercept = self._intercepts.get(opt)
             if intercept:
@@ -340,10 +361,42 @@ class PseudoWidget:
 
         _deep_bind(self)
 
+    def _switch_layout(self, layout_class):
+        if isinstance(layout_class, str):
+            layout_class = self.get_layout_by_name(layout_class)
+        if layout_class == self.layout.__class__:
+            return
+        former = self.layout
+        self.layout = layout_class(self)
+        self.layout_var.set(self.layout.name)
+        self.layout.initialize(former)
+
+    def _set_layout(self, layout):
+        self.designer.studio.style_pane.apply_style("layout", [layout], [self])
+
+    def _get_layouts_as_menu(self):
+        layout_templates = [
+            ("radiobutton", i.name, get_icon_image(i.icon, 18, 18),
+             functools.partial(self._set_layout, i),
+             {"value": i.name, "variable": self.layout_var}
+             ) for i in self.LAYOUTS
+        ]
+        return (("cascade", "Change layout", get_icon_image("grid", 18, 18), None, {"menu": (
+            layout_templates
+        )}),)
+
     @property
     def properties(self):
         for key in self._properties:
             self._properties[key]["value"] = self.get_prop(key)
+        self._properties["layout"] = {
+            "name": "layout",
+            "display_name": "layout",
+            "type": "layout",
+            "allow_blank": False,
+            "options": Container.LAYOUTS,
+            "value": self.layout.__class__,
+        }
         return self._properties
 
     def create_menu(self):
@@ -352,7 +405,10 @@ class PseudoWidget:
         menu format to add items to the menu
         :return:
         """
-        return ()
+        return (
+            ("separator",),
+            *self._get_layouts_as_menu()
+        )
 
     def winfo_parent(self):
         return str(self.layout)
@@ -396,12 +452,54 @@ class PseudoWidget:
     def handle_method(self, name, *args, **kwargs):
         pass
 
+    @property
+    def allow_resize(self):
+        return self.layout.allow_resize
+
+    @property
+    def realtime_support(self):
+        return self.layout.realtime_support
+
+    # ===================== LAYOUT METHODS ===========================================
+
+    def layout_change_start(self):
+        self.layout.change_start()
+
+    def layout_released(self):
+        self.layout.widget_released(self)
+
+    def layout_move(self, bounds):
+        self.layout.move_widget(self, bounds)
+
+    def layout_end_move(self):
+        self.layout.end_move()
+
+    def layout_resize(self, direction, delta):
+        self.layout.resize_widget(self, direction, delta)
+
+    def layout_restore_data(self):
+        return self.layout.get_restore(self)
+
+    def layout_remove(self):
+        self.layout.remove_widget(self)
+
+    def layout_apply(self, prop, value):
+        self.layout.apply(prop, value, self)
+
+    def layout_definition(self):
+        return self.layout.definition_for(self)
+
+    def layout_copy(self, source):
+        self.layout.copy_layout(self, source)
+
+    def layout_altered_options(self):
+        return self.layout.get_altered_options(self)
+
     def __repr__(self):
         return f"{self.__class__.__name__}<{self.id}>"
 
 
 class Container(PseudoWidget):
-    LAYOUTS = layouts.layouts
     allow_direct_move = False
     allow_drag_select = True
 
@@ -412,22 +510,40 @@ class Container(PseudoWidget):
         self._level = 0
         self._children = []
         self.temporal_children = []
+        self._layout_strategies = [layouts.PlaceLayoutStrategy(self)]
+        self._active_strategy = None
+
         if len(self.LAYOUTS) == 0:
             raise ValueError("No layouts have been defined")
-        self.layout_strategy = layouts.PlaceLayoutStrategy(self)
-        self.layout_var = tkinter.StringVar()
-        self.layout_var.set(self.layout_strategy.name)
+
         super().setup_widget()
+        self.layout_var.set(self._layout_strategies[0].name)
 
     def _get_designer(self):
         return self.master
+
+    def _provision_layout(self, layout_class):
+        for layout in self._layout_strategies:
+            if layout.__class__ == layout_class:
+                return layout
+            if not layout.can_mix_with(layout_class):
+                return self._swap_layout(layout, layout_class)
+        layout = layout_class(self)
+        self._layout_strategies.append(layout)
+        return layout
+
+    def _swap_layout(self, layout, new_layout_class):
+        pass
+
+    def _main_layout(self):
+        return max(self._layout_strategies, key=lambda x: len(x.children))
 
     def lift(self, above_this):
         super().lift(above_this)
         if self.body != self:
             self.body.lift(self)
         if self._children:
-            self.layout_strategy._update_stacking()
+            self.layout._update_stacking()
 
     def react(self, x, y):
         self.designer.set_active_container(self)
@@ -437,15 +553,7 @@ class Container(PseudoWidget):
     def clear_highlight(self):
         super().clear_highlight()
         self._temporal_children = []
-        self.layout_strategy.clear_indicators()
-
-    @property
-    def allow_resize(self):
-        return self.layout_strategy.allow_resize
-
-    @property
-    def realtime_support(self):
-        return self.layout_strategy.realtime_support
+        self.layout.clear_indicators()
 
     @property
     def level(self):
@@ -469,75 +577,6 @@ class Container(PseudoWidget):
         """
         layout.pack(fill="both", expand=True)
 
-    def get_prop(self, prop):
-        if prop == 'layout':
-            return self.layout_strategy.name
-        return super().get_prop(prop)
-
-    @property
-    def properties(self):
-        prop = super().properties
-        prop["layout"] = {
-            "name": "layout",
-            "display_name": "layout",
-            "type": "layout",
-            "allow_blank": False,
-            "options": Container.LAYOUTS,
-            "value": self.layout_strategy.__class__,
-        }
-        return prop
-
-    def get_layout_by_name(self, name):
-        layout = list(
-            filter(
-                lambda l: l.name == name or l.name == layouts.aliases.get(name),
-                self.LAYOUTS
-            )
-        )
-
-        if len(layout) == 1:
-            return layout[0]
-        if len(layout) == 0:
-            raise ValueError(f"No layout with name {name} found!")
-        else:
-            raise ValueError(f"Multiple implementations of layout {name} found")
-
-    def _switch_layout(self, layout_class):
-        if isinstance(layout_class, str):
-            layout_class = self.get_layout_by_name(layout_class)
-        if layout_class == self.layout_strategy.__class__:
-            return
-        former = self.layout_strategy
-        self.layout_strategy = layout_class(self)
-        self.layout_var.set(self.layout_strategy.name)
-        self.layout_strategy.initialize(former)
-
-    def configure(self, **kwargs):
-        if 'layout' in kwargs:
-            self._switch_layout(kwargs['layout'])
-            kwargs.pop('layout')
-        return super().configure(**kwargs)
-
-    def _set_layout(self, layout):
-        self.designer.studio.style_pane.apply_style("layout", [layout], [self])
-
-    def _get_layouts_as_menu(self):
-        layout_templates = [
-            ("radiobutton", i.name, get_icon_image(i.icon, 18, 18),
-             functools.partial(self._set_layout, i),
-             {"value": i.name, "variable": self.layout_var}
-             ) for i in self.LAYOUTS
-        ]
-        return (("cascade", "Change layout", get_icon_image("grid", 18, 18), None, {"menu": (
-            layout_templates
-        )}),)
-
-    def create_menu(self):
-        return (
-            ("separator",),
-            *self._get_layouts_as_menu()
-        )
-
     def parse_bounds(self, bounds):
         return {
             "x": bounds[0],
@@ -552,50 +591,55 @@ class Container(PseudoWidget):
     #  =========================================== Rerouting methods ==================================================
 
     def restore_widget(self, widget, restore_point):
-        self.layout_strategy.restore_widget(widget, restore_point)
+        widget.layout_strategy.restore_widget(widget, restore_point)
 
     def add_widget(self, widget, bounds=None, **kwargs):
-        self.layout_strategy.add_widget(widget, bounds, **kwargs)
+        self._main_layout().add_widget(widget, bounds, **kwargs)
 
-    def widget_released(self, widget):
-        self.layout_strategy.widget_released(widget)
+    # def widget_released(self, widget):
+    #     widget.layout_strategy.widget_released(widget)
 
-    def change_start(self, widget):
-        self.layout_strategy.change_start(widget)
+    # def change_start(self, widget):
+    #     widget.layout_strategy.change_start(widget)
+    #     self._active_strategy = widget.layout_strategy
 
-    def move_widget(self, widget, bounds):
-        self.layout_strategy.move_widget(widget, bounds)
+    # def move_widget(self, widget, bounds):
+    #     widget.layout_strategy.move_widget(widget, bounds)
 
-    def end_move(self):
-        self.layout_strategy.end_move()
+    # def end_move(self):
+    #     if self._active_strategy:
+    #         self._active_strategy.end_move()
 
-    def resize_widget(self, widget, direction, delta):
-        self.layout_strategy.resize_widget(widget, direction, delta)
+    # def resize_widget(self, widget, direction, delta):
+    #     widget.layout_strategy.resize_widget(widget, direction, delta)
 
-    def get_restore(self, widget):
-        return self.layout_strategy.get_restore(widget)
+    # def get_restore(self, widget):
+    #     return widget.layout_strategy.get_restore(widget)
 
-    def remove_widget(self, widget):
-        self.layout_strategy.remove_widget(widget)
+    # def remove_widget(self, widget):
+    #     widget.layout_strategy.remove_widget(widget)
 
-    def add_new(self, widget, x, y):
-        self.layout_strategy.add_new(widget, x, y)
+    def add_new(self, widget, x, y, layout=None):
+        layout = layout or self._main_layout()
+        if isinstance(layout, str):
+            layout = self._provision_layout(layouts.get_layout_by_name(layout))
+        layout.add_new(widget, x, y)
 
-    def apply(self, prop, value, widget):
-        self.layout_strategy.apply(prop, value, widget)
+    # def apply(self, prop, value, widget):
+    #     widget.layout_strategy.apply(prop, value, widget)
 
-    def definition_for(self, widget):
-        return self.layout_strategy.definition_for(widget)
+    # def definition_for(self, widget):
+    #     return widget.layout_strategy.definition_for(widget)
 
     def react_to_pos(self, x, y):
         # react to position
-        self.layout_strategy.react_to_pos(x, y)
+        self._main_layout().react_to_pos(x, y)
 
-    def copy_layout(self, widget, from_):
-        self.layout_strategy.copy_layout(widget, from_)
+    # def copy_layout(self, widget, from_):
+    #     widget.layout_strategy.copy_layout(widget, from_)
 
-    def get_altered_options_for(self, widget):
-        return self.layout_strategy.get_altered_options(widget)
+    # def get_altered_options_for(self, widget):
+    #     return widget.layout_strategy.get_altered_options(widget)
 
     def get_all_info(self):
         return self.layout_strategy.get_all_info()
@@ -608,7 +652,7 @@ class TabContainer(Container):
 
     def setup_widget(self):
         super().setup_widget()
-        self.layout_strategy = layouts.TabLayoutStrategy(self)
+        self._layout_strategies = [layouts.TabLayoutStrategy(self)]
 
     def _get_layouts_as_menu(self):
         # Prevent changing of layout from tab layout
@@ -653,7 +697,7 @@ class TabContainer(Container):
 class PanedContainer(TabContainer):
     def setup_widget(self):
         super(TabContainer, self).setup_widget()
-        self.layout_strategy = layouts.PanedLayoutStrategy(self)
+        self._layout_strategies = [layouts.PanedLayoutStrategy(self)]
 
     def create_menu(self):
         return super(TabContainer, self).create_menu() + (
