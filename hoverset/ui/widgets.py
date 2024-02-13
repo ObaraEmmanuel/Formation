@@ -12,27 +12,27 @@ import abc
 import functools
 import logging
 import os
-import re
-import webbrowser
 import tkinter as tk
 import tkinter.ttk as ttk
+import webbrowser
 from collections import namedtuple
 from tkinter import font
 
+from tkinterDnD.tk import _init_tkdnd
+
+import hoverset.ui
 from hoverset.data.images import load_image_to_widget
 from hoverset.data.utils import get_resource_path, get_theme_path
 from hoverset.platform import platform_is, WINDOWS, LINUX, MAC
 from hoverset.ui.animation import Animate, Easing
 from hoverset.ui.icons import get_icon_image
+from hoverset.ui.menu import MenuUtils, LoadLater
 from hoverset.ui.styles import StyleDelegator
 from hoverset.ui.windows import DragWindow
-from hoverset.ui.menu import MenuUtils, LoadLater
-import hoverset.ui
-
-from tkinterDnD.tk import _init_tkdnd
 
 __all__ = (
     "Application",
+    "AutoScroll",
     "Button",
     "Canvas",
     "CenterWindowMixin",
@@ -3468,6 +3468,87 @@ class Text(Widget, tk.Text):
         super().insert("1.0", value)
         # this will suppress the next <<Modified>> event fired as a result
         self._last_edit_implicit = True
+
+
+class AutoScroll(Widget, ScrollableInterface, tk.Frame):
+    NONE = 0
+    Y = 1
+    X = 2
+    BOTH = 3
+
+    def __init__(self, master, **cnf):
+        self.setup(master)
+        super().__init__(master)
+        self.configure(**self.style.surface)
+        self.configure(**cnf)
+        self.child = None
+        self._scroll = False
+        self._y_bar = ttk.Scrollbar(self, orient='vertical')
+        self._x_bar = ttk.Scrollbar(self, orient='horizontal')
+        self.columnconfigure(0, weight=1)  # Ensure the child gets the rest of the left horizontal space
+        self.rowconfigure(0, weight=1)  # Ensure the child gets the rest of the left vertical space
+
+    def show_scroll(self, val):
+        self._scroll = val
+        if self.child is not None:
+            self._reconfig()
+
+    def set_child(self, child):
+        if self.child is not None:
+            self.child.configure(xscrollcommand=None, yscrollcommand=None)
+            self._y_bar.configure(command=None)
+            self._x_bar.configure(command=None)
+
+        self.child = child
+        self.child.configure(xscrollcommand=self._trigger_x, yscrollcommand=self._trigger_y)
+        self._y_bar.config(command=self.child.yview)
+        self._x_bar.config(command=self.child.xview)
+        self.child.grid(row=0, column=0, sticky='nsew')
+        self._reconfig()
+
+    def _reconfig(self):
+        if not self._scroll or not self.child:
+            self._y_bar.grid_forget()
+            self._x_bar.grid_forget()
+            return
+
+        if self._scroll & 1:
+            # y scroll
+            flag = self.child.yview() != (0.0, 1.0)
+            if flag and not self._y_bar.winfo_ismapped():
+                self._y_bar.grid(row=0, column=1, sticky='ns')
+            elif not flag:
+                self._y_bar.grid_forget()
+
+        if self._scroll & 2:
+            # x scroll
+            flag = self.child.xview() != (0.0, 1.0)
+            if flag and not self._x_bar.winfo_ismapped():
+                self._x_bar.grid(row=1, column=0, sticky='ew')
+            elif not flag:
+                self._x_bar.grid_forget()
+
+    def _trigger_x(self, start, end):
+        self._reconfig()
+        self._x_bar.set(start, end)
+
+    def _trigger_y(self, start, end):
+        self._reconfig()
+        self._y_bar.set(start, end)
+
+    def on_mousewheel(self, event):
+        # Enable the scrollbar to be scrolled using mouse wheel
+        # Occasionally throws unpredictable errors so we better wrap it up in a try block
+        try:
+            if event.state & EventMask.SHIFT and self._x_bar.winfo_ismapped():
+                self.handle_wheel(self.child, event)
+            elif self._y_bar.winfo_ismapped():
+                self.handle_wheel(self.child, event)
+        except tk.TclError:
+            pass
+
+    def scroll_position(self):
+        return self._y_bar.get()
 
 
 if __name__ == "__main__":
