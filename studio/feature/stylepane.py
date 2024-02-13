@@ -550,7 +550,6 @@ class StylePaneFramework:
         self._empty_frame = Frame(self.body)
         self.show_empty()
         self._selection = []
-        self._current = None
         self._expanded = False
         self._is_loading = False
         self._search_query = None
@@ -568,10 +567,6 @@ class StylePaneFramework:
     @property
     def widgets(self):
         return self._selection
-
-    @property
-    def supported_groups(self):
-        return [group for group in self.groups if group.supports_widgets(self._current)]
 
     def create_menu(self):
         return (
@@ -676,8 +671,9 @@ class StylePaneFramework:
                 group.on_widgets_change()
         self.remove_loading()
 
-    def _select(self, _):
-        selection = list(self.studio.selection)
+    def _select(self, _, selection=None):
+        selection = list(selection if selection is not None else self.studio.selection)
+
         if selection == self._selection:
             return
         self._selection = selection
@@ -718,7 +714,7 @@ class StylePaneFramework:
             group.update_state()
 
     def start_search(self, *_):
-        if self._current:
+        if self._selection:
             super().start_search()
             self.body.scroll_to_start()
 
