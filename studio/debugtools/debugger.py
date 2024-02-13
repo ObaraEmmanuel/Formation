@@ -1,6 +1,7 @@
 # ======================================================================= #
 # Copyright (C) 2022 Hoverset Group.                                      #
 # ======================================================================= #
+import os
 
 _global_freeze = dict(globals())
 
@@ -17,6 +18,7 @@ from studio.ui.highlight import WidgetHighlighter
 from studio.debugtools.preferences import Preferences
 from studio.debugtools.element_pane import ElementPane
 from studio.debugtools.style_pane import StylePane
+from studio.debugtools.selection import DebugSelection
 
 from studio.resource_loader import ResourceLoader
 import studio
@@ -35,10 +37,6 @@ class Elements(PanedWindow):
         self.style_pane = StylePane(self, debugger)
         self.add(self.element_pane, minsize=100)
         self.add(self.style_pane, minsize=100)
-
-
-class Console(Frame):
-    pass
 
 
 class Debugger(Window):
@@ -64,18 +62,13 @@ class Debugger(Window):
         self.tabs.pack(fill="both", expand=True)
         self.elements = Elements(self.tabs, self)
         self.tabs.add(self.elements, text="Elements")
-        self.tabs.add(Frame(self.tabs, **self.style.surface), text="Variables")
-        self.tabs.add(Frame(self.tabs, **self.style.surface), text="Images")
-        # self.tabs.add(Frame(self.tabs, **self.style.surface), text="Variables")
-        self.console = Console(self.tabs)
-        self.tabs.add(self.console, text="Console")
 
         self.configure(**self.style.surface)
         self.is_minimized = False
         self.active_widget = None
         self.enable_hooks = True
         self._dbg_ignore = True
-        self.selected = None
+        self._selection = DebugSelection(self)
 
         self.highlighter = WidgetHighlighter(self.root, self.style)
         self.highlighter_map = {}
@@ -86,9 +79,13 @@ class Debugger(Window):
         self._hook_creation()
         self.root.bind_all("")
 
+    @property
+    def selection(self):
+        return self._selection
+
     def update_selection(self, selection):
         self.selected = selection
-        self.event_generate("<<WidgetSelectionChanged>>")
+        self.event_generate("<<SelectionChanged>>")
 
     def _hook_creation(self):
         _setup = tkinter.BaseWidget.__init__
@@ -145,8 +142,12 @@ class Debugger(Window):
         super().destroy()
 
     def exit(self):
-        self.enable_hooks = False
-        self.root.destroy()
+        try:
+            self.enable_hooks = False
+            self.root.destroy()
+        finally:
+            # Exit forcefully
+            os._exit(os.EX_OK)
 
     @classmethod
     def acquire(cls, root):

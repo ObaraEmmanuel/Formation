@@ -114,7 +114,7 @@ class ElementPane(Pane):
 
         self._reload_btn = Button(
             self._header, **self.style.button,
-            image=get_icon_image("rotate_clockwise", 15, 15), width=25, height=25,
+            image=get_icon_image("reload", 15, 15), width=25, height=25,
         )
         self._reload_btn.pack(side="right", padx=2)
         self._reload_btn.tooltip("reload tree")
@@ -151,7 +151,7 @@ class ElementPane(Pane):
         return self._tree.get()
 
     def on_select(self):
-        self.debugger.update_selection(self._tree.get())
+        self.debugger.selection.set(map(lambda node: node.widget, self._tree.get()))
 
     def on_widget_tap(self, event):
         if self._select_btn.get():
@@ -167,6 +167,7 @@ class ElementPane(Pane):
             if widget:
                 node = self._tree.expand_to(widget)
                 if node:
+                    self._tree.see(node)
                     node.select(event)
 
     def on_motion(self, event):
