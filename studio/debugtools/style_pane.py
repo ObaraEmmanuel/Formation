@@ -82,7 +82,7 @@ class LayoutGroup(StyleGroup):
     def _set_prop(self, prop, value, widget):
         layout = layouts.get_layout(widget)
         if layout:
-            layout.configure(**{prop: value})
+            layout.configure(widget, **{prop: value})
 
     def can_optimize(self):
         return self._layouts == list(set(filter(lambda x: x, [layouts.get_layout(widget) for widget in self.widgets])))
