@@ -19,6 +19,7 @@ from studio.debugtools.preferences import Preferences
 from studio.debugtools.element_pane import ElementPane
 from studio.debugtools.style_pane import StylePane
 from studio.debugtools.selection import DebugSelection
+from studio.debugtools.console import ConsolePane
 
 from studio.resource_loader import ResourceLoader
 import studio
@@ -37,6 +38,32 @@ class Elements(PanedWindow):
         self.style_pane = StylePane(self, debugger)
         self.add(self.element_pane, minsize=100)
         self.add(self.style_pane, minsize=100)
+
+
+class DebuggerAPI:
+    """
+    A class that provides an interface for interacting with the debugger
+    """
+
+    __slots__ = ("__debugger",)
+
+    def __init__(self, debugger):
+        self.__debugger = debugger
+
+    @property
+    def selection(self) -> list:
+        """
+        Get the currently selected widgets in the debugger as a list
+        """
+        return self.__debugger.selection
+
+    @property
+    def selected(self) -> tkinter.Widget:
+        """
+        Get the first selected widget in the debugger. Useful when only one widget is selected
+        """
+        if self.__debugger.selection:
+            return self.__debugger.selection[0]
 
 
 class Debugger(Window):
@@ -62,6 +89,10 @@ class Debugger(Window):
         self.tabs.pack(fill="both", expand=True)
         self.elements = Elements(self.tabs, self)
         self.tabs.add(self.elements, text="Elements")
+        self.debug_api = DebuggerAPI(self)
+        self._locals = {"debugger": self.debug_api}
+        self.console = ConsolePane(self.tabs, self._locals, self.exit)
+        self.tabs.add(self.console, text="Console")
 
         self.configure(**self.style.surface)
         self.is_minimized = False
@@ -201,6 +232,7 @@ class Debugger(Window):
         with open(path) as file:
             code = compile(file.read(), path, 'exec')
 
+        sys.path.append(os.path.dirname(path))
         # Ensure hooked application thinks it is running as __main__
         _global_freeze.update({"__name__": "__main__", "__file__": path})
         exec(code, _global_freeze)
