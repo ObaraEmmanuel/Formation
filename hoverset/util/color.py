@@ -93,7 +93,7 @@ def to_hex(rgb: tuple) -> str:
     :param rgb: rgb tuple (h, s, l) where h s and l lie between 0 and 255
     :return: hex string that lies between #000000 and #ffffff
     """
-    rgb = tuple(map(lambda x: hex(x)[2:], rgb))
+    rgb = tuple(map(lambda x: hex(int(x))[2:], rgb))
     rgb = tuple(map(lambda x: ("0" + x).zfill(2)[-2:], rgb))
     return "#" + "".join(rgb)
 

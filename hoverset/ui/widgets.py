@@ -1123,13 +1123,14 @@ class SpinBox(Widget, EditableMixin, tk.Spinbox):
     def __init__(self, master=None, **cnf):
         self.setup(master)
         super().__init__(master, **cnf)
-        self._var = tk.IntVar()
+        self._var = tk.DoubleVar()
         self.config(textvariable=self._var)
 
     def get(self):
         self.update_idletasks()
         try:
-            return self._var.get()
+            val = self._var.get()
+            return int(val) if val % 1 == 0 else val
         except tk.TclError:
             return ''
 
