@@ -376,7 +376,7 @@ class Duration(TextMixin, Editor):
         self.config(**self.style.highlight_active)
         self._entry = SpinBox(self, from_=0, to=1e6, **self.style.spinbox)
         self._entry.config(**self.style.no_highlight)
-        self._entry.set_validator(numeric_limit, 0, 1e6)
+        self._entry.set_validator(numeric_limit, 0, None)
         self._entry.on_change(self._change)
         self._unit = Spinner(self, **self.style.input)
         self._unit.config(**self.style.no_highlight, width=50)
@@ -464,7 +464,11 @@ class Dimension(TextMixin, Editor):
             self._entry.set_validator(numeric_limit, 0, None, self._validator())
 
     def _validator(self):
-        return is_numeric if self.style_def.get("float", False) else is_floating_numeric
+        return validate_any(
+            is_numeric if self.style_def.get("float", False) else is_floating_numeric,
+            is_empty,
+            is_signed
+        )
 
     def get(self):
         if self._entry.get() == '':

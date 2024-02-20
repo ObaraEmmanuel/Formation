@@ -161,7 +161,7 @@ class PseudoWidget:
         y2 = self.winfo_height() + y1
         return x1, y1, x2, y2
 
-    def lift(self, above_this):
+    def lift(self, above_this=None):
         if isinstance(above_this, Container):
             # first lift above container if possible
             try:
@@ -228,6 +228,10 @@ class PseudoWidget:
         self._handle.hide()
         if not self._handle.active():
             self._handle = None
+
+    def lift_handle(self):
+        if self._handle:
+            self._handle.lift()
 
     def show_highlight(self, *_):
         if not self._handle_cls:
@@ -411,7 +415,6 @@ class Container(PseudoWidget):
             self.body = self
         self._level = 0
         self._children = []
-        self.temporal_children = []
         if len(self.LAYOUTS) == 0:
             raise ValueError("No layouts have been defined")
         self.layout_strategy = layouts.PlaceLayoutStrategy(self)
@@ -422,7 +425,7 @@ class Container(PseudoWidget):
     def _get_designer(self):
         return self.master
 
-    def lift(self, above_this):
+    def lift(self, above_this=None):
         super().lift(above_this)
         if self.body != self:
             self.body.lift(self)
@@ -436,7 +439,6 @@ class Container(PseudoWidget):
 
     def clear_highlight(self):
         super().clear_highlight()
-        self._temporal_children = []
         self.layout_strategy.clear_indicators()
 
     @property
@@ -519,7 +521,7 @@ class Container(PseudoWidget):
         return super().configure(**kwargs)
 
     def _set_layout(self, layout):
-        self.designer.studio.style_pane.apply_style("layout", [layout], [self])
+        self.designer.studio.style_pane.apply_style("layout", layout, None)
 
     def _get_layouts_as_menu(self):
         layout_templates = [
@@ -560,14 +562,17 @@ class Container(PseudoWidget):
     def widget_released(self, widget):
         self.layout_strategy.widget_released(widget)
 
-    def change_start(self, widget):
-        self.layout_strategy.change_start(widget)
+    def start_move(self, widget):
+        self.layout_strategy.start_move(widget)
 
-    def move_widget(self, widget, bounds):
-        self.layout_strategy.move_widget(widget, bounds)
+    def start_resize(self, widget):
+        self.layout_strategy.start_resize(widget)
 
-    def end_move(self):
-        self.layout_strategy.end_move()
+    def move_widget(self, widget, delta):
+        self.layout_strategy.move_widget(widget, delta)
+
+    def end_move(self, widget):
+        self.layout_strategy.end_move(widget)
 
     def resize_widget(self, widget, direction, delta):
         self.layout_strategy.resize_widget(widget, direction, delta)

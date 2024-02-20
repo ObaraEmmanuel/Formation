@@ -19,7 +19,7 @@ from hoverset.ui.menu import MenuUtils, LoadLater, EnableIf
 from hoverset.util.execution import Action, as_thread
 
 from studio.lib import NameGenerator
-from studio.lib.layouts import PlaceLayoutStrategy
+from studio.lib.layouts import BaseLayoutStrategy, PlaceLayoutStrategy
 from studio.lib.pseudo import PseudoWidget, Container, Groups
 from studio.parsers.loader import DesignBuilder, BaseStudioAdapter
 from studio.ui import geometry
@@ -33,6 +33,21 @@ from formation.formats import get_file_types
 
 class DesignLayoutStrategy(PlaceLayoutStrategy):
     name = "DesignLayout"
+    DEFINITION = {
+        **BaseLayoutStrategy.DEFINITION,
+        "x": {
+            "display_name": "x",
+            "type": "dimension",
+            "name": "x",
+            "default": None
+        },
+        "y": {
+            "display_name": "y",
+            "type": "dimension",
+            "name": "y",
+            "default": None
+        }
+    }
 
     def add_new(self, widget, x, y):
         self.container.add(widget, x, y, layout=self.container)
@@ -41,14 +56,15 @@ class DesignLayoutStrategy(PlaceLayoutStrategy):
         info = self._info_with_delta(widget, direction, delta)
         self.container.place_child(widget, **info)
 
-    def _move(self, widget, bounds):
-        self.container.position(widget, self.container.canvas_bounds(bounds))
+    def move_widget(self, widget, delta):
+        self.container.position(widget, self.container.canvas_bounds(self.bounds_from_delta(widget, delta)))
 
     def add_widget(self, widget, bounds=None, **kwargs):
         super(PlaceLayoutStrategy, self).add_widget(widget, bounds=bounds, **kwargs)
         super(PlaceLayoutStrategy, self).remove_widget(widget)
         if bounds:
-            self.move_widget(widget, bounds)
+            bounds = geometry.relative_bounds(bounds, self.container.body)
+            self.container.position(widget, bounds)
         else:
             x = kwargs.get("x", 10)
             y = kwargs.get("y", 10)
@@ -78,12 +94,6 @@ class DesignLayoutStrategy(PlaceLayoutStrategy):
             "info": self.container.config_child(widget),
             "container": self,
         }
-
-    def get_def(self, widget):
-        definition = dict(self.DEFINITION)
-        # We don't need bordermode
-        definition.pop("bordermode")
-        return definition
 
     def info(self, widget):
         bounds = self.container.bbox(widget)
@@ -404,7 +414,7 @@ class Designer(DesignPad, Container):
             self._all_bound = geometry.overall_bounds([w.get_bounds() for w in self._move_selection])
             self._realtime_layout_update = True
             for obj in self._move_selection:
-                obj.layout.change_start(obj)
+                obj.layout.start_move(obj)
                 # disable realtime layout update if any widget's layout doesn't support it
                 if not obj.layout.layout_strategy.realtime_support:
                     self._realtime_layout_update = False
@@ -412,7 +422,7 @@ class Designer(DesignPad, Container):
             for obj in self._selected:
                 if not obj.layout.allow_resize:
                     continue
-                obj.layout.change_start(obj)
+                obj.layout.start_resize(obj)
 
             if all(w.layout.layout_strategy.realtime_support for w in self._selected):
                 self._realtime_layout_update = True
@@ -436,7 +446,11 @@ class Designer(DesignPad, Container):
                 if obj.is_toplevel and container != self:
                     toplevel_warning = True
                     continue
-                container.add_widget(obj, obj.get_bounds())
+                if widget.layout != container:
+                    widget.layout.remove_widget(widget)
+                    container.add_widget(obj, obj.get_bounds())
+                else:
+                    container.end_move(obj)
                 layouts_changed.append(obj)
                 if obj == self.root_obj and container != self:
                     self.root_obj = container
@@ -495,18 +509,22 @@ class Designer(DesignPad, Container):
         self._all_bound = all_bound
 
         if container != current and current is not None:
-            current.end_move()
+            current.layout_strategy.on_move_exit()
             current.clear_highlight()
 
         if container is not None and container != current:
             container.show_highlight()
             self.current_container = current = container
 
-        for w in objs:
-            x1, y1, x2, y2 = w.get_bounds()
-            current.move_widget(w, [x1 + dx, y1 + dy, x2 + dx, y2 + dy])
+        realtime_update = self._realtime_layout_update
 
-        if self.current_container.layout_strategy.realtime_support:
+        for w in objs:
+            current.move_widget(w, delta)
+            if self._realtime_layout_update and current != w.layout:
+                # we can no longer attempt to provide realtime position info
+                realtime_update = False
+
+        if realtime_update:
             self.studio.widgets_layout_changed(objs)
 
     def set_active_container(self, container):
@@ -776,7 +794,7 @@ class Designer(DesignPad, Container):
     def _on_start(self):
         obj = self.current_obj
         if obj is not None:
-            obj.layout.change_start(obj)
+            obj.layout.start_move(obj)
 
     def create_restore(self, widgets):
         if not widgets:

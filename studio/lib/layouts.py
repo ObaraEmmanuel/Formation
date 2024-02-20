@@ -7,6 +7,7 @@ Layout classes uses in the studio
 # ======================================================================= #
 from collections import defaultdict
 from copy import deepcopy
+import tkinter as tk
 
 from studio.ui import geometry
 from studio.ui.highlight import WidgetHighlighter, EdgeIndicator
@@ -72,10 +73,6 @@ class BaseLayoutStrategy:
     def children(self):
         return self.container._children
 
-    @property
-    def temporal_children(self):
-        return self.container.temporal_children
-
     def bounds(self):
         return geometry.bounds(self.container)
 
@@ -89,7 +86,8 @@ class BaseLayoutStrategy:
             self.children.append(widget)
         else:
             self.children.insert(index, widget)
-            self._update_stacking()
+
+        self._update_stacking()
 
         if widget.prev_stack_index is None:
             widget.prev_stack_index = len(self.children) - 1
@@ -104,34 +102,29 @@ class BaseLayoutStrategy:
     def widget_released(self, widget):
         pass
 
-    def change_start(self, widget):
+    def start_move(self, widget):
         widget.recent_layout_info = self.get_restore(widget)
-        widget.last_stable_bounds = widget.get_bounds()
+        widget.lift()
+        widget.lift_handle()
 
-    def move_widget(self, widget, bounds):
-        if widget in self.children:
-            bounds = widget.last_stable_bounds
-            self.remove_widget(widget)
-        if widget not in self.temporal_children:
-            self.temporal_children.append(widget)
-            if widget.layout != self.container:
-                # if widget was originally in a different layout
-                # Lift widget above the last child of layout if any otherwise lift above the layout
-                widget.lift((self.children[-1:] or [self.container.body])[0])
+    def start_resize(self, widget):
+        widget.recent_layout_info = self.get_restore(widget)
 
-            widget.level = self.level + 1
-            widget.layout = self.container
-
-        self._move(widget, bounds)
-
-    def end_move(self):
-        # empty temporal children
-        self.temporal_children.clear()
-
-    def _move(self, widget, bounds):
-        # Make the bounds relative to the layout for proper positioning
-        bounds = geometry.relative_bounds(bounds, self.container.body)
+    def move_widget(self, widget, delta):
+        bounds = geometry.relative_bounds(self.bounds_from_delta(widget, delta), self.container.body)
         self.container.position(widget, bounds)
+
+    def end_move(self, widget):
+        pass
+
+    def on_move_exit(self):
+        pass
+
+    def bounds_from_delta(self, widget, delta):
+        # Make the bounds relative to the layout for proper positioning
+        x1, y1, x2, y2 = widget.get_bounds()
+        dx, dy = delta
+        return [x1 + dx, y1 + dy, x2 + dx, y2 + dy]
 
     def resize_widget(self, widget, direction, delta):
         raise NotImplementedError("Layout should provide resize method")
@@ -145,8 +138,6 @@ class BaseLayoutStrategy:
     def remove_widget(self, widget):
         if widget in self.children:
             self.children.remove(widget)
-        if widget in self.temporal_children:
-            self.temporal_children.remove(widget)
 
     def add_new(self, widget, x, y):
         self.parent.add(widget, x, y, layout=self.container)
@@ -246,7 +237,27 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
             "options": ("outside", "inside", "ignore"),
             "name": "bordermode",
             "default": "inside",
-        }
+        },
+        "relx": {
+            "display_name": "relative x",
+            "type": "float",
+            "name": "relx"
+        },
+        "rely": {
+            "display_name": "relative y",
+            "type": "float",
+            "name": "rely"
+        },
+        "relwidth": {
+            "display_name": "relative width",
+            "type": "float",
+            "name": "relwidth"
+        },
+        "relheight": {
+            "display_name": "relative height",
+            "type": "float",
+            "name": "relheight"
+        },
     }
     name = "place"
     icon = "place"
@@ -263,7 +274,8 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
         super().add_widget(widget, bounds)
         super().remove_widget(widget)
         if bounds:
-            self.move_widget(widget, bounds)
+            bounds = geometry.relative_bounds(bounds, self.container.body)
+            self.container.position(widget, bounds)
         kwargs['in'] = self.container.body
         widget.place_configure(**kwargs)
         self._insert(widget, widget.prev_stack_index if widget.layout == self.container else None)
@@ -288,10 +300,28 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
             info.update(x=info["x"] + dx, width=info["width"] - dx, height=info["height"] + dy)
         elif direction == "se":
             info.update(width=info["width"] + dx, height=info["height"] + dy)
+        elif direction == "all":
+            info.update(x=info["x"] + dx, y=info["y"] + dy)
         return info
 
     def resize_widget(self, widget, direction, delta):
         info = self._info_with_delta(widget, direction, delta)
+        widget.place_configure(**info)
+
+    def end_move(self, widget):
+        super().end_move(widget)
+        self._update_stacking()
+
+    def move_widget(self, widget, delta):
+        info = widget.place_info() or {}
+        ref = info.get("in", self.container.body)
+
+        if ref != self.container.body:
+            bounds = geometry.relative_bounds(self.bounds_from_delta(widget, delta), self.container.body)
+            self.container.position(widget, bounds)
+            return
+
+        info = self._info_with_delta(widget, "all", delta)
         widget.place_configure(**info)
 
     def remove_widget(self, widget):
@@ -371,8 +401,6 @@ class PackLayoutStrategy(BaseLayoutStrategy):
         super().__init__(container)
         self._orientation = self.HORIZONTAL
         self.temp_info = {}
-        # Store for info on temporarily removed widgets to allow restoration
-        self._restoration_data = {}
 
     def add_widget(self, widget, bounds=None, **kwargs):
         super().remove_widget(widget)
@@ -411,14 +439,20 @@ class PackLayoutStrategy(BaseLayoutStrategy):
         self.temp_info = None
 
     def remove_widget(self, widget):
-        self._restoration_data[widget] = self.get_restore(widget)
         super().remove_widget(widget)
         widget.pack_forget()
+
+    def end_move(self, widget):
+        super().end_move(widget)
+        widget.pack(in_=self.container.body)
+        self.config_widget(widget, widget.recent_layout_info.get("info", {}))
+        self._update_stacking()
+        self._redraw()
 
     def restore_widget(self, widget, data=None):
         # We need to be able to return a removed widget back to its initial position once removed
         restoration_data = widget.recent_layout_info if data is None else data
-        self.children.insert(restoration_data.get("index", -1), widget)
+        self._insert(widget, restoration_data.get("index", -1))
         widget.level = self.level + 1
         widget.layout = self.container
         widget.pack(in_=self.container.body)
@@ -673,6 +707,13 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         widget.grid(in_=self.container.body)
         self.config_widget(widget, data.get("info", {}))
 
+    def end_move(self, widget):
+        super().end_move(widget)
+        kw = widget.recent_layout_info.get("info", {})
+        self._grid_at_bounds(widget, widget.get_bounds(), **kw)
+        self._update_stacking()
+        self.clear_indicators()
+
     def react_to(self, bounds):
         bounds = geometry.relative_bounds(bounds, self.container.body)
         col, row = self.container.body.grid_location(bounds[0], bounds[1])
@@ -740,33 +781,36 @@ class GridLayoutStrategy(BaseLayoutStrategy):
     def resize_widget(self, widget, direction, delta):
         pass
 
-    def _move(self, widget, bounds):
-        super()._move(widget, bounds)
-        self._location_analysis(bounds)
+    def move_widget(self, widget, delta):
+        super().move_widget(widget, delta)
+        self._location_analysis(self.bounds_from_delta(widget, delta))
 
-    def end_move(self):
-        super().end_move()
+    def on_move_exit(self):
+        super().on_move_exit()
         self.clear_indicators()
 
     def add_widget(self, widget, bounds=None, **kwargs):
         super().remove_widget(widget)
         super().add_widget(widget, bounds, **kwargs)
         if bounds is not None:
-            row, col, row_shift, column_shift = self._location_analysis(bounds)
-            self._redraw(max(0, row), max(0, col), row_shift, column_shift)
-            kwargs.update({'in_': self.container.body, 'row': max(0, row), 'column': max(0, col)})
-            widget.grid(**kwargs)
+            self._grid_at_bounds(widget, bounds, **kwargs)
         else:
             widget.grid(in_=self.container.body)
             self.config_widget(widget, kwargs)
         self._insert(widget, widget.prev_stack_index if widget.layout == self.container else None)
         self.clear_indicators()
 
+    def _grid_at_bounds(self, widget, bounds, **kwargs):
+        row, col, row_shift, column_shift = self._location_analysis(bounds)
+        self._redraw(max(0, row), max(0, col), row_shift, column_shift)
+        kwargs.update({'in_': self.container.body, 'row': max(0, row), 'column': max(0, col)})
+        widget.grid(**kwargs)
+
     def _widget_at(self, row, column):
         return self.container.body.grid_slaves(column, row)
 
     def _location_analysis(self, bounds):
-        if len(self.temporal_children) > 1:
+        if len(self.container.place_slaves()) > 1:
             # cannot perform analysis with more than one widget
             return 0, 0, 0, 0
         self.clear_indicators()
@@ -925,9 +969,14 @@ class TabLayoutStrategy(BaseLayoutStrategy):
     def config_widget(self, widget, config):
         self.container.body.tab(widget, **config)
 
+    def end_move(self, widget):
+        self.container.body.add(widget)
+        self.container.body.tab(widget, **widget.recent_layout_info.get("info", {}))
+        self._redraw(widget.recent_layout_info.get("index", -1))
+
     def restore_widget(self, widget, data=None):
         restoration_data = widget.recent_layout_info if data is None else data
-        self.children.insert(restoration_data.get("index", -1), widget)
+        self._insert(widget, restoration_data.get("index", -1))
         widget.level = self.level + 1
         widget.layout = self.container
         self.container.body.add(widget)
@@ -963,7 +1012,10 @@ class TabLayoutStrategy(BaseLayoutStrategy):
 
     def remove_widget(self, widget):
         super().remove_widget(widget)
-        self.container.body.forget(widget)
+        try:
+            self.container.body.forget(widget)
+        except tk.TclError:
+            pass
 
     def info(self, widget):
         info = self.container.body.tab(widget) or {}
@@ -1040,9 +1092,14 @@ class PanedLayoutStrategy(BaseLayoutStrategy):
     def config_widget(self, widget, config):
         self._config(widget, **config)
 
+    def end_move(self, widget):
+        self.container.body.add(widget)
+        self._config(widget, **widget.recent_layout_info.get("info", {}))
+        self._redraw(widget.recent_layout_info.get("index", -1))
+
     def restore_widget(self, widget, data=None):
         restoration_data = widget.recent_layout_info if data is None else data
-        self.children.insert(restoration_data.get("index", -1), widget)
+        self._insert(widget, restoration_data.get("index", -1))
         widget.level = self.level + 1
         widget.layout = self.container
         self.container.body.add(widget)
@@ -1097,7 +1154,10 @@ class PanedLayoutStrategy(BaseLayoutStrategy):
 
     def remove_widget(self, widget):
         super().remove_widget(widget)
-        self.container.body.forget(widget)
+        try:
+            self.container.body.forget(widget)
+        except tk.TclError:
+            pass
 
     def copy_layout(self, widget, from_):
         info = from_.layout.body.paneconfig(from_)

@@ -307,7 +307,7 @@ class AttributeGroup(StyleGroup):
                     has_change = True
 
             if has_change:
-                self.style_pane._layout_group.on_widgets_change(self.widgets)
+                self.style_pane._layout_group.on_widgets_change()
 
     def can_optimize(self):
         classes = set(w.__class__ for w in self.widgets)
@@ -774,4 +774,4 @@ class StylePane(StylePaneFramework, BaseFeature):
         self.studio.new_action(action)
 
     def widgets_modified(self, widgets):
-        self.studio.widgets_modified(widgets, None)
+        self.studio.widgets_modified(widgets, self)
