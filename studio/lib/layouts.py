@@ -188,7 +188,7 @@ class BaseLayoutStrategy:
         for child, bounds in bounding_map:
             self.add_widget(child, bounds)
 
-    def react_to_pos(self, x, y):
+    def react_to_pos(self, bounds):
         pass
 
     def copy_layout(self, widget, from_):
@@ -810,9 +810,6 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         return self.container.body.grid_slaves(column, row)
 
     def _location_analysis(self, bounds):
-        if len(self.container.place_slaves()) > 1:
-            # cannot perform analysis with more than one widget
-            return 0, 0, 0, 0
         self.clear_indicators()
         self._edge_indicator.update_idletasks()
         bounds = geometry.relative_bounds(bounds, self.container.body)
@@ -860,9 +857,9 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         else:
             widget.grid_configure(**{prop: value})
 
-    def react_to_pos(self, x, y):
-        x, y = geometry.resolve_position((x, y), self.container.parent)
-        self._location_analysis((x, y, x, y))
+    def react_to_pos(self, bounds):
+        bounds = geometry.resolve_bounds(bounds, self.container.parent)
+        self._location_analysis(bounds)
 
     def info(self, widget):
         info = widget.grid_info() or {}

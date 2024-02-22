@@ -432,9 +432,9 @@ class Container(PseudoWidget):
         if self._children:
             self.layout_strategy._update_stacking()
 
-    def react(self, x, y):
+    def react(self, bounds):
         self.designer.set_active_container(self)
-        self.react_to_pos(x, y)
+        self.react_to_pos(bounds)
         self.show_highlight()
 
     def clear_highlight(self):
@@ -592,9 +592,9 @@ class Container(PseudoWidget):
     def definition_for(self, widget):
         return self.layout_strategy.definition_for(widget)
 
-    def react_to_pos(self, x, y):
+    def react_to_pos(self, bounds):
         # react to position
-        self.layout_strategy.react_to_pos(x, y)
+        self.layout_strategy.react_to_pos(bounds)
 
     def copy_layout(self, widget, from_):
         self.layout_strategy.copy_layout(widget, from_)

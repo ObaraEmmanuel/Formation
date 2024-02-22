@@ -10,6 +10,7 @@ from studio.preferences import Preferences, templates
 from studio.feature._base import BaseFeature
 from studio.lib import legacy, native
 from studio.lib.pseudo import PseudoWidget, Container, WidgetMeta
+from studio.ui import geometry
 
 
 class Component(Frame):
@@ -25,6 +26,7 @@ class Component(Frame):
         self.bind("<Leave>", self.deselect)
         self.component = component
         self.allow_drag = True
+        self.designer = None
 
     def select(self, *_):
         self.config_all(**self.style.hover)
@@ -33,10 +35,15 @@ class Component(Frame):
         self.config_all(**self.style.surface)
 
     def render_drag(self, window):
+        dim = getattr(self.component, "initial_dimensions", None)
+        if dim:
+            window.geometry(f"{dim[0]}x{dim[1]}")
         Label(window, **self.style.text_accent, image=get_icon_image(self.component.icon, 15, 15)).pack(side="left")
         Label(window, **self.style.text, anchor="w", text=self.component.display_name).pack(side="left", fill="x")
 
     def drag_start_pos(self, event):
+        self.designer = ComponentPane.get_instance().studio.designer
+        self.designer._refresh_container_sort()
         window = self.window.drag_window
         if window:
             window.update_idletasks()
@@ -54,16 +61,16 @@ class Component(Frame):
             event.y_root = self.window.drag_window.pos[1] - 1
 
     def on_drag(self, event):
-        self._adjust_event(event)
-        widget = self.event_first(event, self, Container)
+        widget = self.designer.layout_at_pos(*self.window.drag_window.get_center())
         if widget and self.window.drag_window:
-            widget.react(*self.window.drag_window.get_center())
+            bounds = geometry.absolute_bounds(self.window.drag_window)
+            widget.react(bounds)
 
     def on_drag_end(self, event):
-        self._adjust_event(event)
-        widget = self.event_first(event, self, Container)
+        widget = self.designer.layout_at_pos(*self.window.drag_window.get_center())
         if isinstance(widget, Container):
-            widget.add_new(self.component, *self.window.drag_window.get_center())
+            bounds = geometry.absolute_bounds(self.window.drag_window)
+            widget.add_new(self.component, *bounds[:2])
             widget.clear_highlight()
 
 

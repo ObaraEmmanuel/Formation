@@ -173,6 +173,17 @@ def is_within(bound1, bound2) -> bool:
     return overlap == bound2
 
 
+def is_pos_within(bound, pos) -> bool:
+    """
+    Checks whether a position is within a bound
+
+    :param bound: A tuple, The enclosing bound
+    :param pos: A tuple, The position to be checked
+    :return: ``True`` if ``pos`` is within ``bound`` else ``False``
+    """
+    return bound[0] <= pos[0] <= bound[2] and bound[1] <= pos[1] <= bound[3]
+
+
 def dimensions(bound):
     """
     Get the width and height of a bound

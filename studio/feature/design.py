@@ -399,6 +399,12 @@ class Designer(DesignPad, Container):
             self._frame.canvasy(event.y)
         )
 
+    def _refresh_container_sort(self):
+        self._sorted_containers = sorted(
+            filter(lambda x: isinstance(x, Container) and x not in self._move_selection, self.objects),
+            key=lambda x: -x.level
+        )
+
     def _on_handle_active_start(self, widget, direction):
         self._handle_active_data = widget, direction
 
@@ -407,10 +413,8 @@ class Designer(DesignPad, Container):
             self._move_selection = self.studio.selection.siblings(widget)
             self.current_container = self._move_selection[0].layout
             self.current_container.show_highlight()
-            self._sorted_containers = sorted(
-                filter(lambda x: isinstance(x, Container) and x not in self._move_selection, self.objects),
-                key=lambda x: -x.level
-            )
+            self._refresh_container_sort()
+
             self._all_bound = geometry.overall_bounds([w.get_bounds() for w in self._move_selection])
             self._realtime_layout_update = True
             for obj in self._move_selection:
@@ -446,8 +450,8 @@ class Designer(DesignPad, Container):
                 if obj.is_toplevel and container != self:
                     toplevel_warning = True
                     continue
-                if widget.layout != container:
-                    widget.layout.remove_widget(widget)
+                if obj.layout != container:
+                    obj.layout.remove_widget(obj)
                     container.add_widget(obj, obj.get_bounds())
                 else:
                     container.end_move(obj)
@@ -544,6 +548,12 @@ class Designer(DesignPad, Container):
             return self.current_container
 
         return candidate or self
+
+    def layout_at_pos(self, x, y):
+        x, y = geometry.resolve_position((x, y), self)
+        for container in self._sorted_containers:
+            if geometry.is_pos_within(geometry.bounds(container), (x, y)):
+                return container
 
     def show_select_region(self, bounds):
         bounds = geometry.resolve_bounds(bounds, self)
