@@ -7,6 +7,8 @@ Contains all the widget representations used in the designer and specifies all t
 
 import logging
 from collections import defaultdict
+import tkinter as tk
+from tkinter import ttk
 
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Button, TabView
@@ -508,7 +510,6 @@ class WindowGroup(StyleGroup):
         super().__init__(master, pane, **cnf)
         self.label = "Window"
         self._prev_layout = None
-        self._grid_config = GridConfig(self.body, pane)
 
     def _get_prop(self, prop, widget):
         return widget.get_win_prop(prop)
@@ -526,6 +527,82 @@ class WindowGroup(StyleGroup):
 
     def supports_widgets(self):
         return all(widget.is_toplevel for widget in self.widgets)
+
+
+class ScrollGroup(StyleGroup):
+    handles_layout = False
+
+    DEF = {
+        "yscroll": {
+            "name": "yscroll",
+            "display_name": "Y Scroll",
+            "type": "widget",
+            "include": [tk.Scrollbar, ttk.Scrollbar],
+        },
+        "xscroll": {
+            "name": "xscroll",
+            "display_name": "X Scroll",
+            "type": "widget",
+            "include": [tk.Scrollbar, ttk.Scrollbar],
+        },
+    }
+
+    def __init__(self, master, pane, **cnf):
+        super().__init__(master, pane, **cnf)
+        self.label = "Scroll"
+        self._last_keys = None
+
+    def _get_prop(self, prop, widget):
+        if prop == "yscroll":
+            return getattr(widget, "_cnf_y_scroll", '')
+        if prop == "xscroll":
+            return getattr(widget, "_cnf_x_scroll", '')
+
+    def _set_prop(self, prop, value, widget):
+        if prop == "yscroll":
+            widget._cnf_y_scroll = value
+        if prop == "xscroll":
+            widget._cnf_x_scroll = value
+
+    def _keys(self, widget):
+        keys = []
+        widget_keys = widget.keys()
+        if 'yscrollcommand' in widget_keys:
+            keys.append('yscroll')
+        if 'xscrollcommand' in widget_keys:
+            keys.append('xscroll')
+        return tuple(keys)
+
+    def can_optimize(self):
+        keys = set()
+        for widget in self.widgets:
+            for k in self._keys(widget):
+                keys.add(k)
+        if keys != self._last_keys:
+            self._last_keys = keys
+            return False
+        return True
+
+    def _definition(self, widget):
+        keys = widget.keys()
+        props = {}
+        if 'yscrollcommand' in keys:
+            props['yscroll'] = dict(**self.DEF['yscroll'], value=getattr(widget, '_cnf_y_scroll', ''))
+        if 'xscrollcommand' in keys:
+            props['xscroll'] = dict(**self.DEF['xscroll'], value=getattr(widget, '_cnf_x_scroll', ''))
+        return props
+
+    def get_definition(self):
+        if self.widgets:
+            return combine_properties([self._definition(widget) for widget in self.widgets])
+        return {}
+
+    def _support(self, widget):
+        keys = widget.keys()
+        return any(x in keys for x in ('yscrollcommand', 'xscrollcommand'))
+
+    def supports_widgets(self):
+        return all(self._support(w) for w in self.widgets)
 
 
 class StylePaneFramework:
@@ -752,6 +829,7 @@ class StylePane(StylePaneFramework, BaseFeature):
         self._layout_group = self.add_group(LayoutGroup)
         self._attribute_group = self.add_group(AttributeGroup)
         self.add_group(WindowGroup)
+        self.add_group(ScrollGroup)
 
         self.add_group_instance(self._layout_group._grid_config.column_config)
         self.add_group_instance(self._layout_group._grid_config.row_config)

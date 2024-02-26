@@ -9,6 +9,7 @@ import os
 import pathlib
 import re
 import sys
+import tkinter as tk
 from tkinter import BooleanVar, filedialog, StringVar
 
 from hoverset.ui.icons import get_icon_image
@@ -681,6 +682,55 @@ class Stringvariable(Variable):
         self._spinner.set_values((
             '', *values,
         ))
+
+
+class Widget(Choice):
+    _setup_once = False
+
+    class WidgetChoiceItem(Choice.ChoiceItem):
+
+        def render(self):
+            if self.value:
+                item = Label(
+                    self, text=f" {self.value.id}", **self.style.text,
+                    image=get_icon_image(self.value.icon, 15, 15),
+                    compound="left", anchor="w"
+                )
+                item.pack(fill="x")
+            else:
+                Label(self, text="", **self.style.text).pack(fill="x")
+
+    def _get_objs(self):
+        master = self.winfo_toplevel()
+        if hasattr(master, "get_widgets"):
+            include = self.style_def.get("include", ())
+            exclude = self.style_def.get("exclude", ())
+            objs = master.get_widgets()
+            if include:
+                objs = list(filter(lambda x: isinstance(x, tuple(include)), objs))
+            if exclude:
+                objs = list(filter(lambda x: not isinstance(x, tuple(exclude)), objs))
+            return objs
+        return []
+
+    def set_up(self):
+        objs = self._get_objs()
+        self._spinner.set_item_class(Widget.WidgetChoiceItem)
+        self._spinner.set_values((
+            '', *objs,
+        ))
+
+    def set(self, value):
+        print(value)
+        if isinstance(value, tk.Widget):
+            self._spinner.set(value)
+            return
+
+        # Override default conversion of value to string by Choice class
+        widget = list(filter(lambda x: x.id == value, self._get_objs()))
+        # if widget does not match anything in the obj list presume as empty
+        value = widget[0] if widget else ''
+        self._spinner.set(value)
 
 
 def get_editor(parent, definition):

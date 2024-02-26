@@ -248,6 +248,7 @@ class Scrollbar(PseudoWidget, tk.Scrollbar):
     icon = "scrollbar"
     impl = tk.Scrollbar
     initial_dimensions = 20, 100
+    allow_direct_move = False
 
     def __init__(self, master, id_):
         super().__init__(master)
