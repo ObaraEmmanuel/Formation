@@ -21,6 +21,7 @@ namespaces = {
     "layout": "http://www.hoversetformationstudio.com/layouts/",
     "attr": "http://www.hoversetformationstudio.com/styles/",
     "menu": "http://www.hoversetformationstudio.com/menu",
+    "scroll": "http://www.hoversetformationstudio.com/scroll",
 }
 _reversed_namespaces = dict(zip(namespaces.values(), namespaces.keys()))
 _attr_rgx = re.compile(r"{(?P<namespace>.+)}(?P<attr>.+)")

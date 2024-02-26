@@ -71,6 +71,14 @@ class BaseStudioAdapter(BaseAdapter):
         layout_options = widget.layout.get_altered_options_for(widget)
         node["layout"] = layout_options
 
+        scroll_conf = {}
+        if isinstance(getattr(widget, "_cnf_x_scroll", None), PseudoWidget):
+            scroll_conf["x"] = widget._cnf_x_scroll.id
+        if isinstance(getattr(widget, "_cnf_y_scroll", None), PseudoWidget):
+            scroll_conf["y"] = widget._cnf_y_scroll.id
+        if scroll_conf:
+            node["scroll"] = scroll_conf
+
         if hasattr(widget, "_event_map_"):
             for binding in widget._event_map_.values():
                 bind_dict = binding._asdict()
@@ -119,6 +127,14 @@ class BaseStudioAdapter(BaseAdapter):
                 styles.pop('orient')
         layout = attrib.get("layout", {})
         obj = designer.load(obj_class, attrib["name"], parent, styles, layout, bounds)
+
+        # load scroll configuration
+        scroll_conf = attrib.get("scroll", {})
+        if scroll_conf.get("x"):
+            obj._cnf_x_scroll = scroll_conf["x"]
+        if scroll_conf.get("y"):
+            obj._cnf_y_scroll = scroll_conf["y"]
+
         for sub_node in node:
             if sub_node.type == "event":
                 binding = make_event(**sub_node.attrib)
@@ -333,7 +349,19 @@ class DesignBuilder:
                 continue
             self._load_widgets(sub_node, designer, widget)
         Meth.call_deferred(designer)
+        self._post_process(designer)
         return widget
+
+    def _post_process(self, designer):
+        _lookup = {}
+        for obj in designer.objects:
+            _lookup[obj.id] = obj
+
+        for w in designer.objects:
+            if hasattr(w, "_cnf_y_scroll"):
+                w._cnf_y_scroll = _lookup.get(w._cnf_y_scroll, '')
+            if hasattr(w, "_cnf_x_scroll"):
+                w._cnf_x_scroll = _lookup.get(w._cnf_x_scroll, '')
 
     def to_tree(self, widget, parent=None, with_node=None):
         """

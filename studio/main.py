@@ -361,6 +361,10 @@ class StudioApplication(Application):
         if isinstance(self.context, DesignContext):
             return self.context.designer
 
+    def get_widgets(self):
+        if self.designer:
+            return self.designer.objects
+
     def _show_empty(self, text):
         if text:
             self._tab_view_empty.lift()
