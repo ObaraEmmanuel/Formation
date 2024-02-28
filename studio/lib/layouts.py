@@ -241,22 +241,26 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
         "relx": {
             "display_name": "relative x",
             "type": "float",
-            "name": "relx"
+            "name": "relx",
+            "default": "0"
         },
         "rely": {
             "display_name": "relative y",
             "type": "float",
-            "name": "rely"
+            "name": "rely",
+            "default": "0"
         },
         "relwidth": {
             "display_name": "relative width",
             "type": "float",
-            "name": "relwidth"
+            "name": "relwidth",
+            "default": ""
         },
         "relheight": {
             "display_name": "relative height",
             "type": "float",
-            "name": "relheight"
+            "name": "relheight",
+            "default": ""
         },
     }
     name = "place"
