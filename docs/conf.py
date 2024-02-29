@@ -23,7 +23,7 @@ sys.modules.update((mod_name, Mock()) for mod_name in MOCK_MODULES)
 # -- Project information -----------------------------------------------------
 
 project = 'Formation'
-copyright = '2019-2023, Emmanuel Obara'
+copyright = '2019-2024, Emmanuel Obara'
 author = 'Emmanuel Obara'
 
 # -- General configuration ---------------------------------------------------

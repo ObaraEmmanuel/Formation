@@ -64,7 +64,7 @@ class About(Frame):
         f.pack(side="top")
         Label(f, text="Icons by", **self.style.text_passive).pack(side="left")
         Hyperlink(f, link="https://icons8.com", text="Icons8").pack(side="right")
-        copy_right = "Copyright © 2019-2023 Hoverset group"
+        copy_right = "Copyright © 2019-2024 Hoverset group"
         Label(self, text=copy_right, **self.style.text_passive).pack(side="top", fill="y")
         self.pack(fill="both", expand=True)
 
