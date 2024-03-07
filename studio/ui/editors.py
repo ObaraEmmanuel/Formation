@@ -701,7 +701,10 @@ class Widget(Choice):
                 Label(self, text="", **self.style.text).pack(fill="x")
 
     def _get_objs(self):
-        master = self.winfo_toplevel()
+        master = tk._default_root
+        if not hasattr(master, "get_widgets"):
+            master = self.winfo_toplevel()
+
         if hasattr(master, "get_widgets"):
             include = self.style_def.get("include", ())
             exclude = self.style_def.get("exclude", ())
@@ -721,7 +724,6 @@ class Widget(Choice):
         ))
 
     def set(self, value):
-        print(value)
         if isinstance(value, tk.Widget):
             self._spinner.set(value)
             return

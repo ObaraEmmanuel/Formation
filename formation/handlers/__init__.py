@@ -1,10 +1,11 @@
-from formation.handlers import layout, image, misc
+from formation.handlers import layout, image, misc, scroll
 
 _namespace_handlers = {
     "attr": misc.AttrHandler,
     "menu": misc.MenuHandler,
     "layout": layout,
     "img": image,
+    "scroll": scroll
 }
 
 _handlers = {

@@ -16,6 +16,7 @@ from formation.formats import Node, BaseAdapter, infer_format
 from formation.handlers import dispatch_to_handlers, parse_arg
 from formation.meth import Meth
 from formation.handlers.image import parse_image
+from formation.handlers.scroll import apply_scroll_config
 import formation
 
 logger = logging.getLogger(__name__)
@@ -285,6 +286,9 @@ class Builder:
         self._load_variables(root_node, self)
         node = self._load_widgets(root_node, self, self._parent)
         self._flush_var_cache()
+        if hasattr(self, "_scroll_map"):
+            apply_scroll_config(self, self._scroll_map)
+            delattr(self, "_scroll_map")
         return node
 
     def _load_variables(self, node, builder):
