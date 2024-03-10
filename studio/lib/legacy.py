@@ -42,12 +42,6 @@ class Canvas(PseudoWidget, tk.Canvas):
         self.id = id_
         self.setup_widget()
 
-    def lift(self, above_this=None):
-        try:
-            tk.Misc.lift(self, above_this)
-        except tkinter.TclError:
-            pass
-
 
 class Checkbutton(PseudoWidget, tk.Checkbutton):
     display_name = 'Checkbutton'
