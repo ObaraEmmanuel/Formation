@@ -554,6 +554,8 @@ class Designer(DesignPad, Container):
         for container in self._sorted_containers:
             if geometry.is_pos_within(geometry.bounds(container), (x, y)):
                 return container
+        if geometry.is_pos_within(geometry.bounds(self), (x, y)):
+            return self
 
     def show_select_region(self, bounds):
         bounds = geometry.resolve_bounds(bounds, self)

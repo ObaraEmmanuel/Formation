@@ -318,7 +318,7 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
 
     def move_widget(self, widget, delta):
         info = widget.place_info() or {}
-        ref = info.get("in", self.container.body)
+        ref = info.get("in")
 
         if ref != self.container.body:
             bounds = geometry.relative_bounds(self.bounds_from_delta(widget, delta), self.container.body)
