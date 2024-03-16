@@ -7,7 +7,7 @@ Drag drop designer for the studio
 # ======================================================================= #
 import os.path
 import time
-from tkinter import filedialog, ttk
+from tkinter import filedialog, ttk, TclError
 
 from hoverset.data import actions
 from hoverset.data.keymap import KeyMap
@@ -196,6 +196,9 @@ class Designer(DesignPad, Container):
         self._sorted_containers = []
         self._realtime_layout_update = False
         self._handle_active_data = None
+        # used to maintain id correlation for widget pasting
+        # do not touch
+        self._xlink_map = {}
 
     def clear_studio_bindings(self):
         for binding in self._studio_bindings:
@@ -251,7 +254,7 @@ class Designer(DesignPad, Container):
 
     @property
     def _ids(self):
-        return [i.id for i in self.objects]
+        return {i.id for i in self.objects}
 
     def has_changed(self):
         # check if design has changed since last save or loading so we can prompt user to save changes
@@ -391,6 +394,9 @@ class Designer(DesignPad, Container):
         Generate a unique id for widget belonging to a given class
         """
         return self.name_generator.generate(obj_class, self._ids)
+
+    def _is_unique_id(self, id_):
+        return id_ not in self._ids
 
     def on_motion(self, event):
         geometry.make_event_relative(event, self)
@@ -596,6 +602,11 @@ class Designer(DesignPad, Container):
         self._shortcut_mgr.bind_widget(obj)
 
     def show_menu(self, event, obj=None):
+        try:
+            self._last_click_pos = event.x_root, event.y_root
+        except TclError:
+            pass
+
         if obj and obj not in self._selected:
             self.studio.selection.set(obj)
         MenuUtils.popup(event, self._context_menu)

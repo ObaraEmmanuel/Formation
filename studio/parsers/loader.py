@@ -126,7 +126,15 @@ class BaseStudioAdapter(BaseAdapter):
             if 'orient' in styles:
                 styles.pop('orient')
         layout = attrib.get("layout", {})
-        obj = designer.load(obj_class, attrib["name"], parent, styles, layout, bounds)
+
+        old_id = new_id = attrib["name"]
+        if not designer._is_unique_id(old_id):
+            new_id = designer._get_unique(obj_class)
+        obj = designer.load(obj_class, new_id, parent, styles, layout, bounds)
+
+        # store id cross-mapping for post-processing
+        if old_id != new_id:
+            designer._xlink_map[old_id] = obj
 
         # load scroll configuration
         scroll_conf = attrib.get("scroll", {})
@@ -275,6 +283,7 @@ class DesignBuilder:
         self.designer = designer
         self.root = None
         self.metadata = {}
+        self._loaded_objs = set()
 
     @classmethod
     def add_adapter(cls, adapter, *obj_classes):
@@ -305,7 +314,10 @@ class DesignBuilder:
         self.root = infer_format(path)(path=path).load()
         self._load_meta(self.root)
         self._load_variables(self.root)
-        return self._load_widgets(self.root, designer, designer)
+        self._loaded_objs.clear()
+        root = self._load_widgets(self.root, designer, designer)
+        self._post_process(designer)
+        return root
 
     def _load_meta(self, node):
         for sub_node in node:
@@ -328,18 +340,23 @@ class DesignBuilder:
         be used instead
         :return:
         """
-        return self._load_widgets(node, self.designer, parent, bounds)
+        self._loaded_objs.clear()
+        root = self._load_widgets(node, self.designer, parent, bounds)
+        self._post_process(self.designer)
+        return root
 
     def _load_widgets(self, node, designer, parent, bounds=None):
         line_info = node.get_source_line_info()
         try:
             adapter = self.get_adapter(BaseStudioAdapter._get_class(node))
             widget = adapter.load(node, designer, parent, bounds)
+            # keep track of loaded objects
+            self._loaded_objs.add(widget)
         except Exception as e:
             # Append line number causing error before re-raising for easier debugging by user
             raise e.__class__("{}{}".format(line_info, e)) from e
         if not isinstance(widget, Container):
-            # We dont need to load child tags of non-container widgets
+            # We don't need to load child tags of non-container widgets
             return widget
         for sub_node in node:
             if sub_node.is_var() or sub_node.type in _ignore_tags:
@@ -348,20 +365,25 @@ class DesignBuilder:
             if BaseStudioAdapter._get_class(sub_node) == legacy.Menu:
                 continue
             self._load_widgets(sub_node, designer, widget)
-        Meth.call_deferred(designer)
-        self._post_process(designer)
         return widget
 
     def _post_process(self, designer):
-        _lookup = {}
-        for obj in designer.objects:
-            _lookup[obj.id] = obj
+        # call deferred methods
+        Meth.call_deferred(designer)
 
-        for w in designer.objects:
+        lookup = {}
+        for obj in designer.objects:
+            lookup[obj.id] = obj
+
+        # override lookup with cross-reference map
+        lookup.update(designer._xlink_map)
+        designer._xlink_map.clear()
+
+        for w in self._loaded_objs:
             if hasattr(w, "_cnf_y_scroll"):
-                w._cnf_y_scroll = _lookup.get(w._cnf_y_scroll, '')
+                w._cnf_y_scroll = lookup.get(w._cnf_y_scroll, '')
             if hasattr(w, "_cnf_x_scroll"):
-                w._cnf_x_scroll = _lookup.get(w._cnf_x_scroll, '')
+                w._cnf_x_scroll = lookup.get(w._cnf_x_scroll, '')
 
     def to_tree(self, widget, parent=None, with_node=None):
         """
