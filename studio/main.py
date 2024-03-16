@@ -4,16 +4,17 @@
 
 import functools
 import os
+import subprocess
 import sys
 import time
 import tkinter
 import webbrowser
 from tkinter import filedialog
 
+import platformdirs
 import tkinterDnD
 
 import studio
-from formation import AppBuilder
 from formation.formats import get_file_types, get_file_extensions
 from hoverset.data import actions
 from hoverset.data.images import load_tk_image
@@ -50,6 +51,7 @@ class StudioApplication(Application):
     else:
         ICON_PATH = get_resource_path(studio, "resources/images/formation_icon.png")
     THEME_PATH = pref.get("resource::theme")
+    dirs = platformdirs.AppDirs(appname="formation", appauthor="hoverset")
 
     def __init__(self, master=None, **cnf):
         super().__init__(master, **cnf)
@@ -815,12 +817,16 @@ class StudioApplication(Application):
             return
         # close previous preview if any
         self.close_preview()
-        self.current_preview = AppBuilder(node=self.designer.to_tree(), path=self.designer.design_path)
+        path = os.path.join(self.dirs.user_cache_dir, "temp_design.xml")
+        self.designer.to_tree().write(path)
+        self.current_preview = subprocess.Popen(
+            [sys.executable, "-m", "formation", path],
+        )
 
     def close_preview(self):
         if self.current_preview:
             try:
-                self.current_preview._app.destroy()
+                self.current_preview.terminate()
             except tkinter.TclError:
                 pass
             self.current_preview = None

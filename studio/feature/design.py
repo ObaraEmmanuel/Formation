@@ -269,10 +269,8 @@ class Designer(DesignPad, Container):
         self.open_file(None)
 
     def to_tree(self):
-        """ Generate node form of current design state without needing to save"""
-        builder = DesignBuilder(self)
-        builder.generate()
-        return builder.root
+        """ Generate builder for current design state without needing to save"""
+        return DesignBuilder(self)
 
     def save_prompt(self):
         return MessageDialog.builder(
