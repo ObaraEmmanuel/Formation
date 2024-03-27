@@ -17,6 +17,7 @@ from studio.lib.pseudo import Container, PseudoWidget
 from studio.lib.events import make_event
 from studio.lib.layouts import GridLayoutStrategy
 from studio.preferences import Preferences
+from studio.i18n import _
 from formation.loader import _ignore_tags
 from formation.meth import Meth
 from formation.handlers import parse_arg
@@ -52,7 +53,7 @@ class BaseStudioAdapter(BaseAdapter):
             if component:
                 return component[0]
             else:
-                raise ModuleNotFoundError("Could not resolve studio compatible widget for \"{}\"".format(node.type))
+                raise ModuleNotFoundError(_("Could not resolve studio compatible widget for \"{}\"").format(node.type))
         if hasattr(module, impl):
             return getattr(module, impl)
         if impl == 'Panedwindow' and module == native:
@@ -60,7 +61,7 @@ class BaseStudioAdapter(BaseAdapter):
             if orient == tk.HORIZONTAL:
                 return native.HorizontalPanedWindow
             return native.VerticalPanedWindow
-        raise NotImplementedError("class {} does not have a designer implementation variant in {}".format(impl, module))
+        raise NotImplementedError(_("class {} does not have a designer implementation variant in {}").format(impl, module))
 
     @classmethod
     def generate(cls, widget: PseudoWidget, parent=None):

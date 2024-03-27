@@ -4,6 +4,7 @@ from hoverset.ui.widgets import (
 )
 from studio.feature._base import BaseFeature
 from studio.lib.events import EventBinding, make_event, event_equal
+from studio.i18n import _
 
 
 class BindingsTable(CompoundList):
@@ -143,20 +144,21 @@ class BindingsTable(CompoundList):
 
 class EventPane(BaseFeature):
     name = "Event pane"
+    display_name = _("Event pane")
     icon = "blank"
     _defaults = {
         **BaseFeature._defaults,
         "side": "right",
     }
-    NO_SELECTION_MSG = "You have not selected any widget selected"
-    NO_EVENT_MSG = "You have not added any bindings"
-    NO_MATCH_MSG = "No items match your search"
+    NO_SELECTION_MSG = _("You have not selected any widget selected")
+    NO_EVENT_MSG = _("You have not added any bindings")
+    NO_MATCH_MSG = _("No items match your search")
 
     def __init__(self, master, studio, **cnf):
         super().__init__(master, studio, **cnf)
         self.header = Frame(self, **self.style.surface)
         self.header.pack(side="top", fill="x")
-        for i, title in enumerate(("Sequence", "Handler", "Add", " " * 3)):
+        for i, title in enumerate((_("Sequence"), _("Handler"), _("Add"), " " * 3)):
             Label(
                 self.header, **self.style.text_passive, text=title,
                 anchor="w",
@@ -178,7 +180,7 @@ class EventPane(BaseFeature):
             image=get_icon_image("add", 15, 15)
         )
         self._add.pack(side="right")
-        self._add.tooltip("Add event binding")
+        self._add.tooltip(_("Add event binding"))
         self._add.on_click(self.add_new)
 
         self._search_btn = Button(

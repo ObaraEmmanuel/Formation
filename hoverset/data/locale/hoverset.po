@@ -1,0 +1,91 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the hoverset package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: hoverset\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2024-03-27 23:37+0300\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: hoverset/ui/dialogs.py:205 hoverset/ui/dialogs.py:217
+#: hoverset/data/keymap.py:347 hoverset/data/preferences.py:710
+#: hoverset/data/preferences.py:715
+msgid "Cancel"
+msgstr ""
+
+#: hoverset/ui/dialogs.py:206 hoverset/ui/dialogs.py:223
+#: hoverset/ui/dialogs.py:228 hoverset/ui/dialogs.py:233
+msgid "Ok"
+msgstr ""
+
+#: hoverset/ui/dialogs.py:211
+msgid "No"
+msgstr ""
+
+#: hoverset/ui/dialogs.py:212
+msgid "Yes"
+msgstr ""
+
+#: hoverset/ui/dialogs.py:218
+msgid "Retry"
+msgstr ""
+
+#: hoverset/ui/panels.py:55
+msgid "Pick color from anywhere"
+msgstr ""
+
+#: hoverset/ui/panels.py:134
+msgid "Pick color from clipboard"
+msgstr ""
+
+#: hoverset/ui/panels.py:349
+msgid "Pick Font"
+msgstr ""
+
+#: hoverset/ui/panels.py:386
+msgid "No font to extract"
+msgstr ""
+
+#: hoverset/data/keymap.py:321
+msgid "Key already assigned to {}"
+msgstr ""
+
+#: hoverset/data/keymap.py:348 hoverset/data/preferences.py:711
+#: hoverset/data/preferences.py:716
+msgid "Okay"
+msgstr ""
+
+#: hoverset/data/keymap.py:352
+msgid "Tap here to begin capturing shortcuts."
+msgstr ""
+
+#: hoverset/data/keymap.py:423
+msgid "Change Shortcut"
+msgstr ""
+
+#: hoverset/data/keymap.py:426
+msgid "Remove"
+msgstr ""
+
+#: hoverset/data/preferences.py:577 hoverset/data/preferences.py:582
+msgid "Preferences"
+msgstr ""
+
+#: hoverset/data/preferences.py:702 hoverset/data/preferences.py:707
+msgid "Some changes require restart"
+msgstr ""
+
+#: hoverset/data/preferences.py:705 hoverset/data/preferences.py:707
+#: hoverset/data/preferences.py:710 hoverset/data/preferences.py:712
+msgid "restart"
+msgstr ""

@@ -5,6 +5,8 @@ import shutil
 import os
 import platformdirs
 
+from studio.i18n import _
+
 from hoverset.util.execution import elevate
 from hoverset.platform import platform_is, WINDOWS
 
@@ -24,7 +26,7 @@ def get_parser():
 
     parser = argparse.ArgumentParser(
         prog="formation-cli",
-        description="Command line tools for formation studio"
+        description=_("Command line tools for formation studio")
     )
 
     parser.add_argument(
@@ -32,10 +34,10 @@ def get_parser():
         "--remove",
         metavar="FILES",
         default=None,
-        help="""
+        help=_("""
             Removes and cleans internal app files. Can be set to
             config, cache or all.
-        """,
+        """),
     )
 
     parser.add_argument(
@@ -44,18 +46,18 @@ def get_parser():
         action="store",
         nargs="+",
         metavar=("KEY", "VALUES"),
-        help="""
+        help=_("""
             Get or set studio configuration values.
-        """,
+        """),
     )
 
     parser.add_argument(
         "-u",
         "--upgrade",
         action="store_true",
-        help="""
+        help=_("""
             Upgrade formation studio to latest version
-        """,
+        """),
     )
 
     parser.add_argument(
@@ -71,17 +73,17 @@ def _clear_config():
     try:
         Preferences.acquire()
     except Preferences.ConfigFileInUseError:
-        logger.error(
+        logger.error(_(
             "Config file currently in use. Close any open formation studio "
             "windows to continue."
-        )
+        ))
         sys.exit(1)
     except:
         pass
     try:
         shutil.rmtree(dirs.user_config_dir)
     except:
-        logger.error("Could not delete config files")
+        logger.error(_("Could not delete config files"))
 
 
 def _clear_cache():
@@ -90,7 +92,7 @@ def _clear_cache():
     try:
         shutil.rmtree(dirs.user_cache_dir)
     except:
-        logger.error("Could not delete cache files")
+        logger.error(_("Could not delete cache files"))
 
 
 def _parse(value):
@@ -109,16 +111,16 @@ def remove(args):
     arg = args.remove
     if arg == 'config':
         _clear_config()
-        logger.info("Removed config files")
+        logger.info(_("Removed config files"))
     elif arg == 'cache':
         _clear_cache()
-        logger.info("Removed cache files")
+        logger.info(_("Removed cache files"))
     elif arg == 'all':
         _clear_cache()
         _clear_config()
-        logger.info("Removed config and cache files")
+        logger.info(_("Removed config and cache files"))
     else:
-        logger.error("Unknown argument %s", arg)
+        logger.error(_("Unknown argument %s"), arg)
         sys.exit(1)
 
 
@@ -134,13 +136,13 @@ def handle_config(args):
     try:
         pref = Preferences.acquire()
     except Preferences.ConfigFileInUseError:
-        logger.error(
+        logger.error(_(
             "Config file currently in use. Close any open formation studio "
             "windows to continue."
-        )
+        ))
         sys.exit(1)
     except Exception:
-        logger.error("Unable to open config files")
+        logger.error(_("Unable to open config files"))
         sys.exit(1)
 
     param = args.config
@@ -153,7 +155,7 @@ def handle_config(args):
         else:
             pref.set(key, [_parse(v) for v in param[1:]])
         sys.exit(0)
-    logger.error("Key %s not found", param[0])
+    logger.error(_("Key %s not found"), param[0])
     sys.exit(1)
 
 

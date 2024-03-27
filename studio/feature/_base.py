@@ -8,11 +8,13 @@ from hoverset.ui.menu import EnableIf
 from studio.ui.geometry import absolute_position, parse_geometry
 from studio.ui.widgets import Pane
 from studio.preferences import Preferences
+from studio.i18n import _
 
 
 class BaseFeature(Pane):
     _instance = None
     name = "Feature"
+    display_name = "Feature"
     pane = None
     bar = None
     icon = "blank"
@@ -59,7 +61,7 @@ class BaseFeature(Pane):
             self.is_visible = BooleanVar(None, self.get_pref('visible'))
             t.trace_add("write", lambda *_: self.set_pref('inactive_transparency', t.get()))
         self.studio = studio
-        Label(self._header, **self.style.text_accent, text=self.name).pack(side="left")
+        Label(self._header, **self.style.text_accent, text=self.display_name).pack(side="left")
         self._min = Button(self._header, image=get_icon_image("close", 15, 15), **self.style.button, width=25,
                            height=25)
         self._min.pack(side="right")
@@ -69,23 +71,23 @@ class BaseFeature(Pane):
         self._pref.pack(side="right")
         self._pref.tooltip("Options")
         menu = self.make_menu((
-            ("cascade", "View Mode", None, None, {"menu": (
-                ("radiobutton", "Docked", None, self.open_as_docked, {"variable": self._view_mode, "value": "docked"}),
-                ("radiobutton", "Window", None, self.open_as_window, {"variable": self._view_mode, "value": "window"}),
+            ("cascade", _("View Mode"), None, None, {"menu": (
+                ("radiobutton", _("Docked"), None, self.open_as_docked, {"variable": self._view_mode, "value": "docked"}),
+                ("radiobutton", _("Window"), None, self.open_as_window, {"variable": self._view_mode, "value": "window"}),
             )}),
-            ("cascade", "Position", None, None, {"menu": (
-                ("radiobutton", "Left", None, lambda: self.reposition("left"),
+            ("cascade", _("Position"), None, None, {"menu": (
+                ("radiobutton", _("Left"), None, lambda: self.reposition("left"),
                  {"variable": self._side, "value": "left"}),
-                ("radiobutton", "Right", None, lambda: self.reposition("right"),
+                ("radiobutton", _("Right"), None, lambda: self.reposition("right"),
                  {"variable": self._side, "value": "right"}),
             )}),
             EnableIf(lambda: self._view_mode.get() == 'window',
-                     ("cascade", "Window options", None, None, {"menu": (
+                     ("cascade", _("Window options"), None, None, {"menu": (
                          (
-                             "checkbutton", "Transparent when inactive", None, None,
+                             "checkbutton", _("Transparent when inactive"), None, None,
                              {"variable": self._transparency_flag}),
                      )})),
-            ("command", "Close", get_icon_image("close", 18, 18), self.minimize, {}),
+            ("command", _("Close"), get_icon_image("close", 18, 18), self.minimize, {}),
             ("separator",),
             *self.create_menu()
         ), self._pref)

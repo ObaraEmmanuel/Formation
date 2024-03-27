@@ -13,10 +13,12 @@ from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import ScrolledFrame, Button, MenuButton, Frame, Label
 from studio.feature._base import BaseFeature
 from studio.lib.variables import VariableItem, VariableManager
+from studio.i18n import _
 
 
 class VariablePane(BaseFeature):
     name = "Variablepane"
+    display_name = _("Variables")
     icon = "text"
 
     _defaults = {
@@ -31,7 +33,7 @@ class VariablePane(BaseFeature):
         }
     }
 
-    _empty_message = "No variables added"
+    _empty_message = _("No variables added")
 
     def __init__(self, master, studio=None, **cnf):
         super().__init__(master, studio, **cnf)
@@ -47,7 +49,7 @@ class VariablePane(BaseFeature):
 
         Label(
             self._detail_pane.body, **self.style.text_passive,
-            text="Type", anchor="w"
+            text=_("Type"), anchor="w"
         ).pack(side="top", fill="x")
         self.var_type_lbl = Label(
             self._detail_pane.body, **self.style.text, anchor="w"
@@ -55,13 +57,13 @@ class VariablePane(BaseFeature):
         self.var_type_lbl.pack(side="top", fill="x")
         Label(
             self._detail_pane.body, **self.style.text_passive,
-            text="Name", anchor="w"
+            text=_("Name"), anchor="w"
         ).pack(side="top", fill="x")
         self.var_name = editors.get_editor(self._detail_pane.body, self._definitions["name"])
         self.var_name.pack(side="top", fill="x")
         Label(
             self._detail_pane.body, **self.style.text_passive,
-            text="Value", anchor="w"
+            text=_("Value"), anchor="w"
         ).pack(fill="x", side="top")
         self._editors = {}
         self._editor = None
@@ -81,7 +83,7 @@ class VariablePane(BaseFeature):
         self._delete_btn.on_click(self._delete)
         self._var_types_menu = self.make_menu(
             self._get_add_menu(),
-            self._add, title="Add variable")
+            self._add, title=_("Add variable"))
         self._var_types_menu.configure(tearoff=True)
         self._add.config(menu=self._var_types_menu)
         self._selected = None
@@ -104,7 +106,7 @@ class VariablePane(BaseFeature):
                 matches.append(item)
 
         if not matches:
-            self._show_overlay(True, text="No matches found", image=get_icon_image("search", 25, 25))
+            self._show_overlay(True, text=_("No matches found"), image=get_icon_image("search", 25, 25))
         else:
             self.select(matches[0])
             self._show_overlay(False)
@@ -128,9 +130,9 @@ class VariablePane(BaseFeature):
 
     def create_menu(self):
         return (
-            ("cascade", "Add", get_icon_image("add", 18, 18), None, {"menu": self._get_add_menu()}),
-            ("command", "Delete", get_icon_image("delete", 18, 18), self._delete, {}),
-            ("command", "Search", get_icon_image("search", 18, 18), self.start_search, {}),
+            ("cascade", _("Add"), get_icon_image("add", 18, 18), None, {"menu": self._get_add_menu()}),
+            ("command", _("Delete"), get_icon_image("delete", 18, 18), self._delete, {}),
+            ("command", _("Search"), get_icon_image("search", 18, 18), self.start_search, {}),
         )
 
     def _show_overlay(self, flag=True, **kwargs):

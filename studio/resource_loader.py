@@ -16,6 +16,8 @@ from hoverset.ui.widgets import Application, Label, ProgressBar
 from hoverset.ui.styles import StyleDelegator
 from hoverset.platform import windowing_is, X11
 
+from studio.i18n import _
+
 
 class ResourceLoader(Application):
     _default_icon_path = _primary_location
@@ -40,7 +42,7 @@ class ResourceLoader(Application):
         self._progress.pack(side="top", fill="x", padx=20, pady=10)
         self._progress.set(0)
         self._progress_text = Label(
-            self, **self.style.text_small, text="Waiting for resource loader...",
+            self, **self.style.text_small, text=_("Waiting for resource loader..."),
             anchor="w"
         )
         self._progress_text.pack(side="top", fill="x", padx=20, pady=10)
@@ -127,7 +129,7 @@ class ResourceLoader(Application):
 
     def check_resources(self):
 
-        self._message("Preparing graphic resources...")
+        self._message(_("Preparing graphic resources..."))
         with shelve.open(self._cache_icon_path) as cache:
             with shelve.open(self._default_icon_path) as defaults:
                 color = parse_color(self.style.colors["accent"], self)

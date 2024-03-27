@@ -13,6 +13,7 @@ import subprocess
 from hoverset.data.images import load_tk_image
 from hoverset.data.utils import get_resource_path
 from hoverset.ui.widgets import *
+from hoverset.data.i18n import set_locale
 
 from studio.ui.highlight import WidgetHighlighter
 from studio.debugtools.preferences import Preferences
@@ -22,6 +23,7 @@ from studio.debugtools.selection import DebugSelection
 from studio.debugtools.console import ConsolePane
 
 from studio.resource_loader import ResourceLoader
+from studio.i18n import _
 import studio
 
 from tkinterDnD.tk import _init_tkdnd
@@ -88,11 +90,11 @@ class Debugger(Window):
         self.tabs = TabView(self)
         self.tabs.pack(fill="both", expand=True)
         self.elements = Elements(self.tabs, self)
-        self.tabs.add(self.elements, text="Elements")
+        self.tabs.add(self.elements, text=_("Elements"))
         self.debug_api = DebuggerAPI(self)
         self._locals = {"debugger": self.debug_api}
         self.console = ConsolePane(self.tabs, self._locals, self.exit)
-        self.tabs.add(self.console, text="Console")
+        self.tabs.add(self.console, text=_("Console"))
 
         self.configure(**self.style.surface)
         self.is_minimized = False
@@ -218,6 +220,8 @@ class Debugger(Window):
 
     @classmethod
     def run(cls, path=None):
+        pref = Preferences.acquire()
+        set_locale("zh_CN")
         if path is None:
             if len(sys.argv) > 1:
                 path = sys.argv[1]
@@ -225,9 +229,9 @@ class Debugger(Window):
                 # just incase the program reads sys args
                 sys.argv.pop(0)
             else:
-                logger.error("No python file supplied")
+                logger.error(_("No python file supplied"))
                 return
-        ResourceLoader.load(Preferences.acquire())
+        ResourceLoader.load(pref)
         cls._hook()
         with open(path) as file:
             code = compile(file.read(), path, 'exec')

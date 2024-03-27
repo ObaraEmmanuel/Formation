@@ -60,257 +60,288 @@ defaults = {
     "resource": {
         "icon_cache_color": "#ffffff",
         "theme": "default.css"
+    },
+    "locale": {
+        "language": "en"
     }
 }
 
+templates = {}
 
-templates = {
-    "General": {
-        "Appearance": (
-            {
-                "desc": "Theme",
-                "path": "resource::theme",
-                "element": RadioGroup,
-                "requires_restart": True,
-                "extra": {
-                    "choices": (
-                        ("default.css", "Dark",),
-                        ("light.css", "Light",),
-                    )
-                }
-            },
-        ),
-        "Recent Files": (
-            {
-                "desc": "Recent files limit",
-                "path": "studio::recent_max",
-                "element": Number,
-                "extra": {
-                    "width": 4
+
+def _templates():
+    from studio.i18n import _
+
+    base = {
+        _("General"): {
+            _("Appearance"): (
+                {
+                    "desc": _("Theme"),
+                    "path": "resource::theme",
+                    "element": RadioGroup,
+                    "requires_restart": True,
+                    "extra": {
+                        "choices": (
+                            ("default.css", _("Dark"),),
+                            ("light.css", _("Light"),),
+                        )
+                    }
                 },
-            },
-            {
-                "desc": "Show",
-                "path": "studio::recent_show",
-                "element": RadioGroup,
-                "extra": {
-                    "choices": (
-                        ("name", "Only file name"),
-                        ("path", "Full file path"),
-                    )
-                }
-            },
-            {
-                "desc": "Maximum path display length",
-                "path": "studio::recent_max_length",
-                "element": Number,
-                "extra": {
-                    "width": 4
+            ),
+            _("Localization"): (
+                {
+                    "desc": _("Language"),
+                    "path": "locale::language",
+                    "element": Choice,
+                    "requires_restart": True,
+                    "extra": {
+                        "choices": (
+                            ("en", "English"),
+                            ("zh_CN", "Chinese (Simplified) - 简体中文")
+                        )
+                    }
                 },
-            },
-        ),
-        "Undo Redo": (
-            DependentGroup({
-                "controller": {
-                    "desc": "Limit undo depth",
-                    "path": "studio::use_undo_depth",
-                    "element": Check
-                },
-                "allow": [True, ],
-                "children": (
-                    {
-                        "desc": "Undo depth",
-                        "path": "studio::undo_depth",
-                        "element": Number,
-                        "extra": {
-                            "width": 4,
-                        }
+            ),
+            _("Recent Files"): (
+                {
+                    "desc": _("Recent files limit"),
+                    "path": "studio::recent_max",
+                    "element": Number,
+                    "extra": {
+                        "width": 4
                     },
-                )
-            }),
-        ),
-        "Start up": (
-            {
-                "desc": "At startup",
-                "path": "studio::on_startup",
-                "element": RadioGroup,
-                "extra": {
-                    "choices": (
-                        ("new", "Open blank design tab"),
-                        ("recent", "Restore previous tabs"),
-                        ("blank", "Do not open any design tab")
-                    )
-                }
-            },
-        )
-    },
-    "Designer": {
-        "Design pad": (
-            {
-                "desc": "Drag rate throttling",
-                "path": "designer::frame_skip",
-                "element": LabeledScale,
-                "extra": {
-                    "step": 1,
-                    "_from": 1,
-                    "to": 5,
-                }
-            },
-        ),
-        "Naming options": (
-            {
-                "desc": "Naming case",
-                "path": "designer::label::case",
-                "element": RadioGroup,
-                "extra": {
-                    "choices": (
-                        ("title", "Title case (Button1, Label_1...)"),
-                        ("lower", "Lower case (button2, label_2...)"),
-                        ("upper", "Upper case (BUTTON2, LABEL2...)"),
-                    )
-                }
-            },
-            {
-                "desc": "Use underscore separator",
-                "path": "designer::label::underscore",
-                "element": Check,
-            },
-{
-                "desc": "Start numbering from",
-                "path": "designer::label::start",
-                "element": Number,
-                "extra": {
-                    "width": 4,
-                    "values": (0, 1)
                 },
-            },
-            {
-                "element": Note,
-                "desc": "(Widget names already created will not be affected)"
-            },
-        ),
-        "Xml options": (
-            {
-                "desc": "Pretty print output xml",
-                "path": "designer::xml::pretty_print",
-                "element": Check,
-            },
-            {
-                "element": Note,
-                "desc": "(Requires lxml)"
-            }
-        ),
-        "JSON options": (
-            {
-                "desc": "Compact output",
-                "path": "designer::json::compact",
-                "element": Check
-            },
-            {
-                "desc": "Sort json keys",
-                "path": "designer::json::sort_keys",
-                "element": Check
-            },
-            {
-                "desc": "Stringify json values",
-                "path": "designer::json::stringify_values",
-                "element": Check
-            },
-            DependentGroup({
-                "controller": {
-                    "desc": "Pretty print output json",
-                    "path": "designer::json::pretty_print",
+                {
+                    "desc": _("Show"),
+                    "path": "studio::recent_show",
+                    "element": RadioGroup,
+                    "extra": {
+                        "choices": (
+                            ("name", _("Only file name")),
+                            ("path", _("Full file path")),
+                        )
+                    }
+                },
+                {
+                    "desc": _("Maximum path display length"),
+                    "path": "studio::recent_max_length",
+                    "element": Number,
+                    "extra": {
+                        "width": 4
+                    },
+                },
+            ),
+            _("Undo Redo"): (
+                DependentGroup({
+                    "controller": {
+                        "desc": _("Limit undo depth"),
+                        "path": "studio::use_undo_depth",
+                        "element": Check
+                    },
+                    "allow": [True, ],
+                    "children": (
+                        {
+                            "desc": _("Undo depth"),
+                            "path": "studio::undo_depth",
+                            "element": Number,
+                            "extra": {
+                                "width": 4,
+                            }
+                        },
+                    )
+                }),
+            ),
+            _("Start up"): (
+                {
+                    "desc": _("At startup"),
+                    "path": "studio::on_startup",
+                    "element": RadioGroup,
+                    "extra": {
+                        "choices": (
+                            ("new", _("Open blank design tab")),
+                            ("recent", _("Restore previous tabs")),
+                            ("blank", _("Do not open any design tab"))
+                        )
+                    }
+                },
+            )
+        },
+        _("Designer"): {
+            _("Design pad"): (
+                {
+                    "desc": _("Drag rate throttling"),
+                    "path": "designer::frame_skip",
+                    "element": LabeledScale,
+                    "extra": {
+                        "step": 1,
+                        "_from": 1,
+                        "to": 5,
+                    }
+                },
+            ),
+            _("Naming options"): (
+                {
+                    "desc": _("Naming case"),
+                    "path": "designer::label::case",
+                    "element": RadioGroup,
+                    "extra": {
+                        "choices": (
+                            ("title", _("Title case") + " (Button1, Label_1...)"),
+                            ("lower", _("Lower case") + " (button2, label_2...)"),
+                            ("upper", _("Upper case") + " (BUTTON2, LABEL2...)"),
+                        )
+                    }
+                },
+                {
+                    "desc": _("Use underscore separator"),
+                    "path": "designer::label::underscore",
+                    "element": Check,
+                },
+                {
+                    "desc": _("Start numbering from"),
+                    "path": "designer::label::start",
+                    "element": Number,
+                    "extra": {
+                        "width": 4,
+                        "values": (0, 1)
+                    },
+                },
+                {
+                    "element": Note,
+                    "desc": _("(Widget names already created will not be affected)")
+                },
+            ),
+            _("XML options"): (
+                {
+                    "desc": _("Pretty print output xml"),
+                    "path": "designer::xml::pretty_print",
+                    "element": Check,
+                },
+                {
+                    "element": Note,
+                    "desc": _("(Requires lxml)")
+                }
+            ),
+            _("JSON options"): (
+                {
+                    "desc": _("Compact output"),
+                    "path": "designer::json::compact",
                     "element": Check
                 },
-                "allow": [True, ],
+                {
+                    "desc": _("Sort json keys"),
+                    "path": "designer::json::sort_keys",
+                    "element": Check
+                },
+                {
+                    "desc": _("Stringify json values"),
+                    "path": "designer::json::stringify_values",
+                    "element": Check
+                },
+                DependentGroup({
+                    "controller": {
+                        "desc": _("Pretty print output json"),
+                        "path": "designer::json::pretty_print",
+                        "element": Check
+                    },
+                    "allow": [True, ],
+                    "children": (
+                        DependentGroup({
+                            "controller": {
+                                "desc": _("For indentation use"),
+                                "path": "designer::json::indent",
+                                "element": RadioGroup,
+                                "extra": {
+                                    "choices": (
+                                        ("\t", _("Tabs")),
+                                        ("", _("Spaces"))
+                                    ),
+                                    "tristatevalue": '-'
+                                }
+                            },
+                            "allow": [""],
+                            "children": (
+                                {
+                                    "desc": _("number of indent spaces"),
+                                    "path": "designer::json::indent_count",
+                                    "element": Number,
+                                    "extra": {
+                                        "width": 4
+                                    }
+                                },
+                            )
+                        }),
+                    )
+                })
+            ),
+            _("Image options"): (
+                {
+                    "desc": _("When selecting image"),
+                    "path": "designer::image_path",
+                    "element": RadioGroup,
+                    "extra": {
+                        "choices": (
+                            ("mixed", _("Use relative paths when in same directory as design file")),
+                            ("relative", _("Always use path relative to design file if possible")),
+                            ("absolute", _("Always use absolute paths"))
+                        )
+                    }
+                },
+                {
+                    "element": Note,
+                    "desc": _("(Existing paths will not be affected, Reset the image to take effect)")
+                }
+            ),
+            _("Style pane options"): (
+                {
+                    "desc": _("Use descriptive names for style attributes"),
+                    "path": "designer::descriptive_names",
+                    "element": Check
+                },
+            )
+        },
+        _("Key Map"): {
+            "_scroll": False,
+            "hotkeys": {
+                "layout": {
+                    "fill": "both",
+                    "expand": True,
+                },
                 "children": (
                     DependentGroup({
                         "controller": {
-                            "desc": "For indentation use",
-                            "path": "designer::json::indent",
-                            "element": RadioGroup,
-                            "extra": {
-                                "choices": (
-                                    ("\t", "Tabs"),
-                                    ("", "Spaces")
-                                ),
-                                "tristatevalue": '-'
-                            }
+                            "desc": _("Allow shortcut keys"),
+                            "path": "allow_hotkeys",
+                            "element": Check,
                         },
-                        "allow": [""],
+                        "allow": [True, ],  # Allow only when controller value is True
                         "children": (
                             {
-                                "desc": "number of indent spaces",
-                                "path": "designer::json::indent_count",
-                                "element": Number,
-                                "extra": {
-                                    "width": 4
+                                "desc": _("Configure shortcut keys"),
+                                "path": "hotkeys",
+                                "element": ShortcutPane,
+                                "layout": {
+                                    "fill": "both",
+                                    "expand": True,
+                                    "padx": 5,
+                                    "pady": 5
                                 }
                             },
                         )
                     }),
                 )
-            })
-        ),
-        "Image options": (
-            {
-                "desc": "When selecting image",
-                "path": "designer::image_path",
-                "element": RadioGroup,
-                "extra": {
-                    "choices": (
-                        ("mixed", "Use relative paths when in same directory as design file"),
-                        ("relative", "Always use path relative to design file if possible"),
-                        ("absolute", "Always use absolute paths")
-                    )
-                }
-            },
-            {
-                "element": Note,
-                "desc": "(Existing paths will not be affected, Reset the image to take effect)"
             }
-        ),
-        "Style pane options": (
-            {
-                "desc": "Use descriptive names for style attributes",
-                "path": "designer::descriptive_names",
-                "element": Check
-            },
-        )
-    },
-    "Key Map": {
-        "_scroll": False,
-        "hotkeys": {
-            "layout": {
-                "fill": "both",
-                "expand": True,
-            },
-            "children": (
-                DependentGroup({
-                    "controller": {
-                        "desc": "Allow shortcut keys",
-                        "path": "allow_hotkeys",
-                        "element": Check,
-                    },
-                    "allow": [True, ],  # Allow only when controller value is True
-                    "children": (
-                        {
-                            "desc": "Configure shortcut keys",
-                            "path": "hotkeys",
-                            "element": ShortcutPane,
-                            "layout": {
-                                "fill": "both",
-                                "expand": True,
-                                "padx": 5,
-                                "pady": 5
-                            }
-                        },
-                    )
-                }),
-            )
         }
     }
-}
+
+    for k in templates:
+        if _(k) in base:
+            base[_(k)].update(templates[k])
+        else:
+            base[k] = templates[k]
+
+    return base
+
 
 class Preferences(SharedPreferences):
 
@@ -362,7 +393,7 @@ class Preferences(SharedPreferences):
 
 
 def open_preferences(master):
-    PreferenceManager(master, Preferences.acquire(), templates)
+    PreferenceManager(master, Preferences.acquire(), _templates())
 
 
 def get_active_pref(widget):

@@ -21,6 +21,7 @@ from studio.lib.pseudo import Container, PseudoWidget
 from studio.lib.layouts import GridLayoutStrategy
 from studio.preferences import Preferences
 from studio.lib.properties import get_combined_properties, combine_properties
+from studio.i18n import _
 
 
 class ReusableStyleItem(StyleItem):
@@ -106,7 +107,7 @@ class StyleGroup(CollapseFrame):
         self.pane_row = 0
         self.style_pane = pane
         self.configure(**{**self.style.surface, **cnf})
-        self._empty_message = "Select an item to see styles"
+        self._empty_message = _("Select an item to see styles")
         self._empty = Frame(self.body, **self.style.surface)
         self._empty_label = Label(self._empty, **self.style.text_passive,)
         self._empty_label.pack(fill="both", expand=True, pady=15)
@@ -252,7 +253,7 @@ class StyleGroup(CollapseFrame):
             else:
                 self._hide(item)
         if not item_found:
-            self._show_empty("No items match your search")
+            self._show_empty(_("No items match your search"))
         else:
             self._remove_empty()
 
@@ -266,7 +267,7 @@ class IdentityGroup(StyleGroup):
 
     def __init__(self, master, pane, **cnf):
         super().__init__(master, pane, **cnf)
-        self.label = "Widget identity"
+        self.label = _("Widget identity")
 
     def get_definition(self):
         if not self.widgets:
@@ -286,7 +287,7 @@ class AttributeGroup(StyleGroup):
 
     def __init__(self, master, pane, **cnf):
         super().__init__(master, pane, **cnf)
-        self.label = "Attributes"
+        self.label = _("Attributes")
         self._prev_classes = set()
 
     def get_definition(self):
@@ -439,7 +440,7 @@ class LayoutGroup(StyleGroup):
 
     def __init__(self, master, pane, **cnf):
         super().__init__(master, pane, **cnf)
-        self.label = "Layout"
+        self.label = _("Layout")
         self._prev_layout = None
         self._grid_config = GridConfig(self.body, pane)
         self._last_keys = set()
@@ -457,9 +458,9 @@ class LayoutGroup(StyleGroup):
         self._prev_layout = layout_strategy
 
         if self.widgets:
-            self.label = f"Layout ({self.widgets[0].layout.layout_strategy.name})"
+            self.label = _("Layout") + f"({self.widgets[0].layout.layout_strategy.name})"
         else:
-            self.label = "Layout"
+            self.label = _("Layout")
 
         if layout_strategy.__class__ == GridLayoutStrategy:
             self._show_grid_conf(True)
@@ -508,7 +509,7 @@ class WindowGroup(StyleGroup):
 
     def __init__(self, master, pane, **cnf):
         super().__init__(master, pane, **cnf)
-        self.label = "Window"
+        self.label = _("Window")
         self._prev_layout = None
 
     def _get_prop(self, prop, widget):
@@ -549,7 +550,7 @@ class ScrollGroup(StyleGroup):
 
     def __init__(self, master, pane, **cnf):
         super().__init__(master, pane, **cnf)
-        self.label = "Scroll"
+        self.label = _("Scroll")
         self._last_keys = None
 
     def _get_prop(self, prop, widget):
@@ -647,9 +648,9 @@ class StylePaneFramework:
 
     def create_menu(self):
         return (
-            ("command", "Search", get_icon_image("search", 18, 18), self.start_search, {}),
-            ("command", "Expand all", get_icon_image("chevron_down", 18, 18), self.expand_all, {}),
-            ("command", "Collapse all", get_icon_image("chevron_up", 18, 18), self.collapse_all, {})
+            ("command", _("Search"), get_icon_image("search", 18, 18), self.start_search, {}),
+            ("command", _("Expand all"), get_icon_image("chevron_down", 18, 18), self.expand_all, {}),
+            ("command", _("Collapse all"), get_icon_image("chevron_up", 18, 18), self.collapse_all, {})
         )
 
     def extern_apply(self, group_class, prop, value, widgets=None, silent=False):
@@ -706,7 +707,7 @@ class StylePaneFramework:
     def show_empty(self):
         self.remove_empty()
         self._empty_frame.place(x=0, y=0, relheight=1, relwidth=1)
-        Label(self._empty_frame, text="You have not selected any item",
+        Label(self._empty_frame, text=_("You have not selected any item"),
               **self.style.text_passive).place(x=0, y=0, relheight=1, relwidth=1)
 
     def remove_empty(self):
@@ -720,7 +721,7 @@ class StylePaneFramework:
             return
         self.remove_empty()
         self._empty_frame.place(x=0, y=0, relheight=1, relwidth=1)
-        Label(self._empty_frame, text="Loading...",
+        Label(self._empty_frame, text=_("Loading..."),
               **self.style.text_passive).place(x=0, y=0, relheight=1, relwidth=1)
         self._is_loading = True
 
@@ -812,6 +813,7 @@ class StylePaneFramework:
 
 class StylePane(StylePaneFramework, BaseFeature):
     name = "Style pane"
+    display_name = _("Style pane")
     icon = "edit"
     _defaults = {
         **BaseFeature._defaults,

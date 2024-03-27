@@ -26,6 +26,7 @@ from studio.ui import geometry
 from studio.ui.widgets import DesignPad, CoordinateIndicator
 from studio.ui.highlight import RegionHighlighter
 from studio.context import BaseContext
+from studio.i18n import _
 from studio import __version__
 
 from formation.formats import get_file_types
@@ -112,6 +113,7 @@ class Designer(DesignPad, Container):
     WIDGET_INIT_PADDING = 20
     WIDGET_INIT_HEIGHT = 25
     name = "Designer"
+    display_name = _("Designer")
     pane = None
     _coord_indicator = None
 
@@ -165,7 +167,7 @@ class Designer(DesignPad, Container):
         design_menu = (
             EnableIf(
                 lambda: self.studio._clipboard is not None,
-                ("command", "paste", icon("clipboard", 18, 18),
+                ("command", _("paste"), icon("clipboard", 18, 18),
                  lambda: self.paste(self.studio._clipboard, paste_to=self), {})
             ),)
         self.set_up_context(design_menu)
@@ -223,7 +225,7 @@ class Designer(DesignPad, Container):
     def _show_empty(self, flag, **kw):
         if flag:
             kw['image'] = kw.get('image', get_tk_image('design', 30, 30))
-            kw['text'] = kw.get('text', "Drag or paste a container here to start")
+            kw['text'] = kw.get('text', _("Drag or paste a container here to start"))
             self._empty.configure(**kw, wraplength=max(400, self.width))
             self._empty.place(relwidth=1, relheight=1)
         else:
@@ -274,12 +276,12 @@ class Designer(DesignPad, Container):
 
     def save_prompt(self):
         return MessageDialog.builder(
-            {"text": "Save", "value": True, "focus": True},
-            {"text": "Don't save", "value": False},
-            {"text": "Cancel", "value": None},
+            {"text": _("Save"), "value": True, "focus": True},
+            {"text": _("Don't save"), "value": False},
+            {"text": _("Cancel"), "value": None},
             wait=True,
-            title="Save design",
-            message=f"Design file \"{self.context.name}\" has unsaved changes. Do you want to save them?",
+            title=_("Save design"),
+            message=_("Design file \"{name}\" has unsaved changes. Do you want to save them?").format(name=self.context.name),
             parent=self.studio,
             icon=MessageDialog.ICON_INFO
         )
@@ -300,7 +302,7 @@ class Designer(DesignPad, Container):
             self.builder = DesignBuilder(self)
             progress = MessageDialog.show_progress(
                 mode=MessageDialog.INDETERMINATE,
-                message='Loading design file to studio...',
+                message=_('Loading design file to studio...'),
                 parent=self.studio
             )
             self._load_design(path, progress)
@@ -321,16 +323,16 @@ class Designer(DesignPad, Container):
 
     def _verify_version(self):
         if self.builder.metadata.get("version"):
-            _, major, __ = __version__.split(".")
+            __, major, ___ = __version__.split(".")
             if major < self.builder.metadata["version"].get("major", 0):
                 MessageDialog.show_warning(
                     parent=self.studio,
-                    message=(
+                    message=(_(
                         "Design was made using a higher version of the studio. \n"
                         "Some features may not be supported on this version. \n"
                         "Update to a new version of Formation for proper handling. \n"
                         "Note that saving may irreversibly strip off any unsupported features"
-                    )
+                    ))
                 )
 
     @as_thread
@@ -346,7 +348,7 @@ class Designer(DesignPad, Container):
             self.clear()
             self.studio.on_session_clear(self)
             accelerator = actions.get_routine("STUDIO_RELOAD").accelerator
-            text = f"{str(e)}\nPress {accelerator} to reload" if accelerator else f"{str(e)} \n reload design"
+            text = f"{str(e)}\n" + _("Press {} to reload").format(accelerator) if accelerator else f"{str(e)} \n" + _("reload design")
             self._show_empty(True, text=text, image=get_tk_image("dialog_error", 50, 50))
             raise e
             # MessageDialog.show_error(parent=self.studio, title='Error loading design', message=str(e))
@@ -360,8 +362,8 @@ class Designer(DesignPad, Container):
             return
         if self.has_changed():
             okay = MessageDialog.ask_okay_cancel(
-                title="Confirm reload",
-                message="All changes made will be lost",
+                title=_("Confirm reload"),
+                message=_("All changes made will be lost"),
                 parent=self.studio
             )
             if not okay:
@@ -631,14 +633,14 @@ class Designer(DesignPad, Container):
         return obj
 
     def _show_root_widget_warning(self):
-        MessageDialog.show_warning(title='Invalid root widget', parent=self.studio,
-                                   message='Only containers are allowed as root widgets')
+        MessageDialog.show_warning(title=_('Invalid root widget'), parent=self.studio,
+                                   message=_('Only containers are allowed as root widgets'))
 
     def _show_toplevel_warning(self):
         MessageDialog.show_warning(
-            title='Invalid parent',
+            title=_('Invalid parent'),
             parent=self.studio,
-            message='Toplevel widgets cannot be placed inside other widgets'
+            message=_('Toplevel widgets cannot be placed inside other widgets')
         )
 
     def add(self, obj_class: PseudoWidget.__class__, x, y, **kwargs):
@@ -1040,7 +1042,7 @@ class DesignContext(BaseContext):
         return (
             EnableIf(
                 lambda: self.studio.context == self and self.designer.design_path,
-                ("command", "Reload", icon("reload", 18, 18), self.designer.reload, {})
+                ("command", _("Reload"), icon("reload", 18, 18), self.designer.reload, {})
             ),
         )
 
@@ -1115,7 +1117,7 @@ class MultiSaveDialog(MessageDialog):
         self.studio = studio
         self.check_contexts = contexts
         super(MultiSaveDialog, self).__init__(master, self.render)
-        self.title("Save dialog")
+        self.title(_("Save dialog"))
         self.value = None
 
     def cancel(self, *_):
@@ -1141,14 +1143,14 @@ class MultiSaveDialog(MessageDialog):
             i for i in contexts if isinstance(i, DesignContext) and i.designer.has_changed()
         ]
         self.geometry("500x250")
-        self._message("Some files have changes. Select files to save", self.ICON_INFO)
+        self._message(_("Some files have changes. Select files to save"), self.ICON_INFO)
         self.context_choice = CompoundList(window)
         self.context_choice.config(padx=2, height=200)
         self.context_choice.set_item_class(MultiSaveDialog.CheckedItem)
         self.context_choice.set_values(self.contexts)
         self.context_choice.config_all(**self.style.hover)
         self._make_button_bar()
-        self.cancel_btn = self._add_button(text="Cancel", command=self.cancel)
-        self.save_btn = self._add_button(text="Don't save", command=self.discard)
-        self.discard_btn = self._add_button(text="Save", command=self.save, focus=True)
+        self.cancel_btn = self._add_button(text=_("Cancel"), command=self.cancel)
+        self.save_btn = self._add_button(text=_("Don't save"), command=self.discard)
+        self.discard_btn = self._add_button(text=_("Save"), command=self.save, focus=True)
         self.context_choice.pack(fill="both", expand=True, padx=10, pady=5)

@@ -15,6 +15,7 @@ import traceback
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import Text, AutoScroll, Button
 from studio.ui.widgets import Pane
+from studio.i18n import _
 
 
 class Pipe:
@@ -284,5 +285,5 @@ class ConsolePane(Pane):
             image=get_icon_image("remove", 20, 20), width=25, height=25,
         )
         self._clear_btn.pack(side="right", padx=2)
-        self._clear_btn.tooltip("Clear console")
+        self._clear_btn.tooltip(_("Clear console"))
         self._clear_btn.on_click(lambda *_: self.console.clear())

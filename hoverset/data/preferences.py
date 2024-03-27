@@ -13,6 +13,7 @@ from collections import defaultdict
 from hoverset.data.utils import make_path
 from hoverset.data.images import get_tk_image
 from hoverset.data.actions import get_routine
+from hoverset.data.i18n import _
 from hoverset.util.validators import numeric_limit
 from hoverset.ui.icons import get_icon_image as icon
 from hoverset.ui.dialogs import MessageDialog
@@ -20,6 +21,7 @@ from hoverset.ui.widgets import *
 
 __all__ = (
     "SharedPreferences",
+    "Choice",
     "Component",
     "ComponentGroup",
     "PreferenceManager",
@@ -31,6 +33,11 @@ __all__ = (
     "Note",
     "ListControl"
 )
+
+
+def open_raw_shelve(app, author, file, *args):
+    path = os.path.join(platformdirs.AppDirs(app, author).user_config_dir, file)
+    return shelve.open(path, *args)
 
 
 class _PreferenceInstanceCreator(type):
@@ -449,6 +456,38 @@ class Check(Component, Checkbutton):
             self.config(state='normal')
 
 
+class Choice(Component, Frame):
+
+        def __init__(self, master, pref, path, desc, choices, **extra):
+            super().__init__(master, **extra)
+            self._choice_map = {}
+            for i, choice in choices:
+                self._choice_map[choice] = i
+                self._choice_map[i] = choice
+
+            self._label = Label(self, text=desc, **self.style.text)
+            self._label.pack(side="left")
+            self._spinner = Spinner(self, **extra)
+            self._spinner.set_values([i[1] for i in choices])
+            self._spinner.on_change(self._change)
+            self._spinner.config(width=max(map(lambda x: len(x[1]), choices)) * 8, height=25)
+            self._spinner.pack_propagate(0)
+            self._spinner.pack(side="left", padx=5)
+            self.config_all(**self.style.surface)
+            self.load(pref, path)
+
+        def disable(self, flag):
+            super(Choice, self).disable(flag)
+            self._spinner.disabled(flag)
+            self._label.disabled(flag)
+
+        def set(self, value):
+            self._spinner.set(self._choice_map.get(value, ''))
+
+        def get(self):
+            return self._choice_map.get(self._spinner.get(), '')
+
+
 class Note(Label):
     """
     Adds small extra notes between preferences components
@@ -542,7 +581,7 @@ class PreferenceManager(MessageDialog):
 
     def __init__(self, master, pref, templates):
         super().__init__(master, self.render)
-        self.title("Preferences")
+        self.title(_("Preferences"))
         self.resizable(1, 1)
         self.nav.on_change(self._change_category)
         self.templates = templates
@@ -667,14 +706,14 @@ class PreferenceManager(MessageDialog):
         self._restart_label = Label(
             warning_bar, **self.style.text, compound="left",
             image=get_tk_image("dialog_info", 20, 20),
-            text="Some changes require restart"
+            text=_("Some changes require restart")
         )
         self._restart_button = Button(
-            warning_bar, **self.style.button, text="restart", height=25,
+            warning_bar, **self.style.button, text=_("restart"), height=25,
         )
-        self._restart_button.configure(width=self._restart_button.measure_text("restart"))
+        self._restart_button.configure(width=self._restart_button.measure_text(_("restart")))
         self._restart_button.on_click(self.apply_and_restart)
         self._restart_button.configure(**self.style.highlight_active)
-        self.cancel_btn = self._add_button(text="Cancel", command=self.cancel)
-        self.okay_btn = self._add_button(text="Okay", command=self.okay, focus=True)
+        self.cancel_btn = self._add_button(text=_("Cancel"), command=self.cancel)
+        self.okay_btn = self._add_button(text=_("Okay"), command=self.okay, focus=True)
         pane.pack(side="top", fill='both', expand=True)

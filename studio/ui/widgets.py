@@ -107,14 +107,16 @@ class SideBar(Canvas):
         for feature in self.features:
             indicator = self.features[feature]
             font = FontStyle(self, self.itemconfig(indicator).get("font", "TkDefaultFont")[3])
-            y += font.measure(feature.name) + 20
+            y += font.measure(feature.display_name) + 20
             self.coords(indicator, 18, y)
 
     def add_feature(self, feature):
-        indicator = self.create_text(0, 0, angle=90, text=feature.name, fill=self.style.colors.get("accent"),
-                                     anchor="sw", activefill=self.style.colors.get("primarydarkaccent"))
+        indicator = self.create_text(
+            0, 0, angle=90, text=feature.display_name, fill=self.style.colors.get("accent"),
+            anchor="sw", activefill=self.style.colors.get("primarydarkaccent")
+        )
         font = FontStyle(self, self.itemconfig(indicator).get("font", "TkDefaultFont")[3])
-        y = font.measure(feature.name) + self.bbox("all")[3] + 20
+        y = font.measure(feature.display_name) + self.bbox("all")[3] + 20
         self.coords(indicator, 18, y)
         self.tag_bind(indicator, "<Button-1>", lambda event: self.toggle_feature(feature))
         feature.indicator = indicator

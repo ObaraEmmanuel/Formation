@@ -21,6 +21,7 @@ from studio.lib import NameGenerator
 from studio.lib.canvas import *
 from studio.lib.legacy import Canvas
 from studio.parsers.loader import BaseStudioAdapter, DesignBuilder
+from studio.i18n import _
 
 
 class Coordinate:
@@ -312,10 +313,10 @@ class LinearController(Controller):
         if item:
             self.highlight(item)
         self._link_context = MenuUtils.make_dynamic((
-            ("command", "add point", icon("add", 18, 18), self._add_point, {}),
+            ("command", _("add point"), icon("add", 18, 18), self._add_point, {}),
         ), tool.studio, tool.studio.style)
         self._coord_context = MenuUtils.make_dynamic((
-            ("command", "remove", icon("close", 18, 18), self._remove_point, {}),
+            ("command", _("remove"), icon("close", 18, 18), self._remove_point, {}),
         ), tool.studio, tool.studio.style)
         self._active_link = None
         self._active_coord = None
@@ -570,10 +571,10 @@ class CanvasStyleGroup(StyleGroup):
     def __init__(self, master, pane, **cnf):
         self.tool = cnf.pop('tool', None)
         super().__init__(master, pane, **cnf)
-        self.label = "Canvas Item"
+        self.label = _("Canvas Item")
         self.prop_keys = None
         self._prev_prop_keys = set()
-        self._empty_message = "Select canvas item to see styles"
+        self._empty_message = _("Select canvas item to see styles")
 
     @property
     def cv_items(self):
@@ -780,7 +781,7 @@ class CanvasTool(BaseTool):
         super(CanvasTool, self).__init__(studio, manager)
         self._component_pane: ComponentPane = self.studio.get_feature(ComponentPane)
         self.item_select = self._component_pane.register_group(
-            "Canvas", CANVAS_ITEMS, SelectToDrawGroup, self._evaluator
+            _("Canvas"), CANVAS_ITEMS, SelectToDrawGroup, self._evaluator
         )
         self.style_group = studio.style_pane.add_group(
             CanvasStyleGroup, tool=self
@@ -850,27 +851,27 @@ class CanvasTool(BaseTool):
             EnableIf(
                 lambda: self.selected_items,
                 ("separator",),
-                ("command", "copy", icon("copy", 18, 18), self._get_routine('CV_COPY'), {}),
-                ("command", "duplicate", icon("blank", 18, 18), self._get_routine('CV_DUPLICATE'), {}),
+                ("command", _("copy"), icon("copy", 18, 18), self._get_routine('CV_COPY'), {}),
+                ("command", _("duplicate"), icon("blank", 18, 18), self._get_routine('CV_DUPLICATE'), {}),
                 EnableIf(
                     lambda: self._clipboard is not None,
-                    ("command", "paste", icon("clipboard", 18, 18), self._get_routine('CV_PASTE'), {})
+                    ("command", _("paste"), icon("clipboard", 18, 18), self._get_routine('CV_PASTE'), {})
                 ),
-                ("command", "cut", icon("cut", 18, 18), self._get_routine('CV_CUT'), {}),
+                ("command", _("cut"), icon("cut", 18, 18), self._get_routine('CV_CUT'), {}),
                 ("separator",),
-                ("command", "delete", icon("delete", 18, 18), self._get_routine('CV_DELETE'), {}),
+                ("command", _("delete"), icon("delete", 18, 18), self._get_routine('CV_DELETE'), {}),
                 ("separator",),
-                ("command", "send to back", icon("send_to_back", 18, 18), self._get_routine('CV_BACK'), {}),
-                ("command", "bring to front", icon("bring_to_front", 18, 18), self._get_routine('CV_FRONT'), {}),
-                ("command", "back one step", icon("send_to_back", 18, 18), self._get_routine('CV_BACK_1'), {}),
-                ("command", "forward one step", icon("bring_to_front", 18, 18), self._get_routine('CV_FRONT_1'), {}),
+                ("command", _("send to back"), icon("send_to_back", 18, 18), self._get_routine('CV_BACK'), {}),
+                ("command", _("bring to front"), icon("bring_to_front", 18, 18), self._get_routine('CV_FRONT'), {}),
+                ("command", _("back one step"), icon("send_to_back", 18, 18), self._get_routine('CV_BACK_1'), {}),
+                ("command", _("forward one step"), icon("bring_to_front", 18, 18), self._get_routine('CV_FRONT_1'), {}),
             ),
         ), self.studio, self.studio.style)
 
         self._canvas_menu = MenuUtils.make_dynamic((
             EnableIf(
                 lambda: self._clipboard is not None,
-                ("command", "paste", icon("clipboard", 18, 18),
+                ("command", _("paste"), icon("clipboard", 18, 18),
                  self._get_routine('CV_PASTE'), {})
             ),
         ), self.studio, self.studio.style)

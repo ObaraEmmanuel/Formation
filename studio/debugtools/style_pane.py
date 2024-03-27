@@ -5,6 +5,7 @@ from studio.feature.stylepane import StylePaneFramework, StyleGroup
 from studio.debugtools.common import get_resolved_properties, get_base_class
 from studio.debugtools import layouts
 from studio.lib.properties import combine_properties
+from studio.i18n import _
 
 
 def get_combined_properties(widgets):
@@ -24,7 +25,7 @@ class AttributeGroup(StyleGroup):
 
     def __init__(self, master, pane, **cnf):
         super().__init__(master, pane, **cnf)
-        self.label = "Attributes"
+        self.label = _("Attributes")
         self.bases = []
 
     def get_definition(self):
@@ -49,11 +50,11 @@ class AttributeGroup(StyleGroup):
         super().on_widgets_change()
         self.bases = bases = list(set([get_base_class(widget) for widget in self.widgets]))
         if len(bases) == 1:
-            self.label = f"Attributes ({bases[0].__name__})"
+            self.label = _("Attributes") + f" ({bases[0].__name__})"
         elif len(bases) > 1:
-            self.label = f"Attributes (*)"
+            self.label = _("Attributes") + " (*)"
         else:
-            self.label = "Attributes"
+            self.label = _("Attributes")
 
 
 class LayoutGroup(StyleGroup):
@@ -62,7 +63,7 @@ class LayoutGroup(StyleGroup):
 
     def __init__(self, master, pane, **cnf):
         super().__init__(master, pane, **cnf)
-        self.label = "Layout"
+        self.label = _("Layout")
         self._layouts = []
 
     def _layout_def(self, widget):
@@ -93,19 +94,19 @@ class LayoutGroup(StyleGroup):
         self._layouts = list(set(filter(lambda x: x, [layouts.get_layout(widget) for widget in self.widgets])))
 
         if len(self._layouts) == 1:
-            self.label = f"Layout ({self._layouts[0].name})"
+            self.label = _("Layout") + f" ({self._layouts[0].name})"
         elif len(self._layouts) > 1:
-            self.label = f"Layout (*)"
+            self.label = _("Layout") + " (*)"
         elif all(not widget.winfo_ismapped() for widget in self.widgets):
-            self._show_empty("Widget(s) not mapped")
-            self.label = "Layout"
+            self._show_empty(_("Widget(s) not mapped"))
+            self.label = _("Layout")
         else:
-            self._show_empty("Unknown layout manager")
-            self.label = "Layout"
+            self._show_empty(_("Unknown layout manager"))
+            self.label = _("Layout")
 
 
 class StylePane(StylePaneFramework, Pane):
-    name = "Widget config"
+    name = _("Widget config")
 
     def __init__(self, master, debugger):
         super(StylePane, self).__init__(master)

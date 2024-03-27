@@ -8,6 +8,7 @@ Common dialogs customised for hoverset platform
 from hoverset.ui.widgets import Frame, Label, Window, Button, Application, ProgressBar
 from hoverset.ui.icons import get_icon_image
 from hoverset.platform import platform_is, WINDOWS, MAC
+from hoverset.data.i18n import _
 
 
 class MessageDialog(Window):
@@ -201,35 +202,35 @@ class MessageDialog(Window):
     def _ask_okay_cancel(self, **kw):
         self.title(kw.get("title", self.title()))
         self._message(kw.get("message"), kw.get("icon", self.ICON_INFO))
-        self._add_button(text="Cancel", focus=True, command=lambda _: self._terminate_with_val(False))
-        self._add_button(text="Ok", command=lambda _: self._terminate_with_val(True))
+        self._add_button(text=_("Cancel"), focus=True, command=lambda _: self._terminate_with_val(False))
+        self._add_button(text=_("Ok"), command=lambda _: self._terminate_with_val(True))
 
     def _ask_yes_no(self, **kw):
         self.title(kw.get("title", self.title()))
         self._message(kw.get("message"), kw.get("icon", self.ICON_INFO))
-        self._add_button(text="No", focus=True, command=lambda _: self._terminate_with_val(False))
-        self._add_button(text="Yes", command=lambda _: self._terminate_with_val(True))
+        self._add_button(text=_("No"), focus=True, command=lambda _: self._terminate_with_val(False))
+        self._add_button(text=_("Yes"), command=lambda _: self._terminate_with_val(True))
 
     def _ask_retry_cancel(self, **kw):
         self.title(kw.get("title", self.title()))
         self._message(kw.get("message"), kw.get("icon", self.ICON_WARNING))
-        self._add_button(text="Cancel", command=lambda _: self._terminate_with_val(False))
-        self._add_button(text="Retry", focus=True, command=lambda _: self._terminate_with_val(True))
+        self._add_button(text=_("Cancel"), command=lambda _: self._terminate_with_val(False))
+        self._add_button(text=_("Retry"), focus=True, command=lambda _: self._terminate_with_val(True))
 
     def _show_error(self, **kw):
         self.title(kw.get("title", self.title()))
         self._message(kw.get("message"), kw.get("icon", self.ICON_ERROR))
-        self._add_button(text="Ok", focus=True, command=lambda _: self.destroy())
+        self._add_button(text=_("Ok"), focus=True, command=lambda _: self.destroy())
 
     def _show_warning(self, **kw):
         self.title(kw.get("title", self.title()))
         self._message(kw.get("message"), kw.get("icon", self.ICON_WARNING))
-        self._add_button(text="Ok", focus=True, command=lambda _: self.destroy())
+        self._add_button(text=_("Ok"), focus=True, command=lambda _: self.destroy())
 
     def _show_info(self, **kw):
         self.title(kw.get("title", self.title()))
         self._message(kw.get("message"), kw.get("icon", self.ICON_INFO))
-        self._add_button(text="Ok", focus=True, command=lambda _: self.destroy())
+        self._add_button(text=_("Ok"), focus=True, command=lambda _: self.destroy())
 
     def _show_progress(self, **kw):
         self.title(kw.get("title", self.title()))

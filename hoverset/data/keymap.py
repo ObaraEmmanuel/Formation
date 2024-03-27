@@ -9,6 +9,7 @@ from hoverset.platform import platform_is, LINUX
 from hoverset.ui.widgets import Frame, Label, CompoundList
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.ui.menu import EnableIf
+from hoverset.data.i18n import _
 
 
 class Key:
@@ -317,7 +318,7 @@ class ShortcutPicker(MessageDialog):
         if self.shortcut_pane is not None:
             routine = self.shortcut_pane.routine_from_shortcut(self.key)
             if routine is not None and self.shortcut_pane:
-                self._warning['text'] = f"Key already assigned to {routine.desc}"
+                self._warning['text'] = _("Key already assigned to {}").format(routine.desc)
                 self._warning.pack(fill="x")
             else:
                 self._warning.pack_forget()
@@ -329,7 +330,7 @@ class ShortcutPicker(MessageDialog):
     def on_key_change_alt(self, event):
         self.on_key_change(event, with_alt=True)
 
-    def render(self, _):
+    def render(self, __):
         self.detail = Label(self, **self.style.text, text=self.message)
         self.detail.pack(fill="x")
         warn_frame = Frame(self, **self.style.surface)
@@ -343,12 +344,12 @@ class ShortcutPicker(MessageDialog):
         )
         self.event_pad = Label(
             self, **self.style.text_accent)
-        self._add_button(text="Cancel", value=None)
-        self._add_button(text="Okay", command=self.exit_with_key, focus=True)
+        self._add_button(text=_("Cancel"), value=None)
+        self._add_button(text=_("Okay"), command=self.exit_with_key, focus=True)
         warn_frame.pack(side="bottom", fill="x")
         self.event_pad.config(
             **self.style.bright, takefocus=True,
-            text="Tap here to begin capturing shortcuts."
+            text=_("Tap here to begin capturing shortcuts.")
         )
         self.event_pad.bind("<Any-KeyPress>", self.on_key_change)
         # for some reason alt needs to be bound separately
@@ -406,7 +407,7 @@ class ShortcutPane(Component, Frame):
                 self.desc.config(**self.style.text)
                 self.key_label.config(**self.style.text_accent)
 
-    def __init__(self, master, pref: SharedPreferences, path, _, **__):
+    def __init__(self, master, pref: SharedPreferences, path, __, **___):
         super().__init__(master)
         self.config(**self.style.surface)
         self.bindings = {}
@@ -419,10 +420,10 @@ class ShortcutPane(Component, Frame):
         self.shortcut_list.body.set_up_context((
             EnableIf(
                 lambda: (not self.is_disabled) and self.shortcut_list.get(),
-                ("command", "Change Shortcut", get_tk_image('edit', 14, 14), self.pick_key, {}),
+                ("command", _("Change Shortcut"), get_tk_image('edit', 14, 14), self.pick_key, {}),
                 EnableIf(
                     lambda: self.shortcut_list.get() and self.shortcut_list.get().value[1] != BlankKey,
-                    ("command", "Remove", get_tk_image('delete', 14, 14), self.remove_key, {})
+                    ("command", _("Remove"), get_tk_image('delete', 14, 14), self.remove_key, {})
                 ),
             ),
         ))

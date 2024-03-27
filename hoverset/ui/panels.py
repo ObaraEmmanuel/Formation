@@ -11,6 +11,7 @@ from hoverset.ui.icons import get_icon_image
 from hoverset.util.color import to_hex, to_rgb, to_hsl, from_hsl, to_hsv, from_hsv
 from hoverset.util.validators import check_hex_color, numeric_limit
 from hoverset.platform.functions import image_grab
+from hoverset.data.i18n import _
 
 
 class _FloatingColorWindow(Frame):
@@ -51,7 +52,7 @@ class ColorPicker(Button):
 
     def __init__(self, master=None, **cnf):
         super().__init__(master, **cnf, image=get_icon_image("colorpicker", 15, 15))
-        self.tooltip('Pick color from anywhere')
+        self.tooltip(_('Pick color from anywhere'))
         self.image = None
         self.on_click(self.start)
         self._window = None
@@ -130,7 +131,7 @@ class ColorInput(Frame):
                            image=get_icon_image("clipboard", 15, 15), **self.style.button)
         clipboard.grid(row=1, column=3, padx=2, pady=2, sticky="n")
         clipboard.on_click(self.pick_from_clipboard)
-        clipboard.tooltip('Pick color from clipboard')
+        clipboard.tooltip(_('Pick color from clipboard'))
         self.current_model = self.models.get(self.model_select.get())
         self.attach(self.current_model)
 
@@ -345,7 +346,7 @@ class FontPicker(Button):
 
     def __init__(self, master=None, **cnf):
         super().__init__(master, **cnf, image=get_icon_image("colorpicker", 15, 15, color="#A235D4"))
-        self.tooltip("Pick Font")
+        self.tooltip(_("Pick Font"))
         self.bind_all('<Button-1>', self.pick, add='+')
         self.bind_all('<Motion>', self._render, add='+')
         self.active = False
@@ -382,7 +383,7 @@ class FontPicker(Button):
         displace_y = 0 if self.winfo_screenheight() - event.y_root > 40 else -30
         font_value = self._get_font(event.x_root, event.y_root)
         _font = FontStyle(self, font=font_value)
-        self._indicator['text'] = _font.cget('family') or 'No font to extract'
+        self._indicator['text'] = _font.cget('family') or _('No font to extract')
         if font_value:
             self._indicator['font'] = _font
         else:

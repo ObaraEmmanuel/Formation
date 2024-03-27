@@ -4,6 +4,7 @@ from hoverset.ui.menu import MenuUtils
 from studio.feature._base import BaseFeature
 from studio.lib.pseudo import PseudoWidget
 from studio.ui.tree import MalleableTreeView
+from studio.i18n import _
 
 
 class ComponentTreeView(MalleableTreeView):
@@ -27,7 +28,7 @@ class ComponentTreeView(MalleableTreeView):
         self._empty = Frame(self, **self.style.surface)
         self._empty_text = Label(self._empty, **self.style.text_passive)
         self._empty_text.pack(fill="both", expand=True, pady=30)
-        self._show_empty("No items created yet")
+        self._show_empty(_("No items created yet"))
 
     def add(self, node):
         super().add(node)
@@ -40,7 +41,7 @@ class ComponentTreeView(MalleableTreeView):
     def remove(self, node):
         super().remove(node)
         if len(self.nodes) == 0:
-            self._show_empty("No items created yet")
+            self._show_empty(_("No items created yet"))
 
     def _show_empty(self, text):
         self._empty_text["text"] = text
@@ -51,13 +52,14 @@ class ComponentTreeView(MalleableTreeView):
 
     def search(self, query):
         if not super().search(query):
-            self._show_empty("No items match your search")
+            self._show_empty(_("No items match your search"))
         else:
             self._remove_empty()
 
 
 class ComponentTree(BaseFeature):
     name = "Component Tree"
+    display_name = _("Component Tree")
     icon = "treeview"
 
     def __init__(self, master, studio=None,  **cnf):
@@ -97,12 +99,12 @@ class ComponentTree(BaseFeature):
                 self.studio.designer.node = self._tree
             self._tree.pack(fill="both", expand=True)
         else:
-            self.show_empty("No active Designer")
+            self.show_empty(_("No active Designer"))
 
     def create_menu(self):
         return (
-            ("command", "Expand all", get_icon_image("chevron_down", 18, 18), self._expand, {}),
-            ("command", "Collapse all", get_icon_image("chevron_up", 18, 18), self._collapse, {})
+            ("command", _("Expand all"), get_icon_image("chevron_down", 18, 18), self._expand, {}),
+            ("command", _("Collapse all"), get_icon_image("chevron_up", 18, 18), self._collapse, {})
         )
 
     def show_empty(self, text):

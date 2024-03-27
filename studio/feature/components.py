@@ -11,6 +11,7 @@ from studio.feature._base import BaseFeature
 from studio.lib import legacy, native
 from studio.lib.pseudo import PseudoWidget, Container, WidgetMeta
 from studio.ui import geometry
+from studio.i18n import _
 
 
 class Component(Frame):
@@ -109,8 +110,9 @@ class SelectableComponent(Component):
 class Selector(Label):
 
     def __init__(self, master, **cnf):
+        name = cnf.pop("name", None)
         super().__init__(master, **cnf)
-        self.name = cnf.get("text")
+        self.name = name
         self.group = None
         self.config(**self.style.text, anchor="w")
 
@@ -185,15 +187,15 @@ class CustomPathControl(ListControl):
     def __init__(self, master, pref_, path, desc, **extra):
         super(CustomPathControl, self).__init__(master, pref_, path, desc, **extra)
         clear_btn = self.create_action(
-            get_icon_image("close", 17, 17), self._clear_all, "Clear all"
+            get_icon_image("close", 17, 17), self._clear_all, _("Clear all")
         )
         clear_btn.pack(side="right", fill="y", padx=5)
         clear_btn.configure(**self.style.highlight_active)
         self._list.set_mode(self._list.MULTI_MODE)
 
-    def on_add(self, _=None):
+    def on_add(self, __=None):
         paths = filedialog.askopenfilenames(
-            parent=self.window, title="Pick custom widget search paths",
+            parent=self.window, title=_("Pick custom widget search paths"),
             filetypes=[("python", ".py .pyw .pyi")],
         )
         cur_paths = [i.value for i in self._list.items]
@@ -210,38 +212,13 @@ class CustomPathControl(ListControl):
         return super(CustomPathControl, self).has_changes()
 
 
-_widget_pref_template = {
-    "Widgets": {
-        "_scroll": False,
-        "Custom Widgets": {
-            "layout": {
-                "fill": "both",
-                "expand": True,
-            },
-            "children": (
-                {
-                    "desc": "Custom widgets search paths",
-                    "path": "studio::custom_widget_paths",
-                    "element": CustomPathControl,
-                    "layout": {
-                        "fill": "both",
-                        "expand": True,
-                        "padx": 5,
-                        "pady": 5
-                    }
-                },
-            )
-        }
-    },
-}
-
-
 class ComponentPane(BaseFeature):
     CLASSES = {
         "native": {"widgets": native.widgets},
         "legacy": {"widgets": legacy.widgets},
     }
     name = "Components"
+    display_name = _("Components")
     _var_init = False
     _defaults = {
         **BaseFeature._defaults,
@@ -284,12 +261,38 @@ class ComponentPane(BaseFeature):
         self._extern_groups = []
         self.collect_groups(self.get_pref("widget_set"))
         # add custom widgets config to settings
-        templates.update(_widget_pref_template)
+        templates.update(self._pref_template())
         self._custom_group = None
         self._custom_widgets = []
         self.studio.bind("<<SelectionChanged>>", self.on_widget_select, add='+')
         Preferences.acquire().add_listener(self._custom_pref_path, self._init_custom)
         self._reload_custom()
+
+    def _pref_template(self):
+        return {
+            _("Widgets"): {
+                "_scroll": False,
+                _("Custom Widgets"): {
+                    "layout": {
+                        "fill": "both",
+                        "expand": True,
+                    },
+                    "children": (
+                        {
+                            "desc": _("Custom widgets search paths"),
+                            "path": "studio::custom_widget_paths",
+                            "element": CustomPathControl,
+                            "layout": {
+                                "fill": "both",
+                                "expand": True,
+                                "padx": 5,
+                                "pady": 5
+                            }
+                        },
+                    )
+                }
+            },
+        }
 
     @property
     def custom_widgets(self):
@@ -316,7 +319,7 @@ class ComponentPane(BaseFeature):
             )
             MessageDialog.show_error(
                 parent=self.window,
-                message=f"Error loading widgets \n\n{error_msg}"
+                message=_("Error loading widgets \n\n{}").format(error_msg)
             )
 
         return self._custom_widgets
@@ -371,14 +374,14 @@ class ComponentPane(BaseFeature):
     def create_menu(self):
         return (
             (
-                "command", "Reload custom widgets",
+                "command", _("Reload custom widgets"),
                 get_icon_image("reload", 18, 18), self._reload_custom, {}
             ),
             (
-                "command", "Search",
+                "command", _("Search"),
                 get_icon_image("search", 18, 18), self.start_search, {}
             ),
-            ("cascade", "Widget set", get_icon_image("blank", 18, 18), None, {"menu": (
+            ("cascade", _("Widget set"), get_icon_image("blank", 18, 18), None, {"menu": (
                 *self._widget_sets_as_menu(),
             )}),
         )
@@ -392,7 +395,7 @@ class ComponentPane(BaseFeature):
         self._pool = {}
         components = self.CLASSES.get(widget_set)["widgets"]
         for component in components:
-            group = component.group.name
+            group = component.group
             if group in self._pool:
                 self._pool[group].append(Component(self._widget_pane.body, component))
             else:
@@ -440,7 +443,7 @@ class ComponentPane(BaseFeature):
     def render_groups(self):
         self._selectors = []
         for group in self._pool:
-            self.add_selector(Selector(self._select_pane.body, text=group))
+            self.add_selector(Selector(self._select_pane.body, text=group.value, name=group))
         self._auto_select()
         self.render_extern_groups()
 

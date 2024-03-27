@@ -10,6 +10,8 @@ from hoverset.ui.icons import get_icon_image
 from hoverset.util.execution import as_thread
 from hoverset.data.actions import get_routine
 
+from studio.i18n import _
+
 import formation
 
 
@@ -31,7 +33,7 @@ class Updater(Frame):
             pady=5, padx=5,
         )
         self._action_btn = Button(
-            self, text="Retry", **self.style.button_highlight, width=80, height=25
+            self, text=_("Retry"), **self.style.button_highlight, width=80, height=25
         )
         self.extra_info = Text(self, width=40, height=6, state='disabled', font='consolas 10')
         self.pack(fill="both", expand=True)
@@ -50,14 +52,16 @@ class Updater(Frame):
 
     def show_error(self, message, retry_func):
         self.show_error_plain(message)
-        self.show_button("Retry", retry_func)
+        self.show_button(_("Retry"), retry_func)
 
     def show_error_plain(self, message):
         self.show_message(message, MessageDialog.ICON_ERROR)
 
     def update_found(self, version):
-        self.show_info(f"New version formation-studio {version} found. Do you want to install?")
-        self.show_button("Install", lambda _: self.install(version))
+        self.show_info(
+            _("New version formation-studio {version} found. Do you want to install?").format(version=version)
+        )
+        self.show_button(_("Install"), lambda _: self.install(version))
 
     def show_info(self, message):
         self.show_message(message, MessageDialog.ICON_INFO)
@@ -68,32 +72,32 @@ class Updater(Frame):
         self._message.pack(side="top", padx=20, pady=10)
 
     def install(self, version):
-        self.show_progress(f"Updating to formation-studio {version}")
+        self.show_progress(_("Updating to formation-studio {version}").format(version=version))
         self.upgrade(version)
 
     @classmethod
     def check(cls, master):
         dialog = MessageDialog(master, cls)
-        dialog.title("Formation updater")
+        dialog.title(_("Formation updater"))
         dialog.focus_set()
         return dialog
 
     @as_thread
-    def check_for_update(self, *_):
+    def check_for_update(self, *__):
         self._progress.mode(ProgressBar.INDETERMINATE)
-        self.show_progress("Checking for updates ...")
+        self.show_progress(_("Checking for updates ..."))
         try:
             content = urlopen("https://pypi.org/pypi/formation-studio/json").read()
             data = json.loads(content)
             ver = data["info"]["version"]
             if ver <= formation.__version__:
-                self.show_info("You are using the latest version")
+                self.show_info(_("You are using the latest version"))
             else:
                 self.update_found(ver)
         except URLError:
             self.show_error(
-                "Failed to connect. Check your internet connection"
-                " and try again.",
+                _("Failed to connect. Check your internet connection"
+                " and try again."),
                 self.check_for_update
             )
 
@@ -107,9 +111,9 @@ class Updater(Frame):
             )
             if proc_info.returncode != 0 or proc_info.stderr:
                 self.show_error_plain(
-                    "Something went wrong. Failed to upgrade formation-studio"
-                    f" to version {version} ,"
-                    f" Exited with code: {proc_info.returncode}"
+                    _("Something went wrong. Failed to upgrade formation-studio to version {version} Exited with code: {code}").format(
+                        version=version, code=proc_info.returncode
+                    )
                 )
                 if proc_info.stderr:
                     self.extra_info.config(state="normal")
@@ -118,10 +122,10 @@ class Updater(Frame):
                     self.extra_info.set(str(proc_info.stderr))
                     self.extra_info.config(state="disabled")
             else:
-                self.show_info("Upgrade successful. Restart to complete installation")
-                self.show_button("Restart", lambda _: get_routine("STUDIO_RESTART").invoke())
+                self.show_info(_("Upgrade successful. Restart to complete installation"))
+                self.show_button(_("Restart"), lambda _: get_routine("STUDIO_RESTART").invoke())
                 return
         except Exception as e:
             self.show_error_plain(e)
 
-        self.show_button("Retry", lambda _: self.install(version))
+        self.show_button(_("Retry"), lambda _: self.install(version))

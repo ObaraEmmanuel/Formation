@@ -7,6 +7,7 @@ from studio.ui.widgets import Pane
 from studio.ui.tree import MalleableTreeView
 from studio.feature.component_tree import ComponentTreeView
 from studio.debugtools import common
+from studio.i18n import _
 
 
 class ElementTreeView(ComponentTreeView):
@@ -74,7 +75,7 @@ class ElementTreeView(ComponentTreeView):
 
     def initialize_tree(self):
         super(ElementTreeView, self).initialize_tree()
-        self._show_empty("No items detected")
+        self._show_empty(_("No items detected"))
 
     def expand_to(self, widget):
         parent = widget.nametowidget(widget.winfo_parent())
@@ -117,7 +118,7 @@ class ElementPane(Pane):
             image=get_icon_image("reload", 15, 15), width=25, height=25,
         )
         self._reload_btn.pack(side="right", padx=2)
-        self._reload_btn.tooltip("reload tree")
+        self._reload_btn.tooltip(_("reload tree"))
 
         self._toggle_btn = Button(
             self._header, image=get_icon_image("chevron_down", 15, 15),
@@ -130,7 +131,7 @@ class ElementPane(Pane):
             image=get_icon_image("cursor", 15, 15), width=25, height=25,
         )
         self._select_btn.pack(side="right", padx=2)
-        self._select_btn.tooltip("select element to inspect")
+        self._select_btn.tooltip(_("select element to inspect"))
 
         self.debugger = debugger
         self._tree.add_as_node(widget=debugger.root).update_preload_status(False)

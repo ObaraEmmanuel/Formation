@@ -15,6 +15,7 @@ from studio.lib.variables import VariableManager
 from studio.lib.properties import get_properties
 from studio.lib.handles import BoxHandle
 from studio.ui.tree import MalleableTree
+from studio.i18n import _
 
 
 # Applied to widgets whose width is specified in characters
@@ -30,11 +31,11 @@ _dimension_override = {
 
 
 class Groups(Enum):
-    widget = 'Widget'
-    input = 'Input'
-    container = 'Container'
-    layout = 'Layout'
-    custom = 'Custom'
+    widget = _('Widget')
+    input = _('Input')
+    container = _('Container')
+    layout = _('Layout')
+    custom = _('Custom')
 
 
 class _ImageIntercept:
@@ -530,7 +531,7 @@ class Container(PseudoWidget):
              {"value": i.name, "variable": self.layout_var}
              ) for i in self.LAYOUTS
         ]
-        return (("cascade", "Change layout", get_icon_image("grid", 18, 18), None, {"menu": (
+        return (("cascade", _("Change layout"), get_icon_image("grid", 18, 18), None, {"menu": (
             layout_templates
         )}),)
 
@@ -621,7 +622,7 @@ class TabContainer(Container):
 
     def create_menu(self):
         return super().create_menu() + (
-            ("command", "Add tab", get_icon_image("add", 18, 18), self._add_tab, {}),
+            ("command", _("Add tab"), get_icon_image("add", 18, 18), self._add_tab, {}),
         )
 
     def _add_tab(self):
@@ -662,7 +663,7 @@ class PanedContainer(TabContainer):
 
     def create_menu(self):
         return super(TabContainer, self).create_menu() + (
-            ("command", "Add pane", get_icon_image("add", 18, 18), self._add_pane, {}),
+            ("command", _("Add pane"), get_icon_image("add", 18, 18), self._add_pane, {}),
         )
 
     def _add_pane(self):
@@ -690,11 +691,11 @@ class WidgetMeta(type):
         elif bases:
             impl = bases[0]
         else:
-            raise RuntimeError(
+            raise RuntimeError(_(
                 "Could not deduce base implementation for custom widget. "
                 "Inherit from base implementation or set the 'impl' attribute "
                 "to the base class"
-            )
+            ))
 
         attrs = dict(display_name=name, impl=impl, icon='play', group=Groups.custom)
         attrs.update(dct)

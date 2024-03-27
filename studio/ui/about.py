@@ -11,6 +11,7 @@ from hoverset.util import version_description
 
 import formation
 import studio
+from studio.i18n import _
 
 
 class About(Frame):
@@ -30,41 +31,41 @@ class About(Frame):
         Label(self, image=image, **self.style.surface).pack(side="top", fill="y", pady=20, padx=50)
         About.Spec(self, "python", sys.version_info)
         About.Spec(self, "tcl/tk", tkinter.TkVersion)
-        About.Spec(self, "loader version", version_description(formation.__version__))
-        About.Spec(self, "studio version", version_description(studio.__version__))
-        About.Spec(self, "Platform", platform.platform())
+        About.Spec(self, _("loader version"), version_description(formation.__version__))
+        About.Spec(self, _("studio version"), version_description(studio.__version__))
+        About.Spec(self, _("Platform"), platform.platform())
 
         copy_button = Button(
             self,
-            text="  Copy",
+            text=_("  Copy"),
             height=25,
             image=get_icon_image("copy", 14, 14),
             compound="left",
             **self.style.button,
         )
         copy_button.pack(side="top", pady=8)
-        copy_button.configure(width=copy_button.measure_text("  Copy") + 25, **self.style.highlight_active)
+        copy_button.configure(width=copy_button.measure_text(_("  Copy")) + 25, **self.style.highlight_active)
         ActionNotifier.bind_event("<Button-1>", copy_button, self.copy_to_clipboard, text="Copied")
 
         f = Frame(self, **self.style.surface)
         f.pack(side="top", padx=10, pady=3)
         Hyperlink(
-            f, link="https://formation-studio.readthedocs.io/en/latest/", text="doucumentation"
+            f, link="https://formation-studio.readthedocs.io/en/latest/", text=_("doucumentation")
         ).pack(side='left', anchor='e', padx=3)
         Hyperlink(
-            f, link="https://github.com/ObaraEmmanuel/Formation", text="contribute"
+            f, link="https://github.com/ObaraEmmanuel/Formation", text=_("contribute")
         ).pack(side='right', anchor='w', padx=3)
         Hyperlink(
-            f, link="https://github.com/ObaraEmmanuel/Formation/issues", text="report issue"
+            f, link="https://github.com/ObaraEmmanuel/Formation/issues", text=_("report issue")
         ).pack(side='right', anchor='w', padx=3)
 
-        Label(self, text="Make designing user interfaces in python a breeze!",
+        Label(self, text=_("Make designing user interfaces in python a breeze!"),
               **self.style.text).pack(side="top", fill="y", pady=5)
         f = Frame(self, **self.style.surface)
         f.pack(side="top")
-        Label(f, text="Icons by", **self.style.text_passive).pack(side="left")
+        Label(f, text=_("Icons by"), **self.style.text_passive).pack(side="left")
         Hyperlink(f, link="https://icons8.com", text="Icons8").pack(side="right")
-        copy_right = "Copyright © 2019-2024 Hoverset group"
+        copy_right = _("Copyright © 2019-{year} Hoverset group").format(year="2024")
         Label(self, text=copy_right, **self.style.text_passive).pack(side="top", fill="y")
         self.pack(fill="both", expand=True)
 

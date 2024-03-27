@@ -18,6 +18,7 @@ from studio.ui.tree import MalleableTreeView
 from studio.ui.widgets import CollapseFrame
 from studio.tools._base import BaseToolWindow, BaseTool
 from studio.preferences import get_active_pref
+from studio.i18n import _
 
 
 class MenuTree(MalleableTreeView):
@@ -156,11 +157,11 @@ class MenuEditor(BaseToolWindow):
     # TODO Add context menu for nodes
     # TODO Add style search
     # TODO Handle widget change from the studio main control
-    _MESSAGE_EDITOR_EMPTY = "No item selected"
+    _MESSAGE_EDITOR_EMPTY = _("No item selected")
 
     def __init__(self, master, widget, menu=None):
         super().__init__(master, widget)
-        self.title(f'Edit menu for {widget.id}')
+        self.title(_('Edit menu for {id}').format(id=widget.id))
         if not isinstance(menu, tk.Menu):
             menu = tk.Menu(widget, tearoff=False)
             widget.configure(menu=menu)
@@ -184,10 +185,10 @@ class MenuEditor(BaseToolWindow):
         self._editor_pane.pack(side="top", fill="both", expand=True)
         self._menu_item_styles = CollapseFrame(self._editor_pane.body)
         self._menu_item_styles.pack(side="top", fill="x", pady=4)
-        self._menu_item_styles.label = "Menu Item attributes"
+        self._menu_item_styles.label = _("Menu Item attributes")
         self._menu_styles = CollapseFrame(self._editor_pane.body)
         self._menu_styles.pack(side="top", fill="x", pady=4)
-        self._menu_styles.label = "Menu attributes"
+        self._menu_styles.label = _("Menu attributes")
         self._style_item_ref = {}
         self._menu_style_ref = {}
         self._prev_selection = None
@@ -203,7 +204,7 @@ class MenuEditor(BaseToolWindow):
                 get_icon_image(_types[i][0], 18, 18),
                 functools.partial(self.add_item, i), {}
             ) for i in _types],
-            self._add, title="Add menu item")
+            self._add, title=_("Add menu item"))
         menu_types.configure(tearoff=True)
         self._add.config(menu=menu_types)
         self._delete_btn = Button(self._tool_bar, image=get_icon_image("delete", 18, 18), **self.style.button,
@@ -396,16 +397,16 @@ class MenuTool(BaseTool):
     def get_menu(self, studio):
         icon = get_icon_image
         return (
-            ('command', 'Edit', icon('edit', 18, 18), lambda: self.edit(studio.selection[0]), {}),
+            ('command', _('Edit'), icon('edit', 18, 18), lambda: self.edit(studio.selection[0]), {}),
             EnableIf(
                 lambda: studio.selection and studio.selection[0]['menu'] != '',
-                ('command', 'Remove', icon('delete', 18, 18), lambda: self.remove(studio.selection[0]), {})),
+                ('command', _('Remove'), icon('delete', 18, 18), lambda: self.remove(studio.selection[0]), {})),
             EnableIf(
                 lambda: studio.selection and studio.selection[0] in self._deleted,
-                ('command', 'Restore', icon('undo', 18, 18), lambda: self.restore(studio.selection[0]), {})),
+                ('command', _('Restore'), icon('undo', 18, 18), lambda: self.restore(studio.selection[0]), {})),
             EnableIf(
                 lambda: MenuEditor._tool_map,
-                ('command', 'Close all editors', icon('close', 18, 18), self.close_editors, {}))
+                ('command', _('Close all editors'), icon('close', 18, 18), self.close_editors, {}))
         )
 
     def on_context_close(self, context):
