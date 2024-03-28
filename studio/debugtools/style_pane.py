@@ -107,10 +107,11 @@ class LayoutGroup(StyleGroup):
 
 class StylePane(StylePaneFramework, Pane):
     name = _("Widget config")
+    display_name = _("Widget config")
 
     def __init__(self, master, debugger):
         super(StylePane, self).__init__(master)
-        Label(self._header, **self.style.text_accent, text=self.name).pack(side="left")
+        Label(self._header, **self.style.text_accent, text=self.display_name).pack(side="left")
         self.debugger = debugger
         self.setup_style_pane()
         self.add_group(LayoutGroup)

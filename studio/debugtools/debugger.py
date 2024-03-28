@@ -13,7 +13,6 @@ import subprocess
 from hoverset.data.images import load_tk_image
 from hoverset.data.utils import get_resource_path
 from hoverset.ui.widgets import *
-from hoverset.data.i18n import set_locale
 
 from studio.ui.highlight import WidgetHighlighter
 from studio.debugtools.preferences import Preferences
@@ -221,7 +220,6 @@ class Debugger(Window):
     @classmethod
     def run(cls, path=None):
         pref = Preferences.acquire()
-        set_locale("zh_CN")
         if path is None:
             if len(sys.argv) > 1:
                 path = sys.argv[1]

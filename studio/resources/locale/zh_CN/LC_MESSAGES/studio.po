@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: studio\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-03-27 23:37+0300\n"
+"POT-Creation-Date: 2024-03-28 23:31+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -181,6 +181,7 @@ msgid "Console"
 msgstr "安慰"
 
 #: studio/debugtools/debugger.py:229 studio/debugtools/debugger.py:232
+#: studio/debugtools/debugger.py:230
 msgid "No python file supplied"
 msgstr "没有提供 python 文件"
 
@@ -188,11 +189,11 @@ msgstr "没有提供 python 文件"
 msgid "No items detected"
 msgstr "未检测到任何项目"
 
-#: studio/debugtools/element_pane.py:121
+#: studio/debugtools/element_pane.py:121 studio/debugtools/element_pane.py:122
 msgid "reload tree"
 msgstr "重新加载树"
 
-#: studio/debugtools/element_pane.py:134
+#: studio/debugtools/element_pane.py:134 studio/debugtools/element_pane.py:135
 msgid "select element to inspect"
 msgstr "选择要检查的元素"
 
@@ -218,7 +219,7 @@ msgstr "小部件未映射"
 msgid "Unknown layout manager"
 msgstr "未知的布局管理器"
 
-#: studio/debugtools/style_pane.py:109
+#: studio/debugtools/style_pane.py:109 studio/debugtools/style_pane.py:110
 msgid "Widget config"
 msgstr "小部件配置"
 
@@ -1298,3 +1299,7 @@ msgstr "风俗"
 #: studio/tools/canvas.py:784
 msgid "Canvas"
 msgstr "帆布"
+
+#: studio/debugtools/element_pane.py:97
+msgid "Widget tree"
+msgstr "小部件树"

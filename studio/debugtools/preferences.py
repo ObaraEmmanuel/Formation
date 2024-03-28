@@ -6,7 +6,7 @@ defaults = {
         "geometry": "400x500",
     },
     "resource": studio.preferences.defaults["resource"],
-    "locale":{
+    "locale": {
         "language": "en"
     }
 }

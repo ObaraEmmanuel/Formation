@@ -94,11 +94,12 @@ class ElementTreeView(ComponentTreeView):
 
 class ElementPane(Pane):
     name = "Widget tree"
+    display_name = _("Widget tree")
     MAX_STARTING_DEPTH = 4
 
     def __init__(self, master, debugger):
         super(ElementPane, self).__init__(master)
-        Label(self._header, **self.style.text_accent, text=self.name).pack(side="left")
+        Label(self._header, **self.style.text_accent, text=self.display_name).pack(side="left")
 
         ElementTreeView.Node.debugger = debugger
         self._tree = ElementTreeView(self)

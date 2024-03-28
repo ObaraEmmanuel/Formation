@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: studio\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-03-27 23:37+0300\n"
+"POT-Creation-Date: 2024-03-28 23:31+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -172,6 +172,7 @@ msgid "Console"
 msgstr ""
 
 #: studio/debugtools/debugger.py:229 studio/debugtools/debugger.py:232
+#: studio/debugtools/debugger.py:230
 msgid "No python file supplied"
 msgstr ""
 
@@ -179,11 +180,11 @@ msgstr ""
 msgid "No items detected"
 msgstr ""
 
-#: studio/debugtools/element_pane.py:121
+#: studio/debugtools/element_pane.py:121 studio/debugtools/element_pane.py:122
 msgid "reload tree"
 msgstr ""
 
-#: studio/debugtools/element_pane.py:134
+#: studio/debugtools/element_pane.py:134 studio/debugtools/element_pane.py:135
 msgid "select element to inspect"
 msgstr ""
 
@@ -209,7 +210,7 @@ msgstr ""
 msgid "Unknown layout manager"
 msgstr ""
 
-#: studio/debugtools/style_pane.py:109
+#: studio/debugtools/style_pane.py:109 studio/debugtools/style_pane.py:110
 msgid "Widget config"
 msgstr ""
 
@@ -1283,4 +1284,8 @@ msgstr ""
 
 #: studio/tools/canvas.py:784
 msgid "Canvas"
+msgstr ""
+
+#: studio/debugtools/element_pane.py:97
+msgid "Widget tree"
 msgstr ""
