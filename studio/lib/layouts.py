@@ -97,7 +97,7 @@ class BaseLayoutStrategy:
             if index > 0:
                 widget.lift(self.children[index - 1])
             else:
-                widget.lift(self.container)
+                widget.lift(self.container.body)
 
     def widget_released(self, widget):
         pass

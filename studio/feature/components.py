@@ -62,12 +62,16 @@ class Component(Frame):
             event.y_root = self.window.drag_window.pos[1] - 1
 
     def on_drag(self, event):
+        if not self.designer:
+            return
         widget = self.designer.layout_at_pos(*self.window.drag_window.get_center())
         if widget and self.window.drag_window:
             bounds = geometry.absolute_bounds(self.window.drag_window)
             widget.react(bounds)
 
     def on_drag_end(self, event):
+        if not self.designer:
+            return
         widget = self.designer.layout_at_pos(*self.window.drag_window.get_center())
         if isinstance(widget, Container):
             bounds = geometry.absolute_bounds(self.window.drag_window)
