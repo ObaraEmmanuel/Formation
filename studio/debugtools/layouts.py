@@ -73,7 +73,7 @@ class TabLayout(BaseLayout):
     @classmethod
     def configure(cls, widget, **kw):
         parent = widget.master
-        if isinstance(parent, ttk.Notebook):
+        if issubclass(parent._class, ttk.Notebook):
             if not kw:
                 return parent.tab(widget) or {}
             parent.tab(widget, **kw)
@@ -81,7 +81,7 @@ class TabLayout(BaseLayout):
     @classmethod
     def verify(cls, widget):
         parent = widget.master
-        return isinstance(parent, ttk.Notebook)
+        return issubclass(parent._class, ttk.Notebook)
 
 
 class PanedLayout(BaseLayout):
@@ -100,7 +100,7 @@ class PanedLayout(BaseLayout):
     @classmethod
     def verify(cls, widget):
         parent = widget.master
-        return isinstance(parent, tkinter.PanedWindow) and not isinstance(parent, ttk.PanedWindow)
+        return issubclass(parent._class, tkinter.PanedWindow) and not issubclass(parent._class, ttk.PanedWindow)
 
 
 class NPanedLayout(BaseLayout):
@@ -118,7 +118,7 @@ class NPanedLayout(BaseLayout):
     @classmethod
     def verify(cls, widget):
         parent = widget.master
-        return isinstance(parent, ttk.PanedWindow)
+        return issubclass(parent._class, ttk.PanedWindow)
 
 
 _layout_map = {
@@ -138,9 +138,9 @@ def get_layout(widget) -> BaseLayout:
         return None
     manager = widget.winfo_manager()
     if manager == 'panedwindow':
-        if isinstance(widget.master, ttk.PanedWindow):
+        if issubclass(widget.master._class, ttk.PanedWindow):
             return NPanedLayout
-        elif isinstance(widget.master, tkinter.PanedWindow):
+        elif issubclass(widget.master._class, tkinter.PanedWindow):
             return PanedLayout
         else:
             return None

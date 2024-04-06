@@ -4,7 +4,7 @@ from studio.lib import native, legacy
 from studio.lib.properties import get_properties
 
 
-def get_base_class(widget):
+def extract_base_class(widget):
     # we'll check the MRO
     # the first class is always itself
     classes = widget.__class__.mro()
@@ -12,6 +12,10 @@ def get_base_class(widget):
         if c.__module__ in (ttk.__name__, tkinter.__name__):
             return c
     return None
+
+
+def get_base_class(widget):
+    return widget._class
 
 
 def get_studio_equiv(widget):

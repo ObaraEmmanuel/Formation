@@ -54,7 +54,7 @@ studio = ["resources/images/*", "resources/locale/*.mo"]
 [project.scripts]
 formation-studio = "studio.launcher:main"
 formation-cli = "studio.cli:main"
-formation-dbg = "studio.debugtools.debugger:main"
+formation-dbg = "studio.debugtools.hook:main"
 
 [tool.setuptools.dynamic]
 version = {attr = "formation.__version__"}

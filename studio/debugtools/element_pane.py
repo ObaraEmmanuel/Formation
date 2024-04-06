@@ -1,5 +1,3 @@
-import tkinter
-
 from hoverset.ui.widgets import Button, ToggleButton, Label
 from hoverset.ui.icons import get_icon_image
 
@@ -7,6 +5,7 @@ from studio.ui.widgets import Pane
 from studio.ui.tree import MalleableTreeView
 from studio.feature.component_tree import ComponentTreeView
 from studio.debugtools import common
+from studio.debugtools.defs import RemoteWidget
 from studio.i18n import _
 
 
@@ -20,8 +19,6 @@ class ElementTreeView(ComponentTreeView):
         def __init__(self, master=None, **config):
             super().__init__(master, **config)
             self.widget = config.get("widget")
-            self.widget.bind('<Map>', self.on_map, add=True)
-            self.widget.bind('<Unmap>', self.on_unmap, add=True)
             setattr(self.widget, "_dbg_node", self)
             equiv = common.get_studio_equiv(self.widget)
             icon = equiv.icon if equiv else 'play'
@@ -42,7 +39,7 @@ class ElementTreeView(ComponentTreeView):
             return self._loaded
 
         def update_preload_status(self, added):
-            if self._loaded:
+            if self._loaded or self.widget.deleted:
                 return
             if added or self.widget.winfo_children():
                 # widget can expand
@@ -51,21 +48,19 @@ class ElementTreeView(ComponentTreeView):
                 self._set_expander(self.BLANK)
 
         def extract_name(self, widget):
-            if isinstance(widget, tkinter.BaseWidget):
+            if isinstance(widget, RemoteWidget):
                 return str(widget._name).strip("!")
             return 'root'
 
         def load(self):
             # lazy loading
             # nodes will be loaded when parent node is expanded
-            if self._loaded:
+            if self._loaded or self.widget.deleted:
                 return
             for child in self.widget.winfo_children():
                 if getattr(child, "_dbg_ignore", False):
                     continue
                 self.add_as_node(widget=child).update_preload_status(False)
-                if not getattr(child, "_dbg_hooked", False):
-                    ElementTreeView.Node.debugger.hook_widget(child)
             self._loaded = True
 
         def expand(self):
@@ -99,6 +94,7 @@ class ElementPane(Pane):
 
     def __init__(self, master, debugger):
         super(ElementPane, self).__init__(master)
+        self.debugger = debugger
         Label(self._header, **self.style.text_accent, text=self.display_name).pack(side="left")
 
         ElementTreeView.Node.debugger = debugger
@@ -132,21 +128,14 @@ class ElementPane(Pane):
             image=get_icon_image("cursor", 15, 15), width=25, height=25,
         )
         self._select_btn.pack(side="right", padx=2)
+        self._select_btn.on_change(self.debugger.set_hover)
         self._select_btn.tooltip(_("select element to inspect"))
 
-        self.debugger = debugger
         self._tree.add_as_node(widget=debugger.root).update_preload_status(False)
 
         self.debugger.bind("<<WidgetCreated>>", self.on_widget_created)
         self.debugger.bind("<<WidgetDeleted>>", self.on_widget_deleted)
         self.debugger.bind("<<WidgetModified>>", self.on_widget_modified)
-
-        tkinter.Misc.bind_all(self.debugger.root, "<Motion>", self.on_motion)
-        tkinter.Misc.bind_all(self.debugger.root, "<Button-1>", self.on_widget_tap)
-        tkinter.Misc.bind_all(self.debugger.root, "<Button-3>", self.on_widget_tap)
-        tkinter.Misc.bind_all(self.debugger.root, "<Map>", self.on_widget_map)
-        tkinter.Misc.bind_all(self.debugger.root, "<Unmap>", self.on_widget_unmap)
-        self.highlighted = None
 
     @property
     def selected(self):
@@ -155,35 +144,12 @@ class ElementPane(Pane):
     def on_select(self):
         self.debugger.selection.set(map(lambda node: node.widget, self._tree.get()))
 
-    def on_widget_tap(self, event):
-        if self._select_btn.get():
-            try:
-                # widget = self.debugger.root.winfo_containing(event.x_root, event.y_root)
-                widget = event.widget
-                # print(widget)
-                if widget.winfo_toplevel() == self.debugger or getattr(widget, "_dbg_ignore", False):
-                    widget = None
-            except (KeyError, AttributeError):
-                widget = None
-
-            if widget:
-                node = self._tree.expand_to(widget)
-                if node:
-                    self._tree.see(node)
-                    node.select(event)
-
-    def on_motion(self, event):
-        if self._select_btn.get():
-            try:
-                # widget = self.debugger.root.winfo_containing(event.x_root, event.y_root)
-                widget = event.widget
-                if widget.winfo_toplevel() == self.debugger or getattr(widget, "_dbg_ignore", False):
-                    widget = None
-                # print(f"motion : {widget} <> {event.widget}")
-            except (KeyError, AttributeError):
-                widget = None
-            self.debugger.highlight_widget(widget)
-            self.highlighted = widget
+    def on_widget_tap(self, widget, event):
+        if widget:
+            node = self._tree.expand_to(widget)
+            if node:
+                self._tree.see(node)
+                node.select(event)
 
     def on_widget_created(self, _):
         widget = self.debugger.active_widget
@@ -191,7 +157,6 @@ class ElementPane(Pane):
         if parent_node:
             if parent_node.loaded:
                 parent_node.add_as_node(widget=widget)
-                self.debugger.hook_widget(widget)
             else:
                 parent_node.update_preload_status(True)
 
@@ -203,6 +168,8 @@ class ElementPane(Pane):
                 node = widget._dbg_node
                 if node in self.selected:
                     self._tree.toggle_from_selection(node)
+                    if not self.selected:
+                        self._tree.see(self.debugger.root._dbg_node)
                 parent_node.remove(widget._dbg_node)
             else:
                 parent_node.update_preload_status(False)

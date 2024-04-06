@@ -1,25 +1,24 @@
 # ======================================================================= #
 # Copyright (C) 2022 Hoverset Group.                                      #
 # ======================================================================= #
+
 import os
-
-_global_freeze = dict(globals())
-
-import sys
-import tkinter
 import logging
 import subprocess
+import threading
+from multiprocessing.connection import Client
 
 from hoverset.data.images import load_tk_image
 from hoverset.data.utils import get_resource_path
+from hoverset.platform import platform_is, WINDOWS
 from hoverset.ui.widgets import *
 
-from studio.ui.highlight import WidgetHighlighter
 from studio.debugtools.preferences import Preferences
 from studio.debugtools.element_pane import ElementPane
 from studio.debugtools.style_pane import StylePane
 from studio.debugtools.selection import DebugSelection
-from studio.debugtools.console import ConsolePane
+from studio.debugtools.console import Console
+from studio.debugtools.defs import RemoteWidget, Message, unmarshal, RemoteEvent, marshal
 
 from studio.resource_loader import ResourceLoader
 from studio.i18n import _
@@ -41,131 +40,130 @@ class Elements(PanedWindow):
         self.add(self.style_pane, minsize=100)
 
 
-class DebuggerAPI:
-    """
-    A class that provides an interface for interacting with the debugger
-    """
-
-    __slots__ = ("__debugger",)
-
-    def __init__(self, debugger):
-        self.__debugger = debugger
-
-    @property
-    def selection(self) -> list:
-        """
-        Get the currently selected widgets in the debugger as a list
-        """
-        return self.__debugger.selection
-
-    @property
-    def selected(self) -> tkinter.Widget:
-        """
-        Get the first selected widget in the debugger. Useful when only one widget is selected
-        """
-        if self.__debugger.selection:
-            return self.__debugger.selection[0]
-
-
-class Debugger(Window):
+class Debugger(Application):
     _instance = None
 
-    def __init__(self, master):
+    def __init__(self):
         self.pref = Preferences.acquire()
-        Application.load_styles(self, self.pref.get("resource::theme"))
-        super(Window, self).__init__(master)
+        self.load_styles(self.pref.get("resource::theme"))
+        super().__init__()
         _init_tkdnd(self)
         self.geometry(self.pref.get("debugger::geometry"))
-        self.set_up_mousewheel()
         Debugger._instance = self
-        self.master = self.root = self.position_ref = master
-        self.setup_window()
-        self.set_up_mousewheel()
-        self.wm_transient(master)
+        self._widget_map = {}
+        self._server_client = None
+        self.start_server_client()
+        self.root = self.transmit(Message("HOOK", payload={"get": "root"}), response=True)
         self.wm_title("Formation Debugger")
-        icon_image = load_tk_image(get_resource_path(studio, "resources/images/formation_icon.png"))
+        if platform_is(WINDOWS):
+            ICON_PATH = get_resource_path(studio, "resources/images/formation.ico")
+        else:
+            ICON_PATH = get_resource_path(studio, "resources/images/formation_icon.png")
+        icon_image = load_tk_image(ICON_PATH)
         self.wm_iconphoto(False, icon_image)
 
         self.tabs = TabView(self)
         self.tabs.pack(fill="both", expand=True)
         self.elements = Elements(self.tabs, self)
         self.tabs.add(self.elements, text=_("Elements"))
-        self.debug_api = DebuggerAPI(self)
-        self._locals = {"debugger": self.debug_api}
-        self.console = ConsolePane(self.tabs, self._locals, self.exit)
+        self.console = Console(self.tabs, self.exit, self)
         self.tabs.add(self.console, text=_("Console"))
 
         self.configure(**self.style.surface)
-        self.is_minimized = False
         self.active_widget = None
-        self.enable_hooks = True
-        self._dbg_ignore = True
         self._selection = DebugSelection(self)
 
-        self.highlighter = WidgetHighlighter(self.root, self.style)
-        self.highlighter_map = {}
-        for elem in self.highlighter.elements:
-            setattr(elem, "_dbg_ignore", True)
+        self._stream_client = None
+        threading.Thread(target=self.stream_client).start()
 
         self.wm_protocol("WM_DELETE_WINDOW", self.exit)
-        self._hook_creation()
-        self.root.bind_all("")
+        self.bind("<<SelectionChanged>>", self.on_selection_changed, True)
+
+    def start_server_client(self):
+        logging.debug("Starting server client...")
+        self._server_client = Client(("localhost", 6999), authkey=b'studio-debugger')
+        self._server_client.send("SERVER")
+        self._server_client.send(Message("HOOK", payload={"set": "styles", "value": self.style}))
+
+    def stream_client(self):
+        self._stream_client = Client(("localhost", 6999), authkey=b'studio-debugger')
+        self._stream_client.send("STREAM")
+        while True:
+            try:
+                msg = self._stream_client.recv()
+            except ConnectionAbortedError:
+                break
+            if msg == "TERMINATE":
+                self.exit()
+                break
+            if hasattr(msg, "payload"):
+                msg.payload = unmarshal(msg.payload, self)
+            self.handle_msg(msg)
+
+    def close_clients(self):
+        if self._server_client:
+            self._server_client.close()
+            self._server_client = None
+        if self._stream_client:
+            self._stream_client.close()
+            self._stream_client = None
+
+    def transmit(self, msg, response=False):
+        if not self._server_client:
+            return
+        if isinstance(msg, Message):
+            msg.payload = marshal(msg.payload)
+        self._server_client.send(msg)
+        if response:
+            result = self._server_client.recv()
+            logger.debug("Received response: %s", result)
+            if isinstance(result, Exception):
+                raise result
+            return unmarshal(result, self)
+
+    def handle_msg(self, msg):
+        if not hasattr(msg, "key"):
+            return
+        if msg.key == "EVENT":
+            event = msg.payload["event"]
+            widget = msg.payload["widget"]
+            if msg.payload["data"]:
+                msg.payload["data"] = RemoteEvent(msg.payload["data"])
+            suppress = False
+            if event == "<<WidgetMapped>>" and widget._dbg_node:
+                widget._dbg_node.on_map()
+            if event == "<<WidgetUnmapped>>" and widget._dbg_node:
+                widget._dbg_node.on_unmap()
+            if event == "<<WidgetDeleted>>":
+                widget.deleted = True
+            if event == "<<SelectionChanged>>":
+                self.elements.element_pane.on_widget_tap(widget, msg.payload["data"])
+                suppress = True
+
+            if not suppress:
+                self.active_widget = widget
+                self.event_generate(event)
+        if msg.key == "CONSOLE":
+            self.console.handle_msg(msg.payload)
+
+    def set_hover(self, value):
+        self.transmit(Message("HOOK", payload={"set": "allow_hover", "value": value}))
+
+    def widget_from_message(self, message):
+        if message.id in self._widget_map:
+            return self._widget_map[message.id]
+        self._widget_map[message.id] = RemoteWidget(message.id, self)
+        return self._widget_map[message.id]
 
     @property
     def selection(self):
         return self._selection
 
-    def update_selection(self, selection):
-        self.selected = selection
-        self.event_generate("<<SelectionChanged>>")
-
-    def _hook_creation(self):
-        _setup = tkinter.BaseWidget.__init__
-
-        def _hook(slf, master, *args, **kwargs):
-            _setup(slf, master, *args, **kwargs)
-            if slf.master.winfo_toplevel() != self and slf.master != self and not getattr(slf, "_dbg_ignore", False) and self.enable_hooks:
-                self.active_widget = slf
-                self.event_generate("<<WidgetCreated>>")
-
-        setattr(tkinter.BaseWidget, '__init__', _hook)
-
-    def _hook_destroy(self, widget):
-        destroy = widget.destroy
-
-        def _hook():
-            if self.enable_hooks:
-                self.active_widget = widget
-                self.event_generate("<<WidgetDeleted>>")
-            return destroy()
-
-        setattr(widget, "destroy", _hook)
-
-    def _hook_widget_conf(self, widget):
-        widget_conf = widget.configure
-
-        def _hook(cnf=None, **kw):
-            ret = widget_conf(cnf, **kw)
-            if (cnf or kw) and self.enable_hooks:
-                self.active_widget = widget
-                self.event_generate("<<WidgetModified>>")
-            return ret
-
-        setattr(widget, "configure", _hook)
-        setattr(widget, "config", _hook)
+    def on_selection_changed(self, _):
+        self.transmit(Message("HOOK", payload={"set": "selection", "value": list(self.selection)}))
 
     def highlight_widget(self, widget):
-        if widget is None:
-            self.highlighter.clear()
-        else:
-            self.highlighter.highlight(widget)
-
-    def hook_widget(self, widget):
-        if getattr(widget, "dbg_ignore", False):
-            return
-        self._hook_widget_conf(widget)
-        self._hook_destroy(widget)
-        setattr(widget, "_dbg_hooked", True)
+        pass
 
     def destroy(self) -> None:
         # save window position
@@ -175,69 +173,12 @@ class Debugger(Window):
 
     def exit(self):
         try:
-            self.enable_hooks = False
-            self.root.destroy()
+            self.transmit("TERMINATE")
+            self.close_clients()
+            self.destroy()
         finally:
             # Exit forcefully
             os._exit(os.EX_OK)
-
-    @classmethod
-    def acquire(cls, root):
-        if not cls._instance:
-            cls._instance = Debugger(root)
-        return cls._instance
-
-    @classmethod
-    def _root(cls):
-        if not tkinter._support_default_root:
-            raise RuntimeError('Default root not supported, cannot hook debugger')
-        return tkinter._default_root
-
-    @classmethod
-    def _hook(cls):
-        # store reference to actual mainloop
-        _default_mainloop = tkinter.Misc.mainloop
-        _default_mainloop_func = tkinter.mainloop
-
-        def _mainloop_func(n=0):
-            tkinter.Misc.mainloop = _default_mainloop
-            tkinter.mainloop = _default_mainloop_func
-            cls.acquire(cls._root())
-            _default_mainloop_func(n)
-
-        def _mainloop(root, n=0):
-            # restore actual mainloop
-            tkinter.Misc.mainloop = _default_mainloop
-            tkinter.mainloop = _default_mainloop_func
-            cls.acquire(root)
-            # run actual mainloop
-            _default_mainloop(root, n)
-
-        # hook into mainloop
-        tkinter.Misc.mainloop = _mainloop
-        tkinter.mainloop = _mainloop_func
-
-    @classmethod
-    def run(cls, path=None):
-        pref = Preferences.acquire()
-        if path is None:
-            if len(sys.argv) > 1:
-                path = sys.argv[1]
-                # remove ourselves from sys args
-                # just incase the program reads sys args
-                sys.argv.pop(0)
-            else:
-                logger.error(_("No python file supplied"))
-                return
-        ResourceLoader.load(pref)
-        cls._hook()
-        with open(path) as file:
-            code = compile(file.read(), path, 'exec')
-
-        sys.path.append(os.path.dirname(path))
-        # Ensure hooked application thinks it is running as __main__
-        _global_freeze.update({"__name__": "__main__", "__file__": path})
-        exec(code, _global_freeze)
 
     @classmethod
     def run_process(cls, path) -> subprocess.Popen:
@@ -245,7 +186,10 @@ class Debugger(Window):
 
 
 def main():
-    Debugger.run()
+    logging.basicConfig(level=logging.INFO)
+    pref = Preferences.acquire()
+    ResourceLoader.load(pref)
+    Debugger().mainloop()
 
 
 if __name__ == '__main__':

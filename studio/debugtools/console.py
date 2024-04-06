@@ -4,18 +4,16 @@
 
 # inspired by https://gist.github.com/olisolomons/e90d53191d162d48ac534bf7c02a50cd
 
-import code
 import hashlib
 import queue
-import sys
-import threading
 import tkinter as tk
 import traceback
 
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import Text, AutoScroll, Button
-from studio.ui.widgets import Pane
+from studio.debugtools.defs import Message
 from studio.i18n import _
+from studio.ui.widgets import Pane
 
 
 class Pipe:
@@ -51,10 +49,10 @@ class ConsoleText(Text):
         super().__init__(*args, **kwargs)
 
         # make edits that occur during on_text_change not cause it to trigger again
-        def on_modified(event):
+        def on_modified(_):
             flag = self.edit_modified()
             if flag:
-                self.after(10, self.on_text_change(event))
+                self.after(10, self.on_text_change(_))
             self.edit_modified(False)
 
         self.bind("<<Modified>>", on_modified)
@@ -137,7 +135,7 @@ class ConsoleText(Text):
         # save color in case it needs to be re-colored
         self.console_tags.append((tag_name, start, self.index(pos)))
 
-    def on_text_change(self, event):
+    def on_text_change(self, _):
         """If the text is changed, check if the change is part of the committed text, and if it is revert the change"""
         if self.get_committed_text_hash() != self.committed_hash:
             # revert change
@@ -160,42 +158,77 @@ class ConsoleText(Text):
         return line
 
 
-class Console(AutoScroll):
+class Console(Pane):
     """A tkinter widget which behaves like an interpreter"""
 
-    def __init__(self, parent, _locals, exit_callback):
+    def __init__(self, parent, exit_callback, debugger):
         super().__init__(parent)
+        self.debugger = debugger
 
-        self.text = ConsoleText(self, wrap=tk.WORD, font=("Consolas", 12))
+        self.console_frame = AutoScroll(self)
+        self.console_frame.pack(fill=tk.BOTH, expand=True)
+
+        self._clear_btn = Button(
+            self._header, **self.style.button,
+            image=get_icon_image("remove", 20, 20), width=25, height=25,
+        )
+        self._clear_btn.pack(side="right", padx=2)
+        self._clear_btn.tooltip(_("Clear console"))
+        self._clear_btn.on_click(lambda *_: self.clear())
+
+        self.text = ConsoleText(self.console_frame, wrap=tk.WORD, font=("Consolas", 12))
         self.text.pack(fill=tk.BOTH, expand=True)
-        self.set_child(self.text)
-        self.show_scroll(self.Y)
-
-        self.shell = code.InteractiveConsole(_locals)
+        self.console_frame.set_child(self.text)
+        self.console_frame.show_scroll(AutoScroll.Y)
 
         # make the enter key call the self.enter function
         self.text.bind("<Return>", self.enter)
         self.prompt_flag = True
         self.command_running = False
+        self.stdin_reading = False
         self.exit_callback = exit_callback
 
-        sys.stdout = Pipe()
-        sys.stderr = Pipe()
-        sys.stdin = Pipe()
+        self.stdout = Pipe()
+        self.stderr = Pipe()
+        self.stdin = Pipe()
+
+        self.pipes = {
+            "stdout": self.stdout,
+            "stderr": self.stderr,
+            "stdin": self.stdin,
+        }
 
         def loop():
-            self.read_from_pipe(sys.stdout, "stdout")
-            self.read_from_pipe(sys.stderr, "stderr", foreground='#eb4765')
+            self.read_from_pipe(self.stdout, "stdout")
+            self.read_from_pipe(self.stderr, "stderr", foreground='#eb4765')
 
             self.after(50, loop)
 
         self.after(50, loop)
 
+    def handle_msg(self, msg):
+        if "note" in msg:
+            if msg["note"] == "COMMAND_COMPLETE":
+                self.command_running = False
+            if msg["note"] == "START_STDIN_READ":
+                self.stdin_reading = True
+            if msg["note"] == "STOP_STDIN_READ":
+                self.stdin_reading = False
+            return
+
+        tag = msg.get("tag")
+        if tag not in self.pipes:
+            return
+        pipe = self.pipes[tag]
+        meth = msg.get("action")
+        args = msg.get("args", [])
+        getattr(pipe, meth)(*args)
+
     def clear(self):
         self.text.clear()
-        sys.stdin.clear()
-        sys.stdout.clear()
-        sys.stderr.clear()
+        self.stdin.clear()
+        self.stdout.clear()
+        self.stderr.clear()
         self.prompt()
 
     def prompt(self):
@@ -226,14 +259,16 @@ class Console(AutoScroll):
 
             self.text.write(str_data, tag_name, insert_position, **kwargs)
 
-    def enter(self, e):
+    def enter(self, _):
         """The <Return> key press handler"""
 
-        if sys.stdin.reading:
+        if self.stdin_reading:
             # if stdin requested, then put data in stdin instead of running a new command
             line = self.text.consume_last_line()
             line = line + '\n'
-            sys.stdin.buffer.put(line)
+            self.debugger.transmit(
+                Message("CONSOLE", payload={"tag": "stdin", "meth": "_write", "args": [line]}), response=True
+            )
             return
 
         # don't run multiple commands simultaneously
@@ -244,8 +279,11 @@ class Console(AutoScroll):
         command = self.text.read_last_line()
         try:
             # compile it
-            compiled = code.compile_command(command)
-            is_complete_command = compiled is not None
+            compiled = self.debugger.transmit(Message(
+                "HOOK", payload={"meth": "console_compile", "args": (command,)}
+            ), response=True)
+            if isinstance(compiled, Exception):
+                raise compiled
         except (SyntaxError, OverflowError, ValueError):
             # if there is an error compiling the command, print it to the console
             self.text.consume_last_line()
@@ -255,35 +293,11 @@ class Console(AutoScroll):
             return
 
         # if it is a complete command
-        if is_complete_command:
+        if compiled:
             # consume the line and run the command
             self.text.consume_last_line()
-
             self.prompt()
             self.command_running = True
-
-            def run_command():
-                try:
-                    self.shell.runcode(compiled)
-                except SystemExit:
-                    self.after(0, self.exit_callback)
-
-                self.command_running = False
-
-            threading.Thread(target=run_command).start()
-
-
-class ConsolePane(Pane):
-
-    def __init__(self, parent, _locals, exit_callback):
-        super().__init__(parent)
-        self.console = Console(self, _locals, exit_callback)
-        self.console.pack(fill=tk.BOTH, expand=True)
-
-        self._clear_btn = Button(
-            self._header, **self.style.button,
-            image=get_icon_image("remove", 20, 20), width=25, height=25,
-        )
-        self._clear_btn.pack(side="right", padx=2)
-        self._clear_btn.tooltip(_("Clear console"))
-        self._clear_btn.on_click(lambda *_: self.console.clear())
+            self.debugger.transmit(Message(
+                "HOOK", payload={"meth": "console_run"}
+            ), response=True)
