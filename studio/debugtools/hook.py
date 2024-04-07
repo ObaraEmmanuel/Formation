@@ -98,11 +98,6 @@ class DebuggerHook:
         self._allow_hover = False
         self._handle = None
         self.last_compiled = None
-        self.debugger_api = DebuggerAPI(self)
-        self.shell = code.InteractiveConsole({"debugger": self.debugger_api})
-        self._stream_clients = []
-        self._server_clients = []
-        self.selection = []
         self.pipes = {
             "stdout": RemotePipe(self, "stdout"),
             "stderr": RemotePipe(self, "stderr"),
@@ -112,6 +107,11 @@ class DebuggerHook:
         sys.stdout = self.pipes["stdout"]
         sys.stderr = self.pipes["stderr"]
         sys.stdin = self.pipes["stdin"]
+        self.debugger_api = DebuggerAPI(self)
+        self.shell = code.InteractiveConsole({"debugger": self.debugger_api})
+        self._stream_clients = []
+        self._server_clients = []
+        self.selection = []
         atexit.register(self.terminate)
 
     @property

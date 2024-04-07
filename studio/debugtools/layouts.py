@@ -13,6 +13,12 @@ class BaseLayout:
     defs = {}
     name = ''
 
+    @staticmethod
+    def clean(value):
+        if isinstance(value, (list, tuple)):
+            return " ".join(map(str, value))
+        return value
+
     @classmethod
     def get_def(cls, widget):
         info = cls.configure(widget)
@@ -20,7 +26,7 @@ class BaseLayout:
         definition = dict(cls.defs)
         for key in definition:
             # will throw a key error if a definition value is not found in info
-            definition[key]["value"] = info[key]
+            definition[key]["value"] = cls.clean(info[key])
         return definition
 
     @classmethod

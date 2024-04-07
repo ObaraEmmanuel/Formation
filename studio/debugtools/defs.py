@@ -131,6 +131,12 @@ class RemoteWidget:
     def __setitem__(self, key, value):
         return self._call("__setitem__", key, value)
 
+    def get_prop(self, prop):
+        prop = self[prop]
+        if isinstance(prop, (tuple, list)):
+            prop = " ".join(map(str, prop))
+        return prop
+
     def keys(self):
         return self._call("keys")
 
