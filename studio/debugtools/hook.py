@@ -146,7 +146,6 @@ class DebuggerHook:
             [sys.executable, "-m", "studio.debugtools"],
             stdout=self.orig_stdout, stderr=self.orig_stderr, stdin=self.orig_stdin
         )
-        self._hook_creation()
         tkinter.Misc.bind_all(self.root, "<Motion>", self.on_motion)
         tkinter.Misc.bind_all(self.root, "<Button-1>", self.on_widget_tap)
         tkinter.Misc.bind_all(self.root, "<Button-3>", self.on_widget_tap)
@@ -336,15 +335,24 @@ class DebuggerHook:
 
     def _hook_widget_conf(self, widget):
         widget_conf = widget.configure
+        # should ideally be the same but hoverset overrides config
+        # making it necessary to hook both Separately
+        widget_conf_c = widget.config
 
-        def _hook(cnf=None, **kw):
-            ret = widget_conf(cnf, **kw)
-            if (cnf or kw) and self.enable_hooks:
+        def _hook(*args, **kw):
+            ret = widget_conf(*args, **kw)
+            if (args or kw) and self.enable_hooks:
+                self.push_event("<<WidgetModified>>", widget)
+            return ret
+
+        def _hook_c(*args, **kw):
+            ret = widget_conf_c(*args, **kw)
+            if (args or kw) and self.enable_hooks:
                 self.push_event("<<WidgetModified>>", widget)
             return ret
 
         setattr(widget, "configure", _hook)
-        setattr(widget, "config", _hook)
+        setattr(widget, "config", _hook_c)
 
     def hook(self):
         # store reference to actual mainloop
@@ -372,7 +380,6 @@ class DebuggerHook:
         tkinter.mainloop = _mainloop_func
 
     def run(self):
-        print(sys.argv)
         if self.path is None:
             if len(sys.argv) > 1:
                 self.path = sys.argv[1]
@@ -383,6 +390,7 @@ class DebuggerHook:
                 logger.error("No python file supplied")
                 return
         self.hook()
+        self._hook_creation()
         with open(self.path) as file:
             code = compile(file.read(), self.path, 'exec')
 
