@@ -47,9 +47,9 @@ exclude = ["*.tests*", "venv"]
 namespaces = false
 
 [tool.setuptools.package-data]
-"hoverset.data" = ["image.*", "locale/*.mo"]
+"hoverset.data" = ["image.*", "locale/*/LC_MESSAGES/*.mo"]
 "hoverset.ui" = ["themes/*", "*.tcl"]
-studio = ["resources/images/*", "resources/locale/*.mo"]
+studio = ["resources/images/*", "resources/locale/*/LC_MESSAGES/*.mo"]
 
 [project.scripts]
 formation-studio = "studio.launcher:main"
