@@ -1,3 +1,5 @@
+import uuid
+
 from hoverset.data.preferences import *
 import studio.preferences
 
@@ -12,6 +14,9 @@ defaults = {
     },
     "locale": {
         "language": "en"
+    },
+    "IPC": {
+        "authkey": bytes(str(uuid.uuid4()), encoding='utf-8')
     }
 }
 

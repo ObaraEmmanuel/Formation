@@ -81,18 +81,19 @@ class Debugger(Application):
 
     def start_server_client(self):
         logging.debug("Starting server client...")
-        self._server_client = Client(("localhost", 6999), authkey=b'studio-debugger')
+        self._server_client = Client(("localhost", 6999), authkey=self.pref.get("IPC::authkey"))
         self._server_client.send("SERVER")
         self._server_client.send(Message("HOOK", payload={"set": "styles", "value": self.style}))
 
     def stream_client(self):
         logging.debug("Starting stream client...")
-        self._stream_client = Client(("localhost", 6999), authkey=b'studio-debugger')
+        self._stream_client = Client(("localhost", 6999), authkey=self.pref.get("IPC::authkey"))
         self._stream_client.send("STREAM")
         while True:
             try:
                 msg = self._stream_client.recv()
-            except ConnectionAbortedError:
+            except (ConnectionAbortedError, ConnectionResetError):
+                self.exit()
                 break
             if msg == "TERMINATE":
                 self.exit()
@@ -114,9 +115,17 @@ class Debugger(Application):
             return
         if isinstance(msg, Message):
             msg.payload = marshal(msg.payload)
-        self._server_client.send(msg)
+        try:
+            self._server_client.send(msg)
+        except (ConnectionResetError, ConnectionAbortedError):
+            self._server_client = None
+            return
         if response:
-            result = self._server_client.recv()
+            try:
+                result = self._server_client.recv()
+            except (ConnectionResetError, ConnectionAbortedError, EOFError):
+                self._server_client = None
+                return
             logger.debug("Received response: %s", result)
             if isinstance(result, Exception):
                 raise result

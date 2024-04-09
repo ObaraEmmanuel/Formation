@@ -1,6 +1,7 @@
 # ======================================================================= #
 # Copyright (C) 2024 Hoverset Group.                                      #
 # ======================================================================= #
+from studio.debugtools.preferences import Preferences
 
 _global_freeze = dict(globals())
 
@@ -88,11 +89,12 @@ class DebuggerAPI:
 class DebuggerHook:
 
     def __init__(self, path=None):
+        pref = Preferences.acquire()
         self.path = path
         self.root = None
         self.active_widget = None
         self.enable_hooks = True
-        self.listener = Listener(('localhost', 6999), authkey=b'studio-debugger')
+        self.listener = Listener(('localhost', 6999), authkey=pref.get("IPC::authkey"))
         self._handle_map = {}
         self.styles = None
         self._allow_hover = False
