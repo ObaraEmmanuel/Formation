@@ -3,7 +3,7 @@ import studio.preferences
 
 defaults = {
     "debugger": {
-        "geometry": "400x500",
+        "geometry": "400x800",
     },
     "resource": studio.preferences.defaults["resource"],
     "console": {

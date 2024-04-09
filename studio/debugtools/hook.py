@@ -208,7 +208,6 @@ class DebuggerHook:
             try:
                 client.send(msg)
             except ConnectionResetError:
-                logger.error("Stream client disconnected")
                 remove.append(client)
 
         for client in remove:

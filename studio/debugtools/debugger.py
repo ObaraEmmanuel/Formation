@@ -86,6 +86,7 @@ class Debugger(Application):
         self._server_client.send(Message("HOOK", payload={"set": "styles", "value": self.style}))
 
     def stream_client(self):
+        logging.debug("Starting stream client...")
         self._stream_client = Client(("localhost", 6999), authkey=b'studio-debugger')
         self._stream_client.send("STREAM")
         while True:
