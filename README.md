@@ -70,7 +70,7 @@ Multiple design files can be opened in different tabs.
 
 Widgets can be selected from the _**Components**_ pane at the top to be dragged on stage. Click to select widgets
 on the workspace and customize them on _**Stylepane**_ to the right. The widget hierarchies can be viewed from the _**
-Component tree**_ at the bottom left. To preview the the design, use the preview ("run button") on the toolbar. The design can be saved in the top bar by going to _File > Save_. Below is a sample studio preview saved
+Component tree**_ at the bottom left. To preview the design, use the preview ("run button") on the toolbar. The design can be saved in the top bar by going to _File > Save_. Below is a sample studio preview saved
 as `hello.xml`
 
 <p align="center">
@@ -160,7 +160,39 @@ optional arguments:
   -v, --version         show program's version number and exit
 ```
 
+### Formation Debugger
+Formation debugger is a tool that lets you inspect, modify or debug widgets in a running Tkinter application in real-time. 
+You can adjust widget attributes and layouts using an intuitive debugger UI.
+It also features a console that can be used to interact with your running application.
 
+To use the debugger run your python app using the `formation-dbg` command.
+
+```bash
+formation-dbg /path/to/myapp.py
+```
+The debugger will automatically attach to the running application as shown below:
+
+![Formation Debugger](https://raw.githubusercontent.com/obaraemmanuel/Formation/master/docs/_static/debugger.png)
+
+You can then use the pointer icon to select any widget in your running app and inspect or modify its properties/layout.
+The console is a standard Python REPL. There is a minimal debugger interface that allows you to access the currently
+selected widget in the console. Below is a demonstration of this interface:
+
+```python
+# get the currently selected widget
+widget = debugger.selected
+
+# when multiple widgets are selected
+# this will return a list of the widgets
+widgets = debugger.selection
+
+# get the root widget
+root = debugger.root
+```
+The returned widget will be the actual tk widget running in your application, so you can call any method or access any attribute
+
+-----------------------------
+    
 For more details checkout the [documentation](https://formation-studio.readthedocs.io/en/latest/)
 For those wishing to contribute, see the [studio notes](https://formation-studio.readthedocs.io/en/latest/studio/architecture.html) for developers and contributors
 Some good documentation for building Python user interfaces
