@@ -121,7 +121,14 @@ class RemoteWidget:
         )
 
     def configure(self, **kwargs):
-        return self._call("configure", **kwargs)
+        ret = self._call("configure", **kwargs)
+        if ret is None and not kwargs:
+            # fallback if configure behviour is not implemented correctly
+            return self._configure()
+        return ret
+
+    def _configure(self, cmd="configure", cnf=None, kw=None):
+        return self._call("_configure", cmd, cnf, kw)
 
     config = configure
 

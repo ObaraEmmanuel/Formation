@@ -162,6 +162,8 @@ class Debugger(Application):
     def widget_from_message(self, message):
         if message.id in self._widget_map:
             return self._widget_map[message.id]
+        if not message.id:
+            return None
         self._widget_map[message.id] = RemoteWidget(message.id, self)
         return self._widget_map[message.id]
 

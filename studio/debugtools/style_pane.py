@@ -79,8 +79,6 @@ class LayoutGroup(StyleGroup):
         layout = layouts.get_layout(widget)
         if layout:
             prop = layout.configure(widget)[prop]
-            if isinstance(prop, (list, tuple)):
-                return " ".join(map(str, prop))
             return prop
 
     def _set_prop(self, prop, value, widget):
