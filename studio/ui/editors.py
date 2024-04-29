@@ -408,10 +408,15 @@ class Font(Editor):
         self.config(height=50, **self.style.highlight_active)
         self._input = FontInput(self)
         self._input.pack(fill='both', expand=True)
-        self.on_change = self._input.on_change
+        self.set_def(style_def)
+
+    def on_change(self, func, *args, **kwargs):
+        self._input.on_change(lambda v: func(self.get(), *args, **kwargs))
 
     def get(self):
-        return self._input.get()
+        if self.style_def.get("string_output", True):
+            return self._input.get_str()
+        return self._input.get_tuple()
 
     def set(self, value):
         self._input.set(value)
@@ -451,7 +456,7 @@ class Dimension(TextMixin, Editor):
         super().set_def(definition)
         self._metric = definition.get("units", "px")
         if self._metric in ("char", "line"):
-            self._unit.set_values((self._metric, ))
+            self._unit.set_values((self._metric,))
             self._unit.set(self._metric)
             self._unit.disabled(True)
         else:
@@ -750,6 +755,7 @@ class Compose(Editor):
     def __init__(self, master, style_def=None):
         super().__init__(master, style_def)
         items = style_def.get("compose", [])
+        self.as_dict = style_def.get("as_dict", True)
         row = 0
         self.pref = get_active_pref(self)
         height = 25 * len(items)
@@ -792,12 +798,23 @@ class Compose(Editor):
     def set(self, value):
         if not value:
             return
-        for k, v in value.items():
-            if k in self.editors:
-                self.editors[k].set(v)
+        if self.as_dict:
+            for k, v in value.items():
+                if k in self.editors:
+                    self.editors[k].set(v)
+        else:
+            if isinstance(value, str):
+                value = value.split(' ')
+            if not value:
+                value = [''] * len(self.editors)
+
+            for editor, v in zip(self.editors.values(), value):
+                editor.set(v)
 
     def get(self):
-        return {k: e.get() for k, e in self.editors.items()}
+        if self.as_dict:
+            return {k: e.get() for k, e in self.editors.items()}
+        return [e.get() for e in self.editors.values()]
 
 
 class StyleItem(Frame):

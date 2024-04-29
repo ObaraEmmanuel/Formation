@@ -32,7 +32,8 @@ defaults = {
         "smoothness": 3,
         "use_undo_depth": True,
         "undo_depth": 30,
-        "custom_widget_paths": []
+        "custom_widget_paths": [],
+        "allow_thirdparty": True,
     },
     "features": {},
     "hotkeys": {},
@@ -164,7 +165,15 @@ def _templates():
                         )
                     }
                 },
-            )
+            ),
+            _("Third party features"): (
+                {
+                    "desc": _("Load third party features"),
+                    "path": "studio::allow_thirdparty",
+                    "requires_restart": True,
+                    "element": Check
+                },
+            ),
         },
         _("Designer"): {
             _("Design pad"): (

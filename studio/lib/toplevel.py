@@ -115,10 +115,10 @@ def _entangle(master, slave):
     widget_conf = master.configure
     widget_set = master.__setitem__
 
-    def _hook_conf(cnf=None, **kw):
-        ret = widget_conf(cnf, **kw)
+    def _hook_conf(*args, **kw):
+        ret = widget_conf(*args, **kw)
         try:
-            slave.configure(cnf, **kw)
+            slave.configure(*args, **kw)
         except:
             pass
         return ret
@@ -192,12 +192,8 @@ class _Toplevel(tk.Frame):
         window.winfo_parent = lambda: str(self)
         window.grid(row=1, column=0, sticky='nswe')
 
-        # embed an actual toplevel widget
-        if issubclass(self.impl, tk.Toplevel):
-            self._toplevel = self.impl(master, use=window.winfo_id())
-        else:
-            # we cannot embed Tk instances
-            self._toplevel = tk.Toplevel(master, use=window.winfo_id())
+        embed_class = getattr(self, "embed_class", tk.Toplevel)
+        self._toplevel = embed_class(master, use=window.winfo_id())
 
         # get system default maxsize before toplevel is modified
         maxsize = self._toplevel.maxsize()
@@ -211,7 +207,8 @@ class _Toplevel(tk.Frame):
         self._shadow = tk.Frame(self._toplevel)
         self._shadow.pack(fill='both', expand=True)
         self._shadow_h = self._shadow.winfo_height()
-        self.body = tk.Frame(master)
+        embed_frame = getattr(self, "embed_frame_class", tk.Frame)
+        self.body = embed_frame(master)
         self.body.place(in_=self, anchor='se', relx=1, rely=1, relwidth=1, relheight=1, height=-30)
 
         # lock toplevel and body so changes are mirrored to body
@@ -449,7 +446,9 @@ class Toplevel(ToplevelContainer, _Toplevel):
     group = Groups.container
     icon = 'window'
     is_toplevel = True
+    is_container = True
     display_name = 'Toplevel'
+    embed_class = tk.Toplevel
     impl = tk.Toplevel
     initial_dimensions = 200, 230
 
@@ -458,6 +457,8 @@ class Tk(ToplevelContainer, _Toplevel):
     group = Groups.container
     icon = 'window'
     is_toplevel = True
+    is_container = True
     display_name = 'Tk'
+    embed_class = tk.Toplevel
     impl = tk.Tk
     initial_dimensions = 200, 230

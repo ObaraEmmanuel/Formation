@@ -71,6 +71,8 @@ class XMLFormat(BaseFormat):
                 for attrib in ns:
                     attr = "{{{}}}{}".format(namespaces.get(key), attrib)
                     x_node.attrib[attr] = str(ns[attrib])
+            elif isinstance(node.attrib[key], (list, tuple, set)):
+                x_node.attrib[key] = " ".join(map(str, node.attrib[key]))
             else:
                 x_node.attrib[key] = str(node.attrib[key])
 

@@ -101,6 +101,7 @@ class PseudoWidget:
     icon = "play"
     impl = None
     is_toplevel = False
+    is_container = False
     allow_direct_move = True
     allow_drag_select = False
     # special handlers (intercepts) for attributes that need additional processing
@@ -119,6 +120,8 @@ class PseudoWidget:
     }
 
     def setup_widget(self):
+        if getattr(self, "_has_init", False):
+            return
         self.designer = self.master
         self.level = 0
         self.layout = None
@@ -150,6 +153,7 @@ class PseudoWidget:
         self._select_mode_active = False
         self._select_bounds = None
         self.prev_stack_index = None
+        self._has_init = True
 
     def set_name(self, name):
         pass
@@ -318,9 +322,12 @@ class PseudoWidget:
         if intercept:
             return intercept.get(self, prop)
         prop = self[prop]
-        if isinstance(prop, (tuple, list)):
-            prop = " ".join(map(str, prop))
+        # if isinstance(prop, (tuple, list)):
+        #     prop = " ".join(map(str, prop))
         return prop
+
+    def has_init(self):
+        return getattr(self, "_has_init", False)
 
     def configure(self, options=None, **kw):
         for opt in list(kw.keys()):
@@ -329,7 +336,7 @@ class PseudoWidget:
                 intercept.set(self, kw[opt], opt)
                 kw.pop(opt)
         ret = super().config(**kw)
-        if kw and self._handle:
+        if self.has_init() and kw and self._handle:
             self._handle.widget_config_changed()
         return ret
 
@@ -675,7 +682,10 @@ class PanedContainer(TabContainer):
 class WidgetMeta(type):
 
     def __new__(mcs, name, bases, dct):
-        if dct.pop("is_container", False):
+        if dct.get("is_toplevel", False):
+            from studio.lib.toplevel import ToplevelContainer
+            base = ToplevelContainer
+        elif dct.get("is_container", False):
             # automatically pick specialization
             if any(issubclass(t, (tkinter.PanedWindow, tkinter.ttk.PanedWindow)) for t in bases):
                 base = PanedContainer

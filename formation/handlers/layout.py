@@ -15,14 +15,14 @@ _redirect = {
 def set_grid(widget, _=None, **options):
     for opt in list(options):
         if opt in ("width", "height"):
-            widget[opt] = options.pop(opt)
+            widget.configure(**{opt: options.pop(opt)})
     widget.grid(**options)
 
 
 def set_pack(widget, _=None, **options):
     for opt in list(options):
         if opt in ("width", "height"):
-            widget[opt] = options.pop(opt)
+            widget.configure(**{opt: options.pop(opt)})
     widget.pack(**options)
 
 

@@ -17,6 +17,7 @@ from formation.handlers import dispatch_to_handlers, parse_arg
 from formation.meth import Meth
 from formation.handlers.image import parse_image
 from formation.handlers.scroll import apply_scroll_config
+from formation.utils import is_class_toplevel, is_class_root
 import formation
 
 logger = logging.getLogger(__name__)
@@ -93,7 +94,7 @@ class BaseLoaderAdapter(BaseAdapter):
         if obj_class == ttk.PanedWindow and "orient" in config.get("attr", {}):
             orient = config["attr"].pop("orient")
             obj = obj_class(parent, orient=orient)
-        elif obj_class == tk.Tk:
+        elif is_class_root(obj_class):
             obj = obj_class()
         else:
             obj = obj_class(parent)
@@ -333,8 +334,8 @@ class Builder:
     def _load_widgets(self, node, builder, parent):
         adapter = self._get_adapter(BaseLoaderAdapter._get_class(node))
         widget = adapter.load(node, builder, parent)
-        if widget.__class__ not in _containers:
-            # We dont need to load child tags of non-container widgets
+        if not isinstance(widget, _containers):
+            # We don't need to load child tags of non-container widgets
             return widget
         for sub_node in node:
             if sub_node.is_var() or sub_node.type in _ignore_tags:
@@ -519,8 +520,8 @@ class AppBuilder(Builder):
         if self._app is None:
             # no external parent app provided
             obj_class = BaseLoaderAdapter._get_class(root_node)
-            if obj_class not in (tk.Toplevel, tk.Tk):
-                # widget is not toplevel so we spin up a toplevel parent for it
+            if not is_class_toplevel(obj_class):
+                # widget is not toplevel, so we spin up a toplevel parent for it
                 self._parent = self._app = tk.Tk(*self._toplevel_args)
         else:
             # use external app as parent

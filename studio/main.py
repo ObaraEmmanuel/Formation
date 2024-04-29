@@ -44,6 +44,7 @@ from studio.ui import geometry
 from studio.ui.about import about_window
 from studio.ui.widgets import SideBar
 from studio.updates import Updater
+from studio.external import init_externals
 
 pref = Preferences.acquire()
 
@@ -277,6 +278,10 @@ class StudioApplication(Application):
 
         # initialize tools with everything ready
         self.tool_manager.initialize()
+
+        if pref.get("studio::allow_thirdparty"):
+            # initialize externals
+            init_externals(self)
 
         self._ignore_tab_status = False
         self._startup()
@@ -822,7 +827,11 @@ class StudioApplication(Application):
             return
         # close previous preview if any
         self.close_preview()
-        path = os.path.join(self.dirs.user_cache_dir, "temp_design.xml")
+        # extract extension from path
+        path = self.designer.design_path or ''
+        _, ext = os.path.splitext(path)
+        ext = ext or '.json'
+        path = os.path.join(self.dirs.user_cache_dir, f"temp_design{ext}")
         self.designer.to_tree().write(path)
         self.current_preview = subprocess.Popen(
             [sys.executable, "-m", "formation", path],

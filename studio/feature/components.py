@@ -268,6 +268,7 @@ class ComponentPane(BaseFeature):
         templates.update(self._pref_template())
         self._custom_group = None
         self._custom_widgets = []
+        self._external_widgets = []
         self.studio.bind("<<SelectionChanged>>", self.on_widget_select, add='+')
         Preferences.acquire().add_listener(self._custom_pref_path, self._init_custom)
         self._reload_custom()
@@ -301,6 +302,10 @@ class ComponentPane(BaseFeature):
     @property
     def custom_widgets(self):
         return self._custom_widgets
+
+    @property
+    def registered_widgets(self):
+        return self._external_widgets + self.custom_widgets
 
     def auto_find_load_custom(self, *modules):
         # locate and load all custom widgets in modules
@@ -455,6 +460,8 @@ class ComponentPane(BaseFeature):
         for group in self._extern_groups:
             if self.studio.selection and all(group.supports(w) for w in self.studio.selection):
                 self.add_selector(group.selector)
+            elif not self.studio.selection and group.supports(None):
+                self.add_selector(group.selector)
             else:
                 self.remove_selector(group.selector)
                 if self._selected == group.selector:
@@ -480,13 +487,16 @@ class ComponentPane(BaseFeature):
         for selector in self._selectors:
             selector.pack(side="top", pady=2, fill="x")
 
-    def register_group(self, name, items, group_class, evaluator=None, component_class=None):
+    def register_group(self, name, items, group_class, evaluator=None, component_class=None, register=False):
         group = group_class(self._widget_pane.body, name, items, evaluator, component_class)
         self._extern_groups.append(group)
         # link up selector and group
-        group.selector = Selector(self._select_pane.body, text=group.name)
+        group.selector = Selector(self._select_pane.body, text=group.name, name=group.name)
         group.selector.group = group
         self.render_extern_groups()
+
+        if register:
+            self._external_widgets.extend(items)
         return group
 
     def unregister_group(self, group):

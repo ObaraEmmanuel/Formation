@@ -350,7 +350,6 @@ class Designer(DesignPad, Container):
             accelerator = actions.get_routine("STUDIO_RELOAD").accelerator
             text = f"{str(e)}\n" + _("Press {} to reload").format(accelerator) if accelerator else f"{str(e)} \n" + _("reload design")
             self._show_empty(True, text=text, image=get_tk_image("dialog_error", 50, 50))
-            raise e
             # MessageDialog.show_error(parent=self.studio, title='Error loading design', message=str(e))
         finally:
             if progress:
@@ -648,7 +647,7 @@ class Designer(DesignPad, Container):
         if obj_class.is_toplevel and layout not in (self, None):
             self._show_toplevel_warning()
             return
-        if obj_class.group != Groups.container and self.root_obj is None:
+        if not (obj_class.group == Groups.container or obj_class.is_container) and self.root_obj is None:
             # We only need a container as the root widget
             self._show_root_widget_warning()
             return
@@ -710,7 +709,7 @@ class Designer(DesignPad, Container):
             if obj_class.is_toplevel and paste_to != self:
                 self._show_toplevel_warning()
                 return
-            if obj_class.group != Groups.container and self.root_obj is None:
+            if not (obj_class.group == Groups.container or obj_class.is_container) and self.root_obj is None:
                 self._show_root_widget_warning()
                 return
 

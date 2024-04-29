@@ -48,7 +48,7 @@ class BaseStudioAdapter(BaseAdapter):
             components: ComponentPane = ComponentPane.get_instance()
             component = list(filter(
                 lambda comp: comp.impl.__module__ == module and comp.impl.__name__ == impl,
-                components.custom_widgets,
+                components.registered_widgets,
             ))
             if component:
                 return component[0]

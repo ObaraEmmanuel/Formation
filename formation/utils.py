@@ -1,6 +1,25 @@
 # ======================================================================= #
 # Copyright (C) 2022 Hoverset Group.                                      #
 # ======================================================================= #
+import tkinter as tk
+
+
+def is_class_toplevel(cls):
+    if cls in (tk.Toplevel, tk.Tk):
+        return True
+    for base in cls.__bases__:
+        if is_class_toplevel(base):
+            return True
+    return False
+
+
+def is_class_root(cls):
+    if cls == tk.Tk:
+        return True
+    for base in cls.__bases__:
+        if is_class_root(base):
+            return True
+    return False
 
 
 class CustomPropertyMixin:
@@ -77,6 +96,10 @@ class CustomPropertyMixin:
     """
     prop_info = {}
 
+    def _resolve_getter(self, prop):
+        val = getattr(self, prop)
+        return val if not callable(val) else val()
+
     def configure(self, cnf=None, **kw):
         if isinstance(cnf, str):
             if cnf in self.prop_info:
@@ -84,17 +107,18 @@ class CustomPropertyMixin:
                 return (
                     p["name"], p["name"], p["name"].title(),
                     p["default"],
-                    getattr(self, p["getter"]))
+                    self._resolve_getter(p["getter"]),
+                )
             else:
                 return super().configure(cnf)
 
         if cnf is None and not kw:
-            cnf = super().configure()
+            cnf = super().configure() or {}
             prp = self.prop_info.values()
             cnf.update({p["name"]: (
                 p["name"], p["name"], p["name"].title(),
                 p["default"],
-                getattr(self, p["getter"])) for p in prp})
+                self._resolve_getter(p["getter"])) for p in prp})
             return cnf
 
         cnf = cnf or {}
@@ -102,7 +126,7 @@ class CustomPropertyMixin:
         customs = cnf.keys() & self.prop_info.keys()
         for key in customs:
             getattr(self, self.prop_info[key]["setter"])(cnf.pop(key))
-        super().configure(cnf)
+        super().configure(**cnf)
 
     config = configure
 
@@ -113,7 +137,7 @@ class CustomPropertyMixin:
 
     def cget(self, key):
         if key in self.prop_info:
-            return getattr(self, self.prop_info[key]["getter"])
+            return self._resolve_getter(self.prop_info[key]["getter"])
         return super().cget(key)
 
     __getitem__ = cget
