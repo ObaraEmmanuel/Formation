@@ -75,11 +75,10 @@ class ElementTreeView(ComponentTreeView):
     def expand_to(self, widget):
         parent = widget.nametowidget(widget.winfo_parent())
         hierarchy = [parent]
-        while parent not in (self.Node.debugger.root, self.Node.debugger):
+        while parent:
             parent = parent.nametowidget(parent.winfo_parent())
             hierarchy.append(parent)
-        if not parent:
-            return
+        hierarchy = hierarchy[:-1]
         for p in reversed(hierarchy):
             p._dbg_node.expand()
 
