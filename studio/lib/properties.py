@@ -508,7 +508,8 @@ PROPERTY_TABLE = {
     },
     "wrap": {
         "display_name": "wrap",
-        "type": "boolean",
+        "type": "choice",
+        "options": ("none", "char", "word")
     },
     "wraplength": {
         "display_name": "wraplength",
