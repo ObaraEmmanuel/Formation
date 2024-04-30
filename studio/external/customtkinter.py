@@ -32,7 +32,7 @@ def color_compose():
 CTK_PROPERTIES = {
     "activate_scrollbars": {
         "display_name": "activate scrollbars",
-        "type": "bool",
+        "type": "boolean",
         "default": True
     },
     "anchor": {
@@ -133,7 +133,7 @@ CTK_PROPERTIES = {
     },
     "dynamic_resizing": {
         "display_name": "dynamic resizing",
-        "type": "bool",
+        "type": "boolean",
         "default": True
     },
     "fg_color": {
@@ -157,7 +157,7 @@ CTK_PROPERTIES = {
     },
     "hover": {
         "display_name": "hover",
-        "type": "bool",
+        "type": "boolean",
         "default": True
     },
     "hover_color": {
@@ -632,7 +632,7 @@ class CTkCheckBox(CustomTkMixin, CustomPropertyMixin, customtkinter.CTkCheckBox)
         "font",
         "hover",
         "state",
-        "command",
+        # "command",
         "variable",
         # "onvalue",
         # "offvalue",
@@ -816,8 +816,8 @@ class CTkScrollBar(CustomTkMixin, CustomPropertyMixin, customtkinter.CTkScrollba
     _keys = (
         *_common_keys,
         "border_spacing",
-        "button_color",
-        "button_hover_color",
+        # "button_color",
+        # "button_hover_color",
         # "minimum_pixel_length",
         # "orientation",
         "hover",
@@ -851,7 +851,7 @@ class CTkSegmentedButton(CustomTkMixin, CustomPropertyMixin, customtkinter.CTkSe
         "font",
         "values",
         "variable",
-        "state",
+        # "state",
         "command",
         "dynamic_resizing",
     )
@@ -956,8 +956,8 @@ class CTkTextbox(CustomTkMixin, CustomPropertyMixin, customtkinter.CTkTextbox):
         "border_spacing",
         "border_color",
         "text_color",
-        "scrollbar_button_color",
-        "scrollbar_button_hover_color",
+        # "scrollbar_button_color",
+        # "scrollbar_button_hover_color",
         "font",
         # "activate_scrollbars",
         # "state",
@@ -1199,6 +1199,19 @@ def patch_class_prop_info():
 patch_class_prop_info()
 
 
+# utility function to find defective properties in custom tkinter widgets
+def find_defective_props():
+    for klass in _widgets:
+        if not hasattr(klass, "_keys"):
+            continue
+        dummy = klass.impl(None)
+        for k in klass._keys:
+            try:
+                dummy.cget(k)
+            except Exception as e:
+                print(f"{klass.__name__} {k} : {e}")
+
+
 def init(studio):
     component_pane = studio.get_feature(ComponentPane)
     if not component_pane:
@@ -1210,3 +1223,5 @@ def init(studio):
         ComponentGroup,
         register=True
     )
+
+    # find_defective_props()
