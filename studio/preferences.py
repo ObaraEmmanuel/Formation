@@ -48,7 +48,7 @@ defaults = {
             "indent": "",
             "indent_count": 4,
             "sort_keys": True,
-            "stringify_values": True
+            "stringify_values": False
         },
         "image_path": 'mixed',
         "descriptive_names": False,

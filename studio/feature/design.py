@@ -375,7 +375,7 @@ class Designer(DesignPad, Container):
     def save(self, new_path=False):
         if not self.design_path or new_path:
             path = filedialog.asksaveasfilename(parent=self, filetypes=get_file_types(),
-                                                defaultextension='.xml')
+                                                defaultextension='.json')
             if not path:
                 return None
             self.design_path = path
