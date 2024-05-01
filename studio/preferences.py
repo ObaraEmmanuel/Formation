@@ -32,7 +32,8 @@ defaults = {
         "smoothness": 3,
         "use_undo_depth": True,
         "undo_depth": 30,
-        "custom_widget_paths": []
+        "custom_widget_paths": [],
+        "allow_thirdparty": True,
     },
     "features": {},
     "hotkeys": {},
@@ -47,7 +48,7 @@ defaults = {
             "indent": "",
             "indent_count": 4,
             "sort_keys": True,
-            "stringify_values": True
+            "stringify_values": False
         },
         "image_path": 'mixed',
         "descriptive_names": False,
@@ -164,7 +165,15 @@ def _templates():
                         )
                     }
                 },
-            )
+            ),
+            _("Third party features"): (
+                {
+                    "desc": _("Load third party features"),
+                    "path": "studio::allow_thirdparty",
+                    "requires_restart": True,
+                    "element": Check
+                },
+            ),
         },
         _("Designer"): {
             _("Design pad"): (

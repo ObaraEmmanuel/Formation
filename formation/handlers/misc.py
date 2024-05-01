@@ -73,7 +73,7 @@ class AttrHandler:
     @classmethod
     def handle(cls, widget, config, **kwargs):
         attributes = config.get("attr", {})
-        handle_method = kwargs.get("handle_method", widget.config)
+        handle_method = kwargs.get("handle_method", widget.configure)
         # update handle method just in case it was missing
         kwargs.update(handle_method=handle_method)
         direct_config = {}

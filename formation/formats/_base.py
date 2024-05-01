@@ -88,6 +88,8 @@ class Node:
                     continue
                 dictionary[k] = self._flatten(dictionary[k])
             return dict(dictionary)
+        if isinstance(dictionary, (list, tuple, set)):
+            return list(map(self._flatten, dictionary))
         return str(dictionary)
 
 

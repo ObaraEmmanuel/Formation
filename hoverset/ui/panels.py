@@ -5,6 +5,7 @@ See to it that the state is easily changeable through a unified set and get.
 
 from PIL import ImageTk
 import logging
+from tkinter import font
 
 from hoverset.ui.widgets import *
 from hoverset.ui.icons import get_icon_image
@@ -468,7 +469,21 @@ class FontInput(Frame):
     def on_change(self, func, *args, **kwargs):
         self._on_change = lambda val: func(val, *args, **kwargs)
 
-    def get(self):
+    def get_tuple(self):
+        res = [
+            self._font.get(), self._size.get()
+        ]
+        if self._bold.get():
+            res.append('bold')
+        if self._italic.get():
+            res.append('italic')
+        if self._underline.get():
+            res.append('underline')
+        if self._strike.get():
+            res.append('overstrike')
+        return tuple(res)
+
+    def get_str(self):
         extra = []
         if self._bold.get():
             extra.append('bold')
@@ -481,23 +496,49 @@ class FontInput(Frame):
         extra = ' '.join(extra)
         return f"{{{self._font.get()}}} {abs(self._size.get() or 0)} {{{extra}}}"
 
+    def get(self):
+        return self.get_str()
+
     @suppress_change
     def set(self, value):
         if not value:
             for i in (self._italic, self._bold, self._underline, self._strike):
                 i.set(False)
             return
-        try:
-            font_obj = FontStyle(self, value)
-        except Exception:
-            logging.error("Font exception")
+        family = None
+        if isinstance(value, (tuple, list)):
+            family, size, *_ = value
+            weight = "bold" if "bold" in value else "normal"
+            slant = "italic" if "italic" in value else "roman"
+            underline = "underline" if "underline" in value else False
+            strike = "overstrike" if "overstrike" in value else False
+        elif isinstance(value, str):
+            try:
+                font_obj = font.Font(self, value)
+            except Exception:
+                logging.error("Font exception")
+                return
+            value = font_obj
+        elif not isinstance(value, font.Font):
             return
-        self._font.set(font_obj.cget("family"))
-        self._size.set(font_obj.cget("size"))
-        self._italic.set(True if font_obj.cget("slant") == "italic" else False)
-        self._bold.set(True if font_obj.cget("weight") == "bold" else False)
-        self._underline.set(font_obj.cget("underline"))
-        self._strike.set(font_obj.cget("overstrike"))
+
+        if isinstance(value, font.Font):
+            family, size, weight, slant, underline, strike = (
+                value.cget("family"),
+                value.cget("size"),
+                value.cget("weight"),
+                value.cget("slant"),
+                value.cget("underline"),
+                value.cget("overstrike")
+            )
+
+        if family is not None:
+            self._font.set(family)
+            self._size.set(size)
+            self._italic.set(True if slant == "italic" else False)
+            self._bold.set(True if weight == "bold" else False)
+            self._underline.set(True if underline == "underline" else False)
+            self._strike.set(True if strike == "overstrike" else False)
 
 
 if __name__ == "__main__":

@@ -175,9 +175,14 @@ class BaseLayoutStrategy:
         info = self.info(widget)
         # Ensure we use the dynamic definitions
         definition = self.get_def(widget)
+        to_pop = set()
         for key in definition:
-            # will throw a key error if a definition value is not found in info
-            definition[key]["value"] = info[key]
+            if key not in info:
+                to_pop.add(key)
+            else:
+                definition[key]["value"] = info[key]
+        for key in to_pop:
+            definition.pop(key)
         return definition
 
     def initialize(self, former_strategy=None):
@@ -222,14 +227,16 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
             "type": "dimension",
             "negative": True,
             "name": "x",
-            "default": None
+            "default": None,
+            "parse": int
         },
         "y": {
             "display_name": "y",
             "type": "dimension",
             "negative": True,
             "name": "y",
-            "default": None
+            "default": None,
+            "parse": int
         },
         "bordermode": {
             "display_name": "border mode",
@@ -242,25 +249,29 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
             "display_name": "relative x",
             "type": "float",
             "name": "relx",
-            "default": "0"
+            "default": 0,
+            "parse": float
         },
         "rely": {
             "display_name": "relative y",
             "type": "float",
             "name": "rely",
-            "default": "0"
+            "default": 0,
+            "parse": float
         },
         "relwidth": {
             "display_name": "relative width",
             "type": "float",
             "name": "relwidth",
-            "default": ""
+            "default": "",
+            "parse": float
         },
         "relheight": {
             "display_name": "relative height",
             "type": "float",
             "name": "relheight",
-            "default": ""
+            "default": "",
+            "parse": float
         },
     }
     name = "place"
@@ -286,6 +297,10 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
 
     def _info_with_delta(self, widget, direction, delta):
         info = self.info(widget)
+        if "width" not in info:
+            info["width"] = widget.winfo_width()
+        if "height" not in info:
+            info["height"] = widget.winfo_height()
         info.update(x=int(info["x"]), y=int(info["y"]), width=int(info["width"]), height=int(info["height"]))
         dx, dy = delta
         if direction == "n":
@@ -354,6 +369,11 @@ class PlaceLayoutStrategy(BaseLayoutStrategy):
 
     def info(self, widget):
         info = widget.place_info() or {}
+        for k in info:
+            parse = self.DEFINITION.get(k, {}).get("parse")
+            if not parse or info[k] == '':
+                continue
+            info[k] = parse(info[k])
         return info
 
     def copy_layout(self, widget, from_):
