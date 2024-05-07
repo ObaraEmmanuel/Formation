@@ -280,14 +280,14 @@ PROPERTY_TABLE = {
         "display_name": "listvariable",
         "type": "stringvariable",
     },
+    "maximum": {
+        "display_name": "maximum",
+        "type": "float",
+    },
     "maxundo": {
         "display_name": "maxundo",
         "type": "number",
         "from": -1,
-    },
-    "maximum": {
-        "display_name": "maximum",
-        "type": "float",
     },
     "offrelief": {
         "display_name": "off relief",
