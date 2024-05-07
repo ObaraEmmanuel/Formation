@@ -285,6 +285,10 @@ PROPERTY_TABLE = {
         "type": "number",
         "from": -1,
     },
+    "maximum": {
+        "display_name": "maximum",
+        "type": "float",
+    },
     "offrelief": {
         "display_name": "off relief",
         "type": "relief",
