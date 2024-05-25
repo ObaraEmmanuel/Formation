@@ -9,7 +9,6 @@
 ##    https://github.com/ObaraEmmanuel/Formation/issues/32   ##
 ###############################################################
 
-import typing
 
 STRING_DELIMETERS = ['"', "'"]
 
@@ -36,7 +35,7 @@ def isValidArg(arg:str) -> str:
             return True
     return False
 
-def processArg(arg:str, parsedCommandList:list[str], commandKwargs:dict[str, typing.Any]):
+def processArg(arg:str, parsedCommandList:list, commandKwargs:dict):
     """Process an argument. Dependency of `parse` method.
 
     Args:
