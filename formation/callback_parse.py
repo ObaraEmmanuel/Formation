@@ -99,12 +99,12 @@ def parse(command:str):
         commandKwargs[key] = eval(value)
     return commandFunc, commandArgs, commandKwargs, parsedCommandList
 
-if __name__ == "__main__":
-    command = "btn 1"
-    output = parse(command)
-    commandFunc, commandArgs, commandKwargs, parsedCommandList = output
-    print(f"{parsedCommandList = }")
-    print(f"{commandKwargs = }")
-    print(f"{commandArgs = }")
-    print(f"{commandFunc = }")
+# if __name__ == "__main__":
+#     command = "btn 1"
+#     output = parse(command)
+#     commandFunc, commandArgs, commandKwargs, parsedCommandList = output
+#     print(f"{parsedCommandList = }")
+#     print(f"{commandKwargs = }")
+#     print(f"{commandArgs = }")
+#     print(f"{commandFunc = }")
 
