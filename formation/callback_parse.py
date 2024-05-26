@@ -9,6 +9,7 @@
 ##    https://github.com/ObaraEmmanuel/Formation/issues/32   ##
 ###############################################################
 
+import typing
 
 STRING_DELIMETERS = ['"', "'"]
 
@@ -35,7 +36,7 @@ def isValidArg(arg:str) -> str:
             return True
     return False
 
-def processArg(arg:str, parsedCommandList:list, commandKwargs:dict):
+def processArg(arg:str, parsedCommandList:list[str], commandKwargs:dict[str, typing.Any]):
     """Process an argument. Dependency of `parse` method.
 
     Args:
@@ -59,6 +60,9 @@ def processArg(arg:str, parsedCommandList:list, commandKwargs:dict):
             return
     parsedCommandList.append(arg)
 
+def parseHelper(*args, **kwargs):
+    return args, kwargs
+
 def parse(command:str):
     """Returns parts of a command after parsing it using eval method.
 
@@ -66,43 +70,27 @@ def parse(command:str):
         `command (str): . . ` command string.
     
     Command String Syntax:
-    	`funcname 1 "arg2" kwarg1="hello" kwarg2="world!"`
+    	`funcname 1 "arg2",kwarg1="hello",kwarg2="world!"`
 
     Returns:
         `commandFunc (str) : . . . . `name of the function.
         `commandArgs (list): . . . . `values of regular arguments.
         `commandKwargs (dict): . . . `values of kwargs.
-        `parsedCommandList (list): . `values of raw parse.
     """
-    commandList = command.split(' ')
-    commandKwargs = {}
-    parsedCommandList = []
-    currentArg = ""
-    for part in commandList:
-        if not isValidArg(part):
-            currentArg += (" " if currentArg else "") + part
-            
-            if isValidArg(currentArg):
-                processArg(currentArg, parsedCommandList, commandKwargs)
-                currentArg = ""
-            continue
-        else:
-            currentArg = ""
-        processArg(part, parsedCommandList, commandKwargs)
-
-    commandFunc:str = parsedCommandList[0]
-    commandArgs:list = parsedCommandList[1:]
-    commandArgs = [eval(x) for x in commandArgs]
-
-    for key, value in commandKwargs.items():
-        commandKwargs[key] = eval(value)
-    return commandFunc, commandArgs, commandKwargs, parsedCommandList
+    commandList:list = command.split(' ')
+    commandFunc: str = commandList[0]
+    commandList.pop(0)
+    commandString = ""
+    for x in commandList:
+        commandString+=(x+' ')
+    commandString.removesuffix(' ')
+    args, kwargs = eval(f'parseHelper({commandString})')
+    return commandFunc, args, kwargs
 
 # if __name__ == "__main__":
-#     command = "btn 1"
+#     command = "btn 1, 2, 3, 'hello this is a world!', kw1='myKwarg'"
 #     output = parse(command)
-#     commandFunc, commandArgs, commandKwargs, parsedCommandList = output
-#     print(f"{parsedCommandList = }")
+#     commandFunc, commandArgs, commandKwargs = output
 #     print(f"{commandKwargs = }")
 #     print(f"{commandArgs = }")
 #     print(f"{commandFunc = }")
