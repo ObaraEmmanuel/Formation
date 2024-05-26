@@ -9,5 +9,5 @@ As of right now, callbacks can be used with Events and ``command`` fields.
 
 Format
 =======
-**Format**: ``{func_name} {arg1} {arg2} kw1=1, kw2=2``
+**Format**: ``{func_name} {arg1}, {arg2}, kw1=1, kw2=2``
 
