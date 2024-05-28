@@ -12,13 +12,14 @@ from importlib import import_module
 import tkinter as tk
 import tkinter.ttk as ttk
 
-from formation import callback_parse
+
+
 from formation.formats import Node, BaseAdapter, infer_format
 from formation.handlers import dispatch_to_handlers, parse_arg
 from formation.meth import Meth
 from formation.handlers.image import parse_image
 from formation.handlers.scroll import apply_scroll_config
-from formation.utils import is_class_toplevel, is_class_root
+from formation.utils import is_class_toplevel, is_class_root, callback_parse
 import formation
 import functools
 from functools import partial
@@ -429,7 +430,7 @@ class Builder:
         for widget, events in self._event_map.items():
             for event in events:
                 handler_string = event.get("handler")
-                parsed = callback_parse.parse(handler_string)
+                parsed = callback_parse(handler_string)
                 
                 handler = callback_map.get(parsed[0]) # parsed[0] is the function name.
                 if handler is not None:
@@ -443,7 +444,7 @@ class Builder:
                     logger.warning("Callback '%s' not found", parsed[0])
 
         for prop, val, handle_method in self._command_map:
-            parsed = callback_parse.parse(val)
+            parsed = callback_parse(val)
             handler = callback_map.get(parsed[0]) # parsed[0] is the function name.
             if handle_method is None:
                 raise ValueError("Handle method is None, unable to apply binding")
