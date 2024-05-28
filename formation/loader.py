@@ -440,7 +440,7 @@ class Builder:
                         event.get("add")
                     )
                 else:
-                    logger.warning("Callback '%s' not found in event_map", parsed[0])
+                    logger.warning("Callback '%s' not found", parsed[0])
 
         for prop, val, handle_method in self._command_map:
             parsed = callback_parse.parse(val)
@@ -451,7 +451,7 @@ class Builder:
                 partial_handler = partial(handler, *parsed[1], **parsed[2]) # parsed[1] is function args/ parsed[2] is function kwargs.
                 handle_method(**{prop: partial_handler})
             else:
-                logger.warning("Callback '%s' not found in command_map", val)
+                logger.warning("Callback '%s' not found", val)
 
     def load_path(self, path):
         """
