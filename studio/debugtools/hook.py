@@ -20,7 +20,9 @@ from studio.ui.highlight import WidgetHighlighter
 from studio.debugtools.defs import Message, marshal, RemoteEvent, unmarshal
 from studio.debugtools.common import extract_base_class
 
-logger = logging.getLogger("Debugger")
+logging.basicConfig()
+logger = logging.getLogger("[HOOK]")
+logger.setLevel(logging.DEBUG)
 
 
 class RemotePipe:
@@ -204,7 +206,7 @@ class DebuggerHook:
         self.transmit(Message("EVENT", payload=marshal({"event": ev, "widget": widget, "data": data})))
 
     def transmit(self, msg):
-        logger.debug(f"Stream transmitting message: {msg}")
+        logger.debug(f"[STRM]: {msg}")
         remove = []
         for client in self._stream_clients:
             try:
@@ -216,10 +218,10 @@ class DebuggerHook:
             self._stream_clients.remove(client)
 
     def sub_server(self, conn):
-        logger.debug("Subserver started")
+        logger.debug("[MISC]: Subserver started")
         while True:
             msg = conn.recv()
-            logger.debug(f"Sub server received message: {msg}")
+            # logger.debug(f"Sub server received message: {msg}")
             if msg == "TERMINATE":
                 self.exit()
                 break
@@ -236,10 +238,10 @@ class DebuggerHook:
             msg = conn.recv()
             if msg == "STREAM":
                 self._stream_clients.append(conn)
-                logger.debug("Stream client connected")
+                logger.debug("[MISC]: Stream client connected")
             elif msg == "SERVER":
                 self._server_clients.append(conn)
-                logger.debug("Server client connected")
+                logger.debug("[MISC]: Server client connected")
                 threading.Thread(target=self.sub_server, args=(conn,), daemon=True).start()
             else:
                 conn.close()
@@ -328,6 +330,9 @@ class DebuggerHook:
         destroy = widget.destroy
 
         def _hook():
+            if widget == self.root:
+                # Root is being deleted so stop emitting events
+                self.enable_hooks = False
             if self.enable_hooks:
                 self.push_event("<<WidgetDeleted>>", widget)
             return destroy()
@@ -402,7 +407,6 @@ class DebuggerHook:
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
     DebuggerHook().run()
 
 

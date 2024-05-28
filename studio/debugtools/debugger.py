@@ -26,7 +26,9 @@ import studio
 
 from tkinterDnD.tk import _init_tkdnd
 
-logger = logging.getLogger("Debugger")
+logging.basicConfig()
+logger = logging.getLogger("[DEBG]")
+logger.setLevel(logging.DEBUG)
 
 
 class Elements(PanedWindow):
@@ -80,13 +82,13 @@ class Debugger(Application):
         self.bind("<<SelectionChanged>>", self.on_selection_changed, True)
 
     def start_server_client(self):
-        logging.debug("Starting server client...")
+        logger.debug("[MISC]: Starting server client...")
         self._server_client = Client(("localhost", 6999), authkey=self.pref.get("IPC::authkey"))
         self._server_client.send("SERVER")
         self._server_client.send(Message("HOOK", payload={"set": "styles", "value": self.style}))
 
     def stream_client(self):
-        logging.debug("Starting stream client...")
+        logger.debug("[MISC]: Starting stream client...")
         self._stream_client = Client(("localhost", 6999), authkey=self.pref.get("IPC::authkey"))
         self._stream_client.send("STREAM")
         while True:
@@ -120,13 +122,14 @@ class Debugger(Application):
         except (ConnectionResetError, ConnectionAbortedError):
             self._server_client = None
             return
+        logger.debug("[SEND]: %s", msg)
         if response:
             try:
                 result = self._server_client.recv()
             except (ConnectionResetError, ConnectionAbortedError, EOFError):
                 self._server_client = None
                 return
-            logger.debug("Received response: %s", result)
+            logger.debug("[RECV]: %s", result)
             if isinstance(result, Exception):
                 raise result
             return unmarshal(result, self)
@@ -198,7 +201,6 @@ class Debugger(Application):
 
 
 def main():
-    logging.basicConfig(level=logging.INFO)
     pref = Preferences.acquire()
     ResourceLoader.load(pref)
     Debugger().mainloop()
