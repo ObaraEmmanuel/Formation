@@ -4,6 +4,7 @@ Contains classes that load formation design files and generate user interfaces
 # ======================================================================= #
 # Copyright (c) 2020 Hoverset Group.                                      #
 # ======================================================================= #
+import functools
 import logging
 import os
 import warnings
@@ -12,17 +13,13 @@ from importlib import import_module
 import tkinter as tk
 import tkinter.ttk as ttk
 
-
-
 from formation.formats import Node, BaseAdapter, infer_format
 from formation.handlers import dispatch_to_handlers, parse_arg
 from formation.meth import Meth
 from formation.handlers.image import parse_image
 from formation.handlers.scroll import apply_scroll_config
-from formation.utils import is_class_toplevel, is_class_root, callback_parse
+from formation.utils import is_class_toplevel, is_class_root, callback_parse, event_handler
 import formation
-import functools
-from functools import partial
 
 logger = logging.getLogger(__name__)
 
@@ -431,10 +428,12 @@ class Builder:
             for event in events:
                 handler_string = event.get("handler")
                 parsed = callback_parse(handler_string)
-                
-                handler = callback_map.get(parsed[0]) # parsed[0] is the function name.
+
+                # parsed[0] is the function name.
+                handler = callback_map.get(parsed[0])
                 if handler is not None:
-                    partial_handler = partial(handler, *parsed[1], **parsed[2]) # parsed[1] is function args/ parsed[2] is function kwargs.
+                    # parsed[1] is function args/ parsed[2] is function kwargs.
+                    partial_handler = functools.partial(event_handler, func=handler, args=parsed[1], kwargs=parsed[2])
                     widget.bind(
                         event.get("sequence"),
                         partial_handler,
@@ -445,11 +444,11 @@ class Builder:
 
         for prop, val, handle_method in self._command_map:
             parsed = callback_parse(val)
-            handler = callback_map.get(parsed[0]) # parsed[0] is the function name.
+            handler = callback_map.get(parsed[0])
             if handle_method is None:
                 raise ValueError("Handle method is None, unable to apply binding")
             if handler is not None:
-                partial_handler = partial(handler, *parsed[1], **parsed[2]) # parsed[1] is function args/ parsed[2] is function kwargs.
+                partial_handler = functools.partial(handler, *parsed[1], **parsed[2])
                 handle_method(**{prop: partial_handler})
             else:
                 logger.warning("Callback '%s' not found", parsed[0])
