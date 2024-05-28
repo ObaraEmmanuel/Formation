@@ -87,7 +87,7 @@ class BaseLoaderAdapter(BaseAdapter):
 
         if hasattr(module, impl):
             return getattr(module, impl)
-        raise AttributeError("class {} not found in module {}".format(impl, module))
+        raise AttributeError("class {}  in module {}".format(impl, module))
 
     @classmethod
     def load(cls, node, builder, parent):
@@ -451,7 +451,7 @@ class Builder:
                 partial_handler = partial(handler, *parsed[1], **parsed[2]) # parsed[1] is function args/ parsed[2] is function kwargs.
                 handle_method(**{prop: partial_handler})
             else:
-                logger.warning("Callback '%s' not found", val)
+                logger.warning("Callback '%s' not found", parsed[0])
 
     def load_path(self, path):
         """
