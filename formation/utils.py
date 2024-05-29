@@ -147,3 +147,26 @@ class CustomPropertyMixin:
             getattr(self, self.prop_info[key]["setter"])(value)
         else:
             super().__setitem__(key, value)
+
+
+def event_handler(e, func, args, kwargs):
+    """
+    A utility function to handle events and pass them to the
+    appropriate callback function with the event object as the first argument.
+    """
+    return func(e, *args, **kwargs)
+
+
+def callback_parse(command: str):
+    """
+    Returns parts of a command after parsing it using eval method.
+
+    :param command: A string in the form ``funcname arg1, arg2, arg3, ..., kwarg1=value, kwarg2=value, ...``
+    :return: A tuple containing (funcname, args, kwargs)
+    """
+
+    command_list: list = command.split(' ')
+    command_func: str = command_list.pop(0)
+    command_string = ",".join(command_list).strip(",")
+    args, kwargs = eval(f'(lambda *args, **kwargs: (args, kwargs))({command_string})')
+    return command_func, args, kwargs

@@ -4,6 +4,7 @@ Contains classes that load formation design files and generate user interfaces
 # ======================================================================= #
 # Copyright (c) 2020 Hoverset Group.                                      #
 # ======================================================================= #
+import functools
 import logging
 import os
 import warnings
@@ -17,7 +18,7 @@ from formation.handlers import dispatch_to_handlers, parse_arg
 from formation.meth import Meth
 from formation.handlers.image import parse_image
 from formation.handlers.scroll import apply_scroll_config
-from formation.utils import is_class_toplevel, is_class_root
+from formation.utils import is_class_toplevel, is_class_root, callback_parse, event_handler
 import formation
 
 logger = logging.getLogger(__name__)
@@ -84,7 +85,7 @@ class BaseLoaderAdapter(BaseAdapter):
 
         if hasattr(module, impl):
             return getattr(module, impl)
-        raise AttributeError("class {} not found in module {}".format(impl, module))
+        raise AttributeError("class {}  in module {}".format(impl, module))
 
     @classmethod
     def load(cls, node, builder, parent):
@@ -425,24 +426,32 @@ class Builder:
             }
         for widget, events in self._event_map.items():
             for event in events:
-                handler = callback_map.get(event.get("handler"))
+                handler_string = event.get("handler")
+                parsed = callback_parse(handler_string)
+
+                # parsed[0] is the function name.
+                handler = callback_map.get(parsed[0])
                 if handler is not None:
+                    # parsed[1] is function args/ parsed[2] is function kwargs.
+                    partial_handler = functools.partial(event_handler, func=handler, args=parsed[1], kwargs=parsed[2])
                     widget.bind(
                         event.get("sequence"),
-                        handler,
+                        partial_handler,
                         event.get("add")
                     )
                 else:
-                    logger.warning("Callback '%s' not found", event.get("handler"))
+                    logger.warning("Callback '%s' not found", parsed[0])
 
         for prop, val, handle_method in self._command_map:
-            handler = callback_map.get(val)
+            parsed = callback_parse(val)
+            handler = callback_map.get(parsed[0])
             if handle_method is None:
                 raise ValueError("Handle method is None, unable to apply binding")
             if handler is not None:
-                handle_method(**{prop: handler})
+                partial_handler = functools.partial(handler, *parsed[1], **parsed[2])
+                handle_method(**{prop: partial_handler})
             else:
-                logger.warning("Callback '%s' not found", val)
+                logger.warning("Callback '%s' not found", parsed[0])
 
     def load_path(self, path):
         """
