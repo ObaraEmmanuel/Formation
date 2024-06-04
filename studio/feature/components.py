@@ -262,6 +262,9 @@ class ComponentPane(BaseFeature):
         self._selectors = []
         self._selected = None
         self._component_cache = None
+        self._is_searching = False
+        self._matching_components = []
+        self._last_query = ""
         self._extern_groups = []
         self.collect_groups(self.get_pref("widget_set"))
         # add custom widgets config to settings
@@ -414,15 +417,16 @@ class ComponentPane(BaseFeature):
         self._component_cache = None
         self.set_pref("widget_set", widget_set)
 
-    def get_components(self):
+    def get_components(self) -> set:
         if self._component_cache:
-            # cache hit
             return self._component_cache
-        # flatten component pool and store to cache
-        self._component_cache = [j for i in self._pool.values() for j in i]
-        self._component_cache.extend(
-            [item for g in self._extern_groups for item in g.components]
-        )
+        components = []
+        for selector in self._selectors:
+            if isinstance(selector.group, ComponentGroup):
+                components.extend(selector.group.components)
+            else:
+                components.extend(self._pool[selector.name])
+        self._component_cache = set(components)
         return self._component_cache
 
     def select(self, selector):
@@ -507,9 +511,17 @@ class ComponentPane(BaseFeature):
 
     def on_widget_select(self, _):
         self.render_extern_groups()
+        # invalidate cache so it has to be regenerated
+        self._component_cache = None
+        if self._is_searching:
+            self.hide_selectors()
+            # Reapply search query to possibly new components
+            self.on_search_query(self._last_query)
+            return
 
     def start_search(self, *_):
         super().start_search()
+        self._is_searching = True
         self._widget_pane.scroll_to_start()
         if self._selected is not None:
             self._selected.deselect()
@@ -524,11 +536,20 @@ class ComponentPane(BaseFeature):
         if self._selectors:
             self.select(self._selectors[0])
         self._search_selector.pack_forget()
+        self._is_searching = False
         self.show_selectors()
 
     def on_search_query(self, query):
+        self._last_query = query
+        components: set = self.get_components()
+        # remove any components that are no longer available due to group changes
+        for component in set(self._matching_components) - components:
+            component.pack_forget()
+
+        self._matching_components.clear()
         for component in self.get_components():
             if query.lower() in component.component.display_name.lower():
+                self._matching_components.append(component)
                 component.pack(side="top", pady=2, fill="x")
             else:
                 component.pack_forget()
