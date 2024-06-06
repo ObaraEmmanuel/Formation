@@ -428,6 +428,9 @@ class Builder:
             for event in events:
                 handler_string = event.get("handler")
                 parsed = callback_parse(handler_string)
+                if parsed is None:
+                    logger.warning("Callback string '%s' is malformed", handler_string)
+                    continue
 
                 # parsed[0] is the function name.
                 handler = callback_map.get(parsed[0])
@@ -444,6 +447,9 @@ class Builder:
 
         for prop, val, handle_method in self._command_map:
             parsed = callback_parse(val)
+            if parsed is None:
+                logger.warning("Callback string '%s' is malformed", val)
+                continue
             handler = callback_map.get(parsed[0])
             if handle_method is None:
                 raise ValueError("Handle method is None, unable to apply binding")

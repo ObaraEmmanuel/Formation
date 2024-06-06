@@ -1,0 +1,267 @@
+{
+    "attrib": {
+        "attr": {
+            "layout": "place"
+        }, 
+        "layout": {
+            "height": 362, 
+            "width": 200, 
+            "x": 30, 
+            "y": 30
+        }, 
+        "name": "tk_1"
+    }, 
+    "children": [
+        {
+            "attrib": {
+                "name": "title"
+            }, 
+            "children": [
+                {
+                    "attrib": {
+                        "value": "title"
+                    }, 
+                    "type": "arg"
+                }
+            ], 
+            "type": "meth"
+        }, 
+        {
+            "attrib": {
+                "name": "geometry"
+            }, 
+            "children": [
+                {
+                    "attrib": {
+                        "value": "200x329+0+0"
+                    }, 
+                    "type": "arg"
+                }
+            ], 
+            "type": "meth"
+        }, 
+        {
+            "attrib": {
+                "major": "7", 
+                "minor": "0", 
+                "name": "version"
+            }, 
+            "type": "meta"
+        }, 
+        {
+            "attrib": {
+                "attr": {
+                    "layout": "grid"
+                }, 
+                "layout": {
+                    "bordermode": "outside", 
+                    "height": "296", 
+                    "width": "160", 
+                    "x": 18, 
+                    "y": 28
+                }, 
+                "name": "frame_1"
+            }, 
+            "children": [
+                {
+                    "attrib": {
+                        "attr": {
+                            "command": "single_arg(1)", 
+                            "font": "{Segoe UI} 13 {}", 
+                            "relief": "flat", 
+                            "text": "1"
+                        }, 
+                        "layout": {
+                            "column": 0, 
+                            "height": 0, 
+                            "row": 0, 
+                            "width": 0
+                        }, 
+                        "name": "b1"
+                    }, 
+                    "children": [
+                        {
+                            "attrib": {
+                                "add": "False", 
+                                "handler": "single_arg(1)", 
+                                "sequence": "<Button-1>"
+                            }, 
+                            "type": "event"
+                        }
+                    ], 
+                    "type": "tkinter.Button"
+                }, 
+                {
+                    "attrib": {
+                        "attr": {
+                            "command": "single_arg(2)", 
+                            "font": "{Segoe UI} 13 {}", 
+                            "relief": "flat", 
+                            "text": "2"
+                        }, 
+                        "layout": {
+                            "column": 1, 
+                            "height": 0, 
+                            "row": 1, 
+                            "width": 0
+                        }, 
+                        "name": "b2"
+                    }, 
+                    "children": [
+                        {
+                            "attrib": {
+                                "add": "False", 
+                                "handler": "single_arg(int(2))", 
+                                "sequence": "<Button-1>"
+                            }, 
+                            "type": "event"
+                        }
+                    ], 
+                    "type": "tkinter.Button"
+                }, 
+                {
+                    "attrib": {
+                        "attr": {
+                            "command": "single_arg(3)", 
+                            "font": "{Segoe UI} 13 {}", 
+                            "relief": "flat", 
+                            "text": "3"
+                        }, 
+                        "layout": {
+                            "column": 2, 
+                            "height": 0, 
+                            "row": 2, 
+                            "width": 0
+                        }, 
+                        "name": "b3"
+                    }, 
+                    "children": [
+                        {
+                            "attrib": {
+                                "add": "False", 
+                                "handler": "single_arg(3)", 
+                                "sequence": "<Button-1>"
+                            }, 
+                            "type": "event"
+                        }
+                    ], 
+                    "type": "tkinter.Button"
+                }, 
+                {
+                    "attrib": {
+                        "attr": {
+                            "command": "single_arg(4)", 
+                            "font": "{Segoe UI} 13 {}", 
+                            "relief": "flat", 
+                            "text": "4"
+                        }, 
+                        "layout": {
+                            "column": 1, 
+                            "height": 0, 
+                            "row": 3, 
+                            "width": 0
+                        }, 
+                        "name": "b4"
+                    }, 
+                    "children": [
+                        {
+                            "attrib": {
+                                "add": "False", 
+                                "handler": "single_arg(4)", 
+                                "sequence": "<Button-1>"
+                            }, 
+                            "type": "event"
+                        }
+                    ], 
+                    "type": "tkinter.Button"
+                }, 
+                {
+                    "attrib": {
+                        "attr": {
+                            "command": "dual_arg(5,6 )", 
+                            "font": "{Segoe UI} 13 {}", 
+                            "relief": "flat", 
+                            "text": "5 and 6"
+                        }, 
+                        "layout": {
+                            "column": 1, 
+                            "height": 0, 
+                            "row": 4, 
+                            "width": 0
+                        }, 
+                        "name": "b56"
+                    }, 
+                    "children": [
+                        {
+                            "attrib": {
+                                "add": "False", 
+                                "handler": "dual_arg(5,6)", 
+                                "sequence": "<Button-1>"
+                            }, 
+                            "type": "event"
+                        }
+                    ], 
+                    "type": "tkinter.Button"
+                }, 
+                {
+                    "attrib": {
+                        "attr": {
+                            "command": "kwarg(text = 'seven')", 
+                            "font": "{Segoe UI} 13 {}", 
+                            "relief": "flat", 
+                            "text": "seven"
+                        }, 
+                        "layout": {
+                            "column": 1, 
+                            "height": 0, 
+                            "row": 5, 
+                            "width": 0
+                        }, 
+                        "name": "b7"
+                    }, 
+                    "children": [
+                        {
+                            "attrib": {
+                                "add": "False", 
+                                "handler": "kwarg(text=\"seven\")", 
+                                "sequence": "<Button-1>"
+                            }, 
+                            "type": "event"
+                        }
+                    ], 
+                    "type": "tkinter.Button"
+                }, 
+                {
+                    "attrib": {
+                        "attr": {
+                            "command": "mixed_arg(6, \"yes\", text='seven' ,num = 5)", 
+                            "font": "{Segoe UI} 13 {}", 
+                            "relief": "flat", 
+                            "text": "mixed"
+                        }, 
+                        "layout": {
+                            "column": 1, 
+                            "height": 0, 
+                            "row": 6, 
+                            "width": 0
+                        }, 
+                        "name": "b8"
+                    }, 
+                    "children": [
+                        {
+                            "attrib": {
+                                "add": "False", 
+                                "handler": "mixed_arg(6, \"yes\", text='seven' ,num = 5)", 
+                                "sequence": "<Button-1>"
+                            }, 
+                            "type": "event"
+                        }
+                    ], 
+                    "type": "tkinter.Button"
+                }
+            ], 
+            "type": "tkinter.ttk.Frame"
+        }
+    ], 
+    "type": "tkinter.Tk"
+}

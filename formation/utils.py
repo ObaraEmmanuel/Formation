@@ -1,7 +1,9 @@
 # ======================================================================= #
 # Copyright (C) 2022 Hoverset Group.                                      #
 # ======================================================================= #
+import keyword
 import tkinter as tk
+import re
 
 
 def is_class_toplevel(cls):
@@ -157,16 +159,29 @@ def event_handler(e, func, args, kwargs):
     return func(e, *args, **kwargs)
 
 
+_callback_rgx = re.compile(r"^([a-zA-Z_][a-zA-Z_0-9]*)\((.*)\)$")
+
+
 def callback_parse(command: str):
     """
     Returns parts of a command after parsing it using eval method.
 
-    :param command: A string in the form ``funcname arg1, arg2, arg3, ..., kwarg1=value, kwarg2=value, ...``
-    :return: A tuple containing (funcname, args, kwargs)
+    :param command: A string in the form ``funcname(arg1, arg2, arg3, ..., kwarg1=value, kwarg2=value, ...)`` or
+    just ``funcname``
+    :return: A tuple containing (funcname, args, kwargs) or None if parsing was unsuccessful
     """
+    if command.isidentifier() and not keyword.iskeyword(command):
+        return command, (), {}
 
-    command_list: list = command.split(' ')
-    command_func: str = command_list.pop(0)
-    command_string = ",".join(command_list).strip(",")
-    args, kwargs = eval(f'(lambda *args, **kwargs: (args, kwargs))({command_string})')
-    return command_func, args, kwargs
+    match = _callback_rgx.match(command)
+    if match:
+        command_func, command_string = match.groups()
+        if keyword.iskeyword(command_func):
+            return None
+        try:
+            args, kwargs = eval(f'(lambda *args, **kwargs: (args, kwargs))({command_string})')
+            return command_func, args, kwargs
+        except Exception:
+            return None
+
+    return None
