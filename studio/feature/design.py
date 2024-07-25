@@ -405,9 +405,14 @@ class Designer(DesignPad, Container):
         )
 
     def _refresh_container_sort(self):
+        # sort containers by level so containers on the front are considered
+        # first when deciding where to place a widget
+        # If containers are at the same level, sort by index in the layout to
+        # respect the stacking order
         self._sorted_containers = sorted(
             filter(lambda x: isinstance(x, Container) and x not in self._move_selection, self.objects),
-            key=lambda x: -x.level
+            key=lambda x: (x.level, x.layout.layout_strategy.children.index(x)),
+            reverse=True
         )
 
     def _on_handle_active_start(self, widget, direction):
