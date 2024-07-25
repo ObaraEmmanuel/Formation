@@ -18,11 +18,38 @@ import code
 
 from studio.ui.highlight import WidgetHighlighter
 from studio.debugtools.defs import Message, marshal, RemoteEvent, unmarshal
-from studio.debugtools.common import extract_base_class
+from studio.debugtools.common import extract_base_class, get_logging_level
 
-logging.basicConfig()
-logger = logging.getLogger("[HOOK]")
-logger.setLevel(logging.DEBUG)
+
+class _BypassedLogger:
+    """
+    A rudimentary logger that writes directly to stdout and stderr. This is
+    necessary to avoid recursion errors when piping logs from the app to IPC
+    """
+    def __init__(self, name, level, stdout, stderr):
+        self.stdout = stdout
+        self.stderr = stderr
+        self.level = level
+        self.name = name
+
+    def _log(self, msg, level):
+        if level >= self.level:
+            print(msg, file=self.stdout, flush=True)
+
+    def debug(self, msg):
+        self._log(f"DEBUG:{self.name}:{msg}", logging.DEBUG)
+
+    def error(self, msg):
+        self._log(f"ERROR:{self.name}:{msg}", logging.ERROR)
+
+    def info(self, msg):
+        self._log(f"INFO:{self.name}:{msg}", logging.INFO)
+
+    def warning(self, msg):
+        self._log(f"WARNING:{self.name}:{msg}", logging.WARNING)
+
+
+logger = _BypassedLogger("[HOOK]", get_logging_level(), sys.stdout, sys.stderr)
 
 
 class RemotePipe:
@@ -34,7 +61,10 @@ class RemotePipe:
         self.reading = False
 
     def _call(self, method, *args):
-        self.hook.transmit(Message("CONSOLE", payload=marshal({"tag": self.tag, "action": method, "args": args})))
+        self.hook.transmit(Message(
+            "CONSOLE",
+            payload=marshal({"tag": self.tag, "action": method, "args": args})
+        ))
 
     def write(self, data):
         self._call("write", data)
@@ -49,9 +79,13 @@ class RemotePipe:
         self._call("clear")
 
     def readline(self):
-        self.hook.transmit(Message("CONSOLE", payload=marshal({"note": "START_STDIN_READ"})))
+        self.hook.transmit(
+            Message("CONSOLE", payload=marshal({"note": "START_STDIN_READ"}))
+        )
         line = self.buffer.get()
-        self.hook.transmit(Message("CONSOLE", payload=marshal({"note": "STOP_STDIN_READ"})))
+        self.hook.transmit(
+            Message("CONSOLE", payload=marshal({"note": "STOP_STDIN_READ"}))
+        )
         return line
 
 
@@ -75,7 +109,8 @@ class DebuggerAPI:
     @property
     def selected(self) -> tkinter.Widget:
         """
-        Get the first selected widget in the debugger. Useful when only one widget is selected
+        Get the first selected widget in the debugger. Useful when only one
+        widget is selected
         """
         if self.__hook.selection:
             return self.__hook.selection[0]
@@ -96,7 +131,9 @@ class DebuggerHook:
         self.root = None
         self.active_widget = None
         self.enable_hooks = True
-        self.listener = Listener(('localhost', 6999), authkey=pref.get("IPC::authkey"))
+        self.listener = Listener(
+            ('localhost', 6999), authkey=pref.get("IPC::authkey")
+        )
         self._handle_map = {}
         self.styles = None
         self._allow_hover = False
@@ -107,7 +144,9 @@ class DebuggerHook:
             "stderr": RemotePipe(self, "stderr"),
             "stdin": RemotePipe(self, "stdin")
         }
-        self.orig_stdout, self.orig_stderr, self.orig_stdin = sys.stdout, sys.stderr, sys.stdin
+        self.orig_stdout, self.orig_stderr, self.orig_stdin = (
+            sys.stdout, sys.stderr, sys.stdin
+        )
         sys.stdout = self.pipes["stdout"]
         sys.stderr = self.pipes["stderr"]
         sys.stdin = self.pipes["stdin"]
@@ -132,7 +171,9 @@ class DebuggerHook:
         toplevel = widget.winfo_toplevel()
         if toplevel not in self._handle_map:
             self.enable_hooks = False
-            self._handle_map[toplevel] = highlighter = WidgetHighlighter(toplevel, self.styles)
+            self._handle_map[toplevel] = highlighter = WidgetHighlighter(
+                toplevel, self.styles
+            )
             for elem in highlighter.elements:
                 setattr(elem, "_dbg_ignore", True)
             self.enable_hooks = True
@@ -148,7 +189,9 @@ class DebuggerHook:
         threading.Thread(target=self.server, daemon=True).start()
         subprocess.Popen(
             [sys.executable, "-m", "studio.debugtools"],
-            stdout=self.orig_stdout, stderr=self.orig_stderr, stdin=self.orig_stdin
+            stdout=self.orig_stdout,
+            stderr=self.orig_stderr,
+            stdin=self.orig_stdin
         )
         tkinter.Misc.bind_all(self.root, "<Motion>", self.on_motion)
         tkinter.Misc.bind_all(self.root, "<Button-1>", self.on_widget_tap)
@@ -203,7 +246,10 @@ class DebuggerHook:
     def push_event(self, ev, widget=None, data=None):
         if data:
             data = RemoteEvent(data)
-        self.transmit(Message("EVENT", payload=marshal({"event": ev, "widget": widget, "data": data})))
+        self.transmit(Message(
+            "EVENT",
+            payload=marshal({"event": ev, "widget": widget, "data": data})
+        ))
 
     def transmit(self, msg):
         logger.debug(f"[STRM]: {msg}")
@@ -242,7 +288,9 @@ class DebuggerHook:
             elif msg == "SERVER":
                 self._server_clients.append(conn)
                 logger.debug("[MISC]: Server client connected")
-                threading.Thread(target=self.sub_server, args=(conn,), daemon=True).start()
+                threading.Thread(
+                    target=self.sub_server, args=(conn,), daemon=True
+                ).start()
             else:
                 conn.close()
 
@@ -251,7 +299,10 @@ class DebuggerHook:
         msg.payload = unmarshal(msg.payload, self)
         if "meth" in msg.payload:
             conn.send(marshal(
-                getattr(obj, msg.payload["meth"])(*msg.payload.get("args", []), **msg.payload.get("kwargs", {}))
+                getattr(obj, msg.payload["meth"])(
+                    *msg.payload.get("args", []),
+                    **msg.payload.get("kwargs", {})
+                )
             ))
         elif "get" in msg.payload:
             conn.send(marshal(getattr(obj, msg.payload["get"], None)))
@@ -289,7 +340,9 @@ class DebuggerHook:
             except SystemExit:
                 self.root.after(0, self.exit)
 
-            self.transmit(Message("CONSOLE", payload={"note": "COMMAND_COMPLETE"}))
+            self.transmit(
+                Message("CONSOLE", payload={"note": "COMMAND_COMPLETE"})
+            )
 
         threading.Thread(target=run_command, args=(self.last_compiled,)).start()
         self.last_compiled = None

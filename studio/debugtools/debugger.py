@@ -18,6 +18,7 @@ from studio.debugtools.element_pane import ElementPane
 from studio.debugtools.style_pane import StylePane
 from studio.debugtools.selection import DebugSelection
 from studio.debugtools.console import Console
+from studio.debugtools.common import get_logging_level
 from studio.debugtools.defs import RemoteWidget, Message, unmarshal, RemoteEvent, marshal
 
 from studio.resource_loader import ResourceLoader
@@ -28,7 +29,7 @@ from tkinterDnD.tk import _init_tkdnd
 
 logging.basicConfig()
 logger = logging.getLogger("[DEBG]")
-logger.setLevel(logging.DEBUG)
+logger.setLevel(get_logging_level())
 
 
 class Elements(PanedWindow):
@@ -55,12 +56,18 @@ class Debugger(Application):
         self._widget_map = {}
         self._server_client = None
         self.start_server_client()
-        self.root = self.transmit(Message("HOOK", payload={"get": "root"}), response=True)
+        self.root = self.transmit(Message(
+            "HOOK", payload={"get": "root"}), response=True
+        )
         self.wm_title("Formation Debugger")
         if platform_is(WINDOWS):
-            ICON_PATH = get_resource_path(studio, "resources/images/formation.ico")
+            ICON_PATH = get_resource_path(
+                studio, "resources/images/formation.ico"
+            )
         else:
-            ICON_PATH = get_resource_path(studio, "resources/images/formation_icon.png")
+            ICON_PATH = get_resource_path(
+                studio, "resources/images/formation_icon.png"
+            )
         icon_image = load_tk_image(ICON_PATH)
         self.wm_iconphoto(False, icon_image)
 
@@ -83,18 +90,24 @@ class Debugger(Application):
 
     def start_server_client(self):
         logger.debug("[MISC]: Starting server client...")
-        self._server_client = Client(("localhost", 6999), authkey=self.pref.get("IPC::authkey"))
+        self._server_client = Client(
+            ("localhost", 6999), authkey=self.pref.get("IPC::authkey")
+        )
         self._server_client.send("SERVER")
-        self._server_client.send(Message("HOOK", payload={"set": "styles", "value": self.style}))
+        self._server_client.send(Message(
+            "HOOK", payload={"set": "styles", "value": self.style}
+        ))
 
     def stream_client(self):
         logger.debug("[MISC]: Starting stream client...")
-        self._stream_client = Client(("localhost", 6999), authkey=self.pref.get("IPC::authkey"))
+        self._stream_client = Client(
+            ("localhost", 6999), authkey=self.pref.get("IPC::authkey")
+        )
         self._stream_client.send("STREAM")
         while True:
             try:
                 msg = self._stream_client.recv()
-            except (ConnectionAbortedError, ConnectionResetError):
+            except (ConnectionAbortedError, ConnectionResetError, OSError):
                 self.exit()
                 break
             if msg == "TERMINATE":
@@ -150,7 +163,9 @@ class Debugger(Application):
             if event == "<<WidgetDeleted>>":
                 widget.deleted = True
             if event == "<<SelectionChanged>>":
-                self.elements.element_pane.on_widget_tap(widget, msg.payload["data"])
+                self.elements.element_pane.on_widget_tap(
+                    widget, msg.payload["data"]
+                )
                 suppress = True
 
             if not suppress:
@@ -160,7 +175,9 @@ class Debugger(Application):
             self.console.handle_msg(msg.payload)
 
     def set_hover(self, value):
-        self.transmit(Message("HOOK", payload={"set": "allow_hover", "value": value}))
+        self.transmit(Message(
+            "HOOK", payload={"set": "allow_hover", "value": value}
+        ))
 
     def widget_from_message(self, message):
         if message.id in self._widget_map:
@@ -175,7 +192,9 @@ class Debugger(Application):
         return self._selection
 
     def on_selection_changed(self, _):
-        self.transmit(Message("HOOK", payload={"set": "selection", "value": list(self.selection)}))
+        self.transmit(Message(
+            "HOOK", payload={"set": "selection", "value": list(self.selection)}
+        ))
 
     def highlight_widget(self, widget):
         pass

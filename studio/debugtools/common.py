@@ -1,3 +1,5 @@
+import logging
+import os
 import tkinter
 from tkinter import ttk
 from studio.lib import native, legacy
@@ -41,3 +43,10 @@ def get_resolved_properties(widget):
     base = get_studio_equiv(widget)
     overrides = getattr(base, 'DEF_OVERRIDES', {})
     return get_properties(widget, overrides)
+
+
+def get_logging_level():
+    try:
+        return int(os.environ.get("FORMATION_LOGLEVEL", logging.INFO))
+    except ValueError:
+        return logging.INFO
