@@ -91,6 +91,7 @@ class Handle:
         self.active_direction = None
         self.dots = []
         self.edges = []
+        self.label = None
         self._hover = False
         self._showing = False
         self.allow_move = False
@@ -147,6 +148,8 @@ class Handle:
             return
         for edge in self.edges:
             edge.place_forget()
+        if self.label:
+            self.label.place_forget()
         self._hover = False
         self.redraw()
         if not self._showing:
@@ -209,6 +212,14 @@ class BoxHandle(Handle):
         if self._hover:
             if not self.edges:
                 self.edges = [Edge(self) for _ in range(4)]
+            if not self.label:
+                self.label = tk.Label(self.master, **self.master.style.text_small)
+                self.label.config(bg=self.master.style.colors["accent"], fg="#ffffff")
+            self.label.config(text=f"{self.widget.id}")
+            self.label.place(
+                in_=self.master, bordermode="outside",
+                x=self.widget.winfo_x(), y=self.widget.winfo_y(), anchor="sw"
+            )
             extra = dict(in_=self.widget, bordermode="outside")
             n, s, e, w = self.edges
             n.place(**extra, x=0, y=0, relwidth=1)
