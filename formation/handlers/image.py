@@ -18,7 +18,9 @@ image_props = (
 def _resolve_path(path, base=None):
     path = pathlib.Path(path)
     if not path.is_absolute() and base is not None:
-        path = pathlib.Path(os.path.dirname(base), path)
+        r_path = pathlib.Path(os.path.dirname(base), path)
+        if r_path.exists():
+            return r_path
     return path
 
 

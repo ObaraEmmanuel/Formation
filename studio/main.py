@@ -833,9 +833,10 @@ class StudioApplication(Application):
         ext = ext or '.json'
         path = os.path.join(self.dirs.user_cache_dir, f"temp_design{ext}")
         self.designer.to_tree().write(path)
-        self.current_preview = subprocess.Popen(
-            [sys.executable, "-m", "formation", path],
-        )
+        self.current_preview = subprocess.Popen([
+            sys.executable, "-m", "formation",
+            path, os.path.dirname(self.designer.design_path)
+        ])
 
     def close_preview(self):
         if self.current_preview:
