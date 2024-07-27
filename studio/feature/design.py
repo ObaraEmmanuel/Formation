@@ -542,6 +542,8 @@ class Designer(DesignPad, Container):
             self.studio.widgets_layout_changed(objs)
 
     def set_active_container(self, container):
+        if self.current_container == container:
+            return
         if self.current_container is not None:
             self.current_container.clear_highlight()
         self.current_container = container

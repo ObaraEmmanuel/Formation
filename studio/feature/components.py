@@ -54,13 +54,6 @@ class Component(Frame):
             )
         return super(Component, self).drag_start_pos(event)
 
-    def _adjust_event(self, event):
-        # adjust event position so it appears out the drag window
-        # this allows us to determine studio widget at said position
-        if self.window.drag_window:
-            event.x_root = self.window.drag_window.get_center()[0]
-            event.y_root = self.window.drag_window.pos[1] - 1
-
     def on_drag(self, event):
         if not self.designer:
             return
