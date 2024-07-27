@@ -692,6 +692,7 @@ class Designer(DesignPad, Container):
             self.layout_strategy.add_widget(obj, x=x, y=y, width=width, height=height)
             self.studio.add(obj, None)
 
+        self.studio.selection.set(obj)
         return obj
 
     def paste(self, clipboard, silently=False, paste_to=None):
