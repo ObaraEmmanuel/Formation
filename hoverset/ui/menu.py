@@ -90,8 +90,15 @@ class MenuUtils:
     @classmethod
     def clear_menu(cls, menu):
         # delete previous sub menus
+        if not hasattr(menu, "_hv_menu_cache"):
+            menu._hv_menu_cache = list(menu.winfo_children())
+        else:
+            menu._hv_menu_cache.clear()
+            menu._hv_menu_cache.extend(menu.winfo_children())
+
         for sub_menu in menu.winfo_children():
-            sub_menu.destroy()
+            if isinstance(sub_menu, tk.Menu):
+                sub_menu.delete(0, tk.END)
         menu.delete(0, tk.END)
 
     @classmethod
@@ -184,6 +191,19 @@ class MenuUtils:
             prev = template[0]
 
     @classmethod
+    def _get_menu_obj(cls, parent, **cnf):
+        if not hasattr(parent, "_hv_menu_cache"):
+            parent._hv_menu_cache = []
+
+        if parent._hv_menu_cache:
+            menu = parent._hv_menu_cache.pop()
+            menu.config(**cnf)
+        else:
+            menu = tk.Menu(parent, **cnf)
+
+        return menu
+
+    @classmethod
     def make_dynamic(cls, templates, parent=None, style: StyleDelegator = None, dynamic=True, **cnf):
         """
         Create a dynamic menu object under a tkinter widget parent
@@ -212,7 +232,7 @@ class MenuUtils:
         if style and not platform_is(MAC):
             # styles are not applied consistently on macOS so just suppress them
             cnf.update(style.context_menu)
-        menu = tk.Menu(parent, **cnf)
+        menu = cls._get_menu_obj(parent, **cnf)
 
         def on_post():
             # clear former contents of menu to allow _make_menu to populate it afresh
