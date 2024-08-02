@@ -592,10 +592,7 @@ class Image(Text):
         self._picker.on_click(self._pick)
 
     def _change(self, *_):
-        # Do not broadcast changes for invalid paths
         # TODO Add indicator for invalid paths
-        if not os.path.exists(self.get()):
-            return
         super()._change()
 
     def _pick(self, *_):
