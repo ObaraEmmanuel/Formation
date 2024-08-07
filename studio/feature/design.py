@@ -30,6 +30,7 @@ from studio.i18n import _
 from studio import __version__
 
 from formation.formats import get_file_types
+from formation.themes import get_default_theme, get_theme
 
 
 class DesignLayoutStrategy(PlaceLayoutStrategy):
@@ -130,6 +131,7 @@ class Designer(DesignPad, Container):
         self.config(**self.style.bright, takefocus=True)
         self.objects = []
         self.root_obj = None
+        self.theme = (None, None)
         self.layout_strategy = DesignLayoutStrategy(self)
         self.current_obj = None
         self.current_container = None
@@ -205,6 +207,7 @@ class Designer(DesignPad, Container):
     def clear_studio_bindings(self):
         for binding in self._studio_bindings:
             self.studio.unbind(binding)
+        self._studio_bindings.clear()
 
     def add_studio_binding(self, *args):
         self._studio_bindings.append(self.studio.bind(*args))
@@ -953,6 +956,29 @@ class Designer(DesignPad, Container):
                 lambda _: self._update_stacking(data, True)
             ))
 
+    def set_theme(self, theme, subtheme, silent=True):
+        orig_theme = theme
+        if theme is None:
+            theme = get_default_theme(self)
+        theme = get_theme(theme)
+        if theme:
+            theme.set(subtheme)
+
+        cur_theme, cur_subtheme = self.theme
+        if not silent:
+            self.studio.new_action(Action(
+                lambda _: self.set_theme(cur_theme, cur_subtheme),
+                lambda _: self.set_theme(orig_theme, subtheme)
+            ))
+        elif theme:
+            self.studio.theme_bar.set(theme, subtheme)
+
+        self.theme = orig_theme, subtheme
+
+    def _on_theme_changed(self, _):
+        theme, subtheme = self.studio.theme_bar.get()
+        self.set_theme(theme.name, subtheme, False)
+
     def on_widgets_reorder(self, indices):
         pass
 
@@ -1036,7 +1062,9 @@ class DesignContext(BaseContext):
                 self.designer.open_new()
             self._loaded = True
         self.studio.set_path(self.path)
+        self.designer.set_theme(*self.designer.theme)
         self.designer.add_studio_binding("<<SelectionChanged>>", self.designer._select, "+")
+        self.designer.add_studio_binding("<<ThemeBarChanged>>", self.designer._on_theme_changed)
 
     def on_context_unset(self):
         self.designer.clear_studio_bindings()

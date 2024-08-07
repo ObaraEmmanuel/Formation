@@ -434,6 +434,10 @@ PROPERTY_TABLE = {
         "type": "choice",
         "options": ("normal", "disabled")
     },
+    "style": {
+        "display_name": "style",
+        "type": "text",
+    },
     "tabstyle": {
         "display_name": "tab style",
         "type": "choice",

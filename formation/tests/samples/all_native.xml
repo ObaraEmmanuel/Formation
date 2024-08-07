@@ -1,36 +1,24 @@
-<tkinter.Frame xmlns:attr="http://www.hoversetformationstudio.com/styles/"
-               xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="Frame" attr:layout="place"
-               layout:width="616" layout:height="571" layout:x="33" layout:y="37">
-    <tkinter.ttk.Frame name="Frame_1" attr:relief="groove" attr:layout="place" layout:width="72"
-                       layout:height="54" layout:x="19" layout:y="14"/>
-    <tkinter.ttk.Panedwindow name="Panedwindow_1" attr:orient="horizontal" layout:width="161" layout:height="49"
-                             layout:x="106" layout:y="17"/>
-    <tkinter.ttk.Panedwindow name="Panedwindow_2" attr:orient="vertical" layout:width="161" layout:height="59"
-                             layout:x="106" layout:y="17"/>
-    <tkinter.ttk.Labelframe name="Labelframe_1" attr:text="Labelframe_1" attr:layout="place" layout:width="236"
-                            layout:height="85" layout:x="22" layout:y="81"/>
-    <tkinter.ttk.Notebook name="Notebook_1" layout:width="290" layout:height="145" layout:x="275" layout:y="16"/>
-    <tkinter.ttk.Treeview name="Treeview_1" layout:width="223" layout:height="59" layout:x="28" layout:y="179"/>
-    <tkinter.ttk.Sizegrip name="Sizegrip_1" layout:width="195" layout:height="74"
-                          layout:x="300" layout:y="181"/>
-    <tkinter.ttk.Button name="Button_1" attr:text="Button_1" layout:width="55" layout:height="30" layout:x="36"
-                        layout:y="286"/>
-    <tkinter.ttk.Checkbutton name="Checkbutton_1"
-                             attr:text="Checkbutton_1" layout:width="55" layout:height="30" layout:x="68"
-                             layout:y="334"/>
-    <tkinter.ttk.Label name="Label_1" attr:text="Label_1" layout:width="55" layout:height="30" layout:x="54"
-                       layout:y="375"/>
-    <tkinter.ttk.Menubutton name="Menubutton_1" attr:text="Menubutton_1" layout:width="55" layout:height="30"
-                            layout:x="75" layout:y="424"/>
-    <tkinter.ttk.Progressbar name="Progressbar_1" layout:width="162" layout:height="16"
-                             layout:x="29" layout:y="477"/>
-    <tkinter.ttk.Scrollbar name="Scrollbar_1" layout:width="24" layout:height="164" layout:x="327" layout:y="238"/>
-    <tkinter.ttk.Separator name="Separator_1" layout:width="55" layout:height="30" layout:x="286" layout:y="464"/>
-    <tkinter.ttk.Combobox name="Combobox_1" layout:width="55" layout:height="30" layout:x="424" layout:y="196"/>
-    <tkinter.ttk.Entry name="Entry_1" layout:width="55" layout:height="30" layout:x="453"
-                       layout:y="264"/>
-    <tkinter.ttk.LabeledScale name="LabeledScale_1" layout:width="55" layout:height="30" layout:x="490" layout:y="314"/>
-    <tkinter.ttk.Radiobutton name="Radiobutton_1" attr:text="Radiobutton_1" layout:width="55" layout:height="30"
-                             layout:x="517" layout:y="374"/>
-    <tkinter.ttk.Scale name="Scale_1" layout:width="55" layout:height="30" layout:x="496" layout:y="436"/>
+<?xml version='1.0' encoding='utf-8'?>
+<tkinter.Frame xmlns:attr="http://www.hoversetformationstudio.com/styles/" xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="Frame" attr:layout="place" layout:width="616" layout:height="571" layout:x="33" layout:y="37">
+  <meta major="7" minor="0" name="version"/>
+  <meta theme="alt" name="theme"/>
+  <tkinter.ttk.Frame name="Frame_1" attr:relief="groove" attr:layout="place" layout:width="72" layout:height="54" layout:x="19" layout:y="14"/>
+  <tkinter.ttk.Panedwindow name="Panedwindow_1" attr:orient="horizontal" layout:width="161" layout:height="49" layout:x="106" layout:y="17"/>
+  <tkinter.ttk.Panedwindow name="Panedwindow_2" attr:orient="vertical" layout:width="161" layout:height="59" layout:x="106" layout:y="17"/>
+  <tkinter.ttk.Labelframe name="Labelframe_1" attr:text="Labelframe_1" attr:layout="place" layout:width="236" layout:height="85" layout:x="22" layout:y="81"/>
+  <tkinter.ttk.Notebook name="Notebook_1" layout:width="290" layout:height="145" layout:x="275" layout:y="16"/>
+  <tkinter.ttk.Treeview name="Treeview_1" layout:width="223" layout:height="59" layout:x="28" layout:y="179"/>
+  <tkinter.ttk.Sizegrip name="Sizegrip_1" attr:cursor="size_nw_se" attr:layout="place" layout:width="195" layout:height="74" layout:x="300" layout:y="181"/>
+  <tkinter.ttk.Button name="Button_1" attr:text="Button_1" layout:width="55" layout:height="30" layout:x="36" layout:y="286"/>
+  <tkinter.ttk.Checkbutton name="Checkbutton_1" attr:variable=".!frame3.!panedwindow.!panedwindow.!tabview.!designcontext12.!designer.!checkbutton" attr:text="Checkbutton_1" layout:width="55" layout:height="30" layout:x="68" layout:y="334"/>
+  <tkinter.ttk.Label name="Label_1" attr:text="Label_1" layout:width="55" layout:height="30" layout:x="54" layout:y="375"/>
+  <tkinter.ttk.Menubutton name="Menubutton_1" attr:text="Menubutton_1" layout:width="55" layout:height="30" layout:x="75" layout:y="424"/>
+  <tkinter.ttk.Progressbar name="Progressbar_1" attr:variable="PY_VAR58" attr:value="40" layout:width="162" layout:height="16" layout:x="29" layout:y="477"/>
+  <tkinter.ttk.Scrollbar name="Scrollbar_1" layout:width="24" layout:height="164" layout:x="327" layout:y="238"/>
+  <tkinter.ttk.Separator name="Separator_1" layout:width="55" layout:height="30" layout:x="286" layout:y="464"/>
+  <tkinter.ttk.Combobox name="Combobox_1" layout:width="55" layout:height="30" layout:x="424" layout:y="196"/>
+  <tkinter.ttk.Entry name="Entry_1" attr:cursor="ibeam" layout:width="55" layout:height="30" layout:x="453" layout:y="264"/>
+  <tkinter.ttk.LabeledScale name="LabeledScale_1" layout:width="55" layout:height="30" layout:x="490" layout:y="314"/>
+  <tkinter.ttk.Radiobutton name="Radiobutton_1" attr:text="Radiobutton_1" layout:width="55" layout:height="30" layout:x="517" layout:y="374"/>
+  <tkinter.ttk.Scale name="Scale_1" attr:value="1.0" layout:width="55" layout:height="30" layout:x="496" layout:y="436"/>
 </tkinter.Frame>

@@ -124,6 +124,10 @@ class WidgetCreationTestCase(unittest.TestCase):
         self.assertEqual(str(self.builder.Panedwindow_1["orient"]), tk.HORIZONTAL)
         self.assertEqual(str(self.builder.Panedwindow_2["orient"]), tk.VERTICAL)
 
+    def test_ttk_theme_loading(self):
+        s = ttk.Style()
+        self.assertEqual(s.theme_use(), "alt")
+
     def test_creation(self):
         for widget_class in ttk_supported:
             with self.subTest(widget_class=widget_class):

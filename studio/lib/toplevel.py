@@ -3,6 +3,7 @@
 # ======================================================================= #
 
 import tkinter as tk
+from tkinter import ttk
 
 from hoverset.data.images import get_tk_image
 from studio.lib.pseudo import Groups, Container, _ImageIntercept
@@ -166,7 +167,7 @@ class _Toplevel(tk.Frame):
         self.id = id_
         self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(1, weight=1)
-        self.title = tk.Frame(self, height=30)
+        self.title = tk.Frame(self, height=30, bg="#e1e1e1")
         self.title.grid(row=0, column=0, sticky='ew')
 
         self._menu = None
@@ -180,12 +181,20 @@ class _Toplevel(tk.Frame):
             )
 
         self.label = tk.Label(
-            self.title, text="  title", image=self._images[3], compound="left")
+            self.title, text="  title", image=self._images[3], compound="left",
+            bg="#e1e1e1", fg="#303030"
+        )
         self.label.pack(side="left", padx=5, pady=5)
 
-        tk.Label(self.title, image=self._images[0]).pack(side="right", padx=10, pady=5)
-        tk.Label(self.title, image=self._images[2]).pack(side="right", padx=10, pady=5)
-        tk.Label(self.title, image=self._images[1]).pack(side="right", padx=10, pady=5)
+        tk.Label(
+            self.title, image=self._images[0], bg="#e1e1e1"
+        ).pack(side="right", padx=10, pady=5)
+        tk.Label(
+            self.title, image=self._images[2], bg="#e1e1e1"
+        ).pack(side="right", padx=10, pady=5)
+        tk.Label(
+            self.title, image=self._images[1], bg="#e1e1e1"
+        ).pack(side="right", padx=10, pady=5)
 
         # body has to be sibling of toplevel for positioning to work
         self._window = window = tk.Frame(self, container=True)
@@ -207,7 +216,7 @@ class _Toplevel(tk.Frame):
         self._shadow = tk.Frame(self._toplevel)
         self._shadow.pack(fill='both', expand=True)
         self._shadow_h = self._shadow.winfo_height()
-        embed_frame = getattr(self, "embed_frame_class", tk.Frame)
+        embed_frame = getattr(self, "embed_frame_class", ttk.Frame)
         self.body = embed_frame(master)
         self.body.place(in_=self, anchor='se', relx=1, rely=1, relwidth=1, relheight=1, height=-30)
 

@@ -3,7 +3,7 @@ import math
 from tkinter import ttk, TclError
 
 from hoverset.ui.icons import get_icon_image
-from hoverset.ui.widgets import Canvas, FontStyle, Frame, Entry, Button, Label, ScrollableInterface, EventMask
+from hoverset.ui.widgets import Canvas, FontStyle, Frame, Entry, Button, Label, ScrollableInterface, EventMask, Spinner
 from studio.ui import geometry
 
 
@@ -370,3 +370,52 @@ class Pane(Frame):
 
     def quit_search(self, *_):
         self._search_bar.place_forget()
+
+
+class ThemeBar(Frame):
+
+    def __init__(self, master, **cnf):
+        super(ThemeBar, self).__init__(master, **cnf)
+        self.config(**self.style.surface)
+        self._label = Label(self, **self.style.text_passive, text="Theme")
+        self._label.pack(side="left", fill="y", padx=3)
+        self._theme = Spinner(self)
+        self._theme.pack_propagate(0)
+        self._theme.config(width=100)
+        self._theme.on_change(self._set_theme)
+        self._theme.pack(side="left", fill="y", padx=3)
+        self._sub_theme = Spinner(self)
+        self._sub_theme.pack_propagate(0)
+        self._sub_theme.config(width=50)
+        self._sub_theme.on_change(self._set_subtheme)
+        self._sub_theme.pack(side="left", fill="y")
+
+    def _update_subthemes(self, theme):
+        if not theme.sub_themes:
+            self._sub_theme.pack_forget()
+            return
+        self._sub_theme.pack(side="left", fill="y")
+        self._sub_theme.set_values(theme.sub_themes)
+
+    def _set_subtheme(self, sub_theme):
+        self._theme.get().set(sub_theme)
+        self._sub_theme.set(sub_theme)
+        self.event_generate("<<ThemeBarChanged>>")
+
+    def _set_theme(self, theme):
+        theme.set()
+        self._update_subthemes(theme)
+        self.event_generate("<<ThemeBarChanged>>")
+
+    def load_themes(self, themes):
+        self._theme.set_values(themes)
+
+    def get(self):
+        return self._theme.get(), self._sub_theme.get()
+
+    def set(self, theme, sub_theme=None):
+        theme.set(sub_theme)
+        self._theme.set(theme)
+        self._update_subthemes(theme)
+        if sub_theme:
+            self._sub_theme.set(sub_theme)

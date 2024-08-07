@@ -19,6 +19,7 @@ from formation.meth import Meth
 from formation.handlers.image import parse_image
 from formation.handlers.scroll import apply_scroll_config
 from formation.utils import is_class_toplevel, is_class_root, callback_parse, event_handler
+from formation.themes import get_theme
 import formation
 
 logger = logging.getLogger(__name__)
@@ -287,6 +288,12 @@ class Builder:
         # lazy load variables
         self._load_variables(root_node, self)
         node = self._load_widgets(root_node, self, self._parent)
+        theme = self._meta.get("theme")
+        if theme:
+            theme, sub_theme = theme.get("theme"), theme.get("sub_theme")
+            theme = get_theme(theme)
+            if theme:
+                theme.set(sub_theme)
         self._flush_var_cache()
         if hasattr(self, "_scroll_map"):
             apply_scroll_config(self, self._scroll_map)

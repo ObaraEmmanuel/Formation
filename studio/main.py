@@ -9,7 +9,7 @@ import sys
 import time
 import tkinter
 import webbrowser
-from tkinter import filedialog
+from tkinter import filedialog, ttk
 
 import platformdirs
 import tkinterDnD
@@ -18,6 +18,7 @@ import tkinterDnD
 from studio.i18n import _
 import studio
 from formation.formats import get_file_types, get_file_extensions
+from formation.themes import get_themes, get_theme
 from hoverset.data import actions
 from hoverset.data.images import load_tk_image
 from hoverset.data.keymap import ShortcutManager, CharKey, KeyMap, BlankKey, Symbol
@@ -42,7 +43,7 @@ from studio.selection import Selection
 from studio.tools import ToolManager
 from studio.ui import geometry
 from studio.ui.about import about_window
-from studio.ui.widgets import SideBar
+from studio.ui.widgets import SideBar, ThemeBar
 from studio.updates import Updater
 from studio.external import init_externals
 
@@ -492,6 +493,14 @@ class StudioApplication(Application):
             btn.pack(side="left", padx=3)
             btn.tooltip(action[3])
             ActionNotifier.bind_event("<Button-1>", btn, action[2], text=action[3])
+
+        Frame(self._toolbar, width=1, bg=self.style.colors.get("primarydarkaccent")).pack(
+            side='left', fill='y', pady=3, padx=5)
+
+        self.theme_bar = ThemeBar(self._toolbar)
+        self.theme_bar.pack(side='left', padx=10)
+        self.theme_bar.load_themes(list(get_themes().values()))
+        self.theme_bar.set(get_theme(ttk.Style().theme_use()))
 
     def uninstall(self, feature):
         self.features.remove(feature)

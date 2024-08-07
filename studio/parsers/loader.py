@@ -313,18 +313,24 @@ class DesignBuilder:
 
     def load(self, path, designer):
         self.root = infer_format(path)(path=path).load()
-        self._load_meta(self.root)
+        self._load_meta(self.root, designer)
         self._load_variables(self.root)
         self._loaded_objs.clear()
         root = self._load_widgets(self.root, designer, designer)
         self._post_process(designer)
         return root
 
-    def _load_meta(self, node):
+    def _load_meta(self, node, designer):
         for sub_node in node:
             if sub_node.type == 'meta' and sub_node.attrib.get('name'):
                 meta = dict(sub_node.attrib)
                 self.metadata[meta.pop('name')] = meta
+        theme = self.metadata.get("theme") or {}
+        # run on main thread because some themes require thread-safe
+        # access to the tcl interpreter
+        designer.after(
+            0, lambda: designer.set_theme(theme.get("theme"), theme.get("sub_theme"))
+        )
 
     def _load_variables(self, node):
         for sub_node in node:
@@ -422,6 +428,12 @@ class DesignBuilder:
         # load all required meta here
         _, major, minor = studio.__version__.split(".")
         self._gen_meta_node("version", parent, major=major, minor=minor)
+        theme, sub_theme = self.designer.theme
+        if theme:
+            if sub_theme:
+                self._gen_meta_node("theme", parent, theme=theme, sub_theme=sub_theme)
+            else:
+                self._gen_meta_node("theme", parent, theme=theme)
 
     def _arg_parser(self, arg, typ):
         # bypass image conversion
