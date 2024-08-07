@@ -176,9 +176,15 @@ class PseudoWidget:
 
             # then lift above highest child if any
             if above_this._children and self.layout != above_this:
-                super().lift(above_this._children[-1])
+                try:
+                    super().lift(above_this._children[-1])
+                except tkinter.TclError:
+                    pass
         else:
-            super().lift(above_this)
+            try:
+                super().lift(above_this)
+            except tkinter.TclError:
+                pass
 
     def _on_press(self, event):
         if not self.allow_direct_move and not event.state & EventMask.SHIFT:
@@ -434,9 +440,12 @@ class Container(PseudoWidget):
         return self.master
 
     def lift(self, above_this=None):
-        super().lift(above_this)
-        if self.body != self:
-            self.body.lift(self)
+        try:
+            super().lift(above_this)
+            if self.body != self:
+                self.body.lift(self)
+        except tkinter.TclError:
+            pass
         if self._children:
             self.layout_strategy._update_stacking()
 

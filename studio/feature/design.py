@@ -359,7 +359,7 @@ class Designer(DesignPad, Container):
                 progress.destroy()
             self._verify_version()
 
-    def reload(self, *_):
+    def reload(self, *__):
         if not self.design_path or self.studio.context != self.context:
             return
         if self.has_changed():
