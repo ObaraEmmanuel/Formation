@@ -847,7 +847,7 @@ class StudioApplication(Application):
         self.designer.to_tree().write(path)
         self.current_preview = subprocess.Popen([
             sys.executable, "-m", "formation",
-            path, os.path.dirname(self.designer.design_path)
+            path, os.path.dirname(self.designer.design_path or '')
         ])
 
     def close_preview(self):
