@@ -149,6 +149,7 @@ class EventPane(BaseFeature):
     _defaults = {
         **BaseFeature._defaults,
         "side": "right",
+        "visible": False,
     }
     NO_SELECTION_MSG = _("You have not selected any widget selected")
     NO_EVENT_MSG = _("You have not added any bindings")

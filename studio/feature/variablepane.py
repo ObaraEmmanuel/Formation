@@ -23,7 +23,8 @@ class VariablePane(BaseFeature):
 
     _defaults = {
         **BaseFeature._defaults,
-        "side": "right"
+        "side": "right",
+        "visible": False,
     }
 
     _definitions = {

@@ -93,9 +93,9 @@ class StudioApplication(Application):
         self._clipboard = None
         self.current_preview = None
 
-        self._pane.add(self._left, minsize=320, width=320, sticky='nswe', stretch='never')
-        self._pane.add(self._center, minsize=400, stretch="always", sticky='nswe')
-        self._pane.add(self._right, minsize=320, width=320, sticky='nswe', stretch='never')
+        self._pane.add(self._left, minsize=360, width=320, sticky='nswe', stretch='never')
+        self._pane.add(self._center, stretch="always", sticky='nswe')
+        self._pane.add(self._right, minsize=360, width=320, sticky='nswe', stretch='never')
 
         self._left.restore_size()
         self._right.restore_size()
