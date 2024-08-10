@@ -525,7 +525,7 @@ class StudioApplication(Application):
             feature.pane = pane
             bar.add_feature(feature)
             if feature.get_pref("mode") == "docked":
-                pane.add(feature, minsize=100)
+                pane.add(feature, minsize=300)
             feature.set_pref("side", side)
 
     def install(self, feature) -> BaseFeature:
