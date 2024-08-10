@@ -3341,15 +3341,18 @@ class TabView(Frame):
         else:
             self._overflow.place_forget()
 
+    def see(self, tab):
+        last_index = max(0, len(self._tab_order) - len(self._get_overflow()) - 2)
+        if last_index >= 0:
+            self._tab_order.remove(tab)
+            self._tab_order.insert(last_index, tab)
+            self.event_generate("<<TabOrderChanged>>")
+            self.render_tabs()
+            self.select(tab)
+
     def _make_visible(self, tab):
         def func():
-            last_index = max(0, len(self._tab_order) - len(self._get_overflow()) - 2)
-            if last_index >= 0:
-                self._tab_order.remove(tab)
-                self._tab_order.insert(last_index, tab)
-                self.event_generate("<<TabOrderChanged>>")
-                self.render_tabs()
-                self.select(tab)
+            self.see(tab)
         return func
 
     def malleable(self, flag):

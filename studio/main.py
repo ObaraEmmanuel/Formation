@@ -336,8 +336,11 @@ class StudioApplication(Application):
 
     def add_context(self, context, select=True):
         self.contexts.append(context)
+        index = None
+        if self.tab_view.selected is not None:
+            index = self.tab_view.index(self.tab_view.selected.tab_handle) + 1
         tab = self.tab_view.add(
-            context, None, False, text=context.name, icon=context.icon, closeable=True
+            context, index, False, text=context.name, icon=context.icon, closeable=True
         )
         context.tab_handle = tab
         if select:
