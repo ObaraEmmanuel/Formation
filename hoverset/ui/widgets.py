@@ -607,6 +607,12 @@ class Widget:
     s_window = None  # Static window holder
     __readonly_options = {"class", "container"}
 
+    def register_drop_target(self, target):
+        try:
+            super().register_drop_target(target)
+        except (AttributeError, tk.TclError):
+            pass
+
     def setup(self, _=None):
         """
         It performs the necessary dependency injection and event bindings and
@@ -1459,7 +1465,10 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
                 pass
 
         super().__init__(*args, **kwargs)
-        _init_tkdnd(self)
+        try:
+            _init_tkdnd(self)
+        except tk.TclError:
+            pass
         self.position_ref = Screen(self)
         self.bind_all("<MouseWheel>", self._on_mousewheel, '+')
         # linux bindings
