@@ -145,7 +145,7 @@ class StudioApplication(Application):
             ("command", _("cut"), icon("cut", 18, 18), actions.get('STUDIO_CUT'), {}),
             ("separator",),
             ShowIf(
-                lambda: self.selection and self.selection[0].layout.layout_strategy.stacking_support,
+                lambda: self.selection and self.selection.not_toplevel() and self.selection.is_visual() and self.selection[0].layout.layout_strategy.stacking_support,
                 EnableIf(
                     lambda: self.selection.is_same_parent(),
                     ("command", _("send to back"), icon("send_to_back", 18, 18), actions.get('STUDIO_BACK'), {}),

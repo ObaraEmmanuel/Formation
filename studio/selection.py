@@ -80,6 +80,16 @@ class Selection:
             return False
         return all(w.layout == self.widgets[0].layout for w in self.widgets)
 
+    def is_visual(self) -> bool:
+        if not self.widgets:
+            return False
+        return all(not w.non_visual for w in self.widgets)
+
+    def not_toplevel(self) -> bool:
+        if not self.widgets:
+            return False
+        return all(not w.is_toplevel for w in self.widgets)
+
     def siblings(self, widget):
         if not self.widgets:
             return []

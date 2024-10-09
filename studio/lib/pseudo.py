@@ -104,6 +104,7 @@ class PseudoWidget:
     is_container = False
     allow_direct_move = True
     allow_drag_select = False
+    non_visual = False
     # special handlers (intercepts) for attributes that need additional processing
     # to interface with the studio easily
     _intercepts = {
@@ -136,7 +137,9 @@ class PseudoWidget:
         self.max_size = None
         self.min_size = None
         MenuUtils.bind_context(self, self.__handle_context_menu, add='+')
-        self._handle_cls = getattr(self.__class__, "handle_class", BoxHandle)
+        self._handle_cls = None
+        if not self.non_visual:
+            self._handle_cls = getattr(self.__class__, "handle_class", BoxHandle)
         self._handle = None
 
         self._on_handle_active = getattr(self, "_on_handle_active", None)
@@ -144,10 +147,11 @@ class PseudoWidget:
         self._on_handle_resize = getattr(self, "_on_handle_resize", None)
         self._on_handle_move = getattr(self, "_on_handle_move", None)
 
-        self.bind("<ButtonPress-1>", self._on_press, add='+')
-        self.bind("<ButtonRelease>", self._on_release, add='+')
+        if not self.non_visual:
+            self.bind("<ButtonPress-1>", self._on_press, add='+')
+            self.bind("<ButtonRelease>", self._on_release, add='+')
 
-        self.bind("<Motion>", self._on_drag, add='+')
+            self.bind("<Motion>", self._on_drag, add='+')
 
         self._active = False
         self._select_mode_active = False
@@ -167,6 +171,8 @@ class PseudoWidget:
         return x1, y1, x2, y2
 
     def lift(self, above_this=None):
+        if self.non_visual:
+            return
         if isinstance(above_this, Container):
             # first lift above container if possible
             try:
@@ -429,6 +435,7 @@ class Container(PseudoWidget):
             self.body = self
         self._level = 0
         self._children = []
+        self._non_visual_children = []
         if len(self.LAYOUTS) == 0:
             raise ValueError("No layouts have been defined")
         self.layout_strategy = layouts.PlaceLayoutStrategy(self)
@@ -457,6 +464,10 @@ class Container(PseudoWidget):
     def clear_highlight(self):
         super().clear_highlight()
         self.layout_strategy.clear_indicators()
+
+    @property
+    def all_children(self):
+        return self._children + self._non_visual_children
 
     @property
     def allow_resize(self):
@@ -566,12 +577,21 @@ class Container(PseudoWidget):
         }
 
     def position(self, widget, bounds):
+        if widget.non_visual:
+            return  
         widget.place(in_=self.body, **self.parse_bounds(bounds), bordermode=tkinter.OUTSIDE)
 
     #  =========================================== Rerouting methods ==================================================
 
     def restore_widget(self, widget, restore_point):
+        if widget.non_visual:
+            return
         self.layout_strategy.restore_widget(widget, restore_point)
+
+    def add_non_visual_widget(self, widget):
+        widget.level = self.level + 1
+        widget.layout = self
+        self._non_visual_children.append(widget)
 
     def add_widget(self, widget, bounds=None, **kwargs):
         self.layout_strategy.add_widget(widget, bounds, **kwargs)
@@ -595,6 +615,8 @@ class Container(PseudoWidget):
         self.layout_strategy.resize_widget(widget, direction, delta)
 
     def get_restore(self, widget):
+        if widget.non_visual:
+            return None
         return self.layout_strategy.get_restore(widget)
 
     def remove_widget(self, widget):

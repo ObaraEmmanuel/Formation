@@ -155,6 +155,7 @@ class Menu(PseudoWidget, tk.Menu):
     group = Groups.container
     icon = "menu"
     impl = tk.Menu
+    non_visual = True
 
     def __init__(self, master, id_=None, **kw):
         super().__init__(master, **kw)
@@ -299,6 +300,6 @@ class Text(PseudoWidget, tk.Text):
 
 
 widgets = (
-    Button, Canvas, Checkbutton, Entry, Frame, Label, LabelFrame, Listbox, Menubutton, Message, PanedWindow,
+    Button, Canvas, Checkbutton, Entry, Frame, Label, LabelFrame, Listbox, Menu, Menubutton, Message, PanedWindow,
     Radiobutton, Scale, Scrollbar, Spinbox, Text, Toplevel, Tk
 )

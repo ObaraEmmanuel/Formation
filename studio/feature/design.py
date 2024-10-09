@@ -632,7 +632,9 @@ class Designer(DesignPad, Container):
         obj = obj_class(self, name)
         obj.configure(**attributes)
         self._attach(obj)
-        if bounds is not None:
+        if obj.non_visual:
+            container.add_non_visual_widget(obj)
+        elif bounds is not None:
             container.add_widget(obj, bounds)
         else:
             container.add_widget(obj, **layout)
@@ -676,9 +678,12 @@ class Designer(DesignPad, Container):
         # If the object has a layout which actually the layout at the point of creation prepare and pass it
         # to the layout
         if isinstance(layout, Container):
-            bounds = (x, y, x + width, y + height)
-            bounds = geometry.resolve_bounds(bounds, self)
-            layout.add_widget(obj, bounds)
+            if obj.non_visual:
+                layout.add_non_visual_widget(obj)
+            else:
+                bounds = (x, y, x + width, y + height)
+                bounds = geometry.resolve_bounds(bounds, self)
+                layout.add_widget(obj, bounds)
             self.studio.add(obj, layout)
             restore_point = layout.get_restore(obj)
             # Create an undo redo point if add is not silent
@@ -756,7 +761,7 @@ class Designer(DesignPad, Container):
         if self.root_obj is None:
             self.root_obj = widget
         if isinstance(widget, Container):
-            for child in widget._children:
+            for child in widget.all_children:
                 self._replace_all(child)
 
     def delete(self, widgets, silently=False):
@@ -790,7 +795,7 @@ class Designer(DesignPad, Container):
         if widget in self.objects:
             self.objects.remove(widget)
         if isinstance(widget, Container):
-            for child in widget._children:
+            for child in widget.all_children:
                 self._uproot_widget(child)
 
     def parse_bounds(self, bounds):

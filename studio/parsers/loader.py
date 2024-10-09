@@ -407,6 +407,8 @@ class DesignBuilder:
             adapter = self.get_adapter(widget.__class__)
             node = adapter.generate(widget, parent)
         if isinstance(widget, Container):
+            for child in widget._non_visual_children:
+                self.to_tree(child, node)
             for child in widget._children:
                 self.to_tree(child, node)
         return node
