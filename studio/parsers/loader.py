@@ -38,6 +38,10 @@ class BaseStudioAdapter(BaseAdapter):
         'ttk': native
     }
 
+    _deferred_props = (
+        "menu",
+    )
+
     @classmethod
     def _get_class(cls, node):
         module, impl = node.get_mod_impl()
@@ -69,8 +73,9 @@ class BaseStudioAdapter(BaseAdapter):
         node = Node(parent, get_widget_impl(widget))
         node.attrib['name'] = widget.id
         node["attr"] = attr
-        layout_options = widget.layout.get_altered_options_for(widget)
-        node["layout"] = layout_options
+        if not widget.non_visual:
+            layout_options = widget.layout.get_altered_options_for(widget)
+            node["layout"] = layout_options
 
         scroll_conf = {}
         if isinstance(getattr(widget, "_cnf_x_scroll", None), PseudoWidget):
@@ -120,18 +125,26 @@ class BaseStudioAdapter(BaseAdapter):
     def load(cls, node, designer, parent, bounds=None):
         obj_class = cls._get_class(node)
         attrib = node.attrib
-        styles = attrib.get("attr", {})
+        # use copy to maintain integrity of tree on pop
+        styles = dict(attrib.get("attr", {}))
         if obj_class in (native.VerticalPanedWindow, native.HorizontalPanedWindow):
-            # use copy to maintain integrity of XMLForm on pop
-            styles = dict(styles)
             if 'orient' in styles:
                 styles.pop('orient')
+
+        _deferred_props = []
+        for prop in cls._deferred_props:
+            if prop in styles:
+                _deferred_props.append((prop, styles.pop(prop)))
+
         layout = attrib.get("layout", {})
 
-        old_id = new_id = attrib["name"]
-        if not designer._is_unique_id(old_id):
+        old_id = new_id = attrib.get("name")
+        if not designer._is_unique_id(old_id) or old_id is None:
             new_id = designer._get_unique(obj_class)
         obj = designer.load(obj_class, new_id, parent, styles, layout, bounds)
+
+        for prop, value in _deferred_props:
+            designer._deferred_props.append((prop, value, obj.configure))
 
         # store id cross-mapping for post-processing
         if old_id != new_id:
@@ -185,6 +198,7 @@ class BaseStudioAdapter(BaseAdapter):
 
 class MenuStudioAdapter(BaseStudioAdapter):
     _types = [tk.COMMAND, tk.CHECKBUTTON, tk.RADIOBUTTON, tk.SEPARATOR, tk.CASCADE]
+    _tool = None
 
     @staticmethod
     def get_item_options(menu, index):
@@ -196,20 +210,20 @@ class MenuStudioAdapter(BaseStudioAdapter):
     @classmethod
     def generate(cls, widget: PseudoWidget, parent=None):
         node = BaseStudioAdapter.generate(widget, parent)
-        node.remove_attrib('menu', 'attr')
-        if widget.configure().get('menu')[-1]:
-            menu = widget.nametowidget(widget['menu'])
-            cls._menu_to_xml(node, menu)
+        cls._menu_to_node(node, widget)
         return node
 
     @classmethod
     def load(cls, node, designer, parent, bounds=None):
         widget = BaseStudioAdapter.load(node, designer, parent, bounds)
-        cls._menu_from_xml(node, None, widget)
+        cls._menu_from_node(node, widget)
+        if cls._tool:
+            cls._tool.initialize(widget)
+            cls._tool.rebuild_tree(widget)
         return widget
 
     @classmethod
-    def _menu_from_xml(cls, node, menu=None, widget=None):
+    def _menu_from_node(cls, node, menu):
         for sub_node in node:
             if sub_node.type in _ignore_tags and sub_node.type not in MenuStudioAdapter._types or sub_node.is_var():
                 continue
@@ -222,34 +236,34 @@ class MenuStudioAdapter(BaseStudioAdapter):
                 continue
 
             obj_class = cls._get_class(sub_node)
-            if obj_class == legacy.Menu:
-                menu_obj = obj_class(widget, **attrib.get("attr", {}))
-                if widget:
-                    widget.configure(menu=menu_obj)
-                elif menu:
+            if issubclass(obj_class, legacy.Menu):
+                menu_obj = obj_class(menu, **attrib.get("attr", {}))
+                if menu:
                     menu.add(tk.CASCADE, menu=menu_obj)
                     menu_config(menu, menu.index(tk.END), **attrib.get("menu", {}))
-                cls._menu_from_xml(sub_node, menu_obj)
+                cls._menu_from_node(sub_node, menu_obj)
 
     @classmethod
-    def _menu_to_xml(cls, node, menu: legacy.Menu, **item_opt):
+    def _menu_to_node(cls, node, menu: legacy.Menu):
         if not menu:
             return
         size = menu.index(tk.END)
         if size is None:
             # menu is empty
             size = -1
-        menu_node = Node(node, get_widget_impl(menu))
-        menu_node["attr"] = cls.get_altered_options(menu)
-        menu_node["menu"] = item_opt
         for i in range(size + 1):
             if menu.type(i) == tk.CASCADE:
-                cls._menu_to_xml(menu_node,
-                                 menu.nametowidget(menu.entrycget(i, 'menu')), **cls.get_item_options(menu, i))
+                sub_menu = menu.nametowidget(menu.entrycget(i, 'menu'))
+                menu_node = Node(node, get_widget_impl(sub_menu))
+                menu_node["attr"] = cls.get_altered_options(sub_menu)
+                menu_node["menu"] = cls.get_item_options(menu, i)
+                cls._menu_to_node(
+                    menu_node,
+                    sub_menu,
+                )
             elif menu.type(i) != 'tearoff':
-                sub_node = Node(menu_node, menu.type(i))
+                sub_node = Node(node, menu.type(i))
                 sub_node["menu"] = cls.get_item_options(menu, i)
-        return menu_node
 
 
 class VariableStudioAdapter(BaseStudioAdapter):
@@ -274,11 +288,15 @@ class VariableStudioAdapter(BaseStudioAdapter):
 class DesignBuilder:
 
     _adapter_map = {
-        legacy.Menubutton: MenuStudioAdapter,
-        native.Menubutton: MenuStudioAdapter,
-        legacy.Toplevel: MenuStudioAdapter,
-        legacy.Tk: MenuStudioAdapter
+        legacy.Menu: MenuStudioAdapter,
     }
+
+    _menu_containers = (
+        legacy.Menubutton,
+        native.Menubutton,
+        legacy.Toplevel,
+        legacy.Tk
+    )
 
     def __init__(self, designer):
         self.designer = designer
@@ -312,6 +330,7 @@ class DesignBuilder:
         return self._adapter_map.get(widget_class, BaseStudioAdapter)
 
     def load(self, path, designer):
+        designer._deferred_props = []
         self.root = infer_format(path)(path=path).load()
         self._load_meta(self.root, designer)
         self._load_variables(self.root)
@@ -347,6 +366,7 @@ class DesignBuilder:
         be used instead
         :return:
         """
+        self.designer._deferred_props = []
         self._loaded_objs.clear()
         root = self._load_widgets(node, self.designer, parent, bounds)
         self._post_process(self.designer)
@@ -362,14 +382,15 @@ class DesignBuilder:
         except Exception as e:
             # Append line number causing error before re-raising for easier debugging by user
             raise e.__class__("{}{}".format(line_info, e)) from e
-        if not isinstance(widget, Container):
-            # We don't need to load child tags of non-container widgets
+        if isinstance(widget, legacy.Menu):
+            if node.attrib.get("name") is None:
+                # old-style menu format, so assign it to parent "menu" attribute
+                if isinstance(parent, self._menu_containers):
+                    designer._deferred_props.append(("menu", widget, parent.configure))
             return widget
         for sub_node in node:
             if sub_node.is_var() or sub_node.type in _ignore_tags:
                 # ignore variables and non widget nodes
-                continue
-            if BaseStudioAdapter._get_class(sub_node) == legacy.Menu:
                 continue
             self._load_widgets(sub_node, designer, widget)
         return widget
@@ -392,6 +413,9 @@ class DesignBuilder:
             if hasattr(w, "_cnf_x_scroll"):
                 w._cnf_x_scroll = lookup.get(w._cnf_x_scroll, '')
 
+        for prop, value, handle_method in designer._deferred_props:
+            handle_method(**{prop: lookup.get(value, value)})
+
     def to_tree(self, widget, parent=None, with_node=None):
         """
         Convert a PseudoWidget widget and its children to a node
@@ -406,11 +430,12 @@ class DesignBuilder:
         if node is None:
             adapter = self.get_adapter(widget.__class__)
             node = adapter.generate(widget, parent)
+        for child in widget._non_visual_children:
+            self.to_tree(child, node)
         if isinstance(widget, Container):
-            for child in widget._non_visual_children:
-                self.to_tree(child, node)
             for child in widget._children:
                 self.to_tree(child, node)
+
         return node
 
     def _variables_to_tree(self, parent):

@@ -623,6 +623,7 @@ class CanvasStyleGroup(StyleGroup):
         return {item: {prop: item.cget(prop)} for item in self.cv_items}
 
     def _apply_action(self, prop, value, widgets, data):
+        data = data[0]
         for item in data:
             item.configure(data[item])
             if item._controller:
@@ -665,7 +666,7 @@ class CanvasTreeView(NestedTreeView):
             self._color = self.style.colors["secondary1"]
             self.name_pad.configure(text=self.item.name)
             self.icon_pad.configure(
-                image=icon(self.item.icon, 15, 15)
+                image=icon(self.item.icon, 15, 15, color=self._color)
             )
             self.editable = True
             self.strict_mode = True

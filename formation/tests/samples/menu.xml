@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tkinter.Tk xmlns:attr="http://www.hoversetformationstudio.com/styles/" xmlns:layout="http://www.hoversetformationstudio.com/layouts/" xmlns:menu="http://www.hoversetformationstudio.com/menu" name="tk_1" attr:menu="menu_3" attr:layout="place" layout:width="302" layout:height="301" layout:x="30" layout:y="30">
+  <meth name="title">
+    <arg value="title"/>
+  </meth>
+  <meth name="geometry">
+    <arg value="302x268+0+0"/>
+  </meth>
+  <meta major="7" minor="0" name="version"/>
+  <tkinter.StringVar attr:name="str_var" attr:value=""/>
+  <tkinter.Menu name="menu_3" attr:activeborderwidth="1" attr:borderwidth="1" attr:cursor="" attr:font="{Segoe UI} 9">
+    <tkinter.Menu attr:activeborderwidth="1" attr:borderwidth="1" attr:font="{Segoe UI} 9" attr:tearoff="0" menu:compound="none" menu:label="cascade_3" menu:state="normal">
+      <command menu:compound="none" menu:label="command_11" menu:state="normal"/>
+      <command menu:compound="none" menu:label="command_14" menu:state="normal"/>
+    </tkinter.Menu>
+    <tkinter.Menu attr:activeborderwidth="1" attr:borderwidth="1" attr:font="{Segoe UI} 9" attr:tearoff="0" menu:compound="none" menu:label="cascade_4" menu:state="normal">
+      <command menu:compound="none" menu:label="command_12" menu:state="normal"/>
+      <command menu:compound="none" menu:label="command_15" menu:state="normal"/>
+    </tkinter.Menu>
+    <tkinter.Menu attr:activeborderwidth="1" attr:borderwidth="1" attr:font="{Segoe UI} 9" attr:tearoff="0" menu:compound="none" menu:label="cascade_5" menu:state="normal">
+      <command menu:compound="none" menu:label="command_13" menu:state="normal"/>
+      <command menu:compound="none" menu:label="command_16" menu:state="normal"/>
+    </tkinter.Menu>
+  </tkinter.Menu>
+  <tkinter.Menubutton name="menubutton_1" attr:menu="menu_1" attr:padx="5" attr:pady="4" attr:text="menubutton_1" layout:width="166" layout:height="25" layout:x="69" layout:y="36" layout:bordermode="outside">
+    <tkinter.Menu name="menu_1" attr:activeborderwidth="1" attr:borderwidth="1" attr:font="{Segoe UI} 9" attr:tearoff="0">
+      <command menu:background="green" menu:compound="none" menu:label="command_1" menu:state="normal"/>
+      <command menu:compound="none" menu:label="command_2" menu:state="normal"/>
+      <command menu:compound="none" menu:label="command_3" menu:state="disabled"/>
+      <checkbutton menu:variable="str_var" menu:compound="none" menu:label="check button_1" menu:state="normal"/>
+      <radiobutton menu:value="radio button_1" menu:variable="" menu:compound="none" menu:label="radio button_1" menu:state="normal"/>
+      <separator/>
+      <tkinter.Menu attr:activeborderwidth="1" attr:borderwidth="1" attr:font="{Segoe UI} 9" attr:tearoff="0" menu:compound="none" menu:label="cascade_1" menu:state="normal">
+        <command menu:compound="none" menu:label="command_4" menu:state="normal"/>
+        <checkbutton menu:compound="none" menu:label="check button_2" menu:state="normal"/>
+        <radiobutton menu:value="radio button_2" menu:variable="" menu:compound="none" menu:label="radio button_2" menu:state="normal"/>
+        <separator/>
+        <tkinter.Menu attr:activeborderwidth="1" attr:background="red" attr:borderwidth="1" attr:font="{Segoe UI} 9" attr:tearoff="0" menu:compound="none" menu:label="cascade_2" menu:state="normal">
+          <command menu:compound="none" menu:label="command_5" menu:state="normal"/>
+          <command menu:compound="none" menu:label="command_6" menu:state="normal"/>
+        </tkinter.Menu>
+      </tkinter.Menu>
+    </tkinter.Menu>
+  </tkinter.Menubutton>
+  <tkinter.ttk.Menubutton name="menubutton_2" attr:menu="menu_2" attr:text="menubutton_2" layout:width="180" layout:height="25" layout:x="68" layout:y="91" layout:bordermode="outside">
+    <tkinter.Menu name="menu_2" attr:activeborderwidth="1" attr:borderwidth="1" attr:font="{Segoe UI} 9" attr:foreground="grey20" attr:postcommand="test_command" attr:tearoffcommand="test_command" attr:title="menu_2">
+      <command menu:command="test_command" menu:compound="none" menu:label="command_7" menu:state="normal"/>
+      <command menu:compound="none" menu:label="command_8" menu:state="normal"/>
+      <command menu:compound="none" menu:label="command_9" menu:state="normal"/>
+      <command menu:compound="none" menu:label="command_10" menu:state="normal"/>
+    </tkinter.Menu>
+  </tkinter.ttk.Menubutton>
+  <tkinter.ttk.Menubutton name="menubutton_3" attr:text="menubutton_3" layout:width="185" layout:height="25" layout:x="63" layout:y="149" layout:bordermode="outside">
+    <tkinter.Menu attr:activeborderwidth="1" attr:borderwidth="1" attr:font="{Segoe UI} 9">
+      <command menu:compound="none" menu:label="command_1" menu:state="normal"/>
+      <command menu:compound="none" menu:label="command_2" menu:state="normal"/>
+      <command menu:compound="none" menu:label="command_3" menu:state="normal"/>
+    </tkinter.Menu>
+  </tkinter.ttk.Menubutton>
+</tkinter.Tk>

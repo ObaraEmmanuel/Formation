@@ -458,7 +458,7 @@ class LayoutGroup(StyleGroup):
         self._prev_layout = layout_strategy
 
         if self.widgets:
-            self.label = _("Layout") + f"({self.widgets[0].layout.layout_strategy.name})"
+            self.label = _("Layout") + " " + f"({self.widgets[0].layout.layout_strategy.name})"
         else:
             self.label = _("Layout")
 

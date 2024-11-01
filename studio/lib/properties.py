@@ -1,6 +1,8 @@
 """
 Contains all the widget properties used in the designer and specifies all the styles that can be applied to a widget
 """
+import tkinter
+
 # ======================================================================= #
 # Copyright (C) 2019 Hoverset Group.                                      #
 # ======================================================================= #
@@ -289,6 +291,12 @@ PROPERTY_TABLE = {
         "type": "number",
         "from": -1,
     },
+    "menu": {
+        "display_name": "menu",
+        "type": "widget",
+        "include": [tkinter.Menu],
+        "criteria": "descendant"
+    },
     "offrelief": {
         "display_name": "off relief",
         "type": "relief",
@@ -562,10 +570,6 @@ _unimplemented = {
     },
     "_labelwidget": {
         "display_name": "label widget",
-        "type": "color",
-    },
-    "_menu": {
-        "display_name": "menu",
         "type": "color",
     },
     "_offset": {

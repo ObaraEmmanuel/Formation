@@ -73,6 +73,31 @@ class _IdIntercept:
         return widget.id
 
 
+class _WidgetIntercept:
+
+    __slots__ = []
+
+    @staticmethod
+    def set(widget, value, prop):
+        setattr(widget, f"_wdgt_prop_{prop}", value)
+        try:
+            widget.config(**{prop: value})
+        except:
+            pass
+
+    @staticmethod
+    def get(widget, prop):
+        val = getattr(widget, f"_wdgt_prop_{prop}", "")
+        if isinstance(val, str):
+            try:
+                val = widget.nametowidget(val)
+            except:
+                pass
+        if isinstance(val, PseudoWidget):
+            val = val.id
+        return val
+
+
 class _VariableIntercept:
     __slots__ = []
 
@@ -104,6 +129,7 @@ class PseudoWidget:
     is_container = False
     allow_direct_move = True
     allow_drag_select = False
+    allow_resize = False
     non_visual = False
     # special handlers (intercepts) for attributes that need additional processing
     # to interface with the studio easily
@@ -114,7 +140,8 @@ class PseudoWidget:
         "id": _IdIntercept,
         "textvariable": _VariableIntercept,
         "variable": _VariableIntercept,
-        "listvariable": _VariableIntercept
+        "listvariable": _VariableIntercept,
+        "menu": _WidgetIntercept
     }
     _no_defaults = {
         "text",
@@ -136,6 +163,7 @@ class PseudoWidget:
         self._pos_fix = (0, 0)
         self.max_size = None
         self.min_size = None
+        self._non_visual_children = []
         MenuUtils.bind_context(self, self.__handle_context_menu, add='+')
         self._handle_cls = None
         if not self.non_visual:
@@ -158,6 +186,18 @@ class PseudoWidget:
         self._select_bounds = None
         self.prev_stack_index = None
         self._has_init = True
+
+    @property
+    def layout_strategy(self):
+        return self.layout.layout_strategy
+
+    @layout_strategy.setter
+    def layout_strategy(self, value):
+        pass
+
+    @property
+    def all_children(self):
+        return self._non_visual_children
 
     def set_name(self, name):
         pass
@@ -420,6 +460,26 @@ class PseudoWidget:
     def handle_method(self, name, *args, **kwargs):
         pass
 
+    def react(self, bounds):
+        self.designer.set_active_container(self)
+        self.show_highlight()
+
+    def add_non_visual_widget(self, widget):
+        widget.level = self.level
+        widget.layout = self
+        self._non_visual_children.append(widget)
+
+    def restore_widget(self, widget, restore_point):
+        if widget.non_visual:
+            self.add_non_visual_widget(widget)
+
+    def remove_widget(self, widget):
+        if widget.non_visual:
+            self._non_visual_children.remove(widget)
+
+    def get_restore(self, widget):
+        return None
+
     def __repr__(self):
         return f"{self.__class__.__name__}<{self.id}>"
 
@@ -435,10 +495,9 @@ class Container(PseudoWidget):
             self.body = self
         self._level = 0
         self._children = []
-        self._non_visual_children = []
         if len(self.LAYOUTS) == 0:
             raise ValueError("No layouts have been defined")
-        self.layout_strategy = layouts.PlaceLayoutStrategy(self)
+        self._layout_strategy = layouts.PlaceLayoutStrategy(self)
         self.layout_var = tkinter.StringVar()
         self.layout_var.set(self.layout_strategy.name)
         super().setup_widget()
@@ -464,6 +523,14 @@ class Container(PseudoWidget):
     def clear_highlight(self):
         super().clear_highlight()
         self.layout_strategy.clear_indicators()
+
+    @property
+    def layout_strategy(self):
+        return self._layout_strategy
+
+    @layout_strategy.setter
+    def layout_strategy(self, value):
+        self._layout_strategy = value
 
     @property
     def all_children(self):

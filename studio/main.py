@@ -375,9 +375,31 @@ class StudioApplication(Application):
         if isinstance(self.context, DesignContext):
             return self.context.designer
 
-    def get_widgets(self):
-        if self.designer:
+    def _extract_descendants(self, widget, widget_set):
+        for child in widget.all_children:
+            widget_set.add(child)
+            self._extract_descendants(child, widget_set)
+
+    def get_widgets(self, criteria=None):
+        if not self.designer:
+            return
+
+        if criteria is None:
             return self.designer.objects
+
+        widgets = None
+        for widget in self.selection:
+            descendants = set()
+            if criteria == "descendant":
+                self._extract_descendants(widget, descendants)
+            elif criteria == "child":
+                descendants = set(widget.all_children)
+            if widgets:
+                widgets &= descendants
+            else:
+                widgets = descendants
+
+        return widgets
 
     def _show_empty(self, text):
         if text:

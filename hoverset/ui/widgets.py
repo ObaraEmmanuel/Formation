@@ -1340,7 +1340,8 @@ class ScrolledFrame(ContainerMixin, Widget, ScrollableInterface, ContextMenuMixi
     def clear_children(self):
         # Unmap all children from the frame
         for child in self.body.winfo_children():
-            child.pack_forget()
+            if hasattr(child, "pack_forget"):
+                child.pack_forget()
 
     def _detect_change(self, flag=True):
         # Lets set up the frame to listen to changes in size and update the scrollbars

@@ -153,7 +153,7 @@ class Listbox(PseudoWidget, tk.Listbox):
 class Menu(PseudoWidget, tk.Menu):
     display_name = 'Menu'
     group = Groups.container
-    icon = "menu"
+    icon = "menubutton"
     impl = tk.Menu
     non_visual = True
 
@@ -163,6 +163,10 @@ class Menu(PseudoWidget, tk.Menu):
             id_ = 'menu' + str(self.winfo_id())
         self.id = id_
         self.setup_widget()
+
+    def create_menu(self):
+        from studio.i18n import _
+        return (("cascade", _("Preview"), None, None, {'menu': self}),)
 
 
 class Menubutton(PseudoWidget, tk.Menubutton):

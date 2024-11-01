@@ -45,7 +45,7 @@ class MalleableTree(Tree, ABC):
             self.strip.bind_all("<Motion>", self.drag)
             self.strip.bind_all("<Motion>", self.begin_drag, add='+')
             # use add='+' to avoid overriding the default event which selects nodes
-            self.strip.bind_all("<ButtonRelease-1>", self.end_drag, add='+')
+            # self.strip.bind_all("<ButtonRelease-1>", self.end_drag)
             self.strip.config(**self.style.highlight)  # The highlight on a normal day
             self._on_structure_change = None
             # if true allows node to be dragged and repositioned
@@ -53,6 +53,11 @@ class MalleableTree(Tree, ABC):
             # if true prevents node from being dragged to another tree
             self.strict_mode = False
             self.configuration = config
+
+        def _init_binding(self):
+            for i in (self.name_pad, self.strip):
+                i.bind("<ButtonRelease-1>", self.end_drag)
+                i.bind("<Return>", self.select)
 
         def on_structure_change(self, callback, *args, **kwargs):
             self._on_structure_change = lambda: callback(*args, **kwargs)
@@ -164,6 +169,8 @@ class MalleableTree(Tree, ABC):
                     self.clear_indicators()
                     MalleableTree.drag_highlight = None
                 MalleableTree.drag_active = False
+            else:
+                self.select(event)
 
         def highlight(self):
             MalleableTree.drag_highlight = self
@@ -317,10 +324,13 @@ class NestedTreeView(MalleableTree, Frame):
                 component.config(**self.style.text_secondary1)
             self.name_pad.config(**self.style.text_italic)
 
+        def color(self):
+            return self.style.colors["secondary1"]
+
         def _load_images(self):
             if self.__icons_loaded:
                 return
-            color = self.style.colors["secondary1"]
+            color = self.color()
             cls = self.__class__
             cls.EXPANDED_ICON = get_icon_image("chevron_down", 14, 14, color=color)
             cls.COLLAPSED_ICON = get_icon_image("chevron_right", 14, 14, color=color)

@@ -198,6 +198,7 @@ class Designer(DesignPad, Container):
             self._update_throttling
         )
         self._sorted_containers = []
+        self._sorted_objs = []
         self._realtime_layout_update = False
         self._handle_active_data = None
         # used to maintain id correlation for widget pasting
@@ -417,6 +418,15 @@ class Designer(DesignPad, Container):
             key=lambda x: (x.level, x.layout.layout_strategy.children.index(x)),
             reverse=True
         )
+        # sort objs for non-visual parent tracking
+        self._sorted_objs = sorted(
+            self.objects,
+            key=lambda x: (
+                x.level,
+                -1 if x.non_visual else x.layout.layout_strategy.children.index(x)
+            ),
+            reverse=True
+        )
 
     def _on_handle_active_start(self, widget, direction):
         self._handle_active_data = widget, direction
@@ -572,6 +582,14 @@ class Designer(DesignPad, Container):
         if geometry.is_pos_within(geometry.bounds(self), (x, y)):
             return self
 
+    def widget_at_pos(self, x, y):
+        x, y = geometry.resolve_position((x, y), self)
+        for obj in self._sorted_objs:
+            if geometry.is_pos_within(geometry.bounds(obj), (x, y)):
+                return obj
+        if geometry.is_pos_within(geometry.bounds(self), (x, y)):
+            return self
+
     def show_select_region(self, bounds):
         bounds = geometry.resolve_bounds(bounds, self)
         self._region_highlight.highlight_bounds(bounds)
@@ -677,15 +695,16 @@ class Designer(DesignPad, Container):
         self._attach(obj)  # apply extra bindings required
         # If the object has a layout which actually the layout at the point of creation prepare and pass it
         # to the layout
-        if isinstance(layout, Container):
+        restore_point = None
+        if isinstance(layout, Container) or obj.non_visual:
             if obj.non_visual:
                 layout.add_non_visual_widget(obj)
             else:
                 bounds = (x, y, x + width, y + height)
                 bounds = geometry.resolve_bounds(bounds, self)
                 layout.add_widget(obj, bounds)
+                restore_point = layout.get_restore(obj)
             self.studio.add(obj, layout)
-            restore_point = layout.get_restore(obj)
             # Create an undo redo point if add is not silent
             if not silent:
                 self.studio.new_action(Action(

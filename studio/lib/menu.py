@@ -1,7 +1,19 @@
+import abc
 import logging
 import tkinter as tk
 from hoverset.data.images import load_tk_image
+from studio.lib.properties import get_resolved, PROPERTY_TABLE, WIDGET_IDENTITY
 from studio.lib.variables import VariableManager, VariableItem
+
+__all__ = (
+    "MENU_ITEMS",
+    "Command",
+    "Cascade",
+    "CheckButton",
+    "RadioButton",
+    "Separator",
+    "menu_config"
+)
 
 MENU_PROPERTY_TABLE = {
     "hidemargin": {
@@ -91,7 +103,149 @@ _intercepts = {
 }
 
 
-def menu_config(parent_menu, index, key=None, **kw):
+class MenuItem(abc.ABC):
+    OVERRIDES = {}
+    icon = "menubutton"
+    display_name = "Item"
+    _intercepts = {
+        "image": _ImageIntercept,
+        "selectimage": _ImageIntercept,
+        "variable": _VariableIntercept
+    }
+
+    def __init__(self, menu, index, create=True, **kw):
+        self.menu = menu
+        self._index = index
+        if create:
+            self._create(**kw)
+        self.node = None
+
+    def _create(self, *args, **options):
+        pass
+
+    @property
+    def name(self):
+        if not self.menu:
+            return ""
+        if self.item_type == "separator":
+            return "Separator"
+        return self.menu.entrycget(self.index, "label")
+
+    @property
+    def item_type(self):
+        return self.__class__.__name__.lower()
+
+    def create_menu(self):
+        return ()
+
+    @property
+    def index(self):
+        return self._index + int(self.menu["tearoff"])
+
+    @property
+    def properties(self):
+        conf = self.configure()
+        resolved = {}
+        for prop in conf:
+            definition = get_resolved(
+                prop, self.OVERRIDES, MENU_PROPERTY_TABLE,
+                PROPERTY_TABLE, WIDGET_IDENTITY
+            )
+            if definition:
+                definition["value"] = self.cget(prop)
+                definition["default"] = conf[prop][-2]
+                resolved[prop] = definition
+        return resolved
+
+    def __setitem__(self, key, value):
+        self.configure({key: value})
+
+    def configure(self, cnf=None, **kw):
+        return menu_config(self.menu, self.index, None, cnf, **kw)
+
+    def config(self, cnf=None, **kw):
+        # This allows un-intercepted configuration
+        return self.menu.entryconfigure(self.index, cnf, **kw)
+
+    def __getitem__(self, item):
+        return self.menu.entrycget(self.index, item)
+
+    def cget(self, key):
+        intercept = self._intercepts.get(key)
+        if intercept:
+            return intercept.get(self.menu, self.index, key)
+        return self.menu.entrycget(self.index, key)
+
+    def get_altered_options(self):
+        keys = menu_config(self.menu, self.index)
+        return {key: keys[key][-1] for key in keys if keys[key][-1] != keys[key][-2]}
+
+
+class Command(MenuItem):
+    icon = "play"
+    display_name = "Command"
+
+    def _create(self, **options):
+        super()._create(**options)
+        self.menu.add_command(**options)
+
+
+class Cascade(MenuItem):
+    icon = "menubutton"
+    display_name = "Cascade"
+
+    def __init__(self, menu, index, create=True, **kw):
+        super().__init__(menu, index, create, **kw)
+        self.sub_menu = None
+
+    def _create(self, **options):
+        super()._create(**options)
+        self.menu.add_cascade(**options)
+
+    def create_menu(self):
+        from studio.i18n import _
+        return (
+            ("separator",),
+            ("cascade", _("Preview"), None, None, {'menu': self.sub_menu}),
+        )
+
+
+class CheckButton(MenuItem):
+    icon = "checkbox"
+    display_name = "Check Button"
+
+    def _create(self, **options):
+        super()._create(**options)
+        self.menu.add_checkbutton(**options)
+
+
+class RadioButton(MenuItem):
+    icon = "radiobutton"
+    display_name = "Radio Button"
+
+    def _create(self, **options):
+        super()._create(**options)
+        self.menu.add_radiobutton(**options)
+
+
+class Separator(MenuItem):
+    icon = "line"
+    display_name = "Separator"
+
+    def _create(self, **options):
+        # ignore options
+        super()._create()
+        self.menu.add_separator()
+
+
+MENU_ITEMS = (
+    Command, Cascade, CheckButton, RadioButton, Separator
+)
+
+
+def menu_config(parent_menu, index, key=None, cnf=None, **kw):
+    cnf = cnf or {}
+    kw.update(cnf)
     if not kw:
         if key in _intercepts:
             return _intercepts.get(key).get(parent_menu, index, key)

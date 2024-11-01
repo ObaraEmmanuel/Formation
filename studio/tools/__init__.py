@@ -2,6 +2,7 @@ from functools import partial
 
 from hoverset.ui.menu import ShowIf, EnableIf
 from hoverset.ui.icons import get_icon_image
+from studio.tools.menu import MenuToolX
 from studio.tools.menus import MenuTool
 from studio.tools.canvas import CanvasTool
 from studio.tools._base import BaseTool
@@ -10,6 +11,7 @@ from studio.tools._base import BaseTool
 TOOLS = (
     MenuTool,
     CanvasTool,
+    MenuToolX
 )
 
 
