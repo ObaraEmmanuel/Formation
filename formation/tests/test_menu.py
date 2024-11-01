@@ -59,4 +59,7 @@ class MenuTestCase(unittest.TestCase):
 
     def test_old_format_backwards_compatibility(self):
         mb3 = self.builder.menubutton_3
+        mb4 = self.builder.menubutton_4
+        menu55 = self.builder.menu_55
         self.assertIsInstance(mb3.nametowidget(mb3.cget("menu")), tkinter.Menu)
+        self.assertNotEqual(mb4.nametowidget(mb4.cget("menu")), menu55)
