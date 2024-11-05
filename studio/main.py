@@ -139,7 +139,7 @@ class StudioApplication(Application):
             ("command", _("copy"), icon("copy", 18, 18), actions.get('STUDIO_COPY'), {}),
             ("command", _("duplicate"), icon("blank", 18, 18), actions.get('STUDIO_DUPLICATE'), {}),
             EnableIf(
-                lambda: self._clipboard is not None and len(self.selection) < 2,
+                lambda: self._clipboard is not None and len(self.selection),
                 ("command", _("paste"), icon("clipboard", 18, 18), actions.get('STUDIO_PASTE'), {})
             ),
             ("command", _("cut"), icon("cut", 18, 18), actions.get('STUDIO_CUT'), {}),
@@ -491,10 +491,6 @@ class StudioApplication(Application):
     def get_pane_info(self, pane):
         return self._panes.get(pane, [self._right, self._right_bar])
 
-    def paste(self):
-        if self.designer and self._clipboard is not None:
-            self.designer.paste(self._clipboard)
-
     def close_all_on_side(self, side):
         for feature in self.features:
             if feature._side.get() == side:
@@ -741,11 +737,29 @@ class StudioApplication(Application):
             ))
         return data
 
+    def set_clipboard(self, data, handler=None, key=None):
+        self._clipboard = {
+            "key": key,
+            "data": data,
+            "handler": self.designer.paste if handler is None else handler
+        }
+
+    def get_clipboard(self, key=None):
+        if self._clipboard is None:
+            return None
+        if self._clipboard.get("key") == key:
+            return self._clipboard["data"]
+
     def copy(self):
         if self.designer and self.selection:
             # store the current objects as  nodes in the clipboard
-            self._clipboard = self.make_clipboard(self.selection.compact())
+            self.set_clipboard(self.make_clipboard(self.selection.compact()), key="widget")
         pass
+
+    def paste(self):
+        if self.designer and self._clipboard is not None:
+            if self._clipboard.get("handler"):
+                self._clipboard["handler"](self._clipboard["data"])
 
     def delete(self, widgets=None, source=None):
         widgets = list(self.selection.compact()) if widgets is None else widgets
@@ -774,7 +788,7 @@ class StudioApplication(Application):
         if any(widget in self.selection for widget in widgets):
             self.selection.clear()
 
-        self._clipboard = self.make_clipboard(widgets)
+        self.set_clipboard(self.make_clipboard(widgets))
         if source != self.designer:
             self.designer.delete(widgets)
         for feature in self.features:

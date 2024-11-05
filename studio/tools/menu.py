@@ -219,8 +219,6 @@ class MenuToolX(BaseTool):
 
         self.studio.bind("<<SelectionChanged>>", self.on_select, "+")
 
-        self._clipboard = None
-
         self.keymap = KeyMap(None)
         CTRL = KeyMap.CTRL
         self.routines = (
@@ -247,6 +245,10 @@ class MenuToolX(BaseTool):
                     lambda: self.selected_items[0].create_menu() if len(self.selected_items) == 1 else ()),
             ),
         ), self.studio, self.studio.style)
+
+    @property
+    def _clipboard(self):
+        return self.studio.get_clipboard("menu")
 
     def _evaluator(self, widget):
         return isinstance(widget, Menu) and len(self.studio.selection) == 1
@@ -328,9 +330,10 @@ class MenuToolX(BaseTool):
 
     def copy_items(self):
         if self.selected_items:
-            self._clipboard = [
+            data = [
                 self._deep_copy(item) for item in self.selected_items
             ]
+            self.studio.set_clipboard(data, self.paste_items, "menu")
 
     def _create_paste_items(self, items, nodes, data):
         for item_type, options, sub_items in data:
@@ -348,13 +351,13 @@ class MenuToolX(BaseTool):
                     self._create_paste_items(None, [item.node], sub_items)
 
     def paste_items(self, clipboard=None):
+        if not self.menu:
+            return
         clipboard = self._clipboard if clipboard is None else clipboard
         if not clipboard:
             return
         nodes = [i for i in self.menu._sub_tree.get() if isinstance(i.item, Cascade)]
         if not nodes:
-            if not self.menu:
-                return
             nodes = [self.menu]
         items = []
         self._create_paste_items(items, nodes, clipboard)

@@ -799,7 +799,6 @@ class CanvasTool(BaseTool):
         self._cursor = "arrow"
         self.current_draw = None
         self.selected_items = []
-        self._clipboard = None
         self._latch_pos = 0, 0
 
         self._image_placeholder = icon("image", 60, 60)
@@ -878,6 +877,10 @@ class CanvasTool(BaseTool):
         ), self.studio, self.studio.style)
 
         self.studio.bind("<<SelectionChanged>>", self.on_select, "+")
+
+    @property
+    def _clipboard(self):
+        return self.studio.get_clipboard("canvas")
 
     @property
     def _ids(self):
@@ -1062,7 +1065,7 @@ class CanvasTool(BaseTool):
 
     def copy_items(self):
         if self.selected_items:
-            self._clipboard = self._get_copy_data()
+            self.studio.set_clipboard(self._get_copy_data(), self.paste_items, "canvas")
 
     def cut_items(self):
         if self.selected_items:

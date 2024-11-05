@@ -723,7 +723,7 @@ class Designer(DesignPad, Container):
         return obj
 
     def paste(self, clipboard, silently=False, paste_to=None):
-        if paste_to is None and len(self.studio.selection) != 1:
+        if paste_to is None and not len(self.studio.selection):
             return
 
         if paste_to is None:
@@ -736,9 +736,7 @@ class Designer(DesignPad, Container):
         # slightly displace click position so multiple pastes are still visible
         self._last_click_pos = x + 5, y + 5
 
-        objs = []
-        restore_points = []
-
+        # verify
         for node, bound in clipboard:
             obj_class = BaseStudioAdapter._get_class(node)
             if obj_class.is_toplevel and paste_to != self:
@@ -748,12 +746,22 @@ class Designer(DesignPad, Container):
                 self._show_root_widget_warning()
                 return
 
-            layout = paste_to if isinstance(paste_to, Container) else paste_to.layout
+            layout = paste_to if isinstance(paste_to, Container) or obj_class.non_visual else paste_to.layout
+            if not isinstance(layout, Container) and not obj_class.non_visual:
+                return
+
+        objs = []
+        restore_points = []
+
+        for node, bound in clipboard:
+            obj_class = BaseStudioAdapter._get_class(node)
+            layout = paste_to if isinstance(paste_to, Container) or obj_class.non_visual else paste_to.layout
             bound = geometry.resolve_bounds(geometry.displace(bound, x, y), self)
             obj = self.builder.load_section(node, layout, bound)
             objs.append(obj)
             restore_points.append(layout.get_restore(obj))
-            # Create an undo redo point if add is not silent
+
+        # Create an undo redo point if add is not silent
 
         if not silently:
             self.studio.new_action(Action(
