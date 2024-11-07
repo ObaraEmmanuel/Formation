@@ -91,6 +91,8 @@ class Choice(Editor):
             self._on_change(value)
 
     def set(self, value):
+        if isinstance(value, (tuple, list)):
+            value = " ".join(map(str, value))
         # Convert to string as values of type _tkinter.Tcl_Obj are common in ttk and may cause unpredictable behaviour
         self._spinner.set(str(value))
 

@@ -42,6 +42,9 @@ class Checkbutton(PseudoWidget, ttk.Checkbutton):
     def __init__(self, master, id_):
         super().__init__(master)
         self.id = id_
+        # The default value of the variable is the checkbutton itself
+        # This causes problems when the checkbutton is serialized
+        self.configure(variable="")
         self.setup_widget()
 
     def set_name(self, name):
@@ -65,6 +68,7 @@ class Combobox(PseudoWidget, ttk.Combobox):
     def __init__(self, master, id_):
         super().__init__(master)
         self.id = id_
+        self.configure(cursor="")
         self.setup_widget()
 
     def set_name(self, name):
@@ -241,13 +245,16 @@ class Progressbar(PseudoWidget, ttk.Progressbar):
     icon = "progressbar"
     impl = ttk.Progressbar
     initial_dimensions = 200, 20
+    _temp_init_var = None
 
     def __init__(self, master, id_):
         super().__init__(master)
         self.id = id_
-        self._var = tk.IntVar()
-        self.config(variable=self._var)
-        self._var.set(40)
+        if not self._temp_init_var:
+            self._temp_init_var = tk.IntVar()
+            self._temp_init_var.set(40)
+        self.config(variable=self._temp_init_var)
+        self.config(variable="")
         self.setup_widget()
 
 
@@ -363,6 +370,7 @@ class Treeview(PseudoWidget, ttk.Treeview):
     def __init__(self, master, id_):
         super().__init__(master)
         self.id = id_
+        self.configure(show="tree headings")
         self.setup_widget()
 
 
