@@ -153,8 +153,9 @@ class Listbox(PseudoWidget, tk.Listbox):
 class Menu(PseudoWidget, tk.Menu):
     display_name = 'Menu'
     group = Groups.container
-    icon = "menu"
+    icon = "menubutton"
     impl = tk.Menu
+    non_visual = True
 
     def __init__(self, master, id_=None, **kw):
         super().__init__(master, **kw)
@@ -162,6 +163,10 @@ class Menu(PseudoWidget, tk.Menu):
             id_ = 'menu' + str(self.winfo_id())
         self.id = id_
         self.setup_widget()
+
+    def create_menu(self):
+        from studio.i18n import _
+        return (("cascade", _("Preview"), None, None, {'menu': self}),)
 
 
 class Menubutton(PseudoWidget, tk.Menubutton):
@@ -299,6 +304,6 @@ class Text(PseudoWidget, tk.Text):
 
 
 widgets = (
-    Button, Canvas, Checkbutton, Entry, Frame, Label, LabelFrame, Listbox, Menubutton, Message, PanedWindow,
+    Button, Canvas, Checkbutton, Entry, Frame, Label, LabelFrame, Listbox, Menu, Menubutton, Message, PanedWindow,
     Radiobutton, Scale, Scrollbar, Spinbox, Text, Toplevel, Tk
 )

@@ -50,6 +50,13 @@ _containers = (
     tk.Tk,
 )
 
+_menu_containers = (
+    tk.Menubutton,
+    ttk.Menubutton,
+    tk.Toplevel,
+    tk.Tk,
+)
+
 _menu_item_types = (
     tk.CASCADE,
     tk.COMMAND,
@@ -58,8 +65,21 @@ _menu_item_types = (
     tk.RADIOBUTTON,
 )
 
+_canvas_item_types = (
+    "Arc",
+    "Bitmap",
+    "Image",
+    "Line",
+    "Oval",
+    "Polygon",
+    "Rectangle",
+    "Text",
+    "Window"
+)
+
 _ignore_tags = (
     *_menu_item_types,
+    *_canvas_item_types,
     "event",
     "grid",
     "meta",
@@ -139,11 +159,11 @@ class MenuLoaderAdapter(BaseLoaderAdapter):
     def load(cls, node, builder, parent):
         cls._load_required_fields(node)
         widget = BaseLoaderAdapter.load(node, builder, parent)
-        cls._menu_load(node, builder, None, widget)
+        cls._menu_load(node, builder, widget)
         return widget
 
     @classmethod
-    def _menu_load(cls, node, builder, menu=None, widget=None):
+    def _menu_load(cls, node, builder, menu):
         for sub_node in node:
             if sub_node.type in _ignore_tags and sub_node.type not in _menu_item_types or sub_node.is_var():
                 continue
@@ -160,13 +180,12 @@ class MenuLoaderAdapter(BaseLoaderAdapter):
                 menu.add(sub_node.type)
                 index = menu.index(tk.END)
                 dispatch_to_handlers(menu, attrib, **kwargs, menu=menu, index=index)
-            elif cls._get_class(sub_node) == tk.Menu:
-                obj_class = cls._get_class(sub_node)
-                menu_obj = obj_class(widget)
-                if widget:
-                    widget.configure(menu=menu_obj)
-                    dispatch_to_handlers(menu_obj, attrib, **kwargs)
-                elif menu:
+                continue
+
+            obj_class = cls._get_class(sub_node)
+            if issubclass(obj_class, tk.Menu):
+                menu_obj = obj_class(menu)
+                if menu:
                     menu.add(tk.CASCADE, menu=menu_obj)
                     index = menu.index(tk.END)
                     dispatch_to_handlers(
@@ -194,7 +213,7 @@ class CanvasLoaderAdapter(BaseLoaderAdapter):
     def load(cls, node, builder, parent):
         canvas = BaseLoaderAdapter.load(node, builder, parent)
         for sub_node in node:
-            if sub_node.type in _ignore_tags or sub_node.is_var():
+            if sub_node.type not in _canvas_item_types:
                 continue
             # just additional options that may be needed down the line
             kwargs = {
@@ -237,10 +256,7 @@ class Builder:
     """
 
     _adapter_map = {
-        tk.Menubutton: MenuLoaderAdapter,
-        ttk.Menubutton: MenuLoaderAdapter,
-        tk.Tk: MenuLoaderAdapter,
-        tk.Toplevel: MenuLoaderAdapter,
+        tk.Menu: MenuLoaderAdapter,
         tk.Canvas: CanvasLoaderAdapter,
         # Add custom adapters here
     }
@@ -258,6 +274,7 @@ class Builder:
         path = kwargs.get("path")
         self._path = path if path is None else os.path.abspath(path)
         self._meta = {}
+        self._deferred_props = []
 
         if kwargs.get("node"):
             self.load_node(kwargs.get("node"))
@@ -270,6 +287,13 @@ class Builder:
             self.load_path(self._path)
 
         Meth.call_deferred(self)
+        self._apply_deferred_props()
+
+    def _apply_deferred_props(self):
+        for prop, value, handle_method in self._deferred_props:
+            value = getattr(self, value, None)
+            if value:
+                handle_method(**{prop: value})
 
     def _arg_parser(self, a, t):
         if t == "image":
@@ -342,14 +366,16 @@ class Builder:
     def _load_widgets(self, node, builder, parent):
         adapter = self._get_adapter(BaseLoaderAdapter._get_class(node))
         widget = adapter.load(node, builder, parent)
-        if not isinstance(widget, _containers):
-            # We don't need to load child tags of non-container widgets
+        if isinstance(widget, tk.Menu):
+            # old-style menu format, so assign it to parent "menu" attribute
+            if node.attrib.get("name") is None:
+                # old-style menu format, so assign it to parent "menu" attribute
+                if isinstance(parent, _menu_containers):
+                    parent.configure(menu=widget)
             return widget
         for sub_node in node:
             if sub_node.is_var() or sub_node.type in _ignore_tags:
                 # ignore variables and non widgets
-                continue
-            if BaseLoaderAdapter._get_class(sub_node) == tk.Menu:
                 continue
             self._load_widgets(sub_node, builder, widget)
         return widget

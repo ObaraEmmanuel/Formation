@@ -357,7 +357,7 @@ class ColumnConfig(StyleGroup):
             widget.layout._column_conf.add(column)
 
     def is_grid(self, widget):
-        if not widget:
+        if not widget or widget.non_visual:
             return False
         return widget.layout.layout_strategy.__class__ == GridLayoutStrategy
 
@@ -458,7 +458,7 @@ class LayoutGroup(StyleGroup):
         self._prev_layout = layout_strategy
 
         if self.widgets:
-            self.label = _("Layout") + f"({self.widgets[0].layout.layout_strategy.name})"
+            self.label = _("Layout") + " " + f"({self.widgets[0].layout.layout_strategy.name})"
         else:
             self.label = _("Layout")
 
@@ -495,7 +495,7 @@ class LayoutGroup(StyleGroup):
 
     def supports_widgets(self):
         # toplevel widgets do not need layout
-        if any(widget.is_toplevel for widget in self.widgets):
+        if any(widget.is_toplevel or widget.non_visual for widget in self.widgets):
             return False
         if not self.widgets:
             return False

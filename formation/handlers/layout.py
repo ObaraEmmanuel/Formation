@@ -70,7 +70,7 @@ def get_layout_handler(parent_node, parent):
 
 def handle(widget, config, **kwargs):
     parent = kwargs.get("parent")
-    if parent is None or isinstance(widget, (tk.Tk, tk.Toplevel)):
+    if parent is None or isinstance(widget, (tk.Tk, tk.Toplevel, tk.Menu)):
         return
     parent_node = kwargs.get("parent_node")
     layout = get_layout_handler(parent_node, parent)

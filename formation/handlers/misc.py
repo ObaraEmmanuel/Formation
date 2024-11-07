@@ -22,10 +22,30 @@ class VariableHandler:
             handle_method(**{prop: builder._get_var(str(properties[prop])) or ''})
 
 
+class WidgetHandler:
+    widget_props = (
+        "menu",
+    )
+
+    @classmethod
+    def handle(cls, widget, config, **kwargs):
+        builder = kwargs.get("builder")
+        properties = kwargs.get("extra_config", {})
+        handle_method = kwargs.get("handle_method", getattr(widget, "config", None))
+
+        if handle_method is None:
+            # no way to assign the variable so just stop here
+            return
+        for prop in properties:
+            # defer assignments to the builder
+            builder._deferred_props.append((prop, properties[prop], handle_method))
+
+
 _common_redirect = {
     **{prop: image for prop in image.image_props},
     **{prop: VariableHandler for prop in VariableHandler.variable_props},
     **{prop: command for prop in command.command_props},
+    **{prop: WidgetHandler for prop in WidgetHandler.widget_props}
 }
 
 
@@ -61,7 +81,7 @@ class MenuHandler:
 
 class AttrHandler:
     _ignore = (
-        "layout", "menu"
+        "layout"
     )
 
     _redirect = _common_redirect

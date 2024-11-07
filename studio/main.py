@@ -108,11 +108,14 @@ class StudioApplication(Application):
 
         icon = get_icon_image
 
+        def invoke(key):
+            return lambda e: actions.get(key).invoke()
+
         self.actions = (
-            ("Delete", icon("remove", 20, 20), lambda e: self.delete(), _("Delete selected widgets")),
-            ("Undo", icon("undo", 20, 20), lambda e: self.undo(), _("Undo action")),
-            ("Redo", icon("redo", 20, 20), lambda e: self.redo(), _("Redo action")),
-            ("Cut", icon("cut", 20, 20), lambda e: self.cut(), _("Cut selected widgets")),
+            ("Delete", icon("remove", 20, 20), invoke("STUDIO_DELETE"), _("Delete selected widgets")),
+            ("Undo", icon("undo", 20, 20), invoke("STUDIO_UNDO"), _("Undo action")),
+            ("Redo", icon("redo", 20, 20), invoke("STUDIO_REDO"), _("Redo action")),
+            ("Cut", icon("cut", 20, 20), invoke("STUDIO_CUT"), _("Cut selected widgets")),
             ("separator",),
             ("Fullscreen", icon("fullscreen", 20, 20), lambda e: self.close_all(), _("Design mode")),
             ("Separate", icon("undock", 20, 20), lambda e: self.features_as_windows(),
@@ -139,13 +142,13 @@ class StudioApplication(Application):
             ("command", _("copy"), icon("copy", 18, 18), actions.get('STUDIO_COPY'), {}),
             ("command", _("duplicate"), icon("blank", 18, 18), actions.get('STUDIO_DUPLICATE'), {}),
             EnableIf(
-                lambda: self._clipboard is not None and len(self.selection) < 2,
+                lambda: self._clipboard is not None and len(self.selection),
                 ("command", _("paste"), icon("clipboard", 18, 18), actions.get('STUDIO_PASTE'), {})
             ),
             ("command", _("cut"), icon("cut", 18, 18), actions.get('STUDIO_CUT'), {}),
             ("separator",),
             ShowIf(
-                lambda: self.selection and self.selection[0].layout.layout_strategy.stacking_support,
+                lambda: self.selection and self.selection.not_toplevel() and self.selection.is_visual() and self.selection[0].layout.layout_strategy.stacking_support,
                 EnableIf(
                     lambda: self.selection.is_same_parent(),
                     ("command", _("send to back"), icon("send_to_back", 18, 18), actions.get('STUDIO_BACK'), {}),
@@ -375,9 +378,31 @@ class StudioApplication(Application):
         if isinstance(self.context, DesignContext):
             return self.context.designer
 
-    def get_widgets(self):
-        if self.designer:
+    def _extract_descendants(self, widget, widget_set):
+        for child in widget.all_children:
+            widget_set.add(child)
+            self._extract_descendants(child, widget_set)
+
+    def get_widgets(self, criteria=None):
+        if not self.designer:
+            return
+
+        if criteria is None:
             return self.designer.objects
+
+        widgets = None
+        for widget in self.selection:
+            descendants = set()
+            if criteria == "descendant":
+                self._extract_descendants(widget, descendants)
+            elif criteria == "child":
+                descendants = set(widget.all_children)
+            if widgets:
+                widgets &= descendants
+            else:
+                widgets = descendants
+
+        return widgets
 
     def _show_empty(self, text):
         if text:
@@ -468,10 +493,6 @@ class StudioApplication(Application):
 
     def get_pane_info(self, pane):
         return self._panes.get(pane, [self._right, self._right_bar])
-
-    def paste(self):
-        if self.designer and self._clipboard is not None:
-            self.designer.paste(self._clipboard)
 
     def close_all_on_side(self, side):
         for feature in self.features:
@@ -719,11 +740,29 @@ class StudioApplication(Application):
             ))
         return data
 
+    def set_clipboard(self, data, handler=None, key=None):
+        self._clipboard = {
+            "key": key,
+            "data": data,
+            "handler": self.designer.paste if handler is None else handler
+        }
+
+    def get_clipboard(self, key=None):
+        if self._clipboard is None:
+            return None
+        if self._clipboard.get("key") == key:
+            return self._clipboard["data"]
+
     def copy(self):
         if self.designer and self.selection:
             # store the current objects as  nodes in the clipboard
-            self._clipboard = self.make_clipboard(self.selection.compact())
+            self.set_clipboard(self.make_clipboard(self.selection.compact()), key="widget")
         pass
+
+    def paste(self):
+        if self.designer and self._clipboard is not None:
+            if self._clipboard.get("handler"):
+                self._clipboard["handler"](self._clipboard["data"])
 
     def delete(self, widgets=None, source=None):
         widgets = list(self.selection.compact()) if widgets is None else widgets
@@ -752,7 +791,7 @@ class StudioApplication(Application):
         if any(widget in self.selection for widget in widgets):
             self.selection.clear()
 
-        self._clipboard = self.make_clipboard(widgets)
+        self.set_clipboard(self.make_clipboard(widgets))
         if source != self.designer:
             self.designer.delete(widgets)
         for feature in self.features:

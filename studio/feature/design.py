@@ -198,6 +198,7 @@ class Designer(DesignPad, Container):
             self._update_throttling
         )
         self._sorted_containers = []
+        self._sorted_objs = []
         self._realtime_layout_update = False
         self._handle_active_data = None
         # used to maintain id correlation for widget pasting
@@ -417,6 +418,15 @@ class Designer(DesignPad, Container):
             key=lambda x: (x.level, x.layout.layout_strategy.children.index(x)),
             reverse=True
         )
+        # sort objs for non-visual parent tracking
+        self._sorted_objs = sorted(
+            self.objects,
+            key=lambda x: (
+                x.level,
+                -1 if x.non_visual else x.layout.layout_strategy.children.index(x)
+            ),
+            reverse=True
+        )
 
     def _on_handle_active_start(self, widget, direction):
         self._handle_active_data = widget, direction
@@ -572,6 +582,14 @@ class Designer(DesignPad, Container):
         if geometry.is_pos_within(geometry.bounds(self), (x, y)):
             return self
 
+    def widget_at_pos(self, x, y):
+        x, y = geometry.resolve_position((x, y), self)
+        for obj in self._sorted_objs:
+            if geometry.is_pos_within(geometry.bounds(obj), (x, y)):
+                return obj
+        if geometry.is_pos_within(geometry.bounds(self), (x, y)):
+            return self
+
     def show_select_region(self, bounds):
         bounds = geometry.resolve_bounds(bounds, self)
         self._region_highlight.highlight_bounds(bounds)
@@ -632,7 +650,9 @@ class Designer(DesignPad, Container):
         obj = obj_class(self, name)
         obj.configure(**attributes)
         self._attach(obj)
-        if bounds is not None:
+        if obj.non_visual:
+            container.add_non_visual_widget(obj)
+        elif bounds is not None:
             container.add_widget(obj, bounds)
         else:
             container.add_widget(obj, **layout)
@@ -675,12 +695,16 @@ class Designer(DesignPad, Container):
         self._attach(obj)  # apply extra bindings required
         # If the object has a layout which actually the layout at the point of creation prepare and pass it
         # to the layout
-        if isinstance(layout, Container):
-            bounds = (x, y, x + width, y + height)
-            bounds = geometry.resolve_bounds(bounds, self)
-            layout.add_widget(obj, bounds)
+        restore_point = None
+        if isinstance(layout, Container) or obj.non_visual:
+            if obj.non_visual:
+                layout.add_non_visual_widget(obj)
+            else:
+                bounds = (x, y, x + width, y + height)
+                bounds = geometry.resolve_bounds(bounds, self)
+                layout.add_widget(obj, bounds)
+                restore_point = layout.get_restore(obj)
             self.studio.add(obj, layout)
-            restore_point = layout.get_restore(obj)
             # Create an undo redo point if add is not silent
             if not silent:
                 self.studio.new_action(Action(
@@ -699,7 +723,7 @@ class Designer(DesignPad, Container):
         return obj
 
     def paste(self, clipboard, silently=False, paste_to=None):
-        if paste_to is None and len(self.studio.selection) != 1:
+        if paste_to is None and not len(self.studio.selection):
             return
 
         if paste_to is None:
@@ -712,9 +736,7 @@ class Designer(DesignPad, Container):
         # slightly displace click position so multiple pastes are still visible
         self._last_click_pos = x + 5, y + 5
 
-        objs = []
-        restore_points = []
-
+        # verify
         for node, bound in clipboard:
             obj_class = BaseStudioAdapter._get_class(node)
             if obj_class.is_toplevel and paste_to != self:
@@ -724,12 +746,22 @@ class Designer(DesignPad, Container):
                 self._show_root_widget_warning()
                 return
 
-            layout = paste_to if isinstance(paste_to, Container) else paste_to.layout
+            layout = paste_to if isinstance(paste_to, Container) or obj_class.non_visual else paste_to.layout
+            if not isinstance(layout, Container) and not obj_class.non_visual:
+                return
+
+        objs = []
+        restore_points = []
+
+        for node, bound in clipboard:
+            obj_class = BaseStudioAdapter._get_class(node)
+            layout = paste_to if isinstance(paste_to, Container) or obj_class.non_visual else paste_to.layout
             bound = geometry.resolve_bounds(geometry.displace(bound, x, y), self)
             obj = self.builder.load_section(node, layout, bound)
             objs.append(obj)
             restore_points.append(layout.get_restore(obj))
-            # Create an undo redo point if add is not silent
+
+        # Create an undo redo point if add is not silent
 
         if not silently:
             self.studio.new_action(Action(
@@ -756,7 +788,7 @@ class Designer(DesignPad, Container):
         if self.root_obj is None:
             self.root_obj = widget
         if isinstance(widget, Container):
-            for child in widget._children:
+            for child in widget.all_children:
                 self._replace_all(child)
 
     def delete(self, widgets, silently=False):
@@ -790,7 +822,7 @@ class Designer(DesignPad, Container):
         if widget in self.objects:
             self.objects.remove(widget)
         if isinstance(widget, Container):
-            for child in widget._children:
+            for child in widget.all_children:
                 self._uproot_widget(child)
 
     def parse_bounds(self, bounds):

@@ -30,4 +30,5 @@
                    layout:height="30" layout:x="484" layout:y="446"/>
   <tkinter.Menubutton name="Menubutton_1" attr:padx="5" attr:pady="4" attr:text="Menubutton_1" layout:width="80"
                       layout:height="30" layout:x="477" layout:y="323"/>
+  <tkinter.Menu name="Menu_1" attr:activeborderwidth="1" attr:borderwidth="1" attr:cursor="" attr:font="{Segoe UI} 9" attr:tearoff="0"/>
 </tkinter.Frame>

@@ -7,7 +7,7 @@ from hoverset.data.utils import get_resource_path
 tk_supported = {
     tk.Button, tk.Checkbutton, tk.Label, tk.Menubutton, tk.Scrollbar,
     tk.Canvas, tk.Frame, tk.LabelFrame, tk.Listbox, tk.PanedWindow,
-    tk.Entry, tk.Message, tk.Radiobutton, tk.Scale, tk.Spinbox, tk.Text
+    tk.Entry, tk.Message, tk.Radiobutton, tk.Scale, tk.Spinbox, tk.Text, tk.Menu
 }
 
 ttk_supported = {

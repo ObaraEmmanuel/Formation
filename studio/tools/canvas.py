@@ -5,12 +5,11 @@ import abc
 from collections import defaultdict
 
 from formation.formats import Node
-from hoverset.data.keymap import KeyMap, CharKey
+from hoverset.data import actions
 
 from hoverset.ui.icons import get_icon_image as icon
 from hoverset.ui.widgets import EventMask
 from hoverset.util.execution import Action
-from hoverset.data.actions import Routine
 from hoverset.ui.menu import MenuUtils, EnableIf
 
 from studio.tools._base import BaseTool
@@ -623,6 +622,7 @@ class CanvasStyleGroup(StyleGroup):
         return {item: {prop: item.cget(prop)} for item in self.cv_items}
 
     def _apply_action(self, prop, value, widgets, data):
+        data = data[0]
         for item in data:
             item.configure(data[item])
             if item._controller:
@@ -665,7 +665,7 @@ class CanvasTreeView(NestedTreeView):
             self._color = self.style.colors["secondary1"]
             self.name_pad.configure(text=self.item.name)
             self.icon_pad.configure(
-                image=icon(self.item.icon, 15, 15)
+                image=icon(self.item.icon, 15, 15, color=self._color)
             )
             self.editable = True
             self.strict_mode = True
@@ -798,7 +798,6 @@ class CanvasTool(BaseTool):
         self._cursor = "arrow"
         self.current_draw = None
         self.selected_items = []
-        self._clipboard = None
         self._latch_pos = 0, 0
 
         self._image_placeholder = icon("image", 60, 60)
@@ -831,52 +830,47 @@ class CanvasTool(BaseTool):
             Image: PointController,
         }
 
-        self.keymap = KeyMap(None)
-        CTRL = KeyMap.CTRL
-        self.routines = (
-            Routine(self.cut_items, 'CV_CUT', 'Cut selected items', 'canvas', CTRL + CharKey('x')),
-            Routine(self.copy_items, 'CV_COPY', 'Copy selected items', 'canvas', CTRL + CharKey('c')),
-            Routine(self.paste_items, 'CV_PASTE', 'Paste selected items', 'canvas', CTRL + CharKey('v')),
-            Routine(self.delete_items, 'CV_DELETE', 'Delete selected items', 'canvas', KeyMap.DELETE),
-            Routine(self.duplicate_items, 'CV_DUPLICATE', 'Duplicate selected items', 'canvas', CTRL + CharKey('d')),
-            Routine(self._send_back, 'CV_BACK', 'Send item to back', 'canvas', CharKey(']')),
-            Routine(self._bring_front, 'CV_FRONT', 'Bring item to front', 'canvas', CharKey('[')),
-            Routine(lambda: self._send_back(1), 'CV_BACK_1', 'send item back one step', 'canvas', CTRL + CharKey(']')),
-            Routine(lambda: self._bring_front(1), 'CV_FRONT_1', 'bring item forward one step', 'canvas',
-                    CTRL + CharKey('[')),
-        )
-        self.keymap.add_routines(*self.routines)
+        actions.get("STUDIO_COPY").add_listener(self.copy_items)
+        actions.get("STUDIO_CUT").add_listener(self.cut_items)
+        actions.get("STUDIO_DELETE").add_listener(self.delete_items)
+        actions.get("STUDIO_DUPLICATE").add_listener(self.duplicate_items)
+        actions.get("STUDIO_BACK").add_listener(self._send_back)
+        actions.get("STUDIO_FRONT").add_listener(self._bring_front)
+        actions.get("STUDIO_BACK_1").add_listener(lambda: self._send_back(1))
+        actions.get("STUDIO_FRONT_1").add_listener(lambda: self._bring_front(1))
+
+        def acc(key):
+            return {"accelerator": actions.get(key).accelerator}
 
         self._item_context_menu = MenuUtils.make_dynamic((
             EnableIf(
                 lambda: self.selected_items,
                 ("separator",),
-                ("command", _("copy"), icon("copy", 18, 18), self._get_routine('CV_COPY'), {}),
-                ("command", _("duplicate"), icon("blank", 18, 18), self._get_routine('CV_DUPLICATE'), {}),
+                ("command", _("copy"), icon("copy", 18, 18), self.copy_items, {**acc('STUDIO_COPY')}),
+                ("command", _("duplicate"), icon("blank", 18, 18), self.duplicate_items, {**acc('STUDIO_DUPLICATE')}),
                 EnableIf(
                     lambda: self._clipboard is not None,
-                    ("command", _("paste"), icon("clipboard", 18, 18), self._get_routine('CV_PASTE'), {})
+                    ("command", _("paste"), icon("clipboard", 18, 18), self.paste_items, {**acc('STUDIO_PASTE')})
                 ),
-                ("command", _("cut"), icon("cut", 18, 18), self._get_routine('CV_CUT'), {}),
+                ("command", _("cut"), icon("cut", 18, 18), self.cut_items, {**acc('STUDIO_CUT')}),
                 ("separator",),
-                ("command", _("delete"), icon("delete", 18, 18), self._get_routine('CV_DELETE'), {}),
+                ("command", _("delete"), icon("delete", 18, 18), self.delete_items, {**acc('STUDIO_DELETE')}),
                 ("separator",),
-                ("command", _("send to back"), icon("send_to_back", 18, 18), self._get_routine('CV_BACK'), {}),
-                ("command", _("bring to front"), icon("bring_to_front", 18, 18), self._get_routine('CV_FRONT'), {}),
-                ("command", _("back one step"), icon("send_to_back", 18, 18), self._get_routine('CV_BACK_1'), {}),
-                ("command", _("forward one step"), icon("bring_to_front", 18, 18), self._get_routine('CV_FRONT_1'), {}),
-            ),
-        ), self.studio, self.studio.style)
-
-        self._canvas_menu = MenuUtils.make_dynamic((
-            EnableIf(
-                lambda: self._clipboard is not None,
-                ("command", _("paste"), icon("clipboard", 18, 18),
-                 self._get_routine('CV_PASTE'), {})
+                ("command", _("send to back"), icon("send_to_back", 18, 18), self._send_back, {**acc('STUDIO_BACK')}),
+                ("command", _("bring to front"), icon("bring_to_front", 18, 18), self._bring_front,
+                 {**acc('STUDIO_FRONT')}),
+                ("command", _("back one step"), icon("send_to_back", 18, 18), lambda: self._send_back(1),
+                 {**acc('STUDIO_BACK_1')}),
+                ("command", _("forward one step"), icon("bring_to_front", 18, 18), lambda: self._send_back(1),
+                 {**acc('STUDIO_FRONT_1')}),
             ),
         ), self.studio, self.studio.style)
 
         self.studio.bind("<<SelectionChanged>>", self.on_select, "+")
+
+    @property
+    def _clipboard(self):
+        return self.studio.get_clipboard("canvas")
 
     @property
     def _ids(self):
@@ -895,7 +889,6 @@ class CanvasTool(BaseTool):
                 "<Motion>", self._draw_dispatch("on_motion"), True)
             canvas.bind("<Control-Button-1>", self._enter_pointer_mode)
             canvas.bind("<Button-1>", self._latch_and_focus(canvas), True)
-            self.keymap._bind(canvas)
             canvas.on_context_menu(self._show_canvas_menu(canvas))
             canvas._cv_tree = CanvasTreeView(canvas)
             canvas._cv_tree.on_structure_change(self._update_stacking, canvas)
@@ -932,7 +925,7 @@ class CanvasTool(BaseTool):
             x, y = canvas.canvasx(event.x), canvas.canvasy(event.y)
             self._latch_pos = x, y
             if not canvas.find_overlapping(x, y, x, y):
-                MenuUtils.popup(event, self._canvas_menu)
+                self.studio.designer.show_menu(event, self.canvas)
             return 'break'
         return show
 
@@ -952,6 +945,7 @@ class CanvasTool(BaseTool):
                 # clamp to ensure non-negative index
                 {item: max(0, self.canvas._cv_items.index(item) - steps) for item in items}
             )
+        return True
 
     def _bring_front(self, steps=None):
         if not self.selected_items:
@@ -972,6 +966,7 @@ class CanvasTool(BaseTool):
                 # clamp the new index to within length of items
                 {item: min(len(cv_items) - 1, cv_items.index(item) + steps) for item in items}
             )
+        return True
 
     def _update_stacking(self, canvas, data=None, silently=False):
         if data:
@@ -994,11 +989,6 @@ class CanvasTool(BaseTool):
                 lambda _: self._update_stacking(canvas, prev_data, True),
                 lambda _: self._update_stacking(canvas, data, True)
             ))
-
-    def _get_routine(self, key):
-        for routine in self.routines:
-            if routine.key == key:
-                return routine
 
     def create_item(self, component, coords=(), item=None, canvas=None, silently=False, **kwargs):
         canvas = canvas or self.canvas
@@ -1061,16 +1051,19 @@ class CanvasTool(BaseTool):
 
     def copy_items(self):
         if self.selected_items:
-            self._clipboard = self._get_copy_data()
+            self.studio.set_clipboard(self._get_copy_data(), self.paste_items, "canvas")
+            return True
 
     def cut_items(self):
         if self.selected_items:
             self.copy_items()
             self.delete_items()
+            return True
 
     def duplicate_items(self):
         if self.selected_items:
             self.paste_items(self._get_copy_data())
+            return True
 
     def paste_items(self, _clipboard=None):
         _clipboard = self._clipboard if _clipboard is None else _clipboard
@@ -1088,7 +1081,10 @@ class CanvasTool(BaseTool):
             ))
 
     def delete_items(self):
+        has_selected = bool(self.selected_items)
         self.remove_items(list(self.selected_items))
+        if has_selected:
+            return True
 
     def _handle_move(self, item, event):
         if not event.state & EventMask.MOUSE_BUTTON_1:

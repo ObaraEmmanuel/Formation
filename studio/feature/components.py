@@ -2,7 +2,7 @@ from functools import partial
 from tkinter import BooleanVar, filedialog
 
 from hoverset.ui.icons import get_icon_image
-from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Spinner, Button
+from hoverset.ui.widgets import ScrolledFrame, Frame, Label, Spinner, Button, ActionNotifier
 from hoverset.ui.dialogs import MessageDialog
 from hoverset.data.preferences import ListControl
 from hoverset.util.execution import import_path
@@ -57,7 +57,11 @@ class Component(Frame):
     def on_drag(self, event):
         if not self.designer:
             return
-        widget = self.designer.layout_at_pos(*self.window.drag_window.get_center())
+        if issubclass(self.component, PseudoWidget) and self.component.non_visual:
+            widget = self.designer.widget_at_pos(*self.window.drag_window.get_center())
+        else:
+            widget = self.designer.layout_at_pos(*self.window.drag_window.get_center())
+
         if widget and self.window.drag_window:
             bounds = geometry.absolute_bounds(self.window.drag_window)
             widget.react(bounds)
@@ -66,7 +70,15 @@ class Component(Frame):
         if not self.designer:
             return
         widget = self.designer.layout_at_pos(*self.window.drag_window.get_center())
-        if isinstance(widget, Container):
+        if issubclass(self.component, PseudoWidget) and self.component.non_visual:
+            if widget:
+                widget.clear_highlight()
+            widget = self.designer.widget_at_pos(*self.window.drag_window.get_center())
+            if widget:
+                self.designer.add(self.component, 0, 0, layout=widget)
+                widget.clear_highlight()
+            self.designer.set_active_container(None)
+        elif isinstance(widget, Container):
             bounds = geometry.absolute_bounds(self.window.drag_window)
             widget.add_new(self.component, *bounds[:2])
             widget.clear_highlight()
@@ -102,6 +114,21 @@ class SelectableComponent(Component):
         super(SelectableComponent, self).deselect()
         self.selected = False
         self.controller.deselect(self, silently)
+
+
+class ClickableComponent(Component):
+
+    def __init__(self, master, component: PseudoWidget.__class__, controller):
+        super(ClickableComponent, self).__init__(master, component)
+        self.controller = controller
+        self.allow_drag = False
+        ActionNotifier.bind_event(
+            "<Button-1>", self, self.add,
+            text=f"{component.display_name} added"
+        )
+
+    def add(self, *_):
+        self.controller.select(self)
 
 
 class Selector(Label):
@@ -177,6 +204,21 @@ class SelectToDrawGroup(ComponentGroup):
             self.selected = None
             if self._on_selection_change and not silently:
                 self._on_selection_change(self.selected)
+
+
+class ClickToAddGroup(ComponentGroup):
+
+    def __init__(self, master, name, items, evaluator=None, component_class=None):
+        component_class = component_class or ClickableComponent
+        super(ClickToAddGroup, self).__init__(master, name, items, evaluator, component_class)
+        self._on_selection_change = None
+
+    def on_select(self, func, *args, **kwargs):
+        self._on_selection_change = lambda component: func(component, *args, **kwargs)
+
+    def select(self, component):
+        if self._on_selection_change:
+            self._on_selection_change(component.component)
 
 
 class CustomPathControl(ListControl):

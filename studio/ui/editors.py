@@ -710,7 +710,7 @@ class Widget(Choice):
         if hasattr(master, "get_widgets"):
             include = self.style_def.get("include", ())
             exclude = self.style_def.get("exclude", ())
-            objs = master.get_widgets()
+            objs = master.get_widgets(criteria=self.style_def.get("criteria"))
             if include:
                 objs = list(filter(lambda x: isinstance(x, tuple(include)), objs))
             if exclude:
