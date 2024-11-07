@@ -390,10 +390,12 @@ class Number(Component, Frame):
             **self.style.text
         )
         self._label.pack(side="left")
+        extra["from_"] = extra.get("from_", 0)
+        extra["to"] = extra.get("to", 10000)
         self.editor = SpinBox(self, **{**self.style.spinbox, **extra})
         self.editor.pack(side="left", padx=5)
         self.editor.on_entry(self._change)
-        self.editor.set_validator(numeric_limit, extra.get("_from", 0), extra.get("to", 10000))
+        self.editor.set_validator(numeric_limit, extra["from_"], extra["to"])
         self.load(pref, path)
 
     def disable(self, flag):
