@@ -24,6 +24,7 @@ class Routine:
         self.desc = desc
         self.group = group
         self._func = func
+        self._listeners = []
         self.shortcut = shortcut
 
     @property
@@ -39,7 +40,21 @@ class Routine:
             return self.shortcut.label
         return ''
 
+    def add_listener(self, listener):
+        """
+        Add a listener to the routine
+
+        :param listener: A callable that will be called before the routine
+          is invoked. If the listener returns True, the routine will not be
+          invoked
+        """
+        self._listeners.append(listener)
+
     def invoke(self, *args, **kwargs):
+        for listener in self._listeners:
+            if listener(*args, **kwargs):
+                # listener has handled the invokation
+                return
         return self._func(*args, **kwargs)
 
 

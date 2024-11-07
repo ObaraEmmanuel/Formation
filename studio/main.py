@@ -108,11 +108,14 @@ class StudioApplication(Application):
 
         icon = get_icon_image
 
+        def invoke(key):
+            return lambda e: actions.get(key).invoke()
+
         self.actions = (
-            ("Delete", icon("remove", 20, 20), lambda e: self.delete(), _("Delete selected widgets")),
-            ("Undo", icon("undo", 20, 20), lambda e: self.undo(), _("Undo action")),
-            ("Redo", icon("redo", 20, 20), lambda e: self.redo(), _("Redo action")),
-            ("Cut", icon("cut", 20, 20), lambda e: self.cut(), _("Cut selected widgets")),
+            ("Delete", icon("remove", 20, 20), invoke("STUDIO_DELETE"), _("Delete selected widgets")),
+            ("Undo", icon("undo", 20, 20), invoke("STUDIO_UNDO"), _("Undo action")),
+            ("Redo", icon("redo", 20, 20), invoke("STUDIO_REDO"), _("Redo action")),
+            ("Cut", icon("cut", 20, 20), invoke("STUDIO_CUT"), _("Cut selected widgets")),
             ("separator",),
             ("Fullscreen", icon("fullscreen", 20, 20), lambda e: self.close_all(), _("Design mode")),
             ("Separate", icon("undock", 20, 20), lambda e: self.features_as_windows(),

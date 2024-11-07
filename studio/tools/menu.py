@@ -3,8 +3,7 @@
 # ======================================================================= #
 import tkinter
 
-from hoverset.data.actions import Routine
-from hoverset.data.keymap import KeyMap, CharKey
+from hoverset.data import actions
 from hoverset.ui.icons import get_icon_image as icon
 from hoverset.ui.menu import MenuUtils, EnableIf, LoadLater
 from hoverset.util.execution import Action
@@ -219,28 +218,25 @@ class MenuToolX(BaseTool):
 
         self.studio.bind("<<SelectionChanged>>", self.on_select, "+")
 
-        self.keymap = KeyMap(None)
-        CTRL = KeyMap.CTRL
-        self.routines = (
-            Routine(self.cut_items, 'CUT', 'Cut selected items', 'canvas', CTRL + CharKey('x')),
-            Routine(self.copy_items, 'COPY', 'Copy selected items', 'canvas', CTRL + CharKey('c')),
-            Routine(self.paste_items, 'PASTE', 'Paste selected items', 'canvas', CTRL + CharKey('v')),
-            Routine(self.remove_items, 'DELETE', 'Delete selected items', 'canvas', KeyMap.DELETE),
-        )
-        self.keymap.add_routines(*self.routines)
+        actions.get("STUDIO_CUT").add_listener(self.cut_items)
+        actions.get("STUDIO_COPY").add_listener(self.copy_items)
+        actions.get("STUDIO_DELETE").add_listener(self.remove_items)
+
+        def acc(key):
+            return {"accelerator": actions.get(key).accelerator}
 
         self._item_context_menu = MenuUtils.make_dynamic((
             EnableIf(
                 lambda: self.selected_items,
                 ("separator",),
-                ("command", _("copy"), icon("copy", 18, 18), self._get_routine('COPY'), {}),
+                ("command", _("copy"), icon("copy", 18, 18), self.copy_items, {**acc("STUDIO_COPY")}),
                 EnableIf(
                     lambda: self._clipboard is not None,
-                    ("command", _("paste"), icon("clipboard", 18, 18), self._get_routine('PASTE'), {})
+                    ("command", _("paste"), icon("clipboard", 18, 18), self.paste_items, {**acc("STUDIO_PASTE")}),
                 ),
-                ("command", _("cut"), icon("cut", 18, 18), self._get_routine('CUT'), {}),
+                ("command", _("cut"), icon("cut", 18, 18), self.cut_items, {**acc("STUDIO_CUT")}),
                 ("separator",),
-                ("command", _("delete"), icon("delete", 18, 18), self._get_routine('DELETE'), {}),
+                ("command", _("delete"), icon("delete", 18, 18), self.restore_items, {**acc("STUDIO_DELETE")}),
                 LoadLater(
                     lambda: self.selected_items[0].create_menu() if len(self.selected_items) == 1 else ()),
             ),
@@ -252,11 +248,6 @@ class MenuToolX(BaseTool):
 
     def _evaluator(self, widget):
         return isinstance(widget, Menu) and len(self.studio.selection) == 1
-
-    def _get_routine(self, key):
-        for routine in self.routines:
-            if routine.key == key:
-                return routine
 
     def _show_item_menu(self, item):
         def show(event):
@@ -315,6 +306,7 @@ class MenuToolX(BaseTool):
         if self.selected_items:
             self.copy_items()
             self.remove_items()
+            return True
 
     def _deep_copy(self, item):
         options = item.get_altered_options()
@@ -334,6 +326,7 @@ class MenuToolX(BaseTool):
                 self._deep_copy(item) for item in self.selected_items
             ]
             self.studio.set_clipboard(data, self.paste_items, "menu")
+            return True
 
     def _create_paste_items(self, items, nodes, data):
         for item_type, options, sub_items in data:
@@ -372,8 +365,10 @@ class MenuToolX(BaseTool):
         self.menu._sub_tree.deselect(item.node)
 
     def remove_items(self, items=None, silently=False):
+        has_selected = False
         if items is None:
             items = self.selected_items
+            has_selected = bool(self.selected_items)
 
         # to make sure items are re-inserted in the right order later
         items = sorted(items, key=lambda x: x._index)
@@ -398,6 +393,10 @@ class MenuToolX(BaseTool):
                 lambda _: self.restore_items(items, menus, indices, configs),
                 lambda _: self.remove_items(items, silently=True)
             ))
+
+        # Block event propagation if there are items selected
+        if has_selected:
+            return True
 
     def restore_items(self, items, menus, indices, configs):
         unique_menus = set()
