@@ -159,7 +159,8 @@ class KeyMap(metaclass=_KeymapDispatch):
         # 0x20000: ALT,  # Windows
         # 0x0008: ALT,  # Linux
         0x0001: SHIFT,
-        0x0002: CAPS_LOCK,
+        # Causes event dispatch to fail when enabled
+        # 0x0002: CAPS_LOCK,
 
     }
 
