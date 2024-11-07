@@ -88,7 +88,7 @@ class _WidgetIntercept:
     @staticmethod
     def get(widget, prop):
         val = getattr(widget, f"_wdgt_prop_{prop}", "")
-        if isinstance(val, str):
+        if val and isinstance(val, str):
             try:
                 val = widget.nametowidget(val)
             except:
