@@ -99,6 +99,9 @@ class BaseLayoutStrategy:
             else:
                 widget.lift(self.container.body)
 
+    def widgets_reordered(self):
+        pass
+
     def widget_released(self, widget):
         pass
 
@@ -980,7 +983,7 @@ class TabLayoutStrategy(BaseLayoutStrategy):
     name = "TabLayout"
     icon = "notebook"
     manager = "tab"
-    stacking_support = False
+    stacking_support = True
 
     def __init__(self, master):
         super().__init__(master)
@@ -1014,12 +1017,15 @@ class TabLayoutStrategy(BaseLayoutStrategy):
     def _redraw(self, start_index=0):
         affected = self.children[start_index:]
         cache = {}
+        selected = self.container.select()
         for child in affected:
             cache[child] = self.info(child)
             self.container.body.forget(child)
-        for child in affected:
+        for i, child in enumerate(affected):
             self.container.body.add(child)
             self.container.body.tab(child, **cache.get(child, {}))
+            if str(child) == selected:
+                self.container.select(i)
 
     def resize_widget(self, widget, direction, delta):
         pass
@@ -1030,6 +1036,9 @@ class TabLayoutStrategy(BaseLayoutStrategy):
         self.container.body.add(widget, text=widget.id)
         self.container.body.tab(widget, **kwargs)
         self._insert(widget)
+        length = len(self.container.tabs())
+        if length > 1:
+            self.container.select(length - 1)
 
     def remove_widget(self, widget):
         super().remove_widget(widget)
@@ -1056,6 +1065,9 @@ class TabLayoutStrategy(BaseLayoutStrategy):
         self._current_tab = self.container.body.nametowidget(self.container.body.select())
         # Take its level one place above other tabs
         self._current_tab.level = self.level + 2
+
+    def widgets_reordered(self):
+        self._redraw(0)
 
     def copy_layout(self, widget, from_):
         info = from_.layout.body.tab(from_)

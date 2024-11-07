@@ -955,7 +955,8 @@ class Designer(DesignPad, Container):
         if not indices:
             return
 
-        child_list = next(iter(indices)).layout._children
+        layout = next(iter(indices)).layout
+        child_list = layout._children
         # reorder child list based on indices
 
         indices = sorted(
@@ -981,6 +982,7 @@ class Designer(DesignPad, Container):
                 widget.lift(widget.layout.body)
 
         prev_data = dict(sorted(prev_data.items(), key=lambda x: x[1]))
+        layout.layout_strategy.widgets_reordered()
 
         if not silently and prev_data != data:
             self.studio.new_action(Action(
