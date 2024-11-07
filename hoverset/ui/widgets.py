@@ -12,6 +12,7 @@ import abc
 import functools
 import logging
 import os
+import time
 import tkinter as tk
 import tkinter.ttk as ttk
 import webbrowser
@@ -1253,6 +1254,7 @@ class ScrolledFrame(ContainerMixin, Widget, ScrollableInterface, ContextMenuMixi
         # self.after(200, self.on_configure)
         self._limit_var = [0, 0]  # limit var for x and y
         self._max_frame_skip = 3
+        self._last_render = time.perf_counter_ns()
         self.fill_x = True  # Set to True to disable the x scrollbar and fit content to width
         self.fill_y = False  # Set to True to disable the y scrollbar and fit content to height
         self._prev_region = (0, 0, 0, 0)
@@ -1284,7 +1286,13 @@ class ScrolledFrame(ContainerMixin, Widget, ScrollableInterface, ContextMenuMixi
     def _limiter(self, callback, axis, *args):
         # Frame limiting reduces lags while scrolling by skipping a number of scroll events to reduce the burden
         # of performing expensive redrawing by tkinter
-        if self._limit_var[axis] == self._max_frame_skip:
+        render_time = time.perf_counter_ns()
+        render_diff = render_time - self._last_render
+        self._last_render = render_time
+
+        # Max human click rate is about 15 CPS = 70ms/click
+        # Always render if it's been longer than 70ms since last render
+        if self._limit_var[axis] == self._max_frame_skip or render_diff > 7e7:
             callback(*args)
             self._limit_var[axis] = 0
         else:
