@@ -18,5 +18,6 @@ def handle(widget, config, **kwargs):
         builder._command_map.append((
             prop,
             props[prop],
-            kwargs.get("handle_method")
+            kwargs.get("handle_method"),
+            widget
         ))

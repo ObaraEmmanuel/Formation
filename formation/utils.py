@@ -170,6 +170,8 @@ def callback_parse(command: str):
     just ``funcname``
     :return: A tuple containing (funcname, args, kwargs) or None if parsing was unsuccessful
     """
+    if command.startswith("::"):
+        command = command[2:]
     if command.isidentifier() and not keyword.iskeyword(command):
         return command, (), {}
 

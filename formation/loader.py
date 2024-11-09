@@ -460,12 +460,16 @@ class Builder:
         for widget, events in self._event_map.items():
             for event in events:
                 handler_string = event.get("handler")
-                parsed = callback_parse(handler_string)
+                parsed = list(callback_parse(handler_string))
                 if parsed is None:
                     logger.warning("Callback string '%s' is malformed", handler_string)
                     continue
 
                 # parsed[0] is the function name.
+                # starting with "::" means the widget is the first argument
+                if handler_string.startswith("::"):
+                    parsed[1] = (widget, *parsed[1])
+
                 handler = callback_map.get(parsed[0])
                 if handler is not None:
                     # parsed[1] is function args/ parsed[2] is function kwargs.
@@ -478,11 +482,15 @@ class Builder:
                 else:
                     logger.warning("Callback '%s' not found", parsed[0])
 
-        for prop, val, handle_method in self._command_map:
-            parsed = callback_parse(val)
+        for prop, val, handle_method, widget in self._command_map:
+            parsed = list(callback_parse(val))
             if parsed is None:
                 logger.warning("Callback string '%s' is malformed", val)
                 continue
+            # starting with "::" means the widget is the first argument after the event object
+            if val.startswith("::"):
+                parsed[1] = (widget, *parsed[1])
+
             handler = callback_map.get(parsed[0])
             if handle_method is None:
                 raise ValueError("Handle method is None, unable to apply binding")

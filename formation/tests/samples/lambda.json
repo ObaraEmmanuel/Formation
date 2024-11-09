@@ -4,7 +4,7 @@
             "layout": "place"
         }, 
         "layout": {
-            "height": 362, 
+            "height": 453, 
             "width": 200, 
             "x": 30, 
             "y": 30
@@ -33,7 +33,7 @@
             "children": [
                 {
                     "attrib": {
-                        "value": "200x329+0+0"
+                        "value": "200x420+0+0"
                     }, 
                     "type": "arg"
                 }
@@ -261,6 +261,92 @@
                 }
             ], 
             "type": "tkinter.ttk.Frame"
+        }, 
+        {
+            "attrib": {
+                "attr": {
+                    "command": "::no_arg_widget", 
+                    "text": "button_b"
+                }, 
+                "layout": {
+                    "bordermode": "outside", 
+                    "height": "25", 
+                    "width": "80", 
+                    "x": 99, 
+                    "y": 6
+                }, 
+                "name": "bb"
+            }, 
+            "type": "tkinter.Button"
+        }, 
+        {
+            "attrib": {
+                "attr": {
+                    "command": "::single_arg_widget(2)", 
+                    "text": "button_a"
+                }, 
+                "layout": {
+                    "bordermode": "outside", 
+                    "height": "25", 
+                    "width": "80", 
+                    "x": 6, 
+                    "y": 7
+                }, 
+                "name": "ba"
+            }, 
+            "type": "tkinter.Button"
+        }, 
+        {
+            "attrib": {
+                "attr": {
+                    "text": "button_d"
+                }, 
+                "layout": {
+                    "bordermode": "outside", 
+                    "height": "25", 
+                    "width": "80", 
+                    "x": 107, 
+                    "y": 387
+                }, 
+                "name": "bd"
+            }, 
+            "children": [
+                {
+                    "attrib": {
+                        "add": "False", 
+                        "handler": "::no_arg_widget()", 
+                        "sequence": "<Button-1>"
+                    }, 
+                    "type": "event"
+                }
+            ], 
+            "type": "tkinter.Button"
+        }, 
+        {
+            "attrib": {
+                "attr": {
+                    "text": "button_c"
+                }, 
+                "layout": {
+                    "bordermode": "outside", 
+                    "height": "25", 
+                    "width": "80", 
+                    "x": 14, 
+                    "y": 388
+                }, 
+                "name": "bc"
+            }, 
+            "children": [
+                {
+                    "attrib": {
+                        "add": "False", 
+                        "handler": "::dual_arg_widget(1,2)", 
+                        "sequence": "<Button-1>"
+                    }, 
+                    "type": "event"
+                }
+            ], 
+            "type": "tkinter.Button"
         }
     ], 
     "type": "tkinter.Tk"

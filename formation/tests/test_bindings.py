@@ -101,6 +101,15 @@ class LambdaCommand(unittest.TestCase):
     def mixed_arg(self, a, b, **kw):
         self.args = (a, b, kw)
 
+    def no_arg_widget(self, w):
+        self.args = w
+
+    def single_arg_widget(self, w, a):
+        self.args = (w, a)
+
+    def dual_arg_widget(self, w, a, b):
+        self.args = (w, a, b)
+
     def test_single_arg(self):
         widgets = ("b1", "b2", "b3", "b4")
 
@@ -132,6 +141,18 @@ class LambdaCommand(unittest.TestCase):
         widget.invoke()
         self.assertEqual(self.args, (6, "yes", {"text": "seven", "num": 5}))
 
+    def test_no_arg_widget(self):
+        self.args = None
+        widget = self.builder.bb
+        widget.invoke()
+        self.assertEqual(self.args, widget)
+
+    def test_single_arg_widget(self):
+        self.args = None
+        widget = self.builder.ba
+        widget.invoke()
+        self.assertEqual(self.args, (widget, 2))
+
 
 class LambdaBinding(unittest.TestCase):
 
@@ -158,6 +179,18 @@ class LambdaBinding(unittest.TestCase):
 
     def mixed_arg(self, e, a, b, **kw):
         self.args = (a, b, kw)
+        self.event = e
+
+    def no_arg_widget(self, e, w):
+        self.args = w
+        self.event = e
+
+    def dual_arg_widget(self, e, w, a, b):
+        self.args = (w, a, b)
+        self.event = e
+
+    def single_arg_widget(self, e, w, a):
+        self.args = (w, a)
         self.event = e
 
     def test_single_arg(self):
@@ -202,11 +235,30 @@ class LambdaBinding(unittest.TestCase):
         self.assertEqual(self.args, (6, "yes", {"text": "seven", "num": 5}))
         self.assertIsInstance(self.event, tkinter.Event)
 
+    def test_no_arg_widget(self):
+        self.args = None
+        self.event = None
+        widget = self.builder.bd
+        widget.update()
+        widget.event_generate("<Button-1>")
+        self.assertEqual(self.args, widget)
+        self.assertIsInstance(self.event, tkinter.Event)
+
+    def test_dual_arg_widget(self):
+        self.args = None
+        self.event = None
+        widget = self.builder.bc
+        widget.update()
+        widget.event_generate("<Button-1>")
+        self.assertEqual(self.args, (widget, 1, 2))
+        self.assertIsInstance(self.event, tkinter.Event)
+
 
 class CallbackParseTest(unittest.TestCase):
 
     def test_args(self):
         self.assertEqual(callback_parse("func(2)"), ("func", (2,), {}))
+        self.assertEqual(callback_parse("::func(2)"), ("func", (2,), {}))
         self.assertEqual(callback_parse("func(2, 3)"), ("func", (2, 3), {}))
         self.assertEqual(callback_parse("func(2, '3', 4)"), ("func", (2, '3', 4), {}))
         self.assertEqual(callback_parse("func(2, \"3\", 4)"), ("func", (2, '3', 4), {}))
@@ -216,15 +268,18 @@ class CallbackParseTest(unittest.TestCase):
         self.assertIsNone(callback_parse("while()"))
         self.assertIsNone(callback_parse("True(45)"))
         self.assertIsNone(callback_parse("True"))
+        self.assertIsNone(callback_parse("::True"))
 
     def test_kwargs(self):
         self.assertEqual(callback_parse("func(a=2)"), ("func", (), {"a": 2}))
         self.assertEqual(callback_parse("func(a= 2, b=3)"), ("func", (), {"a": 2, "b": 3}))
+        self.assertEqual(callback_parse("::func(a= 2, b=3)"), ("func", (), {"a": 2, "b": 3}))
         self.assertEqual(callback_parse("func(a=2, b='3', c=4)"), ("func", (), {"a": 2, "b": '3', "c": 4}))
         self.assertEqual(callback_parse("func(a= 2, b=\"3\", c=4)"), ("func", (), {"a": 2, "b": '3', "c": 4}))
 
     def test_arg_eval(self):
         self.assertEqual(callback_parse("func(2+3)"), ("func", (5,), {}))
+        self.assertEqual(callback_parse("::func(2+3)"), ("func", (5,), {}))
         self.assertEqual(callback_parse("func(2, '3'+'4')"), ("func", (2, '34'), {}))
         self.assertEqual(callback_parse("func(bool(1), arg= float('4.556'))"), ("func", (True,), {'arg': 4.556}))
 
@@ -234,6 +289,8 @@ class CallbackParseTest(unittest.TestCase):
 
     def test_format_fail(self):
         self.assertIsNone(callback_parse("func(2+3"))
+        self.assertIsNone(callback_parse(":func(2+3"))
+        self.assertIsNone(callback_parse("::::func(2+3"))
         self.assertIsNone(callback_parse("func(2, '3'+'4'"))
         self.assertIsNone(callback_parse("34func(bool(1), arg= float('4.556'))"))
         self.assertIsNone(callback_parse("func(2+3)r34"))
