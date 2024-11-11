@@ -253,15 +253,15 @@ class CustomPathControl(ListControl):
 
 class ComponentPane(BaseFeature):
     CLASSES = {
-        "native": {"widgets": native.widgets},
-        "legacy": {"widgets": legacy.widgets},
+        "native (ttk)": {"widgets": native.widgets},
+        "legacy (tk)": {"widgets": legacy.widgets},
     }
     name = "Components"
     display_name = _("Components")
     _var_init = False
     _defaults = {
         **BaseFeature._defaults,
-        "widget_set": "native"
+        "widget_set": "legacy (tk)"
     }
     _custom_pref_path = "studio::custom_widget_paths"
 
@@ -301,7 +301,11 @@ class ComponentPane(BaseFeature):
         self._matching_components = []
         self._last_query = ""
         self._extern_groups = []
-        self.collect_groups(self.get_pref("widget_set"))
+        widget_set = self.get_pref("widget_set")
+        if widget_set not in self.CLASSES:
+            widget_set = "legacy (tk)"
+            self._widget_set.set(widget_set)
+        self.collect_groups(widget_set)
         # add custom widgets config to settings
         templates.update(self._pref_template())
         self._custom_group = None
