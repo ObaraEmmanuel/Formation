@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tkinter.Tk xmlns:attr="http://www.hoversetformationstudio.com/styles/" xmlns:layout="http://www.hoversetformationstudio.com/layouts/" name="tk_1" attr:background="#303030" attr:layout="place" layout:width="552" layout:height="253" layout:x="30" layout:y="30">
+  <meth name="title">
+    <arg value="title"/>
+  </meth>
+  <meth name="geometry">
+    <arg value="552x220+0+0"/>
+  </meth>
+  <meta major="7" minor="0" name="version"/>
+  <tkinter.StringVar attr:name="expr_var" attr:value=""/>
+  <tkinter.Entry name="expr" attr:background="#303030" attr:foreground="#f2c17e" attr:highlightbackground="#db900f" attr:highlightthickness="1" attr:insertbackground="#f2c17e" attr:relief="flat" attr:textvariable="expr_var" layout:width="271" layout:height="25" layout:x="138" layout:y="35" layout:bordermode="outside"/>
+  <tkinter.Label name="result" attr:background="#303030" attr:foreground="#f2c17e" attr:text="" layout:width="174" layout:height="25" layout:x="187" layout:y="77" layout:bordermode="outside"/>
+  <tkinter.Button name="calculate" attr:activebackground="#404040" attr:activeforeground="#f2c17e" attr:background="#303030" attr:borderwidth="1" attr:command="calculate" attr:foreground="#f2c17e" attr:highlightbackground="#db900f" attr:highlightcolor="#c46b14" attr:relief="flat" attr:takefocus="1" attr:text="Calculate" layout:width="89" layout:height="25" layout:x="235" layout:y="125" layout:bordermode="outside"/>
+</tkinter.Tk>
