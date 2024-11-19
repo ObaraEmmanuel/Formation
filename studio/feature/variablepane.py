@@ -84,7 +84,7 @@ class VariablePane(BaseFeature):
         self._delete_btn.on_click(self._delete)
         self._var_types_menu = self.make_menu(
             self._get_add_menu(),
-            self._add, title=_("Add variable"))
+            self._add, title=_("Add variable"), tearoffcommand=self._reposition_tearoff)
         self._var_types_menu.configure(tearoff=True)
         self._add.config(menu=self._var_types_menu)
         self._selected = None
@@ -92,6 +92,11 @@ class VariablePane(BaseFeature):
         self._overlay = Label(f, **self.style.text_passive, text=self._empty_message, compound="top")
         self._overlay.configure(image=get_icon_image("add", 25, 25))
         self._show_overlay(True)
+
+    def _reposition_tearoff(self, window, tearoff):
+        x = self._add.winfo_rootx()
+        y = self._add.winfo_rooty() + self._add.winfo_height()
+        self.studio.tk.call("wm", "geometry", tearoff, f"+{x}+{y}")
 
     def start_search(self, *_):
         if self.variables:
@@ -131,7 +136,9 @@ class VariablePane(BaseFeature):
 
     def create_menu(self):
         return (
-            ("cascade", _("Add"), get_icon_image("add", 18, 18), None, {"menu": self._get_add_menu()}),
+            ("cascade", _("Add"), get_icon_image("add", 18, 18), None, {
+                "menu": self._get_add_menu(),
+            }),
             ("command", _("Delete"), get_icon_image("delete", 18, 18), self._delete, {}),
             ("command", _("Search"), get_icon_image("search", 18, 18), self.start_search, {}),
         )
