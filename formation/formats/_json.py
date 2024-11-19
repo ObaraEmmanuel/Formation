@@ -14,6 +14,8 @@ class ArrayEncoder(json.JSONEncoder):
                 return [hint_arrays(e) for e in item]
             if isinstance(item, dict):
                 return {key: hint_arrays(value) for key, value in item.items()}
+            if not isinstance(item, (str, int, float, bool)):
+                return str(item)
             else:
                 return item
 
