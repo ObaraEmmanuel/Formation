@@ -216,7 +216,7 @@ class _Toplevel(tk.Frame):
         self._shadow = tk.Frame(self._toplevel)
         self._shadow.pack(fill='both', expand=True)
         self._shadow_h = self._shadow.winfo_height()
-        embed_frame = getattr(self, "embed_frame_class", ttk.Frame)
+        embed_frame = getattr(self, "embed_frame_class", tk.Frame)
         self.body = embed_frame(master)
         self.body.place(in_=self, anchor='se', relx=1, rely=1, relwidth=1, relheight=1, height=-30)
 
