@@ -16,9 +16,9 @@ them based on their functions. These sub-groups are:
  * Widget (*widgets that have special functionality*)
  * Input (*widgets that allow text and other values to be input*)
 
-More groups may appear depending on what extensions you are using. The canvas tool
+More groups may appear depending on what extensions you are using. The `canvas tool <canvas>`_
 for example may avail an additional ``canvas`` group with widgets that can
-be drawn on a canvas. Find out more on this in the :ref:`canvas` section
+be drawn on a canvas and the menu tool will avail the ``menu`` group.
 
 .. note::
 
@@ -29,8 +29,8 @@ be drawn on a canvas. Find out more on this in the :ref:`canvas` section
       across all sub-groups with ease.
     * You can mix widgets in Legacy and Native in the same design.
 
-Legacy
-=======
+Legacy (tk)
+===========
 
 This consists of the classic tkinter widgets. They allow more style attributes
 to be set. They look the same on all systems and their default look may seem
@@ -42,12 +42,11 @@ disposal. Some widgets can only be found in this Legacy group for instance:
 * **Text**    (*text area allowing multiline text input*)
 * **Message** (*label for longer text*)
 
-.. figure:: _static/examples/calculator/components.png
-    :height: 150px
+.. figure:: _static/components_legacy.png
     :align: center
 
-Native
-=======
+Native (ttk)
+============
 
 This consists of ttk extension widgets. These types of widgets are designed to
 be themed and hence don't allow you to modify several style options that were
@@ -62,5 +61,4 @@ only be found in this native group for instance:
 * **LabeledScale** (*A scale with a built-in label*)
 
 .. figure:: _static/components-native.png
-    :height: 150px
     :align: center

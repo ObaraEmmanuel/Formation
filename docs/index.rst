@@ -7,11 +7,17 @@ Formation studio
 
    installation
    quickstart
+   studio_window
    component_pane
    component_tree
+   canvas
+   menu
+   variables
+   callbacks
+   events
+   themes
    custom_widgets
    custom_properties
-   canvas
 
 .. toctree::
    :maxdepth: 1

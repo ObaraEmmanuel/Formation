@@ -265,6 +265,10 @@ The complete code to run our app which will be located at ``calculate.py`` will 
 
     app.mainloop()
 
+:download:`calculator.py <https://raw.githubusercontent.com/ObaraEmmanuel/Formation/refs/heads/master/examples/calculator/calculator.py>`
+
+:download:`calculator.xml <https://raw.githubusercontent.com/ObaraEmmanuel/Formation/refs/heads/master/examples/calculator/calculator.xml>`
+
 You can now run ``calculator.py`` and it should display your beautiful working app. Type
 a simple mathematical expression in the entry box and click "calculate" and it should display the
 computed result
