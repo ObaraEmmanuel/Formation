@@ -17,7 +17,7 @@ import formation
 
 class Updater(Frame):
 
-    def __init__(self, master):
+    def __init__(self, master, version=None):
         super().__init__(master)
         self.config(**self.style.surface)
         self._progress = ProgressBar(self)
@@ -37,7 +37,10 @@ class Updater(Frame):
         )
         self.extra_info = Text(self, width=40, height=6, state='disabled', font='consolas 10')
         self.pack(fill="both", expand=True)
-        self.check_for_update()
+        if not version:
+            self.check_for_update()
+        else:
+            self.update_found(version)
 
     def show_button(self, text, func):
         self._action_btn.config(text=text)
@@ -76,11 +79,27 @@ class Updater(Frame):
         self.upgrade(version)
 
     @classmethod
-    def check(cls, master):
-        dialog = MessageDialog(master, cls)
+    def check(cls, master, version=None):
+        dialog = MessageDialog(master, cls, version=version)
         dialog.title(_("Formation updater"))
         dialog.focus_set()
         return dialog
+
+    @classmethod
+    @as_thread
+    def check_silent(cls, master):
+        version = None
+        try:
+            content = urlopen("https://pypi.org/pypi/formation-studio/json").read()
+            data = json.loads(content)
+            ver = data["info"]["version"]
+            if ver > formation.__version__:
+                version = ver
+        except Exception:
+            pass
+
+        if version:
+            master.after(0, lambda: cls.check(master, version))
 
     @as_thread
     def check_for_update(self, *__):

@@ -34,6 +34,7 @@ defaults = {
         "undo_depth": 30,
         "custom_widget_paths": [],
         "allow_thirdparty": True,
+        "check_updates": True,
     },
     "features": {},
     "hotkeys": {},
@@ -153,6 +154,11 @@ def _templates():
                 }),
             ),
             _("Start up"): (
+                {
+                    "desc": _("Automatically check for updates"),
+                    "path": "studio::check_updates",
+                    "element": Check,
+                },
                 {
                     "desc": _("At startup"),
                     "path": "studio::on_startup",

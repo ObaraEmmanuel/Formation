@@ -295,6 +295,9 @@ class StudioApplication(Application):
         self._left.restore_size()
         self._right.restore_size()
 
+        if pref.get("studio::check_updates"):
+            Updater.check_silent(self)
+
     @property
     def selection(self):
         return self._selection

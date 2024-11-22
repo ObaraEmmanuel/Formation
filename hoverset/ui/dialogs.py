@@ -121,7 +121,7 @@ class MessageDialog(Window):
             # Completely custom dialogs
             routines[render_routine](**kw)  # noqa
         elif render_routine is not None:
-            render_routine(self)
+            render_routine(self, **kw)
         self.value = None
         # quirk that prevents explicit window centering on linux for best results
         add = "+" if platform_is(WINDOWS, MAC) else None
