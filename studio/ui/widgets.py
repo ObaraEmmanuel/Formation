@@ -5,6 +5,7 @@ from tkinter import ttk, TclError
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import Canvas, FontStyle, Frame, Entry, Button, Label, ScrollableInterface, EventMask, Spinner
 from studio.ui import geometry
+from studio.i18n import _
 
 
 class CoordinateIndicator(Frame):
@@ -377,7 +378,7 @@ class ThemeBar(Frame):
     def __init__(self, master, **cnf):
         super(ThemeBar, self).__init__(master, **cnf)
         self.config(**self.style.surface)
-        self._label = Label(self, **self.style.text_passive, text="Theme")
+        self._label = Label(self, **self.style.text_passive, text=_("Theme"))
         self._label.pack(side="left", fill="y", padx=3)
         self._theme = Spinner(self)
         self._theme.pack_propagate(0)
