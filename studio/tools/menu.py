@@ -236,7 +236,7 @@ class MenuToolX(BaseTool):
                 ),
                 ("command", _("cut"), icon("cut", 18, 18), self.cut_items, {**acc("STUDIO_CUT")}),
                 ("separator",),
-                ("command", _("delete"), icon("delete", 18, 18), self.restore_items, {**acc("STUDIO_DELETE")}),
+                ("command", _("delete"), icon("delete", 18, 18), self.remove_items, {**acc("STUDIO_DELETE")}),
                 LoadLater(
                     lambda: self.selected_items[0].create_menu() if len(self.selected_items) == 1 else ()),
             ),
