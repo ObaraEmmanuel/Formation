@@ -263,6 +263,18 @@ class Color(Editor):
         except Exception:
             self._color_button.config(bg=self._entry["bg"])
 
+    def _get_palette(self):
+        master = tk._default_root
+        if not hasattr(master, "color_data"):
+            master = self.winfo_toplevel()
+
+        if hasattr(master, "color_data") and master.color_data:
+            data = set()
+            for color, _ in master.color_data.items():
+                data.add(self._parse_color(color))
+            return data
+        return None
+
     def _chooser(self, *_):
         if self.get().startswith("#"):
             colour = self.get()
@@ -270,7 +282,7 @@ class Color(Editor):
             colour = self._parse_color(self.get())
         else:
             colour = "#000000"
-        dialog = ColorDialog(self.window, self._color_button, colour)
+        dialog = ColorDialog(self.window, self._color_button, colour, self._get_palette())
         dialog.set(colour)
         dialog.update_idletasks()
         self.window.update_idletasks()

@@ -294,6 +294,14 @@ class CanvasItem(abc.ABC):
             if intercept:
                 intercept.set(self, option[opt], opt)
                 option.pop(opt)
+            if hasattr(self.canvas, "_cv_tool"):
+                prop_def = get_resolved(
+                    opt, self.OVERRIDES, CANVAS_PROPERTIES,
+                    PROPERTY_TABLE, WIDGET_IDENTITY
+                )
+                if prop_def and prop_def["type"] == "color":
+                    self.canvas._cv_tool.studio.designer.update_color_key(self.cget(opt), option[opt])
+
         if not option:
             conf = self.canvas.itemconfigure(self._id)
             conf.update(self._extra_conf())

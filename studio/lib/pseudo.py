@@ -384,6 +384,9 @@ class PseudoWidget:
     def configure(self, options=None, **kw):
         for opt in list(kw.keys()):
             intercept = self._intercepts.get(opt)
+            prop_def = self.property_def(opt)
+            if prop_def and prop_def["type"] == "color":
+                self.designer.update_color_key(self[opt], kw[opt])
             if intercept:
                 intercept.set(self, kw[opt], opt)
                 kw.pop(opt)
@@ -409,6 +412,11 @@ class PseudoWidget:
         for key in self._properties:
             self._properties[key]["value"] = self.get_prop(key)
         return self._properties
+
+    def property_def(self, prop):
+        if not hasattr(self, "_properties"):
+            self._properties = get_properties(self)
+        return self._properties.get(prop)
 
     def create_menu(self):
         """

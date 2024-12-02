@@ -130,6 +130,7 @@ class Designer(DesignPad, Container):
         self.parent = self
         self.config(**self.style.bright, takefocus=True)
         self.objects = []
+        self.color_data = {}
         self.root_obj = None
         self.theme = (None, None)
         self.layout_strategy = DesignLayoutStrategy(self)
@@ -215,6 +216,35 @@ class Designer(DesignPad, Container):
 
     def _get_designer(self):
         return self
+
+    def add_color_data(self, data):
+        # Add all color properties to the color data for palette generation
+        for key, value in data.items():
+            if value["type"] == "color":
+                color = str(value["value"])
+                if color:
+                    self.color_data[color] = self.color_data.get(color, 0) + 1
+
+    def remove_color_data(self, data):
+        for key, value in data.items():
+            if value["type"] != "color":
+                continue
+            color = str(value["value"])
+            if not color:
+                continue
+            if color in self.color_data:
+                self.color_data[color] -= 1
+                if self.color_data[color] == 0:
+                    self.color_data.pop(color)
+
+    def update_color_key(self, old, new):
+        old, new = str(old), str(new)
+        if old in self.color_data:
+            self.color_data[old] -= 1
+            if self.color_data[old] == 0:
+                self.color_data.pop(old)
+        if new:
+            self.color_data[new] = self.color_data.get(new, 0) + 1
 
     def focus_set(self):
         self._frame.focus_force()
@@ -323,6 +353,10 @@ class Designer(DesignPad, Container):
         for widget in self.objects:
             widget.destroy()
         self.objects.clear()
+        self._sorted_containers.clear()
+        self._sorted_objs.clear()
+        self._move_selection.clear()
+        self.color_data.clear()
         self.root_obj = None
 
     def _verify_version(self):
@@ -785,6 +819,7 @@ class Designer(DesignPad, Container):
     def _replace_all(self, widget):
         # Recursively add widget and all its children to objects
         self.objects.append(widget)
+        self.add_color_data(widget.properties)
         if self.root_obj is None:
             self.root_obj = widget
         if isinstance(widget, Container):
@@ -819,6 +854,7 @@ class Designer(DesignPad, Container):
 
     def _uproot_widget(self, widget):
         # Recursively remove widgets and all its children
+        self.remove_color_data(widget.properties)
         if widget in self.objects:
             self.objects.remove(widget)
         if isinstance(widget, Container):

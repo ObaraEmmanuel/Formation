@@ -258,7 +258,20 @@ def menu_config(parent_menu, index, key=None, cnf=None, **kw):
                 value = _intercepts.get(prop).get(parent_menu, index, prop)
                 config[prop] = (*config[prop][:-1], value)
         return config
+
+    master = tk._default_root
+    designer = None
+    if hasattr(master, "designer"):
+        designer = master.designer
+
     for prop in kw:
+        prop_def = get_resolved(
+            prop, MENU_PROPERTY_TABLE,
+            PROPERTY_TABLE, WIDGET_IDENTITY
+        )
+        if prop_def["type"] == "color":
+            if designer and hasattr(designer, "update_color_key"):
+                designer.update_color_key(parent_menu.entrycget(index, prop), kw[prop])
         if prop in _intercepts:
             _intercepts.get(prop).set(parent_menu, index, kw[prop], prop)
         else:

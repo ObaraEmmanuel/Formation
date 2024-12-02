@@ -895,6 +895,7 @@ class CanvasTool(BaseTool):
             canvas._cv_tree.on_select(self._update_selection, canvas)
             canvas._cv_items = []
             canvas._cv_initialized = True
+            canvas._cv_tool = self
 
     @property
     def sorted_selected_items(self):
@@ -1024,6 +1025,7 @@ class CanvasTool(BaseTool):
             item.hide()
             canvas._cv_items.remove(item)
             item.node.remove()
+            self.studio.designer.remove_color_data(item.properties)
         if not silently:
             self.studio.new_action(Action(
                 lambda _: self.restore_items(items),
@@ -1037,6 +1039,7 @@ class CanvasTool(BaseTool):
             if item._prev_index is not None:
                 canvas._cv_items.insert(item._prev_index, item)
             canvas._cv_tree.insert(item._prev_index, item.node)
+            self.studio.designer.add_color_data(item.properties)
 
     def _get_copy_data(self):
         if not self.selected_items:

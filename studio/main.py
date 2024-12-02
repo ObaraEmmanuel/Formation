@@ -381,6 +381,11 @@ class StudioApplication(Application):
         if isinstance(self.context, DesignContext):
             return self.context.designer
 
+    @property
+    def color_data(self):
+        if self.designer:
+            return self.designer.color_data
+
     def _extract_descendants(self, widget, widget_set):
         for child in widget.all_children:
             widget_set.add(child)

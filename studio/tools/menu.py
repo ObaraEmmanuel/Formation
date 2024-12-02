@@ -380,6 +380,7 @@ class MenuToolX(BaseTool):
             if item not in menu._items:
                 continue
             self._deselect(item)
+            self.studio.designer.remove_color_data(item.properties)
             indices.append(item._index)
             configs.append(item.get_altered_options())
             menu.delete(item.index)
@@ -406,6 +407,7 @@ class MenuToolX(BaseTool):
             menu.insert(index + int(menu["tearoff"]), item.item_type, **config)
             menu.real_node.insert(index, item.node)
             unique_menus.add(menu)
+            self.studio.designer.add_color_data(item.properties)
 
         for menu in unique_menus:
             MenuToolX.refresh_menu_indices(menu)
