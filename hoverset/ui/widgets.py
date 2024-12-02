@@ -953,7 +953,7 @@ class Widget:
     def _schedule_tooltip(self, *_):
         # cancel any previous scheduling
         self._cancel_tooltip()
-        self._tooltip_ev = self.after(1500, self._show_tooltip)
+        self._tooltip_ev = self.after(self._tooltip_delay, self._show_tooltip)
 
     def _cancel_tooltip(self, *_):
         if self._tooltip_ev is not None:
