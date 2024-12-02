@@ -56,7 +56,10 @@ class _ColorStrip(_Spectrum):
 
     def __init__(self, master=None, color_array=None, **cnf):
         super().__init__(master, **cnf)
-        self.color_strip = Canvas(self, width=230, height=27, **self.style.surface, highlightthickness=0)
+        self.color_strip = Canvas(
+            self, width=230, height=27, **self.style.surface,
+            highlightthickness=0
+        )
         self.color_strip.pack(pady=5)
         self.color_strip.bind("<ButtonPress-1>", self._drag_start)
         self.color_strip.bind("<ButtonRelease>", self._drag_end)
@@ -73,8 +76,10 @@ class _ColorStrip(_Spectrum):
                 x, y, x + step, y + 15,
                 fill=fill, width=0)
             x = x + step
-        self.selector = self.color_strip.create_polygon(5, 15, 0, 25, 10, 25, splinesteps=1, joinstyle="miter",
-                                                        fill="#5a5a5a", outline="#f7f7f7", activeoutline="#3d8aff")
+        self.selector = self.color_strip.create_polygon(
+            5, 15, 0, 25, 10, 25, splinesteps=1, joinstyle="miter",
+            fill="#5a5a5a", outline="#f7f7f7", activeoutline="#3d8aff"
+        )
 
     def _drag_start(self, event):
         super()._drag_start(event)
@@ -94,7 +99,8 @@ class _ColorStrip(_Spectrum):
             self.pos = x, 0
             self.color_strip.coords(self.selector, x, 15, x - 5, 25, x + 5, 25)
             self.color_strip.update_idletasks()
-            # Since we are going to call _adjust implicitly at times we need to avoid firing the callback on implicit
+            # Since we are going to call _adjust implicitly at times we need to
+            # avoid firing the callback on implicit
             # changes to avoid unpredictable change loops!
             # During implicit changes event is set to None and an x position provided.
             index = int((x - 5) / (self._width - 10) * (len(self.color_array) - 1))
@@ -170,6 +176,11 @@ class _ColorSpace(_Spectrum):
             # changes to avoid unpredictable change loops!
             # During implicit changes event is set to None and an x position provided.
             self._color = (self.hue, round((x/self._width)*100), round(((self._height - y)/self._height)*100))
+            self.color_space.itemconfigure(
+                self.selector,
+                outline=color.to_hex(
+                    color.from_hsv((0, 0, 5 if self._color[2] > 50 else 95))
+                ))
             if not event:
                 if self.implicit_callback:
                     self.implicit_callback(self.get())
@@ -192,9 +203,53 @@ class _ColorSpace(_Spectrum):
         self._adjust(None, x_frac * self._width, (1 - y_frac) * self._height)
 
 
+class Palette(Frame):
+
+    def __init__(self, master=None, colors=None, **cnf):
+        super().__init__(master, **cnf)
+        self.colors = colors or []
+        self.colors = list(self.colors)[:27]
+        self.configure(**self.style.surface)
+
+        for i, color in enumerate(self.colors):
+            pad = Frame(
+                self, width=12, height=12, bg=color,
+                highlightbackground=self.style.colors["primary"],
+                highlightcolor=self.style.colors["accent"],
+                takefocus=True, highlightthickness=1
+            )
+            pad.bind("<Enter>", self.start_hover(pad), add="+")
+            pad.bind("<Leave>", self.end_hover(pad), add="+")
+            pad.bind("<Button-1>", self._change(color))
+            pad.bind("<Return>", self._change(color))
+            pad.tooltip(color, 500)
+            pad.grid(row=i // 9, column=i % 9, padx=6, pady=6, sticky="nsew")
+
+        self.callback, self.implicit_callback = None, None
+
+    def on_change(self, callback, *args, **kwargs):
+        self.callback = lambda c: callback(c, *args, **kwargs)
+
+    def _change(self, color):
+        def handler(_):
+            if self.callback:
+                self.callback(color)
+        return handler
+
+    def start_hover(self, frame):
+        def handler(_):
+            frame["highlightbackground"] = self.style.colors["accent"]
+        return handler
+
+    def end_hover(self, frame):
+        def handler(_):
+            frame["highlightbackground"] = self.style.colors["primary"]
+        return handler
+
+
 class ColorChooser(Frame):
 
-    def __init__(self, master=None, starting_color=None, **cnf):
+    def __init__(self, master=None, starting_color=None, palette=None, **cnf):
         super().__init__(master, **cnf)
         shifts = [
             *[(255, 0, i) for i in range(256)],          # Magenta shift
@@ -204,7 +259,8 @@ class ColorChooser(Frame):
             *[(i, 255, 0) for i in range(256)],          # Yellow shift
             *[(255, 255 - i, 0) for i in range(256)],    # Red shift
         ]
-        hsv_start = color.to_hsv(color.to_rgb(starting_color or "#000000"))
+        starting_color = starting_color or "#000000"
+        hsv_start = color.to_hsv(color.to_rgb(starting_color))
         self.configure(**self.style.surface)
         self.col = _ColorSpace(self, hsv_start[0])
         self.col.pack()
@@ -213,9 +269,13 @@ class ColorChooser(Frame):
         hue.on_change(self.adjust_strips)
         hue.on_implicit_change(self.recolor_strips)
         self.col.on_change(self.update_panel)
-        self.monitor = monitor = panels.ColorInput(self)
+        self.monitor = monitor = panels.ColorInput(self, starting_color)
         self.monitor.on_change(self.on_monitor_change)
-        monitor.pack()
+        monitor.pack(fill="x", padx=5)
+        if palette:
+            self.palette = Palette(self, palette)
+            self.palette.on_change(self.set_color)
+            self.palette.pack(pady=5, padx=5, fill="x")
         self._on_change = None
 
     def on_monitor_change(self, hex_string):
@@ -258,13 +318,13 @@ class ColorChooser(Frame):
 
 class ColorDialog(Popup):
 
-    def __init__(self, master, widget=None, starting_color=None, **cnf):
+    def __init__(self, master, widget=None, starting_color=None, palette=None, **cnf):
         if widget:
             rec = self.get_pos(widget, side="auto", padding=4, width=234, height=206)
         else:
             rec = (0, 0)
         super().__init__(master, rec, **cnf)
-        self.chooser = ColorChooser(self, starting_color, **self.style.surface)
+        self.chooser = ColorChooser(self, starting_color, palette, **self.style.surface)
         self.chooser.pack()
 
     def set(self, value):
@@ -282,7 +342,7 @@ class ColorDialog(Popup):
 if __name__ == "__main__":
     import timeit
     root = Application()
-    cc = ColorChooser(root, bg="#5a5a5a")
+    cc = ColorChooser(root, bg="#5a5a5a", palette=["#ff0000", "#00ff00", "#0000ff", "#ffff00", "#ff00ff", "#00ffff"])
     cc.pack()
     cc.set_color("#5a5a5a")
     hu = 340

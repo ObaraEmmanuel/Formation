@@ -100,7 +100,7 @@ class ColorPicker(Button):
 
 class ColorInput(Frame):
 
-    def __init__(self, master, **cnf):
+    def __init__(self, master, starting_color=None, **cnf):
         super().__init__(master, **cnf)
         self.config(**self.style.surface)
         self.callback = None
@@ -113,15 +113,20 @@ class ColorInput(Frame):
         self.current_model = self.models.get(list(self.models.keys())[0])
         # Initialize the hex_string which is needed for model initialization
         self.hex_string = Entry(self, **self.style.input, **self.style.highlight_active, width=8)
-        self.hex_string.grid(row=0, column=1)
+        self.hex_string.grid(row=0, column=1, sticky='nsew', pady=5)
+        self.columnconfigure(1, weight=1)
         self.hex_string.on_entry(self.on_hex_string_changed)
         self.hex_string.set_validator(check_hex_color)
-        self.pad = Label(self, width=8, height=2)
-        self.pad.grid(row=0, column=2, columnspan=2, padx=2, pady=2)
+        self.pad = Frame(self, width=23, height=20)
+        self.pad.grid(row=0, column=3, padx=0, pady=5, sticky='nsew')
+        self.pad_orig = Frame(self, width=23, height=20)
+        self.pad_orig.grid(row=0, column=2, padx='5 0', pady=5, sticky='nsew')
+        if starting_color:
+            self.pad_orig.config(bg=starting_color)
         self.model_select = Spinner(self, width=7)
         self.model_select.set_values(list(self.models.keys()))
         self.model_select.set("RGB")
-        self.model_select.grid(row=0, column=0, sticky='w')
+        self.model_select.grid(row=0, column=0, sticky='ew', padx='0 5')
         self.model_select.config(**self.style.surface)
         self.model_select.on_change(self.on_model_change)
         self.model_select.set(list(self.models.keys())[0])
@@ -182,7 +187,7 @@ class ColorInput(Frame):
 
     def attach(self, model):
         # Helper function to allow you display a model
-        model.grid(row=1, column=0, columnspan=2)
+        model.grid(row=1, column=0, columnspan=2, sticky='ew')
 
     def set(self, hex_string: str, implicit: bool = False) -> None:
         # Implicit should be set to true if change is generated internally or programmatically
@@ -210,17 +215,17 @@ class _RgbModel(Frame):
         self.r.on_change(master.change, True)
         self.r.on_entry(master.change)
         self.r.set_validator(numeric_limit, 0, 255)
-        self.r.grid(row=0, column=0, pady=1, padx=1)
+        self.r.grid(row=0, column=0, pady=1, padx='0 5')
         self.g = SpinBox(self, **rgb_spinbox)
         self.g.on_change(master.change, True)
         self.g.on_entry(master.change)
         self.g.set_validator(numeric_limit, 0, 255)
-        self.g.grid(row=0, column=1, pady=1, padx=1)
+        self.g.grid(row=0, column=1, pady=1, padx='0 5')
         self.b = SpinBox(self, **rgb_spinbox)
         self.b.on_change(master.change, True)
         self.b.on_entry(master.change)
         self.b.set_validator(numeric_limit, 0, 255)
-        self.b.grid(row=0, column=2, pady=1, padx=1)
+        self.b.grid(row=0, column=2, pady=1, padx='0 5')
         Label(self, text="R", **self.style.text).grid(row=1, column=0, sticky="ew")
         Label(self, text="G", **self.style.text).grid(row=1, column=1, sticky="ew")
         Label(self, text="B", **self.style.text).grid(row=1, column=2, sticky="ew")
@@ -254,7 +259,7 @@ class _HslModel(Frame):
         self.h.on_change(master.change, True)
         self.h.on_entry(master.change)
         self.h.set_validator(numeric_limit, 0, 360)
-        self.h.grid(row=0, column=0, pady=1, padx=1)
+        self.h.grid(row=0, column=0, pady=1, padx='0 5')
 
         # ========= saturation and luminosity are percentages ===========
 
@@ -263,12 +268,12 @@ class _HslModel(Frame):
         self.s.on_change(master.change, True)
         self.s.on_entry(master.change)
         self.s.set_validator(numeric_limit, 0, 100)
-        self.s.grid(row=0, column=1, pady=1, padx=1)
+        self.s.grid(row=0, column=1, pady=1, padx='0 5')
         self.l = SpinBox(self, **percent_spinbox)
         self.l.on_change(master.change, True)
         self.l.on_entry(master.change)
         self.l.set_validator(numeric_limit, 0, 100)
-        self.l.grid(row=0, column=2, pady=1, padx=1)
+        self.l.grid(row=0, column=2, pady=1, padx='0 5')
 
         # ===============================================================
 
@@ -304,7 +309,7 @@ class _HsvModel(Frame):
         self.h.on_change(master.change, True)
         self.h.on_entry(master.change)
         self.h.set_validator(numeric_limit, 0, 360)
-        self.h.grid(row=0, column=0, pady=1, padx=1)
+        self.h.grid(row=0, column=0, pady=1, padx='0 5')
 
         # ========= saturation and value are percentages ===========
 
@@ -313,12 +318,12 @@ class _HsvModel(Frame):
         self.s.on_change(master.change, True)
         self.s.on_entry(master.change)
         self.s.set_validator(numeric_limit, 0, 100)
-        self.s.grid(row=0, column=1, pady=1, padx=1)
+        self.s.grid(row=0, column=1, pady=1, padx='0 5')
         self.v = SpinBox(self, **percent_spinbox)
         self.v.on_change(master.change, True)
         self.v.on_entry(master.change)
         self.v.set_validator(numeric_limit, 0, 100)
-        self.v.grid(row=0, column=2, pady=1, padx=1)
+        self.v.grid(row=0, column=2, pady=1, padx='0 5')
 
         # ===============================================================
 
