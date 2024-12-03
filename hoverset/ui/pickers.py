@@ -274,12 +274,17 @@ class ColorChooser(Frame):
         monitor.pack(fill="x", padx=5)
         if palette:
             self.palette = Palette(self, palette)
-            self.palette.on_change(self.set_color)
+            self.palette.on_change(self.on_palette_change)
             self.palette.pack(pady=5, padx=5, fill="x")
         self._on_change = None
 
     def on_monitor_change(self, hex_string):
         self.set_strips(hex_string)
+        if self._on_change:
+            self._on_change(hex_string)
+
+    def on_palette_change(self, hex_string):
+        self.set_color(hex_string)
         if self._on_change:
             self._on_change(hex_string)
 
