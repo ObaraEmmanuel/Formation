@@ -1,8 +1,6 @@
 # ======================================================================= #
 # Copyright (C) 2024 Hoverset Group.                                      #
 # ======================================================================= #
-from studio.debugtools.preferences import Preferences
-
 _global_freeze = dict(globals())
 
 import sys
@@ -19,6 +17,7 @@ import code
 from studio.ui.highlight import WidgetHighlighter
 from studio.debugtools.defs import Message, marshal, RemoteEvent, unmarshal
 from studio.debugtools.common import extract_base_class, get_logging_level
+from studio.debugtools.preferences import Preferences
 
 
 class _BypassedLogger:
@@ -131,6 +130,7 @@ class DebuggerHook:
         self.root = None
         self.active_widget = None
         self.enable_hooks = True
+        self._ignore = set()
         self.listener = Listener(
             ('localhost', 6999), authkey=pref.get("IPC::authkey")
         )
@@ -175,7 +175,7 @@ class DebuggerHook:
                 toplevel, self.styles
             )
             for elem in highlighter.elements:
-                setattr(elem, "_dbg_ignore", True)
+                self._ignore.add(elem)
             self.enable_hooks = True
         return self._handle_map[toplevel]
 
@@ -211,7 +211,7 @@ class DebuggerHook:
         if not self.allow_hover:
             return
         widget = event.widget
-        if getattr(widget, "_dbg_ignore", False):
+        if widget in self._ignore:
             return
         handle = self.get_handle(widget)
         if handle != self._handle:
@@ -223,20 +223,20 @@ class DebuggerHook:
         if not self.allow_hover:
             return
         widget = event.widget
-        if getattr(widget, "_dbg_ignore", False):
+        if widget in self._ignore:
             return
         self._clear_handle()
         self.push_event("<<SelectionChanged>>", widget, event)
 
     def on_widget_map(self, event):
         widget = event.widget
-        if getattr(widget, "_dbg_ignore", False):
+        if widget in self._ignore:
             return
         self.push_event("<<WidgetMapped>>", widget, event)
 
     def on_widget_unmap(self, event):
         widget = event.widget
-        if getattr(widget, "_dbg_ignore", False):
+        if widget in self._ignore:
             return
         self.push_event("<<WidgetUnmapped>>", widget, event)
 
@@ -362,7 +362,7 @@ class DebuggerHook:
         return extract_base_class(widget)
 
     def hook_widget(self, widget):
-        if getattr(widget, "dbg_ignore", False):
+        if widget in self._ignore:
             return
         self._hook_widget_conf(widget)
         self._hook_destroy(widget)
@@ -373,7 +373,7 @@ class DebuggerHook:
 
         def _hook(slf, master, *args, **kwargs):
             _setup(slf, master, *args, **kwargs)
-            if not getattr(slf, "_dbg_ignore", False) and self.enable_hooks:
+            if slf not in self._ignore and self.enable_hooks:
                 self.hook_widget(slf)
                 self.push_event("<<WidgetCreated>>", slf)
 
