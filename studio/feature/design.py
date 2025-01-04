@@ -7,6 +7,7 @@ Drag drop designer for the studio
 # ======================================================================= #
 import os.path
 import time
+import tkinter
 from tkinter import filedialog, ttk, TclError
 
 from hoverset.data import actions
@@ -180,6 +181,7 @@ class Designer(DesignPad, Container):
         self._text_editor = Text(self, wrap='none')
         self._text_editor.on_change(self._text_change)
         self._text_editor.bind("<FocusOut>", self._text_hide)
+        self._active_text_widget = None
         self._base_font = FontStyle()
         self._selected = set()
         self._studio_bindings = []
@@ -934,7 +936,14 @@ class Designer(DesignPad, Container):
             return
         cnf = self._collect_text_config(widget)
         self._text_editor.config(**cnf)
-        self._text_editor.place(in_=widget, relwidth=1, relheight=1, x=0, y=0)
+        if isinstance(widget, (tkinter.LabelFrame, ttk.LabelFrame)):
+            if widget["labelwidget"]:
+                return
+            self._text_editor.config(width=widget.winfo_width(), height=1)
+            widget.config(labelwidget=self._text_editor)
+        else:
+            self._text_editor.place(in_=widget, relwidth=1, relheight=1, x=0, y=0)
+        self._active_text_widget = widget
         self._text_editor.lift(widget)
         self._text_editor.clear()
         self._text_editor.focus_set()
@@ -960,7 +969,14 @@ class Designer(DesignPad, Container):
         return config
 
     def _text_hide(self, *_):
-        self._text_editor.place_forget()
+        if not self._active_text_widget:
+            return
+        widget = self._active_text_widget
+        if isinstance(widget, (tkinter.LabelFrame, ttk.LabelFrame)):
+            widget.config(labelwidget="")
+        else:
+            self._text_editor.place_forget()
+        self._active_text_widget = None
 
     def send_back(self, steps=0):
         if not (self.studio.selection and self.studio.selection.is_same_parent()):
