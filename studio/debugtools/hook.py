@@ -147,9 +147,9 @@ class DebuggerHook:
         self.orig_stdout, self.orig_stderr, self.orig_stdin = (
             sys.stdout, sys.stderr, sys.stdin
         )
-        sys.stdout = self.pipes["stdout"]
-        sys.stderr = self.pipes["stderr"]
-        sys.stdin = self.pipes["stdin"]
+        # sys.stdout = self.pipes["stdout"]
+        # sys.stderr = self.pipes["stderr"]
+        # sys.stdin = self.pipes["stdin"]
         self.debugger_api = DebuggerAPI(self)
         self.shell = code.InteractiveConsole({"debugger": self.debugger_api})
         self._stream_clients = []
@@ -175,7 +175,7 @@ class DebuggerHook:
                 toplevel, self.styles
             )
             for elem in highlighter.elements:
-                self._ignore.add(elem)
+                self._ignore.add(elem.winfo_id())
             self.enable_hooks = True
         return self._handle_map[toplevel]
 
@@ -211,7 +211,7 @@ class DebuggerHook:
         if not self.allow_hover:
             return
         widget = event.widget
-        if widget in self._ignore:
+        if widget.winfo_id() in self._ignore:
             return
         handle = self.get_handle(widget)
         if handle != self._handle:
@@ -223,20 +223,20 @@ class DebuggerHook:
         if not self.allow_hover:
             return
         widget = event.widget
-        if widget in self._ignore:
+        if widget.winfo_id() in self._ignore:
             return
         self._clear_handle()
         self.push_event("<<SelectionChanged>>", widget, event)
 
     def on_widget_map(self, event):
         widget = event.widget
-        if widget in self._ignore:
+        if widget.winfo_id() in self._ignore:
             return
         self.push_event("<<WidgetMapped>>", widget, event)
 
     def on_widget_unmap(self, event):
         widget = event.widget
-        if widget in self._ignore:
+        if widget.winfo_id() in self._ignore:
             return
         self.push_event("<<WidgetUnmapped>>", widget, event)
 
@@ -362,7 +362,9 @@ class DebuggerHook:
         return extract_base_class(widget)
 
     def hook_widget(self, widget):
-        if widget in self._ignore:
+        if widget.winfo_id() in self._ignore:
+            return
+        if not self.enable_hooks:
             return
         self._hook_widget_conf(widget)
         self._hook_destroy(widget)
@@ -373,7 +375,7 @@ class DebuggerHook:
 
         def _hook(slf, master, *args, **kwargs):
             _setup(slf, master, *args, **kwargs)
-            if slf not in self._ignore and self.enable_hooks:
+            if slf.winfo_id() not in self._ignore and self.enable_hooks:
                 self.hook_widget(slf)
                 self.push_event("<<WidgetCreated>>", slf)
 
