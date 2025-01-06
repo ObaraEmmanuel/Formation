@@ -144,7 +144,12 @@ class ElementPane(Pane):
         self.debugger.selection.set(map(lambda node: node.widget, self._tree.get()))
 
     def on_widget_tap(self, widget, event):
+        self._select_btn.toggle()
         if widget:
+            # bring debugger to front
+            self.debugger.attributes('-topmost', True)
+            self.debugger.attributes('-topmost', False)
+            self.debugger.focus_force()
             node = self._tree.expand_to(widget)
             if node:
                 self._tree.see(node)
