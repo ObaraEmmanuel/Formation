@@ -119,10 +119,17 @@ class StylePane(StylePaneFramework, Pane):
         self.add_group(AttributeGroup)
         self.debugger.bind("<<SelectionChanged>>", self.on_selection_changed, True)
         self.debugger.bind("<<WidgetModified>>", self._on_config_change)
+        self.debugger.bind("<<WidgetLayoutChanged>>", self._on_layout_change)
+        self.debugger.bind("<<WidgetMapped>>", self._on_layout_change, True)
+        self.debugger.bind("<<WidgetUnmapped>>", self._on_layout_change, True)
 
     def _on_config_change(self, _):
         if self.debugger.active_widget in self.widgets:
             self.render_styles()
+
+    def _on_layout_change(self, _):
+        if self.debugger.active_widget in self.widgets:
+            self.render_layouts()
 
     def on_selection_changed(self, _):
         if self.debugger.selection:

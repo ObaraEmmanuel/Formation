@@ -30,9 +30,13 @@ class ElementTreeView(ComponentTreeView):
 
         def on_map(self, *_):
             self.name_pad.configure(**self.style.text)
+            if self.selected:
+                self.name_pad.configure(**self.style.hover)
 
         def on_unmap(self, *_):
             self.name_pad.configure(**self.style.text_passive)
+            if self.selected:
+                self.name_pad.configure(**self.style.hover)
 
         @property
         def loaded(self):

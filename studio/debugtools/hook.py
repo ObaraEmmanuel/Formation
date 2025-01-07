@@ -7,6 +7,7 @@ import sys
 import logging
 import os
 import tkinter
+from tkinter import ttk
 from multiprocessing.connection import Listener
 import threading
 import subprocess
@@ -147,9 +148,9 @@ class DebuggerHook:
         self.orig_stdout, self.orig_stderr, self.orig_stdin = (
             sys.stdout, sys.stderr, sys.stdin
         )
-        # sys.stdout = self.pipes["stdout"]
-        # sys.stderr = self.pipes["stderr"]
-        # sys.stdin = self.pipes["stdin"]
+        sys.stdout = self.pipes["stdout"]
+        sys.stderr = self.pipes["stderr"]
+        sys.stdin = self.pipes["stdin"]
         self.debugger_api = DebuggerAPI(self)
         self.shell = code.InteractiveConsole({"debugger": self.debugger_api})
         self._stream_clients = []
@@ -381,6 +382,45 @@ class DebuggerHook:
 
         setattr(tkinter.BaseWidget, '__init__', _hook)
 
+    def _hook_layout(self):
+
+        def _create_hook(obj, name, alt=False):
+            orig = getattr(obj, name)
+
+            def _hook(slf, *args, **kwargs):
+                ret = orig(slf, *args, **kwargs)
+                if slf.winfo_id() not in self._ignore and self.enable_hooks:
+                    self.push_event("<<WidgetLayoutChanged>>", slf)
+                return ret
+
+            def _hook_alt(slf, _id, opt=None, *args, **kwargs):
+                # checks if there are configuration options
+                # used by methods that have a widget id as the first argument
+                ret = orig(slf, _id, opt, *args, **kwargs)
+                if not opt and not kwargs:
+                    return ret
+                if slf.winfo_id() not in self._ignore and self.enable_hooks:
+                    self.push_event("<<WidgetLayoutChanged>>", _id)
+                return ret
+
+            if alt:
+                setattr(obj, name, _hook_alt)
+            else:
+                setattr(obj, name, _hook)
+
+        _hooks = {
+            tkinter.Pack: [False, 'pack', 'config', 'configure', 'pack_configure'],
+            tkinter.Grid: [False, 'grid', 'config', 'configure', 'grid_configure'],
+            tkinter.Place: [False, 'place', 'config', 'configure', 'place_configure'],
+            tkinter.PanedWindow: [True, 'paneconfigure', 'paneconfig'],
+            ttk.Notebook: [True, 'tab'],
+            ttk.Panedwindow: [True, 'pane']
+        }
+
+        for obj, (alt, *names) in _hooks.items():
+            for name in names:
+                _create_hook(obj, name, alt)
+
     def _hook_destroy(self, widget):
         destroy = widget.destroy
 
@@ -452,6 +492,7 @@ class DebuggerHook:
                 return
         self.hook()
         self._hook_creation()
+        self._hook_layout()
         with open(self.path) as file:
             code = compile(file.read(), self.path, 'exec')
 

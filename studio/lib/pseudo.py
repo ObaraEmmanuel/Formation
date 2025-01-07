@@ -748,7 +748,8 @@ class TabContainer(Container):
         prop.pop("layout")
         return prop
 
-    def tab(self, widget, **kw):
+    def tab(self, widget, option=None, **kw):
+        kw.update(option or {})
         if not kw:
             # Intercept the return value and change image to the image path
             config = super().tab(widget)
