@@ -108,10 +108,10 @@ class Debugger(Application):
             try:
                 msg = self._stream_client.recv()
             except (ConnectionAbortedError, ConnectionResetError, OSError):
-                self.exit()
+                self.terminate()
                 break
             if msg == "TERMINATE":
-                self.exit()
+                self.terminate()
                 break
             if hasattr(msg, "payload"):
                 msg.payload = unmarshal(msg.payload, self)
@@ -206,13 +206,21 @@ class Debugger(Application):
         super().destroy()
 
     def exit(self):
+        # Debugger initiated exit
         try:
             self.transmit("TERMINATE")
-            self.close_clients()
-            self.destroy()
+        except:
+            pass
         finally:
-            # Exit forcefully
-            os._exit(os.EX_OK)
+            self.destroy()
+
+    def terminate(self):
+        # Hook initiated exit
+        try:
+            self.close_clients()
+        except:
+            pass
+        self.destroy()
 
     @classmethod
     def run_process(cls, path) -> subprocess.Popen:

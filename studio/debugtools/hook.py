@@ -157,6 +157,8 @@ class DebuggerHook:
         self._server_clients = []
         self.selection = []
         atexit.register(self.terminate)
+        # force close preferences
+        pref._release()
 
     @property
     def allow_hover(self):
@@ -338,26 +340,29 @@ class DebuggerHook:
         def run_command(last_compiled):
             try:
                 self.shell.runcode(last_compiled)
-            except SystemExit:
-                self.root.after(0, self.exit)
-
-            self.transmit(
-                Message("CONSOLE", payload={"note": "COMMAND_COMPLETE"})
-            )
+                self.transmit(
+                    Message("CONSOLE", payload={"note": "COMMAND_COMPLETE"})
+                )
+            except SystemExit as e:
+                _code = e.code
+                self.root.after(0, lambda: exit(_code))
 
         threading.Thread(target=run_command, args=(self.last_compiled,)).start()
         self.last_compiled = None
 
     def exit(self):
+        # Debugger initiated termination
         self.enable_hooks = False
+        try:
+            for client in self._server_clients:
+                client.close()
+        except:
+            pass
         self.root.quit()
-        self.terminate()
 
     def terminate(self):
+        # Hook initiated termination
         self.transmit("TERMINATE")
-
-        for client in self._server_clients:
-            client.close()
 
     def extract_base_class(self, widget):
         return extract_base_class(widget)
