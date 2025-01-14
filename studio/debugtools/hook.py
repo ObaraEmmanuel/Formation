@@ -358,7 +358,8 @@ class DebuggerHook:
                 client.close()
         except:
             pass
-        self.root.quit()
+        atexit.unregister(self.terminate)
+        self.root.destroy()
 
     def terminate(self):
         # Hook initiated termination
