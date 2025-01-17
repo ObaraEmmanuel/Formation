@@ -33,8 +33,11 @@ author = 'Emmanuel Obara'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx_rtd_theme'
+    'sphinx_rtd_theme',
+    'sphinx_rtd_dark_mode',
 ]
+
+default_dark_mode = False
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

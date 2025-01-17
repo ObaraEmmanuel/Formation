@@ -25,3 +25,6 @@ MANIFEST
 *.manifest
 *.spec
 .idea/
+
+# extra for documantation builds
+docs/_build/
