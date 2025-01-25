@@ -2,10 +2,10 @@
 # Copyright (C) 2022 Hoverset Group.                                      #
 # ======================================================================= #
 
-import os
 import logging
 import subprocess
 import threading
+import tkinter
 from multiprocessing.connection import Client
 
 from hoverset.data.images import load_tk_image
@@ -19,7 +19,7 @@ from studio.debugtools.style_pane import StylePane
 from studio.debugtools.selection import DebugSelection
 from studio.debugtools.console import Console
 from studio.debugtools.common import get_logging_level
-from studio.debugtools.defs import RemoteWidget, Message, unmarshal, RemoteEvent, marshal
+from studio.debugtools.defs import RemoteWidget, Message, unmarshal, marshal
 
 from studio.resource_loader import ResourceLoader
 from studio.i18n import _
@@ -153,8 +153,6 @@ class Debugger(Application):
         if msg.key == "EVENT":
             event = msg.payload["event"]
             widget = msg.payload["widget"]
-            if msg.payload["data"]:
-                msg.payload["data"] = RemoteEvent(msg.payload["data"])
             suppress = False
             if event == "<<WidgetMapped>>" and widget._dbg_node:
                 widget._dbg_node.on_map()
@@ -164,13 +162,13 @@ class Debugger(Application):
                 widget.deleted = True
             if event == "<<SelectionChanged>>":
                 self.elements.element_pane.on_widget_tap(
-                    widget, msg.payload["data"]
+                    widget, msg.payload["event_obj"]
                 )
                 suppress = True
 
             if not suppress:
                 self.active_widget = widget
-                self.event_generate(event)
+                self.event_generate(event, data=(widget.id or "") + " " + (msg.payload["data"] or ""))
         if msg.key == "CONSOLE":
             self.console.handle_msg(msg.payload)
 
@@ -187,13 +185,21 @@ class Debugger(Application):
         self._widget_map[message.id] = RemoteWidget(message.id, self)
         return self._widget_map[message.id]
 
+    def widget_from_id(self, id):
+        if id in self._widget_map:
+            return self._widget_map[id]
+        self._widget_map[id] = RemoteWidget(id, self)
+        return self._widget_map[id]
+
     @property
     def selection(self):
         return self._selection
 
     def on_selection_changed(self, _):
         self.transmit(Message(
-            "HOOK", payload={"set": "selection", "value": list(self.selection)}
+            "HOOK", payload={
+                "set": "selection", "value": list(filter(lambda x: isinstance(x, RemoteWidget), self.selection))
+            }
         ))
 
     def highlight_widget(self, widget):
@@ -208,11 +214,12 @@ class Debugger(Application):
     def exit(self):
         # Debugger initiated exit
         try:
+            self.enable_hooks = False
             self.transmit("TERMINATE")
         except:
             pass
         finally:
-            self.destroy()
+            self.after(0, self.destroy())
 
     def terminate(self):
         # Hook initiated exit
@@ -220,14 +227,102 @@ class Debugger(Application):
             self.close_clients()
         except:
             pass
-        self.destroy()
+        self.after(0, self.destroy())
 
     @classmethod
     def run_process(cls, path) -> subprocess.Popen:
         return subprocess.Popen(["formation-dbg", path])
 
 
+def patch_event():
+    def _substitute(self, *args):
+        """https://github.com/python/cpython/pull/7142"""
+        if len(args) != len(self._subst_format): return args
+        getboolean = self.tk.getboolean
+
+        getint = self.tk.getint
+
+        def getint_event(s):
+            """Tk changed behavior in 8.4.2, returning "??" rather more often."""
+            try:
+                return getint(s)
+            except (ValueError, tkinter.TclError):
+                return s
+
+        nsign, b, d, f, h, k, s, t, w, x, y, A, E, K, N, W, T, X, Y, D = args
+        # Missing: (a, c, m, o, v, B, R)
+        e = tkinter.Event()
+        # serial field: valid for all events
+        # number of button: ButtonPress and ButtonRelease events only
+        # detail: for Enter, Leave, FocusIn, FocusOut and ConfigureRequest
+        # events certain fixed strings (see tcl/tk documentation)
+        # user_data: data string from a virtual event or an empty string
+        # height field: Configure, ConfigureRequest, Create,
+        # ResizeRequest, and Expose events only
+        # keycode field: KeyPress and KeyRelease events only
+        # time field: "valid for events that contain a time field"
+        # width field: Configure, ConfigureRequest, Create, ResizeRequest,
+        # and Expose events only
+        # x field: "valid for events that contain an x field"
+        # y field: "valid for events that contain a y field"
+        # keysym as decimal: KeyPress and KeyRelease events only
+        # x_root, y_root fields: ButtonPress, ButtonRelease, KeyPress,
+        # KeyRelease, and Motion events
+        e.serial = getint(nsign)
+        e.num = getint_event(b)
+        e.user_data = d
+        e.detail = d
+        try:
+            e.focus = getboolean(f)
+        except tkinter.TclError:
+            pass
+        e.height = getint_event(h)
+        e.keycode = getint_event(k)
+        e.state = getint_event(s)
+        e.time = getint_event(t)
+        e.width = getint_event(w)
+        e.x = getint_event(x)
+        e.y = getint_event(y)
+        e.char = A
+        try:
+            e.send_event = getboolean(E)
+        except tkinter.TclError:
+            pass
+        e.keysym = K
+        e.keysym_num = getint_event(N)
+        try:
+            e.type = tkinter.EventType(T)
+        except ValueError:
+            e.type = T
+        try:
+            e.widget = self._nametowidget(W)
+        except KeyError:
+            e.widget = W
+        e.x_root = getint_event(X)
+        e.y_root = getint_event(Y)
+        try:
+            e.delta = getint(D)
+        except (ValueError, tkinter.TclError):
+            e.delta = 0
+        return (e,)
+
+    _subst_format = ('%#', '%b', '%d', '%f', '%h', '%k',
+                     '%s', '%t', '%w', '%x', '%y',
+                     '%A', '%E', '%K', '%N', '%W', '%T', '%X', '%Y', '%D')
+
+    _subst_format_str = " ".join(_subst_format)
+
+    # FIXME this seems less elegant than just assigning module.Misc,
+    # but I can't figure out how to make such an assignment propagate
+    # "retroactively" to all the subclasses like Tk and the widgets
+    tkinter.Misc._substitute = _substitute
+    tkinter.Misc._subst_format = _subst_format
+    tkinter.Misc._subst_format_str = _subst_format_str
+    logging.debug(f"Patched {tkinter.__name__}.Misc to fix CPython Bug #47655.")
+
+
 def main():
+    patch_event()
     pref = Preferences.acquire()
     ResourceLoader.load(pref)
     Debugger().mainloop()

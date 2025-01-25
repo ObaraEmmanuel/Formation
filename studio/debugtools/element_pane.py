@@ -1,12 +1,12 @@
-from hoverset.ui.widgets import Button, ToggleButton, Label
-from hoverset.ui.icons import get_icon_image
+import tkinter
 
-from studio.ui.widgets import Pane
-from studio.ui.tree import MalleableTreeView
+from hoverset.ui.icons import get_icon_image
+from hoverset.ui.widgets import Button, ToggleButton, Label
+from studio.debugtools.defs import RemoteWidget, RemoteMenuItem
 from studio.feature.component_tree import ComponentTreeView
-from studio.debugtools import common
-from studio.debugtools.defs import RemoteWidget
 from studio.i18n import _
+from studio.ui.tree import MalleableTreeView
+from studio.ui.widgets import Pane
 
 
 class ElementTreeView(ComponentTreeView):
@@ -20,13 +20,17 @@ class ElementTreeView(ComponentTreeView):
             super().__init__(master, **config)
             self.widget = config.get("widget")
             setattr(self.widget, "_dbg_node", self)
-            equiv = common.get_studio_equiv(self.widget)
+            self.set_widget(self.widget)
+
+        def set_widget(self, widget):
+            self.widget = widget
+            equiv = self.widget.equiv_class
             icon = equiv.icon if equiv else 'play'
             self.name_pad.configure(text=self.extract_name(self.widget))
             self.icon_pad.configure(image=get_icon_image(icon, 15, 15))
-            self._loaded = False
             if not self.widget.winfo_ismapped():
                 self.on_unmap()
+            self._loaded = False
 
         def on_map(self, *_):
             self.name_pad.configure(**self.style.text)
@@ -45,7 +49,7 @@ class ElementTreeView(ComponentTreeView):
         def update_preload_status(self, added):
             if self._loaded or self.widget.deleted:
                 return
-            if added or self.widget.winfo_children():
+            if added or self.widget.winfo_children() or self.widget.menu_items:
                 # widget can expand
                 self._set_expander(self.COLLAPSED_ICON)
             else:
@@ -54,6 +58,8 @@ class ElementTreeView(ComponentTreeView):
         def extract_name(self, widget):
             if isinstance(widget, RemoteWidget):
                 return str(widget._name).strip("!")
+            if isinstance(widget, RemoteMenuItem):
+                return widget.name or "-"
             return 'root'
 
         def load(self):
@@ -65,6 +71,14 @@ class ElementTreeView(ComponentTreeView):
                 if getattr(child, "_dbg_ignore", False):
                     continue
                 self.add_as_node(widget=child).update_preload_status(False)
+            if self.widget._class == tkinter.Menu:
+                for item in self.widget.menu_items:
+                    if item._dbg_node:
+                        self.add(item._dbg_node)
+                        self.set_widget(item)
+                        item._dbg_node.update_preload_status(False)
+                    else:
+                        self.add_as_node(widget=item).update_preload_status(False)
             self._loaded = True
 
         def expand(self):
@@ -139,6 +153,9 @@ class ElementPane(Pane):
         self.debugger.bind("<<WidgetCreated>>", self.on_widget_created)
         self.debugger.bind("<<WidgetDeleted>>", self.on_widget_deleted)
         self.debugger.bind("<<WidgetModified>>", self.on_widget_modified)
+        self.debugger.bind("<<MenuItemModified>>", self.on_menu_item_modified, add=True)
+        self.debugger.bind("<<MenuItemAdded>>", self.on_menu_item_added)
+        self.debugger.bind("<<MenuItemRemoved>>", self.on_menu_items_removed)
 
     @property
     def selected(self):
@@ -182,9 +199,55 @@ class ElementPane(Pane):
             else:
                 parent_node.update_preload_status(False)
 
+    def on_menu_item_added(self, event):
+        widget, index = event.user_data.split(" ")
+        widget = self.debugger.widget_from_id(widget)
+        parent_node = getattr(widget, "_dbg_node", None)
+        if not parent_node or not parent_node.loaded:
+            return
+
+        item = widget._add_menu_item(int(index))
+        node = parent_node.add_as_node(widget=item) if item._dbg_node is None else item._dbg_node
+        if not item._dbg_node:
+            # remove node if it was just created
+            parent_node.remove(node)
+        parent_node.insert(int(index) + len(widget.winfo_children()), node)
+        node.set_widget(item)
+        node.update_preload_status(False)
+        item._dbg_node = node
+
+    def on_menu_items_removed(self, event):
+        widget, index1, index2 = event.user_data.split(" ")
+        widget = self.debugger.widget_from_id(widget)
+        parent_node = getattr(widget, "_dbg_node", None)
+
+        items = widget._remove_menu_items(int(index1), int(index2))
+        had_selection = False
+        for item in items:
+            if parent_node.loaded:
+                if item._dbg_node in self.selected:
+                    had_selection = True
+                    self._tree.toggle_from_selection(item._dbg_node)
+                parent_node.remove(item._dbg_node)
+            else:
+                parent_node.update_preload_status(False)
+
+        if had_selection and not self.selected:
+            self._tree.see(self.debugger.root._dbg_node)
+
     def on_widget_modified(self, _):
         if self.debugger.active_widget not in self.selected:
             return
+
+    def on_menu_item_modified(self, event):
+        widget, index = event.user_data.split(" ")
+        widget = self.debugger.widget_from_id(widget)
+        if not widget._menu_items:
+            return
+        item = widget._menu_items[int(index)]
+        item._name = None
+        if item._dbg_node:
+            item._dbg_node.set_widget(item)
 
     def on_widget_map(self, _):
         pass

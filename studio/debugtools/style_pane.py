@@ -1,8 +1,9 @@
 from hoverset.ui.widgets import Label
+from studio.debugtools.defs import RemoteWidget
 
 from studio.ui.widgets import Pane
 from studio.feature.stylepane import StylePaneFramework, StyleGroup
-from studio.debugtools.common import get_resolved_properties, get_base_class
+from studio.debugtools.common import get_resolved_properties
 from studio.debugtools import layouts
 from studio.lib.properties import combine_properties
 from studio.i18n import _
@@ -44,11 +45,11 @@ class AttributeGroup(StyleGroup):
         widget.configure(**{prop: value})
 
     def can_optimize(self):
-        return self.bases == list(set([get_base_class(widget) for widget in self.widgets]))
+        return self.bases == list(set([widget.equiv_class for widget in self.widgets]))
 
     def on_widgets_change(self):
         super().on_widgets_change()
-        self.bases = bases = list(set([get_base_class(widget) for widget in self.widgets]))
+        self.bases = bases = list(set([widget.equiv_class for widget in self.widgets]))
         if len(bases) == 1:
             self.label = _("Attributes") + f" ({bases[0].__name__})"
         elif len(bases) > 1:
@@ -89,6 +90,9 @@ class LayoutGroup(StyleGroup):
     def can_optimize(self):
         return self._layouts == list(set(filter(lambda x: x, [layouts.get_layout(widget) for widget in self.widgets])))
 
+    def supports_widgets(self):
+        return all(isinstance(widget, RemoteWidget) for widget in self.widgets)
+
     def on_widgets_change(self):
         super().on_widgets_change()
 
@@ -119,12 +123,22 @@ class StylePane(StylePaneFramework, Pane):
         self.add_group(AttributeGroup)
         self.debugger.bind("<<SelectionChanged>>", self.on_selection_changed, True)
         self.debugger.bind("<<WidgetModified>>", self._on_config_change)
+        self.debugger.bind("<<MenuItemModified>>", self._on_menu_item_config, True)
         self.debugger.bind("<<WidgetLayoutChanged>>", self._on_layout_change)
         self.debugger.bind("<<WidgetMapped>>", self._on_layout_change, True)
         self.debugger.bind("<<WidgetUnmapped>>", self._on_layout_change, True)
 
     def _on_config_change(self, _):
         if self.debugger.active_widget in self.widgets:
+            self.render_styles()
+
+    def _on_menu_item_config(self, event):
+        widget, index = event.user_data.split(" ")
+        widget = self.debugger.widget_from_id(widget)
+        if not widget._menu_items:
+            return
+        item = widget._menu_items[int(index)]
+        if item in self.widgets:
             self.render_styles()
 
     def _on_layout_change(self, _):

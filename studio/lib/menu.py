@@ -22,18 +22,22 @@ MENU_PROPERTY_TABLE = {
         "type": "boolean",
     },
     "columnbreak": {
+        "name": "columnbreak",
         "display_name": "column break",
         "type": "boolean",
     },
     "selectcolor": {
+        "name": "selectcolor",
         "display_name": "select color",
         "type": "color",
     },
     "value": {
+        "name": "value",
         "display_name": "value",
         "type": "text",
     },
     "accelerator": {
+        "name": "accelerator",
         "display_name": "accelerator",
         "type": "text",
     }

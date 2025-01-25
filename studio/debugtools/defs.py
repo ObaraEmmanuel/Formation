@@ -1,6 +1,9 @@
 import tkinter
 from dataclasses import dataclass, field
 
+import studio.lib.menu as menu_lib
+from studio.debugtools.common import get_studio_equiv
+
 
 @dataclass
 class Message:
@@ -68,6 +71,111 @@ class RemoteEvent:
         self.y_root = event.y_root
 
 
+class RemoteMenuItem:
+
+    _pool = []
+    DEF_OVERRIDES = dict(menu_lib.MENU_PROPERTY_TABLE)
+    _item_type_map = {
+        "command": menu_lib.Command,
+        "cascade": menu_lib.Cascade,
+        "checkbutton": menu_lib.CheckButton,
+        "radiobutton": menu_lib.RadioButton,
+        "separator": menu_lib.Separator,
+    }
+
+    def __init__(self, menu, index):
+        self.menu = menu
+        self.index = index
+        self.deleted = False
+        self._dbg_node = None
+        self._name = None
+        self._equiv_class = None
+        self._class = RemoteMenuItem
+        self.menu_items = []
+
+    @property
+    def id(self):
+        return f"{self.menu.id}!{self.index}"
+
+    @property
+    def equiv_class(self):
+        if self._equiv_class is None:
+            self._equiv_class = self._item_type_map.get(self.type(), menu_lib.MenuItem)
+        return self._equiv_class
+
+    @property
+    def name(self):
+        if self._name is None:
+            if self.type() == "separator":
+                self._name = "Separator"
+            elif self.type() == "cascade":
+                menu = self.cget("menu")
+                if menu:
+                    menu = self.menu.debugger.widget_from_message(WidgetMessage(menu))
+                    self._name = f"{self.cget('label')} > [{menu._name}]"
+                else:
+                    self._name = self.cget("label")
+            else:
+                self._name = self.cget("label")
+        return self._name
+
+    def _call(self, meth, *args, **kwargs):
+        return self.menu.debugger.transmit(
+            Message(
+                "WIDGET",
+                payload={
+                    "id": self.menu.id,
+                    "meth": meth,
+                    "args": args,
+                    "kwargs": kwargs,
+                    "index": self.index,  # special for menu items to allow tear-off compensation on hook side
+                }
+            ), response=True
+        )
+
+    def configure(self, **kwargs):
+        x = self._call("entryconfigure", **kwargs)
+        return x
+
+    config = configure
+
+    def cget(self, key):
+        return self._call("entrycget", key)
+
+    def __getitem__(self, item):
+        return self._call("entrycget", item)
+
+    def __setitem__(self, key, value):
+        return self._call("entryconfigure", key, value)
+
+    def type(self):
+        return self._call("type")
+
+    def winfo_children(self):
+        return []
+
+    def winfo_ismapped(self):
+        return False
+
+    def release(self):
+        self.menu = None
+        self.index = None
+        self.deleted = True
+        self._name = None
+        self._equiv_class = None
+        self._pool.append(self)
+
+    @classmethod
+    def acquire(cls, menu, index):
+        if cls._pool:
+            item = cls._pool.pop()
+            item.menu = menu
+            item.index = index
+            item.deleted = False
+            return item
+        return cls(menu, index)
+
+
 class RemoteWidget:
 
     def __init__(self, id_, debugger):
@@ -76,7 +184,9 @@ class RemoteWidget:
         self.debugger = debugger
         self._dbg_node = None
         self._prop_map = {}
+        self._menu_items = None
         self.deleted = False
+        self.equiv_class = get_studio_equiv(self)
 
     @property
     def _w(self):
@@ -144,6 +254,49 @@ class RemoteWidget:
             prop = " ".join(map(str, prop))
         return prop
 
+    def _init_menu_items(self):
+        index = self.index(tkinter.END)
+        if not self["tearoff"]:
+            index += 1
+        if index is None:
+            index = 0
+        self._menu_items = [RemoteMenuItem.acquire(self, i) for i in range(index)]
+
+    def _add_menu_item(self, index):
+        if self._menu_items is None:
+            return
+        item = RemoteMenuItem.acquire(self, index)
+        self._menu_items.insert(index, item)
+        # adjust index for all following items
+        for i in range(index + 1, len(self._menu_items)):
+            self._menu_items[i].index = i
+        return item
+
+    def _remove_menu_items(self, start, end):
+        if self._menu_items is None:
+            return
+        removed = []
+        for i in range(start, min(end+1, len(self._menu_items))):
+            removed.append(self._menu_items[i])
+
+        for item in removed:
+            self._menu_items.remove(item)
+            item.release()
+
+        # adjust index for all following items
+        for i in range(end + 1, len(self._menu_items)):
+            self._menu_items[i].index = i
+
+        return removed
+
+    @property
+    def menu_items(self):
+        if self._class != tkinter.Menu:
+            return []
+        if self._menu_items is None:
+            self._init_menu_items()
+        return self._menu_items
+
     def keys(self):
         return self._call("keys")
 
@@ -185,6 +338,9 @@ class RemoteWidget:
 
     def paneconfigure(self, tag, **kwargs):
         return self._call("paneconfigure", tag, **kwargs)
+
+    def index(self, index):
+        return self._call("index", index)
 
     paneconfig = paneconfigure
 

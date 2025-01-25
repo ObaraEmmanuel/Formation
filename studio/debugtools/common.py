@@ -41,6 +41,8 @@ def get_studio_equiv(widget):
 
 def get_resolved_properties(widget):
     base = get_studio_equiv(widget)
+    if base is None:
+        base = widget
     overrides = getattr(base, 'DEF_OVERRIDES', {})
     return get_properties(widget, overrides)
 

@@ -226,36 +226,37 @@ class DebuggerHook:
         if not self.allow_hover:
             return
         widget = event.widget
-        if widget.winfo_id() in self._ignore:
+        if widget.winfo_id() in self._ignore or not self.enable_hooks:
             return
         self._clear_handle()
         self.push_event("<<SelectionChanged>>", widget, event)
 
     def on_widget_map(self, event):
         widget = event.widget
-        if widget.winfo_id() in self._ignore:
+        if widget.winfo_id() in self._ignore or not self.enable_hooks:
             return
         self.push_event("<<WidgetMapped>>", widget, event)
 
     def on_widget_unmap(self, event):
         widget = event.widget
-        if widget.winfo_id() in self._ignore:
+        if widget.winfo_id() in self._ignore or not self.enable_hooks:
             return
         self.push_event("<<WidgetUnmapped>>", widget, event)
 
     def widget_from_message(self, message):
         return self.root.nametowidget(message.id)
 
-    def push_event(self, ev, widget=None, data=None):
+    def push_event(self, ev, widget=None, event=None, data=None):
         if data:
-            data = RemoteEvent(data)
+            data = str(data)
+        if event:
+            event = RemoteEvent(event)
         self.transmit(Message(
             "EVENT",
-            payload=marshal({"event": ev, "widget": widget, "data": data})
+            payload=marshal({"event": ev, "widget": widget, "data": data, "event_obj": event})
         ))
 
     def transmit(self, msg):
-        logger.debug(f"[STRM]: {msg}")
         remove = []
         for client in self._stream_clients:
             try:
@@ -265,6 +266,9 @@ class DebuggerHook:
 
         for client in remove:
             self._stream_clients.remove(client)
+
+        if self._stream_clients:
+            logger.debug(f"[STRM]: {msg}")
 
     def sub_server(self, conn):
         logger.debug("[MISC]: Subserver started")
@@ -301,6 +305,11 @@ class DebuggerHook:
         # method runners, property setters and getters
         msg.payload = unmarshal(msg.payload, self)
         if "meth" in msg.payload:
+            if isinstance(obj, tkinter.Menu) and "index" in msg.payload:
+                # tear-off compensation
+                has_tear_off = int(obj["tearoff"])
+                msg.payload["args"] = [msg.payload["index"] + has_tear_off, *msg.payload.get("args", [])]
+
             conn.send(marshal(
                 getattr(obj, msg.payload["meth"])(
                     *msg.payload.get("args", []),
@@ -387,6 +396,72 @@ class DebuggerHook:
                 self.push_event("<<WidgetCreated>>", slf)
 
         setattr(tkinter.BaseWidget, '__init__', _hook)
+
+    def _hook_menu(self):
+        orig_add = tkinter.Menu.add
+        orig_insert = tkinter.Menu.insert
+        orig_remove = tkinter.Menu.delete
+        orig_config = tkinter.Menu.entryconfigure
+
+        def _correct_index(slf, index):
+            index = int(slf.index(index))
+            index = index - int(slf["tearoff"]) if index > 0 else index
+            index = min(index, slf.index("end"))
+            return index
+
+        def _hook_add(slf, itemType, cnf=None, **kw):
+            ret = orig_add(slf, itemType, cnf or {}, **kw)
+            index = int(slf.index("end")) - int(slf["tearoff"])
+            if slf.winfo_id() not in self._ignore and self.enable_hooks:
+                self.push_event("<<MenuItemAdded>>", slf, data=index)
+            return ret
+
+        def _hook_insert(slf, index, itemType, cnf=None, **kw):
+            ret = orig_insert(slf, index, itemType, cnf or {}, **kw)
+            index = _correct_index(slf, index)
+            if slf.winfo_id() not in self._ignore and self.enable_hooks:
+                self.push_event("<<MenuItemAdded>>", slf, data=f"{index}")
+            return ret
+
+        def _hook_remove(slf, index1, index2=None):
+            orig_index1, orig_index2 = index1, index2
+            index2 = index1 if index2 is None else index2
+            index1, index2 = slf.index(index1), slf.index(index2)
+            has_tear_off = int(slf["tearoff"])
+            if has_tear_off:
+                if index1 == 0 and index2 == 0:
+                    # nothing will be deleted
+                    return
+                if index1 == 0:
+                    index1 = 1
+                if index2 == 0:
+                    index2 = 1
+
+            if index1 > int(slf.index("end")):
+                return
+
+            index1, index2 = index1 - has_tear_off, index2 - has_tear_off
+
+            orig_remove(slf, orig_index1, orig_index2)
+
+            if slf.winfo_id() not in self._ignore and self.enable_hooks:
+                self.push_event("<<MenuItemRemoved>>", slf, data=f"{index1} {index2}")
+
+        def _hook_config(slf, index, cnf=None, **kw):
+            ret = orig_config(slf, index, cnf, **kw)
+            if index == 0 and int(slf["tearoff"]):
+                # we don't track tear-off configurations
+                return ret
+            index = _correct_index(slf, index)
+            if slf.winfo_id() not in self._ignore and (cnf or kw) and self.enable_hooks:
+                self.push_event("<<MenuItemModified>>", slf, data=f"{index}")
+            return ret
+
+        setattr(tkinter.Menu, 'add', _hook_add)
+        setattr(tkinter.Menu, 'insert', _hook_insert)
+        setattr(tkinter.Menu, 'delete', _hook_remove)
+        setattr(tkinter.Menu, 'entryconfigure', _hook_config)
+        setattr(tkinter.Menu, 'entryconfig', _hook_config)
 
     def _hook_layout(self):
 
@@ -498,6 +573,7 @@ class DebuggerHook:
                 return
         self.hook()
         self._hook_creation()
+        self._hook_menu()
         self._hook_layout()
         with open(self.path) as file:
             code = compile(file.read(), self.path, 'exec')
