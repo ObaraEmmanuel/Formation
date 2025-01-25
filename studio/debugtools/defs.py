@@ -90,6 +90,7 @@ class RemoteMenuItem:
         self._dbg_node = None
         self._name = None
         self._equiv_class = None
+        self._attr_cache = None
         self._class = RemoteMenuItem
         self.menu_items = []
 
@@ -134,19 +135,26 @@ class RemoteMenuItem:
         )
 
     def configure(self, **kwargs):
-        x = self._call("entryconfigure", **kwargs)
-        return x
+        ret = self._call("entryconfigure", **kwargs)
+        if not kwargs and isinstance(ret, dict):
+            self._attr_cache = {k: v[-1] if isinstance(v, (tuple, list, set)) else v for k, v in ret.items()}
+        return ret
 
     config = configure
 
     def cget(self, key):
+        if self._attr_cache is not None:
+            if key in self._attr_cache:
+                return self._attr_cache[key]
         return self._call("entrycget", key)
 
-    def __getitem__(self, item):
-        return self._call("entrycget", item)
+    __getitem__ = cget
 
     def __setitem__(self, key, value):
         return self._call("entryconfigure", key, value)
+
+    def invalidate_conf(self):
+        pass
 
     def type(self):
         return self._call("type")
@@ -184,6 +192,7 @@ class RemoteWidget:
         self.debugger = debugger
         self._dbg_node = None
         self._prop_map = {}
+        self._attr_cache = None
         self._menu_items = None
         self.deleted = False
         self.equiv_class = get_studio_equiv(self)
@@ -233,9 +242,14 @@ class RemoteWidget:
     def configure(self, **kwargs):
         ret = self._call("configure", **kwargs)
         if ret is None and not kwargs:
-            # fallback if configure behviour is not implemented correctly
-            return self._configure()
+            # fallback if configure behaviour is not implemented correctly
+            ret = self._configure()
+        if not kwargs and isinstance(ret, dict):
+            self._attr_cache = {k: v[-1] if isinstance(v, (tuple, list, set)) else v for k, v in ret.items()}
         return ret
+
+    def invalidate_conf(self):
+        self._attr_cache = None
 
     def _configure(self, cmd="configure", cnf=None, kw=None):
         return self._call("_configure", cmd, cnf, kw)
@@ -243,6 +257,9 @@ class RemoteWidget:
     config = configure
 
     def __getitem__(self, item):
+        if self._attr_cache is not None:
+            if item in self._attr_cache:
+                return self._attr_cache[item]
         return self._call("__getitem__", item)
 
     def __setitem__(self, key, value):

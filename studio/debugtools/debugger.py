@@ -165,6 +165,13 @@ class Debugger(Application):
                     widget, msg.payload["event_obj"]
                 )
                 suppress = True
+            if event == "<<WidgetModified>>":
+                widget.invalidate_conf()
+            if event == "<<MenuItemModified>>":
+                index = int(msg.payload["data"])
+                if widget._menu_items:
+                    item = widget._menu_items[index]
+                    item.invalidate_conf()
 
             if not suppress:
                 self.active_widget = widget
