@@ -146,7 +146,7 @@ class Relief(Choice):
     def set_up(self):
         self._spinner.set_item_class(Relief.ReliefItem)
         self._spinner.set_values((
-            '', "flat", "raised", "sunken", "groove", "ridge"
+            '', "flat", "raised", "sunken", "groove", "ridge", "solid"
         ))
 
 
