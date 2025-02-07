@@ -203,8 +203,8 @@ class ElementPane(Pane):
                 parent_node.update_preload_status(False)
 
     def on_menu_item_added(self, event):
-        widget, index = event.user_data.split(" ")
-        widget = self.debugger.widget_from_id(widget)
+        widget, root, index = event.user_data.split(" ")
+        widget = self.debugger.widget_from_id(widget, int(root))
         parent_node = getattr(widget, "_dbg_node", None)
         if not parent_node or not parent_node.loaded:
             return
@@ -220,8 +220,8 @@ class ElementPane(Pane):
         item._dbg_node = node
 
     def on_menu_items_removed(self, event):
-        widget, index1, index2 = event.user_data.split(" ")
-        widget = self.debugger.widget_from_id(widget)
+        widget, root, index1, index2 = event.user_data.split(" ")
+        widget = self.debugger.widget_from_id(widget, int(root))
         parent_node = getattr(widget, "_dbg_node", None)
 
         items = widget._remove_menu_items(int(index1), int(index2))
@@ -243,8 +243,8 @@ class ElementPane(Pane):
             return
 
     def on_menu_item_modified(self, event):
-        widget, index = event.user_data.split(" ")
-        widget = self.debugger.widget_from_id(widget)
+        widget, root, index = event.user_data.split(" ")
+        widget = self.debugger.widget_from_id(widget, int(root))
         if not widget._menu_items:
             return
         item = widget._menu_items[int(index)]

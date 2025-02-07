@@ -133,8 +133,8 @@ class StylePane(StylePaneFramework, Pane):
             self.render_styles()
 
     def _on_menu_item_config(self, event):
-        widget, index = event.user_data.split(" ")
-        widget = self.debugger.widget_from_id(widget)
+        widget, root, index = event.user_data.split(" ")
+        widget = self.debugger.widget_from_id(widget, int(root))
         if not widget._menu_items:
             return
         item = widget._menu_items[int(index)]

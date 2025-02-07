@@ -178,7 +178,10 @@ class Debugger(Application):
 
             if not suppress:
                 self.active_widget = widget
-                self.event_generate(event, data=(widget.id or "") + " " + (msg.payload["data"] or ""))
+                dat = [(widget.id or ""), str(widget.root), (msg.payload["data"] or "")]
+                self.event_generate(
+                    event, data=" ".join(dat)
+                )
         if msg.key == "CONSOLE":
             self.console.handle_msg(msg.payload)
 
