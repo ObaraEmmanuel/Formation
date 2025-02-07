@@ -17,7 +17,7 @@ import code
 
 from studio.ui.highlight import WidgetHighlighter
 from studio.debugtools.defs import Message, marshal, RemoteEvent, unmarshal
-from studio.debugtools.common import extract_base_class, get_logging_level
+from studio.debugtools.common import extract_base_class, get_logging_level, run_on_main_thread
 from studio.debugtools.preferences import Preferences
 
 
@@ -129,6 +129,8 @@ class DebuggerHook:
         pref = Preferences.acquire()
         self.path = path
         self.root = None
+        self.roots = []
+        self.deleted_roots = 0
         self.active_widget = None
         self.enable_hooks = True
         self._ignore = set()
@@ -179,6 +181,7 @@ class DebuggerHook:
             )
             for elem in highlighter.elements:
                 self._ignore.add(elem.winfo_id())
+                elem._dbg_ignore = True
             self.enable_hooks = True
         return self._handle_map[toplevel]
 
@@ -196,11 +199,13 @@ class DebuggerHook:
             stderr=self.orig_stderr,
             stdin=self.orig_stdin
         )
-        tkinter.Misc.bind_all(self.root, "<Motion>", self.on_motion)
-        tkinter.Misc.bind_all(self.root, "<Button-1>", self.on_widget_tap)
-        tkinter.Misc.bind_all(self.root, "<Button-3>", self.on_widget_tap)
-        tkinter.Misc.bind_all(self.root, "<Map>", self.on_widget_map)
-        tkinter.Misc.bind_all(self.root, "<Unmap>", self.on_widget_unmap)
+
+    def _bind_root_events(self, root):
+        tkinter.Misc.bind_all(root, "<Motion>", self.on_motion)
+        tkinter.Misc.bind_all(root, "<Button-1>", self.on_widget_tap)
+        tkinter.Misc.bind_all(root, "<Button-3>", self.on_widget_tap)
+        tkinter.Misc.bind_all(root, "<Map>", self.on_widget_map)
+        tkinter.Misc.bind_all(root, "<Unmap>", self.on_widget_unmap)
 
     def _clear_handle(self):
         if self._handle:
@@ -244,7 +249,8 @@ class DebuggerHook:
         self.push_event("<<WidgetUnmapped>>", widget, event)
 
     def widget_from_message(self, message):
-        return self.root.nametowidget(message.id)
+        root = self.roots[message.root]
+        return root.nametowidget(message.id)
 
     def push_event(self, ev, widget=None, event=None, data=None):
         if data:
@@ -253,7 +259,7 @@ class DebuggerHook:
             event = RemoteEvent(event)
         self.transmit(Message(
             "EVENT",
-            payload=marshal({"event": ev, "widget": widget, "data": data, "event_obj": event})
+            payload=marshal({"event": ev, "widget": widget, "data": data, "event_obj": event}, self)
         ))
 
     def transmit(self, msg):
@@ -276,7 +282,10 @@ class DebuggerHook:
             msg = conn.recv()
             # logger.debug(f"Sub server received message: {msg}")
             if msg == "TERMINATE":
-                self.exit()
+                if len(self.roots) > 1:
+                    run_on_main_thread(self.root, self.exit)
+                else:
+                    self.exit()
                 break
             if isinstance(msg, Message):
                 msg.payload = unmarshal(msg.payload, self)
@@ -314,19 +323,27 @@ class DebuggerHook:
                 getattr(obj, msg.payload["meth"])(
                     *msg.payload.get("args", []),
                     **msg.payload.get("kwargs", {})
-                )
+                ),
+                self
             ))
         elif "get" in msg.payload:
-            conn.send(marshal(getattr(obj, msg.payload["get"], None)))
+            conn.send(marshal(getattr(obj, msg.payload["get"], None), self))
         elif "set" in msg.payload:
             setattr(obj, msg.payload["set"], msg.payload["value"])
+
+    def access_widget(self, root, msg, conn):
+        widget = root.nametowidget(msg.payload["id"])
+        self.access(widget, msg, conn)
 
     def handle_msg(self, msg, conn):
         if not hasattr(msg, "key"):
             return
         if msg.key == "WIDGET":
-            widget = self.root.nametowidget(msg.payload["id"])
-            self.access(widget, msg, conn)
+            root = self.roots[msg.payload["root"]]
+            if root != self.root:
+                run_on_main_thread(self.root, self.access_widget, root, msg, conn)
+            else:
+                self.access_widget(root, msg, conn)
         if msg.key == "CONSOLE":
             pipe = self.pipes[msg.payload["tag"]]
             self.access(pipe, msg, conn)
@@ -348,7 +365,12 @@ class DebuggerHook:
 
         def run_command(last_compiled):
             try:
-                self.shell.runcode(last_compiled)
+                if len(self.roots) > 1:
+                    # This will cause the main thread to seize if operation is blocking,
+                    # but I'll consider this as a side effect of running multiple roots
+                    run_on_main_thread(self.root, self.shell.runcode, last_compiled)
+                else:
+                    self.shell.runcode(last_compiled)
                 self.transmit(
                     Message("CONSOLE", payload={"note": "COMMAND_COMPLETE"})
                 )
@@ -377,6 +399,9 @@ class DebuggerHook:
     def extract_base_class(self, widget):
         return extract_base_class(widget)
 
+    def extract_true_class_name(self, widget):
+        return widget.__class__.__name__
+
     def hook_widget(self, widget):
         if widget.winfo_id() in self._ignore:
             return
@@ -388,6 +413,7 @@ class DebuggerHook:
 
     def _hook_creation(self):
         _setup = tkinter.BaseWidget.__init__
+        _setup_root = tkinter.Tk.__init__
 
         def _hook(slf, master, *args, **kwargs):
             _setup(slf, master, *args, **kwargs)
@@ -395,7 +421,18 @@ class DebuggerHook:
                 self.hook_widget(slf)
                 self.push_event("<<WidgetCreated>>", slf)
 
+        def _hook_root(slf, *args, **kwargs):
+            _setup_root(slf, *args, **kwargs)
+            self.roots.append(slf)
+            self.hook_widget(slf)
+            # initial protocol bind
+            slf.wm_protocol("WM_DELETE_WINDOW", slf.destroy)
+            self._bind_root_events(slf)
+            if slf.winfo_id() not in self._ignore and self.enable_hooks:
+                self.push_event("<<WidgetCreated>>", slf)
+
         setattr(tkinter.BaseWidget, '__init__', _hook)
+        setattr(tkinter.Tk, '__init__', _hook_root)
 
     def _hook_menu(self):
         orig_add = tkinter.Menu.add
@@ -509,6 +546,12 @@ class DebuggerHook:
             if widget == self.root:
                 # Root is being deleted so stop emitting events
                 self.enable_hooks = False
+                for root in self.roots:
+                    if root != widget:
+                        try:
+                            root.destroy()
+                        except tkinter.TclError:
+                            pass
             if self.enable_hooks:
                 self.push_event("<<WidgetDeleted>>", widget)
             return destroy()

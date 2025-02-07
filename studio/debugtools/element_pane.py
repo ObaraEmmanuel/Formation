@@ -119,6 +119,7 @@ class ElementPane(Pane):
         self._tree.pack(side="top", fill="both", expand=True, pady=4)
         self._tree.allow_multi_select(True)
         self._tree.on_select(self.on_select)
+        setattr(self._tree, "loaded", True)
 
         self._search_btn = Button(
             self._header, **self.style.button,
@@ -148,7 +149,8 @@ class ElementPane(Pane):
         self._select_btn.on_change(self.debugger.set_hover)
         self._select_btn.tooltip(_("select element to inspect"))
 
-        self._tree.add_as_node(widget=debugger.root).update_preload_status(False)
+        for root in debugger.roots:
+            self._tree.add_as_node(widget=root).update_preload_status(False)
 
         self.debugger.bind("<<WidgetCreated>>", self.on_widget_created)
         self.debugger.bind("<<WidgetDeleted>>", self.on_widget_deleted)
@@ -187,7 +189,8 @@ class ElementPane(Pane):
 
     def on_widget_deleted(self, _):
         widget = self.debugger.active_widget
-        parent_node = getattr(widget.master, "_dbg_node", None)
+        node = widget._dbg_node
+        parent_node = node.parent_node if node else None
         if parent_node:
             if parent_node.loaded:
                 node = widget._dbg_node

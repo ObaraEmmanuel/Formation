@@ -2,7 +2,7 @@ import tkinter
 from dataclasses import dataclass, field
 
 import studio.lib.menu as menu_lib
-from studio.debugtools.common import get_studio_equiv
+from studio.debugtools.common import get_studio_equiv, get_root_id
 
 
 @dataclass
@@ -14,21 +14,24 @@ class Message:
 @dataclass
 class WidgetMessage:
     id: str
+    root: int = 0
 
 
-def marshal(data):
+def marshal(data, hook=None):
     if data is None:
         return None
     if isinstance(data, dict):
-        return {k: marshal(v) for k, v in data.items()}
+        return {k: marshal(v, hook) for k, v in data.items()}
     if isinstance(data, list):
-        return [marshal(v) for v in data]
+        return [marshal(v, hook) for v in data]
     if isinstance(data, tuple):
-        return tuple(marshal(v) for v in data)
+        return tuple(marshal(v, hook) for v in data)
     if isinstance(data, set):
-        return {marshal(v) for v in data}
-    if isinstance(data, (tkinter.Misc, RemoteWidget)):
-        return WidgetMessage(data._w)
+        return {marshal(v, hook) for v in data}
+    if isinstance(data, tkinter.Misc):
+        return WidgetMessage(data._w, get_root_id(data, hook))
+    if isinstance(data, RemoteWidget):
+        return WidgetMessage(data._w, data.root)
     if not isinstance(data, (str, int, float, bool, type, RemoteEvent, Exception)):
         return str(data)
     return data
@@ -126,6 +129,7 @@ class RemoteMenuItem:
                 "WIDGET",
                 payload={
                     "id": self.menu.id,
+                    "root": self.menu.root,
                     "meth": meth,
                     "args": args,
                     "kwargs": kwargs,
@@ -186,16 +190,20 @@ class RemoteMenuItem:
 
 class RemoteWidget:
 
-    def __init__(self, id_, debugger):
+    def __init__(self, id_, debugger, root=0):
         self.id = id_
-        self._name = self.id.split(".")[-1].strip("!") or "root"
         self.debugger = debugger
         self._dbg_node = None
         self._prop_map = {}
         self._attr_cache = None
         self._menu_items = None
         self.deleted = False
+        self.root = root
         self.equiv_class = get_studio_equiv(self)
+        if self.id == '.':
+            self._name = self._true_class_name
+        else:
+            self._name = self.id.split(".")[-1].strip("!") or "<unnamed>"
 
     @property
     def _w(self):
@@ -216,19 +224,28 @@ class RemoteWidget:
         )
 
     @property
+    def _true_class_name(self):
+        return self.debugger.transmit(
+            Message("HOOK", payload={"meth": "extract_true_class_name", "args": (self,)}), response=True
+        )
+
+    @property
     def _dbg_ignore(self):
         return self._get("_dbg_ignore", cache=True)
 
     def _call(self, meth, *args, **kwargs):
         return self.debugger.transmit(
-            Message("WIDGET", payload={"id": self.id, "meth": meth, "args": args, "kwargs": kwargs}), response=True
+            Message(
+                "WIDGET",
+                payload={"id": self.id, "root": self.root, "meth": meth, "args": args, "kwargs": kwargs}
+            ), response=True
         )
 
     def _get(self, prop, cache=True):
         if cache and prop in self._prop_map:
             return self._prop_map[prop]
         result = self.debugger.transmit(
-            Message("WIDGET", payload={"id": self.id, "get": prop}), response=True
+            Message("WIDGET", payload={"id": self.id, "root": self.root, "get": prop}), response=True
         )
         if cache:
             self._prop_map[prop] = result
@@ -236,7 +253,7 @@ class RemoteWidget:
 
     def _set(self, prop, value):
         return self.debugger.transmit(
-            Message("WIDGET", payload={"id": self.id, "set": prop, "value": value})
+            Message("WIDGET", payload={"id": self.id, "root": self.root, "set": prop, "value": value})
         )
 
     def configure(self, **kwargs):
@@ -273,10 +290,10 @@ class RemoteWidget:
 
     def _init_menu_items(self):
         index = self.index(tkinter.END)
-        if not self["tearoff"]:
-            index += 1
         if index is None:
             index = 0
+        if not self["tearoff"] and index > 0:
+            index += 1
         self._menu_items = [RemoteMenuItem.acquire(self, i) for i in range(index)]
 
     def _add_menu_item(self, index):
@@ -324,7 +341,7 @@ class RemoteWidget:
         return self._call("winfo_parent")
 
     def nametowidget(self, name):
-        return self.debugger.widget_from_message(WidgetMessage(name))
+        return self.debugger.widget_from_message(WidgetMessage(name, root=self.root))
 
     def winfo_ismapped(self):
         return self._call("winfo_ismapped")

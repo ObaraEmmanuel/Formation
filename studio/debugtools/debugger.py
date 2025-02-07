@@ -59,6 +59,9 @@ class Debugger(Application):
         self.root = self.transmit(Message(
             "HOOK", payload={"get": "root"}), response=True
         )
+        self.roots = self.transmit(Message(
+            "HOOK", payload={"get": "roots"}), response=True
+        )
         self.wm_title("Formation Debugger")
         if platform_is(WINDOWS):
             ICON_PATH = get_resource_path(
@@ -185,18 +188,20 @@ class Debugger(Application):
         ))
 
     def widget_from_message(self, message):
-        if message.id in self._widget_map:
-            return self._widget_map[message.id]
+        key = (message.id, message.root)
+        if key in self._widget_map:
+            return self._widget_map[key]
         if not message.id:
             return None
-        self._widget_map[message.id] = RemoteWidget(message.id, self)
-        return self._widget_map[message.id]
+        self._widget_map[key] = RemoteWidget(message.id, self, message.root)
+        return self._widget_map[key]
 
-    def widget_from_id(self, id):
-        if id in self._widget_map:
-            return self._widget_map[id]
-        self._widget_map[id] = RemoteWidget(id, self)
-        return self._widget_map[id]
+    def widget_from_id(self, id, root):
+        key = (id, root)
+        if key in self._widget_map:
+            return self._widget_map[key]
+        self._widget_map[key] = RemoteWidget(id, self, root)
+        return self._widget_map[key]
 
     @property
     def selection(self):
