@@ -86,7 +86,7 @@ class Debugger(Application):
         self._selection = DebugSelection(self)
 
         self._stream_client = None
-        threading.Thread(target=self.stream_client).start()
+        threading.Thread(target=self.stream_client, daemon=True).start()
 
         self.wm_protocol("WM_DELETE_WINDOW", self.exit)
         self.bind("<<SelectionChanged>>", self.on_selection_changed, True)

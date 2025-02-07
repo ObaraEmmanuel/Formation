@@ -378,7 +378,7 @@ class DebuggerHook:
                 _code = e.code
                 self.root.after(0, lambda: exit(_code))
 
-        threading.Thread(target=run_command, args=(self.last_compiled,)).start()
+        threading.Thread(target=run_command, args=(self.last_compiled,), daemon=True).start()
         self.last_compiled = None
 
     def exit(self):
