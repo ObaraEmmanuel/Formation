@@ -291,9 +291,10 @@ class RemoteWidget:
     def _init_menu_items(self):
         index = self.index(tkinter.END)
         if index is None:
-            index = 0
-        if not self["tearoff"] and index > 0:
+            index = -1
+        if not self["tearoff"] and index >= 0:
             index += 1
+        index = max(0, index)
         self._menu_items = [RemoteMenuItem.acquire(self, i) for i in range(index)]
 
     def _add_menu_item(self, index):
