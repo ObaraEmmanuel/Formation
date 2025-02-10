@@ -165,7 +165,7 @@ class Debugger(Application):
                 widget.deleted = True
             if event == "<<SelectionChanged>>":
                 self.elements.element_pane.on_widget_tap(
-                    widget, msg.payload["event_obj"]
+                    widget, msg.payload["event_obj"], msg.payload.get("data")
                 )
                 suppress = True
             if event == "<<WidgetModified>>":

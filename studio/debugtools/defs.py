@@ -2,6 +2,7 @@ import tkinter
 from dataclasses import dataclass, field
 
 import studio.lib.menu as menu_lib
+import studio.lib.canvas as canvas_lib
 from studio.debugtools.common import get_studio_equiv, get_root_id
 
 
@@ -74,6 +75,93 @@ class RemoteEvent:
         self.y_root = event.y_root
 
 
+class RemoteCanvasItem:
+    DEF_OVERRIDES = dict(canvas_lib.CANVAS_PROPERTIES)
+    _item_type_map = {
+        "arc": canvas_lib.Arc,
+        "bitmap": canvas_lib.Bitmap,
+        "image": canvas_lib.Image,
+        "line": canvas_lib.Line,
+        "oval": canvas_lib.Oval,
+        "polygon": canvas_lib.Polygon,
+        "rectangle": canvas_lib.Rectangle,
+        "text": canvas_lib.Text,
+        "window": canvas_lib.Window,
+    }
+
+    def __init__(self, canvas, item_id):
+        self.canvas = canvas
+        self.item_id = item_id
+        self._attr_cache = None
+        self._name = None
+        self._equiv_class = None
+        self.deleted = False
+        self._dbg_node = None
+        self.extra_items = []
+        self._class = RemoteCanvasItem
+
+    @property
+    def id(self):
+        return f"{self.canvas.id}!{self.item_id}"
+
+    @property
+    def equiv_class(self):
+        if self._equiv_class is None:
+            self._equiv_class = self._item_type_map.get(self.type(), canvas_lib.CanvasItem)
+        return self._equiv_class
+
+    @property
+    def name(self):
+        if self._name is None:
+            self._name = f"{self.type()}_{self.item_id}"
+        return self._name
+
+    def _call(self, meth, *args, **kwargs):
+        return self.canvas.debugger.transmit(
+            Message(
+                "WIDGET",
+                payload={
+                    "id": self.canvas.id,
+                    "root": self.canvas.root,
+                    "meth": meth,
+                    "args": (self.item_id, *args),
+                    "kwargs": kwargs,
+                }
+            ), response=True
+        )
+
+    def configure(self, **kwargs):
+        ret = self._call("itemconfigure", **kwargs)
+        if not kwargs and isinstance(ret, dict):
+            self._attr_cache = {k: v[-1] if isinstance(v, (tuple, list, set)) else v for k, v in ret.items()}
+        return ret
+
+    config = configure
+
+    def cget(self, key):
+        if self._attr_cache is not None:
+            if key in self._attr_cache:
+                return self._attr_cache[key]
+        return self._call("itemcget", key)
+
+    __getitem__ = cget
+
+    def __setitem__(self, key, value):
+        return self._call("itemconfigure", key, value)
+
+    def invalidate_conf(self):
+        self._attr_cache = None
+
+    def type(self):
+        return self._call("type")
+
+    def winfo_children(self):
+        return []
+
+    def winfo_ismapped(self):
+        return False
+
+
 class RemoteMenuItem:
 
     _pool = []
@@ -96,6 +184,7 @@ class RemoteMenuItem:
         self._attr_cache = None
         self._class = RemoteMenuItem
         self.menu_items = []
+        self.extra_items = []
 
     @property
     def id(self):
@@ -158,7 +247,7 @@ class RemoteMenuItem:
         return self._call("entryconfigure", key, value)
 
     def invalidate_conf(self):
-        pass
+        self._attr_cache = None
 
     def type(self):
         return self._call("type")
@@ -197,6 +286,7 @@ class RemoteWidget:
         self._prop_map = {}
         self._attr_cache = None
         self._menu_items = None
+        self._canvas_items = None
         self.deleted = False
         self.root = root
         self.equiv_class = get_studio_equiv(self)
@@ -331,6 +421,53 @@ class RemoteWidget:
         if self._menu_items is None:
             self._init_menu_items()
         return self._menu_items
+
+    def _init_canvas_items(self):
+        self._canvas_items = {i: RemoteCanvasItem(self, i) for i in self.find_all()}
+
+    def get_canvas_item_from_id(self, item_id):
+        if self._canvas_items is None:
+            self._init_canvas_items()
+        return self._canvas_items.get(item_id)
+
+    def delete_canvas_ids(self, *ids):
+        if self._canvas_items is None:
+            return []
+        removed = []
+        for id in ids:
+            item = self._canvas_items.pop(int(id), None)
+            if item:
+                item.deleted = True
+                removed.append(item)
+        return removed
+
+    def add_canvas_item(self, id):
+        if not self._canvas_items:
+            self._canvas_items = {}
+        if id in self._canvas_items:
+            return self._canvas_items[id]
+        item = RemoteCanvasItem(self, id)
+        self._canvas_items[id] = item
+        return item
+
+    @property
+    def canvas_items(self):
+        if self._class != tkinter.Canvas:
+            return []
+        if self._canvas_items is None:
+            self._init_canvas_items()
+        return list(self._canvas_items.values())
+
+    @property
+    def extra_items(self):
+        if self._class == tkinter.Menu:
+            return self.menu_items
+        if self._class == tkinter.Canvas:
+            return self.canvas_items
+        return []
+
+    def find_all(self):
+        return self._call("find_all")
 
     def keys(self):
         return self._call("keys")

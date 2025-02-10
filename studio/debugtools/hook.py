@@ -16,6 +16,7 @@ import queue
 import code
 
 from studio.ui.highlight import WidgetHighlighter
+from studio.ui import geometry
 from studio.debugtools.defs import Message, marshal, RemoteEvent, unmarshal
 from studio.debugtools.common import extract_base_class, get_logging_level, run_on_main_thread
 from studio.debugtools.preferences import Preferences
@@ -225,6 +226,24 @@ class DebuggerHook:
         if handle != self._handle:
             self._clear_handle()
             self._handle = handle
+        if isinstance(widget, tkinter.Canvas):
+            x, y = widget.canvasx(event.x), widget.canvasy(event.y)
+            item_id = widget.find_overlapping(x - 1, y - 1, x + 1, y + 1)
+            if item_id:
+                w_bounds = geometry.relative_to_bounds(
+                    geometry.absolute_bounds(widget),
+                    geometry.absolute_bounds(widget.winfo_toplevel())
+                )
+                bbox = widget.bbox(item_id[0])
+                x_corr, y_corr = widget.canvasx(0), widget.canvasy(0)
+                bounds = (
+                    w_bounds[0] + bbox[0] - x_corr,
+                    w_bounds[1] + bbox[1] - y_corr,
+                    w_bounds[0] + bbox[2] - x_corr,
+                    w_bounds[1] + bbox[3] - y_corr
+                )
+                self._handle.highlight_bounds(bounds)
+                return
         self._handle.highlight(widget)
 
     def on_widget_tap(self, event):
@@ -233,8 +252,14 @@ class DebuggerHook:
         widget = event.widget
         if widget.winfo_id() in self._ignore or not self.enable_hooks:
             return
+        data = None
+        if isinstance(widget, tkinter.Canvas):
+            x, y = widget.canvasx(event.x), widget.canvasy(event.y)
+            item_id = widget.find_overlapping(x - 1, y - 1, x + 1, y + 1)
+            if item_id:
+                data = str(item_id[0])
         self._clear_handle()
-        self.push_event("<<SelectionChanged>>", widget, event)
+        self.push_event("<<SelectionChanged>>", widget, event, data=data)
 
     def on_widget_map(self, event):
         widget = event.widget
@@ -434,6 +459,38 @@ class DebuggerHook:
         setattr(tkinter.BaseWidget, '__init__', _hook)
         setattr(tkinter.Tk, '__init__', _hook_root)
 
+    def _hook_canvas(self):
+        _create = tkinter.Canvas._create
+        _delete = tkinter.Canvas.delete
+        _config = tkinter.Canvas.itemconfigure
+
+        def _hook_create(slf, *args, **kwargs):
+            item_id = _create(slf, *args, **kwargs)
+            if slf.winfo_id() not in self._ignore and self.enable_hooks:
+                self.push_event("<<CanvasItemCreated>>", slf, data=str(item_id))
+            return item_id
+
+        def _hook_delete(slf, *args):
+            ids = set()
+            for item in args:
+                for i in slf.find_withtag(item):
+                    ids.add(str(i))
+            _delete(slf, *args)
+            if slf.winfo_id() not in self._ignore and self.enable_hooks and ids:
+                self.push_event("<<CanvasItemsDeleted>>", slf, data=" ".join(ids))
+
+        def _hook_config(slf, tagOrId, cnf=None, **kw):
+            ids = [str(i) for i in slf.find_withtag(tagOrId)]
+            ret = _config(slf, tagOrId, cnf, **kw)
+            if slf.winfo_id() not in self._ignore and (cnf or kw) and self.enable_hooks and ids:
+                self.push_event("<<CanvasItemsModified>>", slf, data=" ".join(ids))
+            return ret
+
+        setattr(tkinter.Canvas, '_create', _hook_create)
+        setattr(tkinter.Canvas, 'delete', _hook_delete)
+        setattr(tkinter.Canvas, 'itemconfigure', _hook_config)
+        setattr(tkinter.Canvas, 'itemconfig', _hook_config)
+
     def _hook_menu(self):
         orig_add = tkinter.Menu.add
         orig_insert = tkinter.Menu.insert
@@ -617,6 +674,7 @@ class DebuggerHook:
         self.hook()
         self._hook_creation()
         self._hook_menu()
+        self._hook_canvas()
         self._hook_layout()
         with open(self.path) as file:
             code = compile(file.read(), self.path, 'exec')

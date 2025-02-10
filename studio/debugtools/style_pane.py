@@ -124,6 +124,7 @@ class StylePane(StylePaneFramework, Pane):
         self.debugger.bind("<<SelectionChanged>>", self.on_selection_changed, True)
         self.debugger.bind("<<WidgetModified>>", self._on_config_change)
         self.debugger.bind("<<MenuItemModified>>", self._on_menu_item_config, True)
+        self.debugger.bind("<<CanvasItemsModified>>", self._on_canvas_items_config, True)
         self.debugger.bind("<<WidgetLayoutChanged>>", self._on_layout_change)
         self.debugger.bind("<<WidgetMapped>>", self._on_layout_change, True)
         self.debugger.bind("<<WidgetUnmapped>>", self._on_layout_change, True)
@@ -139,6 +140,15 @@ class StylePane(StylePaneFramework, Pane):
             return
         item = widget._menu_items[int(index)]
         if item in self.widgets:
+            self.render_styles()
+
+    def _on_canvas_items_config(self, event):
+        widget, root, *ids = event.user_data.split(" ")
+        widget = self.debugger.widget_from_id(widget, int(root))
+        if not widget._canvas_items:
+            return
+        items = [widget.get_canvas_item_from_id(int(i)) for i in ids]
+        if any(i in self.widgets for i in items):
             self.render_styles()
 
     def _on_layout_change(self, _):
