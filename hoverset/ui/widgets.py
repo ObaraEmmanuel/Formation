@@ -3468,7 +3468,7 @@ class Text(Widget, tk.Text):
         self.bind("<<Modified>>", self._mod)
 
     def get_all(self):
-        return str(self.get("1.0", tk.END)).strip()
+        return str(self.get("1.0", 'end-1c'))
 
     def on_change(self, callback, *args, **kwargs):
         self._on_change = lambda: callback(*args, **kwargs)
