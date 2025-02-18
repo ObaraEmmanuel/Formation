@@ -289,7 +289,7 @@ class RemoteWidget:
         self._canvas_items = None
         self.deleted = False
         self.root = root
-        self.equiv_class = get_studio_equiv(self)
+        self._equiv_class = None
         if self.id == '.':
             self._name = self._true_class_name
         else:
@@ -312,6 +312,12 @@ class RemoteWidget:
         return self.debugger.transmit(
             Message("HOOK", payload={"meth": "extract_base_class", "args": (self,)}), response=True
         )
+
+    @property
+    def equiv_class(self):
+        if self._equiv_class is None:
+            self._equiv_class = get_studio_equiv(self)
+        return self._equiv_class
 
     @property
     def _true_class_name(self):
