@@ -473,14 +473,21 @@ class DebuggerHook:
         def _hook_delete(slf, *args):
             ids = set()
             for item in args:
-                for i in slf.find_withtag(item):
-                    ids.add(str(i))
+                try:
+                    for i in slf.find_withtag(item):
+                        ids.add(str(i))
+                except tkinter.TclError:
+                    pass
             _delete(slf, *args)
             if slf.winfo_id() not in self._ignore and self.enable_hooks and ids:
                 self.push_event("<<CanvasItemsDeleted>>", slf, data=" ".join(ids))
 
         def _hook_config(slf, tagOrId, cnf=None, **kw):
-            ids = [str(i) for i in slf.find_withtag(tagOrId)]
+            ids = []
+            try:
+                ids = [str(i) for i in slf.find_withtag(tagOrId)]
+            except tkinter.TclError:
+                pass
             ret = _config(slf, tagOrId, cnf, **kw)
             if slf.winfo_id() not in self._ignore and (cnf or kw) and self.enable_hooks and ids:
                 self.push_event("<<CanvasItemsModified>>", slf, data=" ".join(ids))
