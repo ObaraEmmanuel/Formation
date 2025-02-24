@@ -105,7 +105,8 @@ class SideBar(Canvas):
 
     def _redraw(self):
         y = 0
-        for feature in self.features:
+        features = sorted(self.features.keys(), key=lambda x: x.get_pref("pane::index"))
+        for feature in features:
             indicator = self.features[feature]
             font = FontStyle(self, self.itemconfig(indicator).get("font", "TkDefaultFont")[3])
             y += font.measure(feature.display_name) + 20
@@ -116,12 +117,10 @@ class SideBar(Canvas):
             0, 0, angle=90, text=feature.display_name, fill=self.style.colors.get("accent"),
             anchor="sw", activefill=self.style.colors.get("primarydarkaccent")
         )
-        font = FontStyle(self, self.itemconfig(indicator).get("font", "TkDefaultFont")[3])
-        y = font.measure(feature.display_name) + self.bbox("all")[3] + 20
-        self.coords(indicator, 18, y)
         self.tag_bind(indicator, "<Button-1>", lambda event: self.toggle_feature(feature))
         feature.indicator = indicator
         self.features[feature] = indicator
+        self._redraw()
 
     def change_feature(self, new, old):
         self.tag_unbind(old.indicator, "<Button-1>")
@@ -338,12 +337,45 @@ class Pane(Frame):
     def __init__(self, master, **cnf):
         super(Pane, self).__init__(master, **cnf)
         self.config(**self.style.surface)
+        self.drag_text = "Pane"
         self._header = Frame(self, **self.style.surface, **self.style.highlight_dim, height=30)
         self._header.pack(side="top", fill="x")
         self._header.pack_propagate(0)
+        self._header.render_drag = self._render_header_drag
+        self._header.drag_start_pos = self._header_drag_start_pos
+        self._header.on_drag = self.on_pane_drag
+        self._header.on_drag_end = self._header_drag_end
         self._search_bar = SearchBar(self._header, height=20)
         self._search_bar.on_query_clear(self.on_search_clear)
         self._search_bar.on_query_change(self.on_search_query)
+        self._drag_label = None
+
+    def _render_header_drag(self, window):
+        self._drag_label = Label(window, **self.style.text_accent, text=self.drag_text)
+        self._drag_label.config(**self.style.highlight_passive)
+        self._drag_label.pack()
+
+    def _header_drag_start_pos(self, event):
+        if not self._drag_label:
+            return event.x_root, event.y_root
+        w, h = self._drag_label.winfo_reqwidth() // 2, self._drag_label.winfo_reqheight() // 2
+        return event.x_root - w, event.y_root - h
+
+    def _header_drag_end(self, event):
+        self._drag_label = None
+        self.on_pane_drop(event)
+
+    def on_pane_drag(self, event):
+        """
+        Called when the pane is being dragged. Use this to perform any necessary operations
+        """
+        pass
+
+    def on_pane_drop(self, event):
+        """
+        Called when the pane is dropped. Use this to perform any necessary finalizations
+        """
+        pass
 
     def on_search_query(self, query: str):
         """

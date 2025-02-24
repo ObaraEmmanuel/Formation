@@ -298,6 +298,12 @@ class StudioApplication(Application):
         if pref.get("studio::check_updates"):
             Updater.check_silent(self)
 
+        self._pane_drag_hint = Label(self, **self.style.text_small)
+        self._pane_drag_hint.config(**self.style.text_bright, **self.style.accent)
+        self._active_pane = None
+        self._active_bar = None
+        self._pane_drop_side = None
+
     @property
     def selection(self):
         return self._selection
@@ -544,7 +550,92 @@ class StudioApplication(Application):
         if side in self._panes:
             return self._panes.get(side, (self._left, self._left_bar))
 
-    def reposition(self, feature: BaseFeature, side):
+    def on_pane_drag(self, pane, x, y):
+        active_pane = None
+        for feature in self.features:
+            if feature == pane or not feature.is_visible.get() or feature.get_pref('mode') == 'window':
+                continue
+
+            bounds = geometry.absolute_bounds(feature)
+            if geometry.is_pos_within(bounds, (x, y)):
+                active_pane = feature
+                h = bounds[3] - bounds[1]
+                if y - bounds[1] < h * 0.3:
+                    self._pane_drag_hint.config(text=_("Place above"))
+                    self._pane_drag_hint.lift()
+                    self._pane_drag_hint.place(in_=feature, relx=0.5, rely=0, anchor='n')
+                    feature.configure(self.style.highlight_bright)
+                    self._pane_drop_side = 'n'
+                elif bounds[3] - y < h * 0.3:
+                    self._pane_drag_hint.config(text=_("Place below"))
+                    self._pane_drag_hint.lift()
+                    self._pane_drag_hint.place(in_=feature, relx=0.5, rely=1, anchor='s')
+                    feature.configure(self.style.highlight_bright)
+                    self._pane_drop_side = 's'
+                else:
+                    self._pane_drop_side = ''
+                    self._pane_drag_hint.place_forget()
+                    feature.configure(self.style.highlight_passive)
+                break
+
+        if active_pane is None:
+            active_bar = None
+            for bar in (self._left_bar, self._right_bar):
+                bounds = geometry.absolute_bounds(bar)
+                if geometry.is_pos_within(bounds, (x, y)):
+                    active_bar = bar
+                    bar.configure(self.style.highlight_bright)
+                else:
+                    bar.configure(self.style.no_highlight)
+
+            if active_bar != self._active_bar:
+                if self._active_bar:
+                    self._active_bar.configure(self.style.no_highlight)
+                self._active_bar = active_bar
+        elif self._active_bar:
+            self._active_bar.configure(self.style.no_highlight)
+            self._active_bar = None
+
+        if active_pane != self._active_pane:
+            if self._active_pane:
+                self._active_pane.configure(self.style.no_highlight)
+            if not active_pane:
+                self._pane_drag_hint.place_forget()
+            self._active_pane = active_pane
+
+    def on_pane_drop(self, pane, x, y):
+        # re-calculate drop targets just in case
+        self.on_pane_drag(pane, x, y)
+        self._pane_drag_hint.place_forget()
+        if self._active_pane:
+            self._active_pane.configure(self.style.no_highlight)
+            if self._pane_drop_side:
+                pane.reposition(
+                    self._active_pane.get_pref('side'),
+                    self._active_pane,
+                    self._pane_drop_side,
+                    True
+                )
+            else:
+                self._drop_as_window(pane, x, y)
+        elif self._active_bar:
+            self._active_bar.configure(self.style.no_highlight)
+            pane.reposition(
+                "left" if self._active_bar == self._left_bar else "right",
+                force_dock=True
+            )
+        else:
+            self._drop_as_window(pane, x, y)
+
+        self._active_pane = None
+        self._active_bar = None
+
+    def _drop_as_window(self, feature, x, y):
+        bounds = geometry.absolute_bounds(feature._header)
+        if not geometry.is_pos_within(bounds, (x, y)):
+            feature.open_as_window((x, y))
+
+    def reposition(self, feature: BaseFeature, side, target=None, position=None, force_dock=False):
         if self.get_pane_bar(side):
             pane, bar = self.get_pane_bar(side)
             feature.bar.remove(feature)
@@ -552,10 +643,20 @@ class StudioApplication(Application):
             self._adjust_pane(feature.pane)
             feature.bar = bar
             feature.pane = pane
-            bar.add_feature(feature)
+            if force_dock and feature.get_pref("mode") == "window":
+                feature.open_as_docked()
+
             if feature.get_pref("mode") == "docked":
-                pane.add(feature, minsize=300)
+                if target:
+                    if position == "n":
+                        pane.add(feature, before=target, minsize=300)
+                    else:
+                        pane.add(feature, after=target, minsize=300)
+                else:
+                    pane.add(feature, minsize=300)
+
             feature.set_pref("side", side)
+            bar.add_feature(feature)
 
     def install(self, feature) -> BaseFeature:
         obj = feature(self, self)

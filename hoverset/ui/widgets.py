@@ -673,16 +673,21 @@ class Widget:
         elif event.type.value == "5":
             # Event is of Button release type so end drag
             if self.window.drag_window:
+                # sometimes the window handle changes when
+                # wm_manage/wm_forget is called on the on_drag_end method,
+                # so we need to keep a reference to the drag window
+                window = self.window
                 try:
                     self.on_drag_end(event)
-                finally:
-                    self.window.drag_window.destroy()
-                    self.window.drag_window = None
+                except:
+                    pass
+                window.drag_window.destroy()
+                window.drag_window = None
                 # Get the first widget at release position that supports drag manager and pass the context to it
                 event_position = self.event_first(event, self, Widget)
                 if isinstance(event_position, Widget):
-                    event_position.accept_context(self.window.drag_context)
-                self.window.drag_context = None
+                    event_position.accept_context(window.drag_context)
+                window.drag_context = None
 
     def accept_context(self, context):
         """

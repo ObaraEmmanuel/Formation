@@ -53,6 +53,7 @@ class BaseFeature(Pane):
     def __init__(self, master, studio=None, **cnf):
         super().__init__(master, **cnf)
         self.update_defaults()
+        self.drag_text = self.display_name
         self.__class__._instance = self
         if not self.__class__._view_mode:
             self.__class__._view_mode = StringVar(None, self.get_pref('mode'))
@@ -61,6 +62,7 @@ class BaseFeature(Pane):
             self.is_visible = BooleanVar(None, self.get_pref('visible'))
             t.trace_add("write", lambda *_: self.set_pref('inactive_transparency', t.get()))
         self.studio = studio
+        self._header.allow_drag = True
         Label(self._header, **self.style.text_accent, text=self.display_name).pack(side="left")
         self._min = Button(self._header, image=get_icon_image("close", 15, 15), **self.style.button, width=25,
                            height=25)
@@ -119,6 +121,12 @@ class BaseFeature(Pane):
     @classmethod
     def get_instance(cls):
         return cls._instance
+
+    def on_pane_drag(self, event):
+        self.studio.on_pane_drag(self, event.x_root, event.y_root)
+
+    def on_pane_drop(self, event):
+        self.studio.on_pane_drop(self, event.x_root, event.y_root)
 
     def on_widgets_change(self, widgets):
         """
@@ -248,21 +256,25 @@ class BaseFeature(Pane):
             self.window_handle = None
             self.maximize()
 
-    def reposition(self, side):
+    def reposition(self, side, target=None, position=None, force_dock=False):
         self._side.set(side)
-        self.studio.reposition(self, side)
+        self.studio.reposition(self, side, target, position, force_dock)
 
-    def open_as_window(self):
+    def open_as_window(self, pos=None):
         if TkVersion < 8.5:
             logging.error("Window mode is not supported in current tk version")
             return
         self.master.window.wm_forget(self)
-        rec = absolute_position(self) if not self.get_pref("pos::initialized") else (
+        rec = list(absolute_position(self)) if not self.get_pref("pos::initialized") else [
             self.get_pref("pos::x"),
             self.get_pref("pos::y"),
             self.get_pref("pos::width"),
             self.get_pref("pos::height"),
-        )
+        ]
+        if pos:
+            # center the window-top at the specified position for seamless transition
+            rec[0] = pos[0] - rec[2] // 2
+            rec[1] = pos[1] - self._header.winfo_reqheight() // 2
         self.window.wm_manage(self)
         # Allow us to create a hook in the close method of the window manager
         self.bind_close()
@@ -336,17 +348,23 @@ class FeaturePane(PanedWindow):
     def add(self, child: BaseFeature, **kw):
         kw["height"] = child.get_pref("pane::height") if kw.get("height") is None else kw.get("height")
         insert_index = child.get_pref("pane::index")
-        # no need for binary search the list will rarely be greater than 10
-        for pane in self._panes():
-            index = pane.get_pref("pane::index")
-            if index > insert_index:
-                # insert before pane with greater index
-                kw['before'] = pane
-                break
+        if "after" not in kw and "before" not in kw:
+            # no need for binary search the list will rarely be greater than 10
+            for pane in self._panes():
+                index = pane.get_pref("pane::index")
+                if index > insert_index:
+                    # insert before pane with greater index
+                    kw['before'] = pane
+                    break
+            else:
+                if insert_index >= self.MAX_PANES:
+                    child.set_pref("pane::index", len(self.panes()))
+            super().add(child, **kw)
         else:
-            if insert_index >= self.MAX_PANES:
-                child.set_pref("pane::index", len(self.panes()))
-        super().add(child, **kw)
+            super().add(child, **kw)
+            # update the index of all panes
+            for i, pane in enumerate(self._panes()):
+                pane.set_pref("pane::index", i)
         child.update_idletasks()
 
         if len(self.panes()) == 1 and not self.winfo_ismapped():
