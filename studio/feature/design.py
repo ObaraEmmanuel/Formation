@@ -170,9 +170,9 @@ class Designer(DesignPad, Container):
         )
         design_menu = (
             EnableIf(
-                lambda: self.studio._clipboard is not None,
+                lambda: self.studio.get_clipboard("widget") is not None,
                 ("command", _("paste"), icon("clipboard", 18, 18),
-                 lambda: self.paste(self.studio._clipboard, paste_to=self), {})
+                 lambda: self.paste(self.studio.get_clipboard("widget"), paste_to=self), {})
             ),)
         self.set_up_context(design_menu)
         self._empty.set_up_context(design_menu)
