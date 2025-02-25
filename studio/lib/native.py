@@ -194,6 +194,7 @@ class VerticalPanedWindow(PanedContainer, ttk.PanedWindow):
     group = Groups.container
     icon = "dock_vertical"
     impl = ttk.PanedWindow
+    allow_drag_select = False
 
     def __init__(self, master, id_):
         super().__init__(master, orient=tk.VERTICAL)
@@ -219,6 +220,7 @@ class HorizontalPanedWindow(PanedContainer, ttk.PanedWindow):
     group = Groups.container
     icon = "dock_horizontal"
     impl = ttk.PanedWindow
+    allow_drag_select = False
 
     def __init__(self, master, id_):
         super().__init__(master, orient=tk.HORIZONTAL)

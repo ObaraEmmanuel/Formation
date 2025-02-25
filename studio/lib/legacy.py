@@ -207,6 +207,7 @@ class PanedWindow(PanedContainer, tk.PanedWindow):
     group = Groups.container
     icon = "dock_horizontal"
     impl = tk.PanedWindow
+    allow_drag_select = False
 
     def __init__(self, master, id_):
         super().__init__(master)
