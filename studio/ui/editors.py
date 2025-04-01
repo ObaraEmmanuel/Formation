@@ -11,6 +11,7 @@ import re
 import sys
 import tkinter as tk
 from tkinter import BooleanVar, filedialog, StringVar
+from tkinterdnd2 import DND_ALL
 
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.panels import FontInput, ColorPicker
@@ -292,8 +293,8 @@ class Color(Editor):
 class TextMixin:
 
     def dnd_init(self):
-        self._entry.register_drop_target('*')
-        self._entry.bind("<<Drop>>", lambda e: [self._entry.set(e.data), self._change()])
+        self._entry.drop_target_register(DND_ALL)
+        self._entry.dnd_bind("<<Drop>>", lambda e: [self._entry.set(e.data), self._change()])
 
     def _change(self, *_):
         if self._on_change:

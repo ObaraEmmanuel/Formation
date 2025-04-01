@@ -25,7 +25,7 @@ from studio.resource_loader import ResourceLoader
 from studio.i18n import _
 import studio
 
-from tkinterDnD.tk import _init_tkdnd
+from tkinterdnd2.TkinterDnD import _require
 
 logging.basicConfig()
 logger = logging.getLogger("[DEBG]")
@@ -50,7 +50,7 @@ class Debugger(Application):
         self.pref = Preferences.acquire()
         self.load_styles(self.pref.get("resource::theme"))
         super().__init__()
-        _init_tkdnd(self)
+        _require(self)
         self.geometry(self.pref.get("debugger::geometry"))
         Debugger._instance = self
         self._widget_map = {}

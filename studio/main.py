@@ -12,7 +12,7 @@ import webbrowser
 from tkinter import filedialog, ttk
 
 import platformdirs
-import tkinterDnD
+from tkinterdnd2 import DND_FILES
 
 # force locale setting
 from studio.i18n import _
@@ -259,8 +259,8 @@ class StudioApplication(Application):
         self.context = None
         self.contexts = []
         self.tab_view = TabView(self._center)
-        self.tab_view.register_drop_target(tkinterDnD.FILE)
-        self.tab_view.bind("<<Drop:File>>", lambda e: self.open_file(e.data))
+        self.tab_view.drop_target_register(DND_FILES)
+        self.tab_view.dnd_bind("<<Drop>>", lambda e: self.open_file(e.data))
         self.tab_view.malleable(True)
         self.tab_view.bind("<<TabSelectionChanged>>", self.on_context_switch)
         self.tab_view.bind("<<TabClosed>>", self.on_context_close)

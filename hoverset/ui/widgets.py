@@ -19,7 +19,7 @@ import webbrowser
 from collections import namedtuple
 from tkinter import font
 
-from tkinterDnD.tk import _init_tkdnd
+from tkinterdnd2.TkinterDnD import _require
 
 import hoverset.ui
 from hoverset.data.images import load_image_to_widget
@@ -608,9 +608,15 @@ class Widget:
     s_window = None  # Static window holder
     __readonly_options = {"class", "container"}
 
-    def register_drop_target(self, target):
+    def drop_target_register(self, target):
         try:
-            super().register_drop_target(target)
+            super().drop_target_register(target)
+        except (AttributeError, tk.TclError):
+            pass
+
+    def dnd_bind(self, sequence=None, func=None, add=None):
+        try:
+            super().dnd_bind(sequence, func, add)
         except (AttributeError, tk.TclError):
             pass
 
@@ -1480,7 +1486,7 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
 
         super().__init__(*args, **kwargs)
         try:
-            _init_tkdnd(self)
+            _require(self)
         except tk.TclError:
             pass
         self.position_ref = Screen(self)
