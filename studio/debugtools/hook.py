@@ -263,12 +263,16 @@ class DebuggerHook:
 
     def on_widget_map(self, event):
         widget = event.widget
+        if isinstance(widget, str):
+            return
         if widget.winfo_id() in self._ignore or not self.enable_hooks:
             return
         self.push_event("<<WidgetMapped>>", widget, event)
 
     def on_widget_unmap(self, event):
         widget = event.widget
+        if isinstance(widget, str):
+            return
         if widget.winfo_id() in self._ignore or not self.enable_hooks:
             return
         self.push_event("<<WidgetUnmapped>>", widget, event)
