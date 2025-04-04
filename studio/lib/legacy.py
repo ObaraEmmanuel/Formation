@@ -42,12 +42,6 @@ class Canvas(PseudoWidget, tk.Canvas):
         self.id = id_
         self.setup_widget()
 
-    def lift(self, above_this=None):
-        return tk.Misc.lift(self, above_this)
-
-    def lower(self, below_this=None, *_):
-        return tk.Misc.lower(self, below_this)
-
 
 class Checkbutton(PseudoWidget, tk.Checkbutton):
     display_name = 'Checkbutton'
