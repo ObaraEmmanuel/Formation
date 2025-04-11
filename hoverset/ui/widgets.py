@@ -1501,6 +1501,26 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
         self.load_styles(get_resource_path(
             hoverset.ui, "themes/default.css"
         ))
+        self._modal = None
+        self.bind("<Unmap>", self._on_unmapped)
+        self.bind("<Map>", self._on_mapped)
+
+    def _on_mapped(self, ev):
+        if ev.widget == self:
+            if self._modal:
+                try:
+                    self._modal.wait_visibility()
+                    self._modal.focus_force()
+                    self._modal.grab_set_global()
+                except tk.TclError:
+                    pass
+                self._modal = None
+
+    def _on_unmapped(self, ev):
+        if ev.widget == self:
+            self._modal = self.grab_current()
+            if self._modal:
+                self._modal.grab_release()
 
     def load_styles(self, theme):
         """
