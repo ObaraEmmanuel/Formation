@@ -581,8 +581,8 @@ class PreferenceManager(MessageDialog):
         def on_hover_ended(self, *_):
             self.config_all(**self.style.bright)
 
-    def __init__(self, master, pref, templates):
-        super().__init__(master, self.render)
+    def __init__(self, master, pref, templates, **kwargs):
+        super().__init__(master, self.render, **kwargs)
         self.title(_("Preferences"))
         self.resizable(1, 1)
         self.nav.on_change(self._change_category)
@@ -693,9 +693,10 @@ class PreferenceManager(MessageDialog):
             self._restart_label.pack_forget()
             self._restart_button.pack_forget()
 
-    def render(self, window):
+    def render(self, window, **kw):
+        w, h = kw.get("size", (700, 500))
         self.minsize(700, 500)
-        pane = PanedWindow(window, **self.style.surface)
+        pane = PanedWindow(window, **self.style.surface, width=w, height=h)
         self.nav = CompoundList(pane)
         self.nav.config_all(**self.style.bright)
         self.nav.set_item_class(PreferenceManager.NavItem)

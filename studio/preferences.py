@@ -35,6 +35,9 @@ defaults = {
         "custom_widget_paths": [],
         "allow_thirdparty": True,
         "check_updates": True,
+        "pref_window": {
+            "size": (800, 600),
+        }
     },
     "features": {},
     "hotkeys": {},
@@ -408,7 +411,16 @@ class Preferences(SharedPreferences):
 
 
 def open_preferences(master):
-    PreferenceManager(master, Preferences.acquire(), _templates())
+    pref = Preferences.acquire()
+    manager = PreferenceManager(
+        master, pref, _templates(), **pref.get("studio::pref_window")
+    )
+    manager.wm_protocol(
+        "WM_DELETE_WINDOW",
+        lambda: [pref.set(
+            "studio::pref_window::size",
+            (manager.winfo_width(), manager.winfo_height())
+        ), manager.destroy()])
 
 
 def get_active_pref(widget):
