@@ -376,6 +376,7 @@ class ShortcutPane(Component, Frame):
             super().__init__(master, value, index, isolated)
             initial_key = value[1]
             self.key = initial_key
+            self.bind_all("<Button-3>", self.select_self, add="+")
 
         def set_key(self, key):
             self.key_label.config(text=key.label)
