@@ -685,15 +685,14 @@ class Widget:
                 window = self.window
                 try:
                     self.on_drag_end(event)
-                except:
-                    pass
-                window.drag_window.destroy()
-                window.drag_window = None
-                # Get the first widget at release position that supports drag manager and pass the context to it
-                event_position = self.event_first(event, self, Widget)
-                if isinstance(event_position, Widget):
-                    event_position.accept_context(window.drag_context)
-                window.drag_context = None
+                finally:
+                    window.drag_window.destroy()
+                    window.drag_window = None
+                    # Get the first widget at release position that supports drag manager and pass the context to it
+                    event_position = self.event_first(event, self, Widget)
+                    if isinstance(event_position, Widget):
+                        event_position.accept_context(window.drag_context)
+                    window.drag_context = None
 
     def accept_context(self, context):
         """

@@ -671,9 +671,6 @@ class Container(PseudoWidget):
     def add_widget(self, widget, bounds=None, **kwargs):
         self.layout_strategy.add_widget(widget, bounds, **kwargs)
 
-    def widget_released(self, widget):
-        self.layout_strategy.widget_released(widget)
-
     def start_move(self, widget):
         self.layout_strategy.start_move(widget)
 

@@ -102,9 +102,6 @@ class BaseLayoutStrategy:
     def widgets_reordered(self):
         pass
 
-    def widget_released(self, widget):
-        pass
-
     def start_move(self, widget):
         widget.recent_layout_info = self.get_restore(widget)
         widget.lift()
@@ -426,24 +423,33 @@ class PackLayoutStrategy(BaseLayoutStrategy):
 
     def __init__(self, container):
         super().__init__(container)
-        self._orientation = self.HORIZONTAL
+        self._edge_indicator = EdgeIndicator(self.container.parent)
         self.temp_info = {}
 
     def add_widget(self, widget, bounds=None, **kwargs):
         super().remove_widget(widget)
         super().add_widget(widget, bounds, **kwargs)
-        if self._orientation == self.HORIZONTAL:
+        if bounds or not self.children:
+            self._pack_at_bounds(widget, bounds, **kwargs)
+        else:
             widget.pack(in_=self.container.body)
-        elif self._orientation == self.VERTICAL:
-            widget.pack(in_=self.container.body, side="left")
-        self.config_widget(widget, kwargs)
-        self._insert(widget)
+            self.config_widget(widget, kwargs)
+            self._insert(widget)
+        self._edge_indicator.clear()
 
-    def redraw(self):
-        for widget in self.children:
-            widget.pack(**self._pack_info(widget))
+    def _pack_at_bounds(self, widget, bounds, **kwargs):
+        index, side = self._location_analysis(bounds)
+        kwargs.update({"side": side})
+        widget.pack(in_=self.container.body, **kwargs)
+        orig_index = self.children.index(widget) if widget in self.children else -1
+        if orig_index >= 0:
+            self.children.remove(widget)
+            if orig_index < index:
+                index -= 1
+        self._insert(widget, index)
+        self.redraw(index)
 
-    def _redraw(self, start_index=0):
+    def redraw(self, start_index=0):
         affected = self.children[start_index:]
         cache = {}
         for child in affected:
@@ -461,20 +467,76 @@ class PackLayoutStrategy(BaseLayoutStrategy):
         except Exception:
             return self.temp_info or {"in_": self.container.body}
 
-    def widget_released(self, widget):
-        self.redraw()
-        self.temp_info = None
-
     def remove_widget(self, widget):
         super().remove_widget(widget)
         widget.pack_forget()
 
+    def move_widget(self, widget, delta):
+        super().move_widget(widget, delta)
+        self._location_analysis(self.bounds_from_delta(widget, delta))
+
+    def react_to_pos(self, bounds):
+        bounds = geometry.resolve_bounds(bounds, self.container.parent)
+        self._location_analysis(bounds)
+
+    def _location_analysis(self, bounds):
+        if not self.children:
+            return 0, "top"
+        self.clear_indicators()
+        bounds = geometry.relative_bounds(bounds, self.container.body)
+        x, y = geometry.center(bounds)
+        target = None
+        for w in self.children:
+            if w.winfo_manager() != "pack":
+                continue
+            bounds = geometry.relative_bounds(geometry.bounds(w), self.container.body)
+            if geometry.is_pos_within(bounds, (x, y)):
+                target = w
+                break
+            target = w
+        if target is None:
+            return len(self.children), "top"
+        bounds = geometry.relative_bounds(geometry.bounds(target), self.container.body)
+        cx, cy = geometry.center(bounds)
+        side = target.pack_info().get("side", "top")
+        index = self.children.index(target)
+        chart = {
+            # side: (index offset if in top/left-half, index offset if in bottom/right-half)
+            "top": (index, index + 1),
+            "bottom": (index + 1, index),
+            "left": (index, index + 1),
+            "right": (index + 1, index)
+        }
+        chart_index = 0
+        bounds = geometry.upscale_bounds(bounds, self.container.body)
+        if side == "top" or side == "bottom":
+            bounds = geometry.expand(bounds, 10, 'ew')
+            if y > cy:
+                self._edge_indicator.bottom(bounds)
+                chart_index = 1
+            else:
+                self._edge_indicator.top(bounds)
+        if side == "right" or side == "left":
+            bounds = geometry.expand(bounds, 10, 'ns')
+            if x > cx:
+                self._edge_indicator.right(bounds)
+                chart_index = 1
+            else:
+                self._edge_indicator.left(bounds)
+
+        return chart[side][chart_index], side
+
+    def clear_indicators(self):
+        self._edge_indicator.clear()
+
+    def start_move(self, widget):
+        super().start_move(widget)
+
     def end_move(self, widget):
         super().end_move(widget)
-        widget.pack(in_=self.container.body)
-        self.config_widget(widget, widget.recent_layout_info.get("info", {}))
+        self._pack_at_bounds(widget, widget.get_bounds(), **widget.recent_layout_info.get("info", {}))
         self._update_stacking()
-        self._redraw()
+        self.clear_indicators()
 
     def restore_widget(self, widget, data=None):
         # We need to be able to return a removed widget back to its initial position once removed
@@ -484,7 +546,7 @@ class PackLayoutStrategy(BaseLayoutStrategy):
         widget.layout = self.container
         widget.pack(in_=self.container.body)
         self.config_widget(widget, restoration_data.get("info", {}))
-        self._redraw()
+        self.redraw()
 
     def get_restore(self, widget):
         return {
@@ -492,18 +554,6 @@ class PackLayoutStrategy(BaseLayoutStrategy):
             "container": self.container,
             "index": self.children.index(widget)
         }
-
-    def set_orientation(self, orient):
-        if orient == self.VERTICAL:
-            self.clear_all()
-            for child in self.children:
-                child.pack(in_=self.container.body, side="left", fill="y")
-        elif orient == self.HORIZONTAL:
-            self.clear_all()
-            for child in self.children:
-                child.pack(in_=self.container.body, side="top", fill="x")
-        else:
-            raise ValueError("Value must be BaseLayoutStrategy.HORIZONTAL or BaseLayoutStrategy.VERTICAL")
 
     def apply(self, prop, value, widget):
         if prop in ("width", "height"):
@@ -741,13 +791,6 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         self._update_stacking()
         self.clear_indicators()
 
-    def react_to(self, bounds):
-        bounds = geometry.relative_bounds(bounds, self.container.body)
-        col, row = self.container.body.grid_location(bounds[0], bounds[1])
-        widget = self.container.body.grid_slaves(row, col)
-        if widget:
-            self._highlighter.highlight(widget[0])
-
     def _redraw_widget(self, widget):
         widget.grid(**self._grid_info(widget))
 
@@ -799,11 +842,6 @@ class GridLayoutStrategy(BaseLayoutStrategy):
                 widget.configure(**{prop: config[prop]})
                 config.pop(prop)
         widget.grid_configure(**config)
-
-    def widget_released(self, widget):
-        self._redraw_widget(widget)
-        self._temp = None
-        self.clear_indicators()
 
     def resize_widget(self, widget, direction, delta):
         pass

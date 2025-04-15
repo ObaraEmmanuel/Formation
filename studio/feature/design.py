@@ -524,7 +524,6 @@ class Designer(DesignPad, Container):
             for obj in self._selected:
                 if not obj.layout.allow_resize:
                     continue
-                obj.layout.widget_released(obj)
                 layouts_changed.append(obj)
 
         self.create_restore(layouts_changed)

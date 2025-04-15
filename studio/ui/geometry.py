@@ -139,6 +139,23 @@ def upscale_bounds(bound, widget):
     return bound[0] + x_offset, bound[1] + y_offset, bound[2] + x_offset, bound[3] + y_offset
 
 
+def expand(bounds, step=1, side='nswe'):
+    """
+    Expand bounds on the specified ``side`` by ``step``
+
+    :param bounds: bounds to be expanded
+    :param step: number of steps to expand. Default is ``1``
+    :param side: the side to expand. Default is ``'nswe'`` for all sides.
+    """
+    n, s, w, e = [int(i in side) for i in 'nswe']
+    return (
+        bounds[0] - step * w,
+        bounds[1] - step * n,
+        bounds[2] + step * e,
+        bounds[3] + step * s
+    )
+
+
 def center(bound):
     """
     Get the coordinates of the center of a bound
@@ -146,7 +163,7 @@ def center(bound):
     :param bound: a bound tuple
     :return: integer coordinates of center as a tuple ``(x, y)``
     """
-    return (bound[2] - bound[0]) // 2, (bound[3] - bound[1]) // 2
+    return bound[0] + (bound[2] - bound[0]) // 2, bound[1] + (bound[3] - bound[1]) // 2
 
 
 def displace(bound, dx, dy):
