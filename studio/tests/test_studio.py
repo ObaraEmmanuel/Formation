@@ -7,7 +7,7 @@ class StudioMainTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        cls.studio = TestStudioApp.get_instance()
+        cls.studio = TestStudioApp.get_instance(className='Formation Studio')
 
     @classmethod
     def tearDownClass(cls) -> None:

@@ -51,7 +51,7 @@ class ResourceLoader(Application):
         self.after(200, self.start_load)
 
     def start_load(self):
-        self.check_resources()
+        self._check_resources()
         self.destroy()
 
     def update_progress(self, value, append=True):
@@ -111,7 +111,7 @@ class ResourceLoader(Application):
             return checksum.read()
 
     @classmethod
-    def load(cls, pref):
+    def load(cls, pref, headless=False):
         cache_color = pref.get("resource::icon_cache_color")
         style = StyleDelegator(get_theme_path(pref.get("resource::theme")))
         cache_path = pref.get_cache_dir()
@@ -122,28 +122,40 @@ class ResourceLoader(Application):
             # delete cache to ensure hard refresh
             shutil.rmtree(cache_path, ignore_errors=True)
             make_path(cache_path)
-            cls(pref).mainloop()
+            if headless:
+                # use default color for headless mode
+                # necessary for tests
+                cls.check_resources(pref, (61, 138, 255))
+            else:
+                cls(pref).mainloop()
 
         set_image_resource_path(cls._cache_icon_path)
         pref.set("resource::icon_cache_color", style.colors["accent"])
 
-    def check_resources(self):
-
+    def _check_resources(self):
         self._message(_("Preparing graphic resources..."))
-        with shelve.open(self._cache_icon_path) as cache:
-            with shelve.open(self._default_icon_path) as defaults:
-                color = parse_color(self.style.colors["accent"], self)
+        self.check_resources(
+            self.pref,
+            parse_color(self.style.colors["accent"], self),
+            self.update_progress
+        )
+
+    @classmethod
+    def check_resources(cls, pref, color, update_func=None):
+        with shelve.open(cls._cache_icon_path) as cache:
+            with shelve.open(cls._default_icon_path) as defaults:
                 step = 1 / len(defaults) * 1
                 for image in defaults:
                     if not image.startswith("_"):
                         cache[image] = _recolor(defaults[image], color)
                     else:
                         cache[image] = defaults[image]
-                    self.update_progress(step)
+                    if update_func:
+                        update_func(step)
 
         # save default icon checksum
-        with open(self._default_icon_path + ".dat", "rb") as cache:
-            with open(os.path.join(self.pref.get_cache_dir(), "ic_checksum"), "w") as checksum:
+        with open(cls._default_icon_path + ".dat", "rb") as cache:
+            with open(os.path.join(pref.get_cache_dir(), "ic_checksum"), "w") as checksum:
                 checksum.write(md5(cache.read()).hexdigest())
 
 
