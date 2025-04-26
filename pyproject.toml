@@ -16,7 +16,7 @@ license = {text = "MIT"}
 dynamic = ["version"]
 dependencies = [
     "pyscreenshot; sys_platform != 'win32' and sys_platform != 'darwin'",
-    "Pillow>=11.2.1",
+    "Pillow",
     "platformdirs",
     "tkinterdnd2",
 ]

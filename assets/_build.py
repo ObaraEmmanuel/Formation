@@ -2,6 +2,7 @@
 
 import os
 import shelve
+import io
 from tkinter import Label, Tk, Frame
 
 from PIL import Image, ImageTk
@@ -33,24 +34,14 @@ def recolor(color1, color2, image) -> Image:
     return image
 
 
-def add_image(image: Image, name) -> None:
-    with shelve.open(PATH) as dat:
-        dat[name] = image
-
-
-def get_image(name, color):
-    with shelve.open(PATH) as dat:
-        img = dat[name]
-        return recolor((255, 255, 255, 255), color, img)
-
-
 def load_all(parent):
     columns = 15
     column = 0
     row = 0
     with shelve.open(PATH) as db:
         for name in db:
-            view = ImageView(parent, db[name])
+            img = Image.open(io.BytesIO(db[name]))
+            view = ImageView(parent, img)
             view.grid(row=row, column=column)
             column += 1
             if column == columns:
@@ -64,7 +55,9 @@ def save_core():
         for file in os.listdir("core"):
             if file.endswith(".png"):
                 img = Image.open(os.path.join("core", file))
-                db[file.split(".")[0]] = img
+                img_bytes = io.BytesIO()
+                img.save(img_bytes, format="PNG")
+                db[file.split(".")[0]] = img_bytes.getvalue()
     except Exception as e:
         print(e)
     finally:
@@ -81,7 +74,9 @@ def save_icons():
                 img.thumbnail((86, 86), Image.LANCZOS)
                 key = file.split(".")[0]
                 new_key = "".join(["_", key])
-                db[new_key] = img
+                img_bytes = io.BytesIO()
+                img.save(img_bytes, format="PNG")
+                db[new_key] = img_bytes.getvalue()
                 if key in db:
                     del db[key]
     except Exception as e:

@@ -7,6 +7,7 @@ Provides functions for global image access and processing by hoverset apps
 # ======================================================================= #
 
 import functools
+import io
 import itertools
 import os
 import shelve
@@ -83,6 +84,7 @@ def get_image(identifier: str, width=25, height=25, **kwargs):
         raise FileNotFoundError(
             "Incorrect image shelve path specified, use set_image_resource_path function to set the correct path!"
         )
+    image = Image.open(io.BytesIO(image))
     # Resize the image to required size
     if color:
         image = _recolor(image, color)

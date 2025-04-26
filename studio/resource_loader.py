@@ -1,7 +1,12 @@
 import os
+import io
 import shelve
+import sys
+import time
+import traceback
 from hashlib import md5
 import shutil
+from PIL import Image
 
 from hoverset.data.images import (
     set_image_resource_path,
@@ -60,6 +65,7 @@ class ResourceLoader(Application):
 
     def _message(self, text):
         self._progress_text["text"] = text
+        self._progress_text.update_idletasks()
 
     @classmethod
     def _actual_cache_icon_path(cls, path):
@@ -134,11 +140,18 @@ class ResourceLoader(Application):
 
     def _check_resources(self):
         self._message(_("Preparing graphic resources..."))
-        self.check_resources(
-            self.pref,
-            parse_color(self.style.colors["accent"], self),
-            self.update_progress
-        )
+        try:
+            self.check_resources(
+                self.pref,
+                parse_color(self.style.colors["accent"], self),
+                self.update_progress
+            )
+        except Exception:
+            traceback.print_exc()
+            self._message(_("Error preparing graphic resources"))
+            # give the user some time to read the error message
+            time.sleep(3)
+            sys.exit(1)
 
     @classmethod
     def check_resources(cls, pref, color, update_func=None):
@@ -147,7 +160,11 @@ class ResourceLoader(Application):
                 step = 1 / len(defaults) * 1
                 for image in defaults:
                     if not image.startswith("_"):
-                        cache[image] = _recolor(defaults[image], color)
+                        image_dat = Image.open(io.BytesIO(defaults[image]))
+                        recolored = _recolor(image_dat, color)
+                        recolored_bytes = io.BytesIO()
+                        recolored.save(recolored_bytes, format="PNG")
+                        cache[image] = recolored_bytes.getvalue()
                     else:
                         cache[image] = defaults[image]
                     if update_func:
