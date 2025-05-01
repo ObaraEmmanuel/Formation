@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: studio\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2024-11-22 22:04+0300\n"
+"POT-Creation-Date: 2025-05-01 20:46+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16,74 +16,6 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-
-#: studio/main.py:920 studio/main.py:112 studio/main.py:922 studio/main.py:115
-#: studio/main.py:925 studio/main.py:113 studio/main.py:923 studio/main.py:118
-#: studio/main.py:987
-msgid "Cut selected widgets"
-msgstr "剪切选定的组件"
-
-#: studio/resource_loader.py:45
-msgid "Waiting for resource loader..."
-msgstr "等待资源加载..."
-
-#: studio/resource_loader.py:132
-msgid "Preparing graphic resources..."
-msgstr "正在准备图形资源..."
-
-#: studio/updates.py:36 studio/updates.py:55 studio/updates.py:131
-#: studio/updates.py:58 studio/updates.py:150
-msgid "Retry"
-msgstr "重试"
-
-#: studio/updates.py:62 studio/updates.py:65
-#, python-brace-format
-msgid "New version formation-studio {version} found. Do you want to install?"
-msgstr "找到新版本的formation-studio {version}。您要安装吗？"
-
-#: studio/updates.py:64 studio/updates.py:67
-msgid "Install"
-msgstr "安装"
-
-#: studio/updates.py:75 studio/updates.py:78
-#, python-brace-format
-msgid "Updating to formation-studio {version}"
-msgstr "更新到formation-studio {version}"
-
-#: studio/updates.py:81 studio/updates.py:84
-msgid "Formation updater"
-msgstr "Formation 更新器"
-
-#: studio/updates.py:88 studio/updates.py:107
-msgid "Checking for updates ..."
-msgstr "查询更新 ..."
-
-#: studio/updates.py:94 studio/updates.py:113
-msgid "You are using the latest version"
-msgstr "您正在使用最新版本"
-
-#: studio/updates.py:99 studio/updates.py:118
-msgid "Failed to connect. Check your internet connection and try again."
-msgstr "连接失败。检查您的互联网连接，然后重试。"
-
-#: studio/updates.py:114 studio/updates.py:133
-#, python-brace-format
-msgid ""
-"Something went wrong. Failed to upgrade formation-studio to version "
-"{version} Exited with code: {code}"
-msgstr ""
-"出了些问题。无法将 Formation-studio 升级到版本 {version} 已退出，代码为："
-"{code}"
-
-#: studio/updates.py:125 studio/updates.py:144
-msgid "Upgrade successful. Restart to complete installation"
-msgstr "升级成功。重新启动以完成安装"
-
-#: studio/updates.py:126 studio/main.py:161 studio/main.py:184
-#: studio/main.py:164 studio/main.py:187 studio/main.py:162 studio/main.py:185
-#: studio/main.py:167 studio/main.py:190 studio/updates.py:145
-msgid "Restart"
-msgstr "重启"
 
 #: studio/cli.py:29
 msgid "Command line tools for formation studio"
@@ -162,8 +94,7 @@ msgstr "未找到密钥 %s"
 msgid "close"
 msgstr "关闭"
 
-#: studio/context.py:52 studio/main.py:224 studio/main.py:227
-#: studio/main.py:225 studio/main.py:230
+#: studio/context.py:52 studio/main.py:230
 msgid "close other tabs"
 msgstr "关闭其他选项卡"
 
@@ -171,102 +102,93 @@ msgstr "关闭其他选项卡"
 msgid "close tabs to the right"
 msgstr "关闭右侧的选项卡"
 
-#: studio/debugtools/console.py:288 studio/debugtools/console.py:177
+#: studio/debugtools/console.py:177
 msgid "Clear console"
 msgstr "清空控制台"
 
-#: studio/debugtools/debugger.py:92 studio/debugtools/debugger.py:93
-#: studio/debugtools/debugger.py:77
+#: studio/debugtools/debugger.py:80
 msgid "Elements"
 msgstr "元素"
 
-#: studio/debugtools/debugger.py:96 studio/debugtools/debugger.py:97
-#: studio/debugtools/debugger.py:79
+#: studio/debugtools/debugger.py:82
 msgid "Console"
 msgstr "控制台"
 
-#: studio/debugtools/debugger.py:229 studio/debugtools/debugger.py:232
-#: studio/debugtools/debugger.py:230
-msgid "No python file supplied"
-msgstr "没有提供 python 文件"
-
-#: studio/debugtools/element_pane.py:78 studio/debugtools/element_pane.py:73
+#: studio/debugtools/element_pane.py:89
 msgid "No items detected"
 msgstr "未检测到任何项目"
 
-#: studio/debugtools/element_pane.py:121 studio/debugtools/element_pane.py:122
-#: studio/debugtools/element_pane.py:117
+#: studio/debugtools/element_pane.py:107
+msgid "Widget tree"
+msgstr "组件树"
+
+#: studio/debugtools/element_pane.py:134
 msgid "reload tree"
 msgstr "重新加载树"
 
-#: studio/debugtools/element_pane.py:134 studio/debugtools/element_pane.py:135
-#: studio/debugtools/element_pane.py:131
+#: studio/debugtools/element_pane.py:148
 msgid "select element to inspect"
 msgstr "选择要检查的元素"
 
-#: studio/debugtools/style_pane.py:28 studio/debugtools/style_pane.py:53
-#: studio/debugtools/style_pane.py:55 studio/debugtools/style_pane.py:57
+#: studio/debugtools/style_pane.py:29 studio/debugtools/style_pane.py:54
+#: studio/debugtools/style_pane.py:56 studio/debugtools/style_pane.py:58
 #: studio/feature/stylepane.py:290
 msgid "Attributes"
 msgstr "属性"
 
-#: studio/debugtools/style_pane.py:66 studio/debugtools/style_pane.py:97
-#: studio/debugtools/style_pane.py:99 studio/debugtools/style_pane.py:102
-#: studio/debugtools/style_pane.py:105 studio/feature/stylepane.py:443
+#: studio/debugtools/style_pane.py:67 studio/debugtools/style_pane.py:102
+#: studio/debugtools/style_pane.py:104 studio/debugtools/style_pane.py:107
+#: studio/debugtools/style_pane.py:110 studio/feature/stylepane.py:443
 #: studio/feature/stylepane.py:461 studio/feature/stylepane.py:463
-#: studio/lib/pseudo.py:37 studio/debugtools/style_pane.py:98
-#: studio/debugtools/style_pane.py:100 studio/debugtools/style_pane.py:103
-#: studio/debugtools/style_pane.py:106
+#: studio/lib/pseudo.py:37
 msgid "Layout"
 msgstr "布局"
 
-#: studio/debugtools/style_pane.py:101 studio/debugtools/style_pane.py:102
+#: studio/debugtools/style_pane.py:106
 msgid "Widget(s) not mapped"
 msgstr "组件未映射"
 
-#: studio/debugtools/style_pane.py:104 studio/debugtools/style_pane.py:105
+#: studio/debugtools/style_pane.py:109
 msgid "Unknown layout manager"
 msgstr "未知的布局管理器"
 
-#: studio/debugtools/style_pane.py:109 studio/debugtools/style_pane.py:110
-#: studio/debugtools/style_pane.py:111
+#: studio/debugtools/style_pane.py:114 studio/debugtools/style_pane.py:115
 msgid "Widget config"
 msgstr "组件配置"
 
-#: studio/feature/_base.py:73 studio/feature/_base.py:74
+#: studio/feature/_base.py:76
 msgid "View Mode"
 msgstr "查看模式"
 
-#: studio/feature/_base.py:74 studio/feature/_base.py:75
+#: studio/feature/_base.py:77
 msgid "Docked"
 msgstr "停靠"
 
-#: studio/feature/_base.py:75 studio/feature/stylepane.py:512
-#: studio/feature/_base.py:76
+#: studio/feature/_base.py:78 studio/feature/stylepane.py:512
 msgid "Window"
 msgstr "窗体"
 
-#: studio/feature/_base.py:77 studio/feature/_base.py:78
+#: studio/feature/_base.py:80
 msgid "Position"
 msgstr "位置"
 
-#: studio/feature/_base.py:78 studio/feature/_base.py:79
+#: studio/feature/_base.py:81
 msgid "Left"
 msgstr "左侧"
 
-#: studio/feature/_base.py:80 studio/feature/_base.py:81
+#: studio/feature/_base.py:83
 msgid "Right"
 msgstr "右侧"
 
-#: studio/feature/_base.py:84 studio/feature/_base.py:85
+#: studio/feature/_base.py:87
 msgid "Window options"
 msgstr "窗口选项"
 
-#: studio/feature/_base.py:86 studio/feature/_base.py:87
+#: studio/feature/_base.py:89
 msgid "Transparent when inactive"
 msgstr "不活动时透明"
 
-#: studio/feature/_base.py:89 studio/feature/_base.py:90
+#: studio/feature/_base.py:92
 msgid "Close"
 msgstr "关闭"
 
@@ -274,38 +196,52 @@ msgstr "关闭"
 msgid "No items created yet"
 msgstr "尚未创建任何项目"
 
-#: studio/feature/component_tree.py:55 studio/feature/eventspane.py:154
-#: studio/feature/stylepane.py:256 studio/feature/eventspane.py:155
-#: studio/feature/eventspane.py:156
+#: studio/feature/component_tree.py:55 studio/feature/eventspane.py:156
+#: studio/feature/stylepane.py:256
 msgid "No items match your search"
 msgstr "没有符合您搜索条件的项目"
 
-#: studio/feature/component_tree.py:101 studio/feature/component_tree.py:102
+#: studio/feature/component_tree.py:62
+msgid "Component Tree"
+msgstr "组件树"
+
+#: studio/feature/component_tree.py:102
 msgid "No active Designer"
 msgstr "没有活跃的设计器"
 
-#: studio/feature/component_tree.py:105 studio/feature/stylepane.py:652
-#: studio/feature/component_tree.py:106
+#: studio/feature/component_tree.py:106 studio/feature/stylepane.py:652
 msgid "Expand all"
 msgstr "全部展开"
 
-#: studio/feature/component_tree.py:106 studio/feature/stylepane.py:653
-#: studio/feature/component_tree.py:107
+#: studio/feature/component_tree.py:107 studio/feature/stylepane.py:653
 msgid "Collapse all"
 msgstr "全部折叠"
 
-#: studio/feature/components.py:189 studio/feature/components.py:190
 #: studio/feature/components.py:229
 msgid "Clear all"
 msgstr "全部清除"
 
-#: studio/feature/components.py:197 studio/feature/components.py:198
 #: studio/feature/components.py:237
 msgid "Pick custom widget search paths"
 msgstr "选择自定义组件搜索路径"
 
-#: studio/feature/components.py:320 studio/feature/components.py:321
-#: studio/feature/components.py:322 studio/feature/components.py:373
+#: studio/feature/components.py:260
+msgid "Components"
+msgstr "组件"
+
+#: studio/feature/components.py:320
+msgid "Widgets"
+msgstr "组件"
+
+#: studio/feature/components.py:322
+msgid "Custom Widgets"
+msgstr "自定义组件"
+
+#: studio/feature/components.py:329
+msgid "Custom widgets search paths"
+msgstr "自定义组件搜索路径"
+
+#: studio/feature/components.py:373
 msgid ""
 "Error loading widgets \n"
 "\n"
@@ -314,74 +250,59 @@ msgstr ""
 "加载组件时出错\n"
 "{}"
 
-#: studio/feature/components.py:375 studio/feature/components.py:376
-#: studio/feature/components.py:377 studio/feature/components.py:428
+#: studio/feature/components.py:428
 msgid "Reload custom widgets"
 msgstr "重新加载自定义组件"
 
-#: studio/feature/components.py:379 studio/feature/stylepane.py:651
-#: studio/feature/variablepane.py:134 studio/feature/components.py:380
-#: studio/feature/variablepane.py:135 studio/feature/components.py:381
-#: studio/feature/components.py:432 studio/feature/variablepane.py:143
+#: studio/feature/components.py:432 studio/feature/stylepane.py:651
+#: studio/feature/variablepane.py:143
 msgid "Search"
 msgstr "搜索"
 
-#: studio/feature/components.py:382 studio/feature/components.py:383
-#: studio/feature/components.py:384 studio/feature/components.py:435
+#: studio/feature/components.py:435
 msgid "Widget set"
 msgstr "组件集合"
 
-#: studio/feature/design.py:169 studio/main.py:140 studio/tools/canvas.py:858
-#: studio/tools/canvas.py:874 studio/feature/design.py:170 studio/main.py:143
-#: studio/main.py:141 studio/feature/design.py:172 studio/main.py:146
-#: studio/tools/canvas.py:853 studio/tools/menu.py:235
+#: studio/feature/design.py:118 studio/preferences.py:187
+msgid "Designer"
+msgstr "设计器"
+
+#: studio/feature/design.py:174 studio/main.py:146 studio/tools/canvas.py:853
+#: studio/tools/menu.py:235
 msgid "paste"
 msgstr "粘贴"
 
-#: studio/feature/design.py:227 studio/feature/design.py:228
-#: studio/feature/design.py:232
+#: studio/feature/design.py:264
 msgid "Drag or paste a container here to start"
 msgstr "将容器拖拽或粘贴到此处以开始"
 
-#: studio/feature/design.py:278 studio/feature/design.py:1154
-#: studio/main.py:174 studio/feature/design.py:279
-#: studio/feature/design.py:1155 studio/main.py:177 studio/main.py:175
-#: studio/feature/design.py:283 studio/feature/design.py:1224
+#: studio/feature/design.py:315 studio/feature/design.py:1275
 #: studio/main.py:180
 msgid "Save"
 msgstr "保存"
 
-#: studio/feature/design.py:279 studio/feature/design.py:1153
-#: studio/feature/design.py:280 studio/feature/design.py:1154
-#: studio/feature/design.py:284 studio/feature/design.py:1223
+#: studio/feature/design.py:316 studio/feature/design.py:1274
 msgid "Don't save"
 msgstr "不保存"
 
-#: studio/feature/design.py:280 studio/feature/design.py:1152
-#: studio/feature/design.py:281 studio/feature/design.py:1153
-#: studio/feature/design.py:285 studio/feature/design.py:1222
+#: studio/feature/design.py:317 studio/feature/design.py:1273
 msgid "Cancel"
 msgstr "取消"
 
-#: studio/feature/design.py:282 studio/main.py:121 studio/feature/design.py:283
-#: studio/main.py:124 studio/main.py:122 studio/feature/design.py:287
-#: studio/main.py:127
+#: studio/feature/design.py:319 studio/main.py:127
 msgid "Save design"
 msgstr "保存设计"
 
-#: studio/feature/design.py:283 studio/feature/design.py:284
-#: studio/feature/design.py:288
+#: studio/feature/design.py:320
 #, python-brace-format
 msgid "Design file \"{name}\" has unsaved changes. Do you want to save them?"
 msgstr "设计文件“{name}”有未保存的更改。你想保存吗？"
 
-#: studio/feature/design.py:304 studio/feature/design.py:305
-#: studio/feature/design.py:309
+#: studio/feature/design.py:341
 msgid "Loading design file to studio..."
 msgstr "正在将设计文件加载到 studio..."
 
-#: studio/feature/design.py:330 studio/feature/design.py:331
-#: studio/feature/design.py:335
+#: studio/feature/design.py:371
 msgid ""
 "Design was made using a higher version of the studio. \n"
 "Some features may not be supported on this version. \n"
@@ -391,72 +312,74 @@ msgstr ""
 "设计是使用更高版本的 studio 创建的。此版本可能不支持某些功能。更新到新版本的 "
 "Formation 以进行正确处理。请注意，保存可能会不可逆转地删除某些不支持的功能"
 
-#: studio/feature/design.py:350 studio/feature/design.py:351
-#: studio/feature/design.py:355
+#: studio/feature/design.py:391
 msgid "Press {} to reload"
 msgstr "按 {} 重新加载"
 
-#: studio/feature/design.py:350 studio/feature/design.py:351
-#: studio/feature/design.py:355
+#: studio/feature/design.py:391
 msgid "reload design"
 msgstr "重新加载设计"
 
-#: studio/feature/design.py:364 studio/feature/design.py:365
-#: studio/feature/design.py:368
+#: studio/feature/design.py:404
 msgid "Confirm reload"
 msgstr "确认重新加载"
 
-#: studio/feature/design.py:365 studio/feature/design.py:366
-#: studio/feature/design.py:369
+#: studio/feature/design.py:405
 msgid "All changes made will be lost"
 msgstr "所做的所有更改都将丢失"
 
-#: studio/feature/design.py:635 studio/feature/design.py:636
-#: studio/feature/design.py:665
+#: studio/feature/design.py:700
 msgid "Invalid root widget"
 msgstr "无效的根组件"
 
-#: studio/feature/design.py:636 studio/feature/design.py:637
-#: studio/feature/design.py:666
+#: studio/feature/design.py:701
 msgid "Only containers are allowed as root widgets"
 msgstr "仅允许容器作为根组件"
 
-#: studio/feature/design.py:640 studio/feature/design.py:641
-#: studio/feature/design.py:670
+#: studio/feature/design.py:705
 msgid "Invalid parent"
 msgstr "无效父级"
 
-#: studio/feature/design.py:642 studio/feature/design.py:643
-#: studio/feature/design.py:672
+#: studio/feature/design.py:707
 msgid "Toplevel widgets cannot be placed inside other widgets"
 msgstr "顶级组件不能放置在其他组件内"
 
-#: studio/feature/design.py:1044 studio/feature/design.py:1045
-#: studio/feature/design.py:1114
+#: studio/feature/design.py:1165
 msgid "Reload"
 msgstr "重新加载"
 
-#: studio/feature/design.py:1119 studio/feature/design.py:1120
-#: studio/feature/design.py:1189
+#: studio/feature/design.py:1240
 msgid "Save dialog"
 msgstr "保存对话框"
 
-#: studio/feature/design.py:1145 studio/feature/design.py:1146
-#: studio/feature/design.py:1215
+#: studio/feature/design.py:1266
 msgid "Some files have changes. Select files to save"
 msgstr "某些文件有更改。选择要保存的文件"
 
-#: studio/feature/eventspane.py:152 studio/feature/eventspane.py:153
+#: studio/feature/eventspane.py:147
+msgid "Event pane"
+msgstr "事件面板"
+
 #: studio/feature/eventspane.py:154
 msgid "You have not selected any widget selected"
 msgstr "您还没有选择任何组件"
 
-#: studio/feature/eventspane.py:153 studio/feature/eventspane.py:154
 #: studio/feature/eventspane.py:155
 msgid "You have not added any bindings"
 msgstr "您还没有添加任何绑定"
 
-#: studio/feature/eventspane.py:182 studio/feature/eventspane.py:183
+#: studio/feature/eventspane.py:162
+msgid "Sequence"
+msgstr "顺序"
+
+#: studio/feature/eventspane.py:162
+msgid "Handler"
+msgstr "处理程序"
+
+#: studio/feature/eventspane.py:162 studio/feature/variablepane.py:139
+msgid "Add"
+msgstr "添加"
+
 #: studio/feature/eventspane.py:184
 msgid "Add event binding"
 msgstr "添加事件绑定"
@@ -481,478 +404,748 @@ msgstr "您还没有选择任何项目"
 msgid "Loading..."
 msgstr "加载中..."
 
-#: studio/feature/variablepane.py:35 studio/feature/variablepane.py:36
+#: studio/feature/stylepane.py:816
+msgid "Style pane"
+msgstr "样式面板"
+
+#: studio/feature/variablepane.py:21
+msgid "Variables"
+msgstr "变量"
+
 #: studio/feature/variablepane.py:37
 msgid "No variables added"
 msgstr "没有添加变量"
 
-#: studio/feature/variablepane.py:51 studio/feature/variablepane.py:52
 #: studio/feature/variablepane.py:53
 msgid "Type"
 msgstr "类型"
 
-#: studio/feature/variablepane.py:59 studio/feature/variablepane.py:60
 #: studio/feature/variablepane.py:61
 msgid "Name"
 msgstr "名称"
 
-#: studio/feature/variablepane.py:65 studio/feature/variablepane.py:66
 #: studio/feature/variablepane.py:67
 msgid "Value"
 msgstr "值"
 
-#: studio/feature/variablepane.py:85 studio/feature/variablepane.py:86
 #: studio/feature/variablepane.py:87
 msgid "Add variable"
 msgstr "添加变量"
 
-#: studio/feature/variablepane.py:108 studio/feature/variablepane.py:109
 #: studio/feature/variablepane.py:115
 msgid "No matches found"
 msgstr "未找到匹配项"
 
-#: studio/feature/variablepane.py:132 studio/feature/eventspane.py:161
-#: studio/feature/variablepane.py:133 studio/feature/eventspane.py:162
-#: studio/feature/variablepane.py:139
-msgid "Add"
-msgstr "添加"
-
-#: studio/feature/variablepane.py:133 studio/feature/variablepane.py:134
 #: studio/feature/variablepane.py:142
 msgid "Delete"
 msgstr "删除"
 
-#: studio/lib/pseudo.py:534 studio/lib/pseudo.py:628
+#: studio/lib/legacy.py:163 studio/lib/menu.py:213
+msgid "Preview"
+msgstr "预览"
+
+#: studio/lib/pseudo.py:34
+msgid "Widget"
+msgstr "组件"
+
+#: studio/lib/pseudo.py:35
+msgid "Input"
+msgstr "输入"
+
+#: studio/lib/pseudo.py:36
+msgid "Container"
+msgstr "容器"
+
+#: studio/lib/pseudo.py:38
+msgid "Custom"
+msgstr "风俗"
+
+#: studio/lib/pseudo.py:636
 msgid "Change layout"
 msgstr "更改布局"
 
-#: studio/lib/pseudo.py:625 studio/lib/pseudo.py:730
+#: studio/lib/pseudo.py:735
 msgid "Add tab"
 msgstr "添加选项卡"
 
-#: studio/lib/pseudo.py:666 studio/lib/pseudo.py:771
+#: studio/lib/pseudo.py:777
 msgid "Add pane"
 msgstr "添加面板"
 
-#: studio/lib/pseudo.py:695 studio/lib/pseudo.py:803
+#: studio/lib/pseudo.py:809
 msgid ""
 "Could not deduce base implementation for custom widget. Inherit from base "
 "implementation or set the 'impl' attribute to the base class"
-msgstr ""
-"无法推断自定义组件的基本实现。从基实现继承或将 ' impl ' 属性设置为基类"
+msgstr "无法推断自定义组件的基本实现。从基实现继承或将 ' impl ' 属性设置为基类"
 
-#: studio/main.py:109 studio/main.py:925 studio/main.py:112 studio/main.py:928
-#: studio/main.py:110 studio/main.py:926 studio/main.py:115 studio/main.py:990
+#: studio/main.py:115 studio/main.py:1096
 msgid "Delete selected widgets"
 msgstr "删除选定的组件"
 
-#: studio/main.py:110 studio/main.py:113 studio/main.py:111 studio/main.py:116
+#: studio/main.py:116
 msgid "Undo action"
 msgstr "撤消"
 
-#: studio/main.py:111 studio/main.py:930 studio/main.py:114 studio/main.py:933
-#: studio/main.py:112 studio/main.py:931 studio/main.py:117 studio/main.py:995
+#: studio/main.py:117 studio/main.py:1101
 msgid "Redo action"
 msgstr "恢复"
 
-#: studio/main.py:114 studio/main.py:117 studio/main.py:115 studio/main.py:120
+#: studio/main.py:118 studio/main.py:1093
+msgid "Cut selected widgets"
+msgstr "剪切选定的组件"
+
+#: studio/main.py:120
 msgid "Design mode"
 msgstr "设计模式"
 
-#: studio/main.py:116 studio/main.py:119 studio/main.py:117 studio/main.py:122
+#: studio/main.py:122
 msgid "Open features in window mode"
 msgstr "在窗口模式下打开功能"
 
-#: studio/main.py:118 studio/main.py:121 studio/main.py:119 studio/main.py:124
+#: studio/main.py:124
 msgid "Dock all features"
 msgstr "停靠所有功能"
 
-#: studio/main.py:120 studio/main.py:123 studio/main.py:121 studio/main.py:126
+#: studio/main.py:126
 msgid "New design"
 msgstr "新设计"
 
-#: studio/main.py:122 studio/main.py:197 studio/main.py:125 studio/main.py:200
-#: studio/main.py:123 studio/main.py:198 studio/main.py:128 studio/main.py:203
+#: studio/main.py:128 studio/main.py:203
 msgid "Preview design"
 msgstr "预览设计"
 
-#: studio/main.py:136 studio/tools/canvas.py:854 studio/main.py:139
-#: studio/main.py:137 studio/main.py:142 studio/tools/canvas.py:849
-#: studio/tools/menu.py:232
+#: studio/main.py:142 studio/tools/canvas.py:849 studio/tools/menu.py:232
 msgid "copy"
 msgstr "复制"
 
-#: studio/main.py:137 studio/tools/canvas.py:855 studio/main.py:140
-#: studio/main.py:138 studio/main.py:143 studio/tools/canvas.py:850
+#: studio/main.py:143 studio/tools/canvas.py:850
 msgid "duplicate"
 msgstr "复制"
 
-#: studio/main.py:142 studio/tools/canvas.py:860 studio/main.py:145
-#: studio/main.py:143 studio/main.py:148 studio/tools/canvas.py:855
-#: studio/tools/menu.py:237
+#: studio/main.py:148 studio/tools/canvas.py:855 studio/tools/menu.py:237
 msgid "cut"
 msgstr "剪切"
 
-#: studio/main.py:148 studio/tools/canvas.py:864 studio/main.py:151
-#: studio/main.py:149 studio/main.py:154 studio/tools/canvas.py:859
+#: studio/main.py:154 studio/tools/canvas.py:859
 msgid "send to back"
 msgstr "发送到后面"
 
-#: studio/main.py:149 studio/tools/canvas.py:865 studio/main.py:152
-#: studio/main.py:150 studio/main.py:155 studio/tools/canvas.py:860
+#: studio/main.py:155 studio/tools/canvas.py:860
 msgid "bring to front"
 msgstr "带到前面"
 
-#: studio/main.py:150 studio/tools/canvas.py:866 studio/main.py:153
-#: studio/main.py:151 studio/main.py:156 studio/tools/canvas.py:862
+#: studio/main.py:156 studio/tools/canvas.py:862
 msgid "back one step"
 msgstr "后退一步"
 
-#: studio/main.py:151 studio/tools/canvas.py:867 studio/main.py:154
-#: studio/main.py:152 studio/main.py:157 studio/tools/canvas.py:864
+#: studio/main.py:157 studio/tools/canvas.py:864
 msgid "forward one step"
 msgstr "前进一步"
 
-#: studio/main.py:155 studio/tools/canvas.py:862 studio/main.py:158
-#: studio/main.py:156 studio/main.py:161 studio/tools/canvas.py:857
-#: studio/tools/menu.py:239
+#: studio/main.py:161 studio/tools/canvas.py:857 studio/tools/menu.py:239
 msgid "delete"
 msgstr "删除"
 
-#: studio/main.py:160 studio/main.py:163 studio/main.py:161 studio/main.py:166
+#: studio/main.py:166
 msgid "formation"
 msgstr "formation"
 
-#: studio/main.py:163 studio/main.py:241 studio/main.py:166 studio/main.py:244
-#: studio/main.py:164 studio/main.py:242 studio/main.py:169 studio/main.py:247
+#: studio/main.py:167 studio/main.py:190 studio/updates.py:145
+msgid "Restart"
+msgstr "重启"
+
+#: studio/main.py:169 studio/main.py:247
 msgid "About Formation"
 msgstr "关于 Formation"
 
-#: studio/main.py:167 studio/main.py:170 studio/main.py:168 studio/main.py:173
+#: studio/main.py:173
 msgid "File"
 msgstr "文件"
 
-#: studio/main.py:168 studio/main.py:171 studio/main.py:169 studio/main.py:174
+#: studio/main.py:174
 msgid "New"
 msgstr "新建"
 
-#: studio/main.py:169 studio/main.py:172 studio/main.py:170 studio/main.py:175
+#: studio/main.py:175
 msgid "Open"
 msgstr "打开"
 
-#: studio/main.py:170 studio/main.py:173 studio/main.py:171 studio/main.py:176
+#: studio/main.py:176
 msgid "Recent"
 msgstr "最近的"
 
-#: studio/main.py:175 studio/main.py:178 studio/main.py:176 studio/main.py:181
+#: studio/main.py:181
 msgid "Save As"
 msgstr "另存为"
 
-#: studio/main.py:180 studio/main.py:183 studio/main.py:181 studio/main.py:186
+#: studio/main.py:186
 msgid "Save All"
 msgstr "保存全部"
 
-#: studio/main.py:183 studio/main.py:186 studio/main.py:184 studio/main.py:189
+#: studio/main.py:189
 msgid "Settings"
 msgstr "设置"
 
-#: studio/main.py:185 studio/main.py:188 studio/main.py:186 studio/main.py:191
+#: studio/main.py:191
 msgid "Exit"
 msgstr "退出"
 
-#: studio/main.py:187 studio/tools/menus.py:400 studio/main.py:190
-#: studio/main.py:188 studio/main.py:193
+#: studio/main.py:193 studio/tools/menus.py:400
 msgid "Edit"
 msgstr "编辑"
 
-#: studio/main.py:189 studio/main.py:192 studio/main.py:190 studio/main.py:195
+#: studio/main.py:195
 msgid "undo"
 msgstr "撤消"
 
-#: studio/main.py:191 studio/main.py:194 studio/main.py:192 studio/main.py:197
+#: studio/main.py:197
 msgid "redo"
 msgstr "恢复"
 
-#: studio/main.py:194 studio/main.py:197 studio/main.py:195 studio/main.py:200
+#: studio/main.py:200
 msgid "Code"
 msgstr "代码"
 
-#: studio/main.py:198 studio/main.py:201 studio/main.py:199 studio/main.py:204
+#: studio/main.py:204
 msgid "close preview"
 msgstr "关闭预览"
 
-#: studio/main.py:202 studio/main.py:205 studio/main.py:203 studio/main.py:208
+#: studio/main.py:208
 msgid "Reload design file"
 msgstr "重新加载设计文件"
 
-#: studio/main.py:207 studio/main.py:210 studio/main.py:208 studio/main.py:213
+#: studio/main.py:213
 msgid "View"
 msgstr "视图"
 
-#: studio/main.py:208 studio/main.py:211 studio/main.py:209 studio/main.py:214
+#: studio/main.py:214
 msgid "show all panes"
 msgstr "显示所有面板"
 
-#: studio/main.py:209 studio/main.py:212 studio/main.py:210 studio/main.py:215
+#: studio/main.py:215
 msgid "close all panes"
 msgstr "关闭所有面板"
 
-#: studio/main.py:210 studio/main.py:213 studio/main.py:211 studio/main.py:216
+#: studio/main.py:216
 msgid "close all panes on the right"
 msgstr "关闭右侧所有面板"
 
-#: studio/main.py:211 studio/main.py:214 studio/main.py:212 studio/main.py:217
+#: studio/main.py:217
 msgid "close all panes on the left"
 msgstr "关闭左侧所有面板"
 
-#: studio/main.py:213 studio/main.py:216 studio/main.py:214 studio/main.py:219
+#: studio/main.py:219
 msgid "Undock all windows"
 msgstr "取消停靠所有窗口"
 
-#: studio/main.py:214 studio/main.py:217 studio/main.py:215 studio/main.py:220
+#: studio/main.py:220
 msgid "Dock all windows"
 msgstr "停靠所有窗口"
 
-#: studio/main.py:220 studio/main.py:223 studio/main.py:221 studio/main.py:226
+#: studio/main.py:226
 msgid "close tab"
 msgstr "关闭选项卡"
 
-#: studio/main.py:221 studio/main.py:224 studio/main.py:222 studio/main.py:227
+#: studio/main.py:227
 msgid "close all tabs"
 msgstr "关闭所有选项卡"
 
-#: studio/main.py:228 studio/main.py:231 studio/main.py:229 studio/main.py:234
+#: studio/main.py:234
 msgid "close all tabs on the right"
 msgstr "关闭右侧所有选项卡"
 
-#: studio/main.py:233 studio/main.py:962 studio/main.py:236 studio/main.py:965
-#: studio/main.py:234 studio/main.py:963 studio/main.py:239 studio/main.py:1027
+#: studio/main.py:239 studio/main.py:1133
 msgid "Save window positions"
 msgstr "保存窗口位置"
 
-#: studio/main.py:235 studio/main.py:238 studio/main.py:236 studio/main.py:241
+#: studio/main.py:241
 msgid "Tools"
 msgstr "工具"
 
-#: studio/main.py:236 studio/main.py:237 studio/main.py:239 studio/main.py:240
-#: studio/main.py:238 studio/main.py:242 studio/main.py:243
+#: studio/main.py:242 studio/main.py:243
 msgid "Help"
 msgstr "帮助"
 
-#: studio/main.py:238 studio/main.py:241 studio/main.py:239 studio/main.py:244
+#: studio/main.py:244
 msgid "Report issue"
 msgstr "报告问题"
 
-#: studio/main.py:239 studio/main.py:242 studio/main.py:240 studio/main.py:245
+#: studio/main.py:245
 msgid "Check for updates"
 msgstr "检查更新"
 
-#: studio/main.py:319 studio/main.py:387 studio/main.py:779 studio/main.py:322
-#: studio/main.py:390 studio/main.py:782 studio/main.py:320 studio/main.py:388
-#: studio/main.py:780 studio/main.py:332 studio/main.py:425 studio/main.py:839
+#: studio/main.py:338 studio/main.py:436 studio/main.py:945
 msgid "Open a design file"
 msgstr "打开设计文件"
 
-#: studio/main.py:548 studio/main.py:551 studio/main.py:549 studio/main.py:590
+#: studio/main.py:564
+msgid "Place above"
+msgstr ""
+
+#: studio/main.py:570
+msgid "Place below"
+msgstr ""
+
+#: studio/main.py:696
 msgid "untitled"
 msgstr "无标题"
 
-#: studio/main.py:564 studio/main.py:567 studio/main.py:565 studio/main.py:606
+#: studio/main.py:712
 msgid "Clear"
 msgstr "清除"
 
-#: studio/main.py:574 studio/main.py:577 studio/main.py:575 studio/main.py:616
+#: studio/main.py:722
 msgid "Missing File"
 msgstr "文件 {file} 不存在"
 
-#: studio/main.py:575 studio/main.py:578 studio/main.py:576 studio/main.py:617
+#: studio/main.py:723
 msgid "File {} does not exist"
 msgstr "文件 {} 不存在"
 
-#: studio/main.py:581 studio/main.py:584 studio/main.py:582 studio/main.py:623
+#: studio/main.py:729
 msgid "Unsupported type"
 msgstr "不支持的类型"
 
-#: studio/main.py:582 studio/main.py:585 studio/main.py:583 studio/main.py:624
+#: studio/main.py:730
 #, python-brace-format
 msgid "File {path} is not of a supported file type ({typ})."
 msgstr "文件 {path} 不属于受支持的文件类型 ({ typ })。"
 
-#: studio/main.py:819 studio/main.py:822 studio/main.py:820 studio/main.py:879
+#: studio/main.py:985
 msgid "Empty design"
 msgstr "空设计"
 
-#: studio/main.py:820 studio/main.py:823 studio/main.py:821 studio/main.py:880
+#: studio/main.py:986
 msgid "There is nothing to preview. Please add a root widget"
 msgstr "没有什么可以预览的。请添加根组件"
 
-#: studio/main.py:844 studio/main.py:847 studio/main.py:845 studio/main.py:909
+#: studio/main.py:1015
 msgid "Force exit"
 msgstr "强制退出"
 
-#: studio/main.py:845 studio/main.py:848 studio/main.py:846 studio/main.py:910
+#: studio/main.py:1016
 msgid "Return to app"
 msgstr "返回应用程序"
 
-#: studio/main.py:847 studio/main.py:850 studio/main.py:848 studio/main.py:912
+#: studio/main.py:1018
 msgid "Exit Failure"
 msgstr "退出失败"
 
-#: studio/main.py:848 studio/main.py:851 studio/main.py:849 studio/main.py:913
+#: studio/main.py:1019
 msgid "An internal failure is preventing the app from exiting. Force exit?"
 msgstr "内部故障导致应用程序无法退出。强制退出？"
 
-#: studio/main.py:897 studio/main.py:900 studio/main.py:898 studio/main.py:962
+#: studio/main.py:1068
 msgid "Coming soon"
 msgstr "即将推出"
 
-#: studio/main.py:898 studio/main.py:901 studio/main.py:899 studio/main.py:963
+#: studio/main.py:1069
 msgid "We are working hard to bring this feature to you. Hang in there."
 msgstr "我们正在努力为您提供此功能。坚持住。"
 
-#: studio/main.py:923 studio/main.py:926 studio/main.py:924 studio/main.py:988
+#: studio/main.py:1094
 msgid "Copy selected widgets"
 msgstr "复制选定的组件"
 
-#: studio/main.py:924 studio/main.py:927 studio/main.py:925 studio/main.py:989
+#: studio/main.py:1095
 msgid "Paste selected widgets"
 msgstr "粘贴选定的组件"
 
-#: studio/main.py:926 studio/main.py:929 studio/main.py:927 studio/main.py:991
+#: studio/main.py:1097
 msgid "Duplicate selected widgets"
 msgstr "复制选定的组件"
 
-#: studio/main.py:929 studio/main.py:932 studio/main.py:930 studio/main.py:994
+#: studio/main.py:1100
 msgid "Undo last action"
 msgstr "撤消上次操作"
 
-#: studio/main.py:931 studio/main.py:934 studio/main.py:932 studio/main.py:996
+#: studio/main.py:1102
 msgid "Send selected widgets to back"
 msgstr "将选定的组件发送到后面"
 
-#: studio/main.py:932 studio/main.py:935 studio/main.py:933 studio/main.py:997
+#: studio/main.py:1103
 msgid "Bring selected widgets to front"
 msgstr "将选定的组件置于前面"
 
-#: studio/main.py:935 studio/main.py:938 studio/main.py:936 studio/main.py:1000
+#: studio/main.py:1106
 msgid "Move selected widgets back one step"
 msgstr "将选定的组件后退一步"
 
-#: studio/main.py:938 studio/main.py:941 studio/main.py:939 studio/main.py:1003
+#: studio/main.py:1109
 msgid "Bring selected widgets up one step"
 msgstr "将选定的组件上一级"
 
-#: studio/main.py:940 studio/main.py:943 studio/main.py:941 studio/main.py:1005
+#: studio/main.py:1111
 msgid "Open new design"
 msgstr "开启新设计"
 
-#: studio/main.py:941 studio/main.py:944 studio/main.py:942 studio/main.py:1006
+#: studio/main.py:1112
 msgid "Open design from file"
 msgstr "从文件中打开设计"
 
-#: studio/main.py:942 studio/main.py:945 studio/main.py:943 studio/main.py:1007
+#: studio/main.py:1113
 msgid "Save current design"
 msgstr "保存当前设计"
 
-#: studio/main.py:943 studio/main.py:946 studio/main.py:944 studio/main.py:1008
+#: studio/main.py:1114
 msgid "Save current design under a new file"
 msgstr "将当前设计保存在新文件下"
 
-#: studio/main.py:945 studio/main.py:948 studio/main.py:946 studio/main.py:1010
+#: studio/main.py:1116
 msgid "Save all open designs"
 msgstr "保存所有打开的设计"
 
-#: studio/main.py:946 studio/main.py:949 studio/main.py:947 studio/main.py:1011
+#: studio/main.py:1117
 msgid "Show studio help"
 msgstr "显示 studio 帮助"
 
-#: studio/main.py:947 studio/main.py:950 studio/main.py:948 studio/main.py:1012
+#: studio/main.py:1118
 msgid "Open studio settings"
 msgstr "打开 studio 设置"
 
-#: studio/main.py:948 studio/main.py:951 studio/main.py:949 studio/main.py:1013
+#: studio/main.py:1119
 msgid "Restart application"
 msgstr "重新启动应用程序"
 
-#: studio/main.py:949 studio/main.py:952 studio/main.py:950 studio/main.py:1014
+#: studio/main.py:1120
 msgid "Exit application"
 msgstr "退出应用程序"
 
-#: studio/main.py:951 studio/main.py:954 studio/main.py:952 studio/main.py:1016
+#: studio/main.py:1122
 msgid "Show all feature windows"
 msgstr "显示所有功能窗口"
 
-#: studio/main.py:953 studio/main.py:956 studio/main.py:954 studio/main.py:1018
+#: studio/main.py:1124
 msgid "Close all feature windows"
 msgstr "关闭所有功能窗口"
 
-#: studio/main.py:955 studio/main.py:958 studio/main.py:956 studio/main.py:1020
+#: studio/main.py:1126
 msgid "Close feature windows to the right"
 msgstr "关闭右侧的功能窗口"
 
-#: studio/main.py:957 studio/main.py:960 studio/main.py:958 studio/main.py:1022
+#: studio/main.py:1128
 msgid "Close feature windows to the left"
 msgstr "关闭左侧的功能窗口"
 
-#: studio/main.py:958 studio/main.py:961 studio/main.py:959 studio/main.py:1023
+#: studio/main.py:1129
 msgid "Dock all feature windows"
 msgstr "停靠所有功能窗口"
 
-#: studio/main.py:960 studio/main.py:963 studio/main.py:961 studio/main.py:1025
+#: studio/main.py:1131
 msgid "Undock all feature windows"
 msgstr "取消停靠所有功能窗口"
 
-#: studio/main.py:965 studio/main.py:968 studio/main.py:966 studio/main.py:1030
+#: studio/main.py:1136
 msgid "Close tab"
 msgstr "关闭选项卡"
 
-#: studio/main.py:966 studio/main.py:969 studio/main.py:967 studio/main.py:1031
+#: studio/main.py:1137
 msgid "Close all tabs"
 msgstr "关闭所有选项卡"
 
-#: studio/main.py:968 studio/main.py:971 studio/main.py:969 studio/main.py:1033
+#: studio/main.py:1139
 msgid "Close other tabs"
 msgstr "关闭其他选项卡"
 
-#: studio/main.py:969 studio/main.py:972 studio/main.py:970 studio/main.py:1034
+#: studio/main.py:1140
 msgid "Close all tabs on the right"
 msgstr "关闭右侧所有选项卡"
 
-#: studio/main.py:972 studio/main.py:975 studio/main.py:973 studio/main.py:1037
+#: studio/main.py:1143
 msgid "Show preview"
 msgstr "显示预览"
 
-#: studio/main.py:973 studio/main.py:976 studio/main.py:974 studio/main.py:1038
+#: studio/main.py:1144
 msgid "Close any preview"
 msgstr "关闭任何预览"
 
-#: studio/main.py:974 studio/main.py:977 studio/main.py:975 studio/main.py:1039
+#: studio/main.py:1145
 msgid "Reload current design"
 msgstr "重新加载当前设计"
 
-#: studio/parsers/loader.py:56 studio/parsers/loader.py:60
+#: studio/parsers/loader.py:60
 msgid "Could not resolve studio compatible widget for \"{}\""
 msgstr "无法解析“{}”的 studio兼容组件"
 
-#: studio/parsers/loader.py:64 studio/parsers/loader.py:68
+#: studio/parsers/loader.py:68
 msgid "class {} does not have a designer implementation variant in {}"
 msgstr "类 {} 在 {} 中没有设计器实现变体"
 
-#: studio/tools/canvas.py:316 studio/tools/canvas.py:315
+#: studio/preferences.py:81
+msgid "General"
+msgstr "常规"
+
+#: studio/preferences.py:82
+msgid "Appearance"
+msgstr "外观"
+
+#: studio/preferences.py:84 studio/ui/widgets.py:413
+msgid "Theme"
+msgstr "主题"
+
+#: studio/preferences.py:90
+msgid "Dark"
+msgstr "暗黑"
+
+#: studio/preferences.py:91
+msgid "Light"
+msgstr "明亮"
+
+#: studio/preferences.py:96
+msgid "Localization"
+msgstr "本地化"
+
+#: studio/preferences.py:98
+msgid "Language"
+msgstr "语言"
+
+#: studio/preferences.py:110
+msgid "Recent Files"
+msgstr "最近的文件"
+
+#: studio/preferences.py:112
+msgid "Recent files limit"
+msgstr "最近的文件限制"
+
+#: studio/preferences.py:120
+msgid "Show"
+msgstr "显示"
+
+#: studio/preferences.py:125
+msgid "Only file name"
+msgstr "仅文件名"
+
+#: studio/preferences.py:126
+msgid "Full file path"
+msgstr "完整文件路径"
+
+#: studio/preferences.py:131
+msgid "Maximum path display length"
+msgstr "最大路径显示长度"
+
+#: studio/preferences.py:139
+msgid "Undo Redo"
+msgstr "撤销"
+
+#: studio/preferences.py:142
+msgid "Limit undo depth"
+msgstr "限制撤消深度"
+
+#: studio/preferences.py:149
+msgid "Undo depth"
+msgstr "撤消深度"
+
+#: studio/preferences.py:159
+msgid "Start up"
+msgstr "启动"
+
+#: studio/preferences.py:161
+msgid "Automatically check for updates"
+msgstr "自动检查更新"
+
+#: studio/preferences.py:166
+msgid "At startup"
+msgstr "启动时"
+
+#: studio/preferences.py:171
+msgid "Open blank design tab"
+msgstr "打开空白设计选项卡"
+
+#: studio/preferences.py:172
+msgid "Restore previous tabs"
+msgstr "恢复以前的选项卡"
+
+#: studio/preferences.py:173
+msgid "Do not open any design tab"
+msgstr "不要打开任何设计选项卡"
+
+#: studio/preferences.py:178
+msgid "Third party features"
+msgstr "第三方功能"
+
+#: studio/preferences.py:180
+msgid "Load third party features"
+msgstr "加载第三方功能"
+
+#: studio/preferences.py:188
+msgid "Design pad"
+msgstr "设计面板"
+
+#: studio/preferences.py:190
+msgid "Drag rate throttling"
+msgstr "拖放速度"
+
+#: studio/preferences.py:200
+msgid "Naming options"
+msgstr "命名选项"
+
+#: studio/preferences.py:202
+msgid "Naming case"
+msgstr "命名案例"
+
+#: studio/preferences.py:207
+msgid "Title case"
+msgstr "标题"
+
+#: studio/preferences.py:208
+msgid "Lower case"
+msgstr "小写"
+
+#: studio/preferences.py:209
+msgid "Upper case"
+msgstr "大写"
+
+#: studio/preferences.py:214
+msgid "Use underscore separator"
+msgstr "使用下划线分隔符"
+
+#: studio/preferences.py:219
+msgid "Start numbering from"
+msgstr "开始编号"
+
+#: studio/preferences.py:229
+msgid "(Widget names already created will not be affected)"
+msgstr "（已创建的组件名称不会受到影响）"
+
+#: studio/preferences.py:232
+msgid "XML options"
+msgstr "XML 选项"
+
+#: studio/preferences.py:234
+msgid "Pretty print output xml"
+msgstr "美化打印输出 xml"
+
+#: studio/preferences.py:240
+msgid "(Requires lxml)"
+msgstr "（需要lxml ）"
+
+#: studio/preferences.py:243
+msgid "JSON options"
+msgstr "JSON 选项"
+
+#: studio/preferences.py:245
+msgid "Compact output"
+msgstr "压缩输出"
+
+#: studio/preferences.py:250
+msgid "Sort json keys"
+msgstr "json键进行排序"
+
+#: studio/preferences.py:255
+msgid "Stringify json values"
+msgstr "json值字符串化"
+
+#: studio/preferences.py:261
+msgid "Pretty print output json"
+msgstr "美化打印输出json"
+
+#: studio/preferences.py:269
+msgid "For indentation use"
+msgstr "缩进方式"
+
+#: studio/preferences.py:274
+msgid "Tabs"
+msgstr "制表符"
+
+#: studio/preferences.py:275
+msgid "Spaces"
+msgstr "空格"
+
+#: studio/preferences.py:283
+msgid "number of indent spaces"
+msgstr "缩进空格数"
+
+#: studio/preferences.py:295
+msgid "Image options"
+msgstr "图像选项"
+
+#: studio/preferences.py:297
+msgid "When selecting image"
+msgstr "选择图像时"
+
+#: studio/preferences.py:302
+msgid "Use relative paths when in same directory as design file"
+msgstr "与设计文件位于同一目录时使用相对路径"
+
+#: studio/preferences.py:303
+msgid "Always use path relative to design file if possible"
+msgstr "如果可能，始终使用相对于设计文件的路径"
+
+#: studio/preferences.py:304
+msgid "Always use absolute paths"
+msgstr "始终使用绝对路径"
+
+#: studio/preferences.py:310
+msgid "(Existing paths will not be affected, Reset the image to take effect)"
+msgstr "（现有路径不受影响，重置镜像即可生效）"
+
+#: studio/preferences.py:313
+msgid "Style pane options"
+msgstr "样式面板选项"
+
+#: studio/preferences.py:315
+msgid "Use descriptive names for style attributes"
+msgstr "对样式属性使用描述性名称"
+
+#: studio/preferences.py:321
+msgid "Key Map"
+msgstr "快捷键"
+
+#: studio/preferences.py:331
+msgid "Allow shortcut keys"
+msgstr "允许快捷键"
+
+#: studio/preferences.py:338
+msgid "Configure shortcut keys"
+msgstr "配置快捷键"
+
+#: studio/resource_loader.py:50
+msgid "Waiting for resource loader..."
+msgstr "等待资源加载..."
+
+#: studio/resource_loader.py:142
+msgid "Preparing graphic resources..."
+msgstr "正在准备图形资源..."
+
+#: studio/resource_loader.py:151
+msgid "Error preparing graphic resources"
+msgstr "准备图形资源时出错"
+
+#: studio/tools/canvas.py:315
 msgid "add point"
 msgstr "添加点"
 
-#: studio/tools/canvas.py:319 studio/tools/canvas.py:318
+#: studio/tools/canvas.py:318
 msgid "remove"
 msgstr "移除"
 
-#: studio/tools/canvas.py:574 studio/tools/canvas.py:573
+#: studio/tools/canvas.py:573
 msgid "Canvas Item"
 msgstr "画布项目"
 
-#: studio/tools/canvas.py:577 studio/tools/canvas.py:576
+#: studio/tools/canvas.py:576
 msgid "Select canvas item to see styles"
 msgstr "选择画布项目以查看样式"
+
+#: studio/tools/canvas.py:784
+msgid "Canvas"
+msgstr "帆布"
+
+#: studio/tools/menu.py:88
+msgid "Menu Item"
+msgstr "菜单项"
+
+#: studio/tools/menu.py:91
+msgid "Select menu item to see styles"
+msgstr "选择菜单项查看样式"
+
+#: studio/tools/menu.py:173
+msgid "Cascade Menu Attributes"
+msgstr "级联菜单属性"
+
+#: studio/tools/menu.py:207
+msgid "Menu"
+msgstr "菜单"
 
 #: studio/tools/menus.py:160
 msgid "No item selected"
@@ -1028,362 +1221,52 @@ msgstr "图标由"
 msgid "Copyright © 2019-{year} Hoverset group"
 msgstr "版权所有 © 2019-{year} Hoverset 团队"
 
-#: studio/preferences.py:73 studio/preferences.py:76 studio/preferences.py:78
-msgid "General"
-msgstr "常规"
-
-#: studio/preferences.py:74 studio/preferences.py:77 studio/preferences.py:79
-msgid "Appearance"
-msgstr "外观"
-
-#: studio/preferences.py:76 studio/preferences.py:79 studio/preferences.py:81
-#: studio/ui/widgets.py:381
-msgid "Theme"
-msgstr "主题"
-
-#: studio/preferences.py:88 studio/preferences.py:91 studio/preferences.py:93
-msgid "Localization"
-msgstr "本地化"
-
-#: studio/preferences.py:90 studio/preferences.py:93 studio/preferences.py:95
-msgid "Language"
-msgstr "语言"
-
-#: studio/preferences.py:111 studio/preferences.py:104
-#: studio/preferences.py:105 studio/preferences.py:107
-msgid "Recent Files"
-msgstr "最近的文件"
-
-#: studio/preferences.py:113 studio/preferences.py:106
-#: studio/preferences.py:107 studio/preferences.py:109
-msgid "Recent files limit"
-msgstr "最近的文件限制"
-
-#: studio/preferences.py:121 studio/preferences.py:114
-#: studio/preferences.py:115 studio/preferences.py:117
-msgid "Show"
-msgstr "显示"
-
-#: studio/preferences.py:132 studio/preferences.py:125
-#: studio/preferences.py:126 studio/preferences.py:128
-msgid "Maximum path display length"
-msgstr "最大路径显示长度"
-
-#: studio/preferences.py:140 studio/preferences.py:133
-#: studio/preferences.py:134 studio/preferences.py:136
-msgid "Undo Redo"
-msgstr "撤销"
-
-#: studio/preferences.py:143 studio/preferences.py:136
-#: studio/preferences.py:137 studio/preferences.py:139
-msgid "Limit undo depth"
-msgstr "限制撤消深度"
-
-#: studio/preferences.py:150 studio/preferences.py:143
-#: studio/preferences.py:144 studio/preferences.py:146
-msgid "Undo depth"
-msgstr "撤消深度"
-
-#: studio/preferences.py:160 studio/preferences.py:153
-#: studio/preferences.py:154 studio/preferences.py:156
-msgid "Start up"
-msgstr "启动"
-
-#: studio/preferences.py:162 studio/preferences.py:155
-#: studio/preferences.py:156 studio/preferences.py:163
-msgid "At startup"
-msgstr "启动时"
-
-#: studio/preferences.py:175 studio/preferences.py:168
-#: studio/preferences.py:169 studio/feature/design.py:116
-#: studio/feature/design.py:117 studio/preferences.py:184
-msgid "Designer"
-msgstr "设计器"
-
-#: studio/preferences.py:176 studio/preferences.py:169
-#: studio/preferences.py:170 studio/preferences.py:185
-msgid "Design pad"
-msgstr "设计面板"
-
-#: studio/preferences.py:178 studio/preferences.py:171
-#: studio/preferences.py:172 studio/preferences.py:187
-msgid "Drag rate throttling"
-msgstr "拖放速度"
-
-#: studio/preferences.py:188 studio/preferences.py:181
-#: studio/preferences.py:182 studio/preferences.py:197
-msgid "Naming options"
-msgstr "命名选项"
-
-#: studio/preferences.py:190 studio/preferences.py:183
-#: studio/preferences.py:184 studio/preferences.py:199
-msgid "Naming case"
-msgstr "命名案例"
-
-#: studio/preferences.py:202 studio/preferences.py:195
-#: studio/preferences.py:196 studio/preferences.py:211
-msgid "Use underscore separator"
-msgstr "使用下划线分隔符"
-
-#: studio/preferences.py:207 studio/preferences.py:200
-#: studio/preferences.py:201 studio/preferences.py:216
-msgid "Start numbering from"
-msgstr "开始编号"
-
-#: studio/preferences.py:217 studio/preferences.py:210
-#: studio/preferences.py:211 studio/preferences.py:226
-msgid "(Widget names already created will not be affected)"
-msgstr "（已创建的组件名称不会受到影响）"
-
-#: studio/preferences.py:220 studio/preferences.py:213
-#: studio/preferences.py:214 studio/preferences.py:229
-msgid "XML options"
-msgstr "XML 选项"
-
-#: studio/preferences.py:222 studio/preferences.py:215
-#: studio/preferences.py:216 studio/preferences.py:231
-msgid "Pretty print output xml"
-msgstr "美化打印输出 xml"
-
-#: studio/preferences.py:228 studio/preferences.py:221
-#: studio/preferences.py:222 studio/preferences.py:237
-msgid "(Requires lxml)"
-msgstr "（需要lxml ）"
-
-#: studio/preferences.py:231 studio/preferences.py:224
-#: studio/preferences.py:225 studio/preferences.py:240
-msgid "JSON options"
-msgstr "JSON 选项"
-
-#: studio/preferences.py:233 studio/preferences.py:226
-#: studio/preferences.py:227 studio/preferences.py:242
-msgid "Compact output"
-msgstr "压缩输出"
-
-#: studio/preferences.py:238 studio/preferences.py:231
-#: studio/preferences.py:232 studio/preferences.py:247
-msgid "Sort json keys"
-msgstr "json键进行排序"
-
-#: studio/preferences.py:243 studio/preferences.py:236
-#: studio/preferences.py:237 studio/preferences.py:252
-msgid "Stringify json values"
-msgstr "json值字符串化"
-
-#: studio/preferences.py:249 studio/preferences.py:242
-#: studio/preferences.py:243 studio/preferences.py:258
-msgid "Pretty print output json"
-msgstr "美化打印输出json"
-
-#: studio/preferences.py:257 studio/preferences.py:250
-#: studio/preferences.py:251 studio/preferences.py:266
-msgid "For indentation use"
-msgstr "缩进方式"
-
-#: studio/preferences.py:271 studio/preferences.py:264
-#: studio/preferences.py:265 studio/preferences.py:280
-msgid "number of indent spaces"
-msgstr "缩进空格数"
-
-#: studio/preferences.py:283 studio/preferences.py:276
-#: studio/preferences.py:277 studio/preferences.py:292
-msgid "Image options"
-msgstr "图像选项"
-
-#: studio/preferences.py:285 studio/preferences.py:278
-#: studio/preferences.py:279 studio/preferences.py:294
-msgid "When selecting image"
-msgstr "选择图像时"
-
-#: studio/preferences.py:290 studio/preferences.py:283
-#: studio/preferences.py:284 studio/preferences.py:299
-msgid "Use relative paths when in same directory as design file"
-msgstr "与设计文件位于同一目录时使用相对路径"
-
-#: studio/preferences.py:291 studio/preferences.py:284
-#: studio/preferences.py:285 studio/preferences.py:300
-msgid "Always use path relative to design file if possible"
-msgstr "如果可能，始终使用相对于设计文件的路径"
-
-#: studio/preferences.py:292 studio/preferences.py:285
-#: studio/preferences.py:286 studio/preferences.py:301
-msgid "Always use absolute paths"
-msgstr "始终使用绝对路径"
-
-#: studio/preferences.py:298 studio/preferences.py:291
-#: studio/preferences.py:292 studio/preferences.py:307
-msgid "(Existing paths will not be affected, Reset the image to take effect)"
-msgstr "（现有路径不受影响，重置镜像即可生效）"
-
-#: studio/preferences.py:301 studio/preferences.py:294
-#: studio/preferences.py:295 studio/preferences.py:310
-msgid "Style pane options"
-msgstr "样式面板选项"
-
-#: studio/preferences.py:303 studio/preferences.py:296
-#: studio/preferences.py:297 studio/preferences.py:312
-msgid "Use descriptive names for style attributes"
-msgstr "对样式属性使用描述性名称"
-
-#: studio/preferences.py:309 studio/preferences.py:302
-#: studio/preferences.py:303 studio/preferences.py:318
-msgid "Key Map"
-msgstr "快捷键"
-
-#: studio/preferences.py:319 studio/preferences.py:312
-#: studio/preferences.py:313 studio/preferences.py:328
-msgid "Allow shortcut keys"
-msgstr "允许快捷键"
-
-#: studio/preferences.py:326 studio/preferences.py:319
-#: studio/preferences.py:320 studio/preferences.py:335
-msgid "Configure shortcut keys"
-msgstr "配置快捷键"
-
-#: studio/feature/components.py:271 studio/feature/components.py:272
-#: studio/feature/components.py:273 studio/feature/components.py:320
-msgid "Widgets"
-msgstr "组件"
-
-#: studio/feature/components.py:273 studio/feature/components.py:274
-#: studio/feature/components.py:275 studio/feature/components.py:322
-msgid "Custom Widgets"
-msgstr "自定义组件"
-
-#: studio/feature/components.py:280 studio/feature/components.py:281
-#: studio/feature/components.py:282 studio/feature/components.py:329
-msgid "Custom widgets search paths"
-msgstr "自定义组件搜索路径"
-
-#: studio/preferences.py:85 studio/preferences.py:87
-msgid "Dark"
-msgstr "暗黑"
-
-#: studio/preferences.py:86 studio/preferences.py:88
-msgid "Light"
-msgstr "明亮"
-
-#: studio/preferences.py:120 studio/preferences.py:122
-msgid "Only file name"
-msgstr "仅文件名"
-
-#: studio/preferences.py:121 studio/preferences.py:123
-msgid "Full file path"
-msgstr "完整文件路径"
-
-#: studio/preferences.py:161 studio/preferences.py:168
-msgid "Open blank design tab"
-msgstr "打开空白设计选项卡"
-
-#: studio/preferences.py:162 studio/preferences.py:169
-msgid "Restore previous tabs"
-msgstr "恢复以前的选项卡"
-
-#: studio/preferences.py:163 studio/preferences.py:170
-msgid "Do not open any design tab"
-msgstr "不要打开任何设计选项卡"
-
-#: studio/preferences.py:189 studio/preferences.py:204
-msgid "Title case"
-msgstr "标题"
-
-#: studio/preferences.py:190 studio/preferences.py:205
-msgid "Lower case"
-msgstr "小写"
-
-#: studio/preferences.py:191 studio/preferences.py:206
-msgid "Upper case"
-msgstr "大写"
-
-#: studio/preferences.py:256 studio/preferences.py:271
-msgid "Tabs"
-msgstr "制表符"
-
-#: studio/preferences.py:257 studio/preferences.py:272
-msgid "Spaces"
-msgstr "空格"
-
-#: studio/feature/component_tree.py:62
-msgid "Component Tree"
-msgstr "组件树"
-
-#: studio/feature/components.py:220 studio/feature/components.py:221
-#: studio/feature/components.py:260
-msgid "Components"
-msgstr "组件"
-
-#: studio/feature/eventspane.py:147
-msgid "Event pane"
-msgstr "事件面板"
-
-#: studio/feature/eventspane.py:161 studio/feature/eventspane.py:162
-msgid "Sequence"
-msgstr "顺序"
-
-#: studio/feature/eventspane.py:161 studio/feature/eventspane.py:162
-msgid "Handler"
-msgstr "处理程序"
-
-#: studio/feature/stylepane.py:816
-msgid "Style pane"
-msgstr "样式面板"
-
-#: studio/feature/variablepane.py:21
-msgid "Variables"
-msgstr "变量"
-
-#: studio/lib/pseudo.py:34
-msgid "Widget"
-msgstr "组件"
-
-#: studio/lib/pseudo.py:35
-msgid "Input"
-msgstr "输入"
-
-#: studio/lib/pseudo.py:36
-msgid "Container"
-msgstr "容器"
-
-#: studio/lib/pseudo.py:38
-msgid "Custom"
-msgstr "风俗"
-
-#: studio/tools/canvas.py:784
-msgid "Canvas"
-msgstr "帆布"
-
-#: studio/debugtools/element_pane.py:97 studio/debugtools/element_pane.py:91
-msgid "Widget tree"
-msgstr "组件树"
-
-#: studio/lib/legacy.py:169 studio/lib/menu.py:209
-msgid "Preview"
-msgstr "预览"
-
-#: studio/preferences.py:158
-msgid "Automatically check for updates"
-msgstr "自动检查更新"
-
-#: studio/preferences.py:175
-msgid "Third party features"
-msgstr "第三方功能"
-
-#: studio/preferences.py:177
-msgid "Load third party features"
-msgstr "加载第三方功能"
-
-#: studio/tools/menu.py:88
-msgid "Menu Item"
-msgstr "菜单项"
-
-#: studio/tools/menu.py:91
-msgid "Select menu item to see styles"
-msgstr "选择菜单项查看样式"
-
-#: studio/tools/menu.py:173
-msgid "Cascade Menu Attributes"
-msgstr "级联菜单属性"
-
-#: studio/tools/menu.py:207
-msgid "Menu"
-msgstr "菜单"
+#: studio/updates.py:36 studio/updates.py:58 studio/updates.py:150
+msgid "Retry"
+msgstr "重试"
+
+#: studio/updates.py:65
+#, python-brace-format
+msgid "New version formation-studio {version} found. Do you want to install?"
+msgstr "找到新版本的formation-studio {version}。您要安装吗？"
+
+#: studio/updates.py:67
+msgid "Install"
+msgstr "安装"
+
+#: studio/updates.py:78
+#, python-brace-format
+msgid "Updating to formation-studio {version}"
+msgstr "更新到formation-studio {version}"
+
+#: studio/updates.py:84
+msgid "Formation updater"
+msgstr "Formation 更新器"
+
+#: studio/updates.py:107
+msgid "Checking for updates ..."
+msgstr "查询更新 ..."
+
+#: studio/updates.py:113
+msgid "You are using the latest version"
+msgstr "您正在使用最新版本"
+
+#: studio/updates.py:118
+msgid "Failed to connect. Check your internet connection and try again."
+msgstr "连接失败。检查您的互联网连接，然后重试。"
+
+#: studio/updates.py:133
+#, python-brace-format
+msgid ""
+"Something went wrong. Failed to upgrade formation-studio to version "
+"{version} Exited with code: {code}"
+msgstr ""
+"出了些问题。无法将 Formation-studio 升级到版本 {version} 已退出，代码为："
+"{code}"
+
+#: studio/updates.py:144
+msgid "Upgrade successful. Restart to complete installation"
+msgstr "升级成功。重新启动以完成安装"
+
+#~ msgid "No python file supplied"
+#~ msgstr "没有提供 python 文件"

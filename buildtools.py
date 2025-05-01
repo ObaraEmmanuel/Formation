@@ -48,6 +48,12 @@ def extract_locale_po(pot_path, locale_dir, source_dir, appname):
 
 
 def extract_locales():
+    logging.info("Cleaning up old locale hoverset_po")
+    if HOVERSET_PO.exists():
+        os.remove(HOVERSET_PO)
+    if STUDIO_PO.exists():
+        os.remove(STUDIO_PO)
+
     logging.info("Extracting hoverset locales")
     extract_locale_po(
         HOVERSET_PO,
