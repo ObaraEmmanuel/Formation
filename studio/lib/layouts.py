@@ -440,7 +440,8 @@ class PackLayoutStrategy(BaseLayoutStrategy):
     def _pack_at_bounds(self, widget, bounds, **kwargs):
         index, side = self._location_analysis(bounds)
         kwargs.update({"side": side})
-        widget.pack(in_=self.container.body, **kwargs)
+        widget.pack(in_=self.container.body)
+        self.config_widget(widget, kwargs)
         orig_index = self.children.index(widget) if widget in self.children else -1
         if orig_index >= 0:
             self.children.remove(widget)
