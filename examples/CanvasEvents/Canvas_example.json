@@ -1,0 +1,113 @@
+{
+    "attrib": {
+        "attr": {
+            "layout": "place"
+        }, 
+        "layout": {
+            "height": 956, 
+            "width": 1504, 
+            "x": 30, 
+            "y": 30
+        }, 
+        "name": "tk_1"
+    }, 
+    "children": [
+        {
+            "attrib": {
+                "name": "title"
+            }, 
+            "children": [
+                {
+                    "attrib": {
+                        "value": "title"
+                    }, 
+                    "type": "arg"
+                }
+            ], 
+            "type": "meth"
+        }, 
+        {
+            "attrib": {
+                "name": "geometry"
+            }, 
+            "children": [
+                {
+                    "attrib": {
+                        "value": "1504x915+0+0"
+                    }, 
+                    "type": "arg"
+                }
+            ], 
+            "type": "meth"
+        }, 
+        {
+            "attrib": {
+                "major": "8", 
+                "minor": "16", 
+                "name": "version"
+            }, 
+            "type": "meta"
+        }, 
+        {
+            "attrib": {
+                "attr": {
+                    "command": "comm_start", 
+                    "text": "Start Simulation"
+                }, 
+                "layout": {
+                    "bordermode": "outside", 
+                    "height": "58", 
+                    "width": "190", 
+                    "x": 30, 
+                    "y": 20
+                }, 
+                "name": "button_1"
+            }, 
+            "type": "tkinter.ttk.Button"
+        }, 
+        {
+            "attrib": {
+                "attr": {
+                    "command": "comm_stop", 
+                    "text": "Stop Simulation"
+                }, 
+                "layout": {
+                    "bordermode": "outside", 
+                    "height": "53", 
+                    "width": "208", 
+                    "x": 251, 
+                    "y": 22
+                }, 
+                "name": "button_2"
+            }, 
+            "type": "tkinter.ttk.Button"
+        }, 
+        {
+            "attrib": {
+                "attr": {
+                    "background": "#ffffff"
+                }, 
+                "layout": {
+                    "bordermode": "outside", 
+                    "height": "800", 
+                    "width": "1400", 
+                    "x": 51, 
+                    "y": 89
+                }, 
+                "name": "Canvas1"
+            }, 
+            "children": [
+                {
+                    "attrib": {
+                        "add": "False", 
+                        "handler": "paint", 
+                        "sequence": "<B1-Motion>"
+                    }, 
+                    "type": "event"
+                }
+            ], 
+            "type": "tkinter.Canvas"
+        }
+    ], 
+    "type": "tkinter.Tk"
+}
