@@ -147,11 +147,13 @@ named ``Canvass_example.py``.
 To load our design file we will need to import formation loaders and load ``Canvas_example.json`` as shown below.
 We will use :py:class:`~formation.loader.AppBuilder` which will create a toplevel window for us.
 We also need to use the :py:class:`Threading` module, to control the animation that will be created
+We also need the :py:class:'sleep' from the time-module.
 
 
 .. code-block:: python
 
     from formation import AppBuilder
+    from time import sleep
     import Threading
 
     app = AppBuilder(path="Canvas_example.json")
@@ -284,10 +286,10 @@ The updated, total function looks like this:
                     listofdots2.append([ID,speed]) 
             app.listofdots=listofdots2  
             if len(app.listofdots)>100:   
-                waittime=int(max(10,100-(len(app.listofdots)/2)))  
-                app._root.after(waittime)  
+                waittime=int(max(10,100-(len(app.listofdots)/2/1000)))  
+                time.sleep(waittime)  
             else:
-                app._root.after(50) 
+                time.sleep(0.050) 
         app._root.update()
         return
 

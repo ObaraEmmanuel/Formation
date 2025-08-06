@@ -5,6 +5,7 @@
 
 
 from formation import AppBuilder
+from time import sleep
 import threading
 
 def comm_start():
@@ -28,10 +29,10 @@ def dotsfall():
                 listofdots2.append([ID,speed])  ## add the ID and the new speed to the 2nd list-of-dots
         app.listofdots=listofdots2  ### after the for-loop: copy the 2nd list into the first
         if len(app.listofdots)>100:   ## this determines the update speed of the canvas after 1 for-loop
-            waittime=int(max(10,100-(len(app.listofdots)/2)))  ### in case there are a lot of dots, update time is somewhere between 10 and 50
-            app._root.after(waittime)  ## wait shorter if there are lost of dots
+            waittime=int(max(10,100-(len(app.listofdots)/2/1000)))  ### in case there are a lot of dots, update time is somewhere between 10 and 50 ms
+            sleep(waittime)  ## wait shorter if there are lost of dots
         else:
-            app._root.after(50)  ### wait 50 ms so that movement is time limited
+            sleep(0.05)  ### wait 50 ms so that movement is time limited
     # Ensure final update of canvas if needed
     app._root.update()
     return
