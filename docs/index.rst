@@ -24,6 +24,7 @@ Formation studio
    :caption: Examples:
 
    examples/calculator
+   examples/CanvasEvents
 
 .. toctree::
    :maxdepth: 1
