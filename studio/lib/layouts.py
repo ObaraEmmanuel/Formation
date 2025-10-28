@@ -429,7 +429,7 @@ class PackLayoutStrategy(BaseLayoutStrategy):
     def add_widget(self, widget, bounds=None, **kwargs):
         super().remove_widget(widget)
         super().add_widget(widget, bounds, **kwargs)
-        if bounds or not self.children:
+        if bounds:
             self._pack_at_bounds(widget, bounds, **kwargs)
         else:
             widget.pack(in_=self.container.body)
