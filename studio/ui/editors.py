@@ -829,6 +829,49 @@ class Compose(Editor):
         return [e.get() for e in self.editors.values()]
 
 
+class Padding(Compose):
+    def __init__(self, master, style_def=None):
+        self.sides = style_def.get("sides", [])
+        # Generate composition
+        style_def["compose"] = [
+            {
+                "display_name": side,
+                "type": "dimension",
+                "name": side,
+                "as_dict": False,
+            } for side in self.sides
+        ]
+        super().__init__(master, style_def)
+
+    def set(self, value):
+        self.val = value
+        value = str(value).split() if not isinstance(value, (tuple, list, set)) else list(value)
+        diff = len(self.editors) - len(value)
+        if diff > 0:
+            # pad with empty strings
+            value.extend(['' for _ in range(diff)])
+
+        for i, key in enumerate(self.sides):
+            self.editors[key].set(value[i])
+
+    def get(self):
+        vals = [self.editors[k].get() for k in self.sides]
+
+        if vals.count(vals[0]) == len(vals):
+            # condense to one overall values if all components have the same value
+            return vals[0]
+
+        # we need to fill the higher missing values with 0
+        value_found = False
+        for i, val in enumerate(reversed(vals)):
+            if val != '':
+                value_found = True
+            if value_found and val == '':
+                vals[len(vals) - i - 1] = '0'
+
+        return ' '.join(vals).rstrip()
+
+
 class StyleItem(Frame):
 
     def __init__(self, parent, style_definition, on_change=None):

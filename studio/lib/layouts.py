@@ -25,13 +25,15 @@ COMMON_DEFINITION = {
     },
     "padx": {
         "display_name": "padding x",
-        "type": "dimension",
-        "name": "padx"
+        "type": "padding",
+        "name": "padx",
+        "sides": ["left | all", "right"]
     },
     "pady": {
         "display_name": "padding y",
-        "type": "dimension",
-        "name": "pady"
+        "type": "padding",
+        "name": "pady",
+        "sides": ["top | all", "bottom"]
     },
 }
 
@@ -192,6 +194,11 @@ class BaseLayoutStrategy:
             former_strategy.clear_all()
         for child, bounds in bounding_map:
             self.add_widget(child, bounds)
+
+    def clean_value(self, value):
+        if isinstance(value, (list, tuple, set)):
+            return ' '.join(map(str, value))
+        return value
 
     def react_to_pos(self, bounds):
         pass
@@ -584,6 +591,9 @@ class PackLayoutStrategy(BaseLayoutStrategy):
         for prop in ("width", "height"):
             if prop in keys:
                 info.update({prop: widget[prop]})
+        for prop in ("padx", "pady"):
+            if prop in info:
+                info.update({prop: self.clean_value(info[prop])})
         return info
 
     def copy_layout(self, widget, from_):
@@ -933,6 +943,9 @@ class GridLayoutStrategy(BaseLayoutStrategy):
         for prop in ("width", "height"):
             if prop in keys:
                 info.update({prop: widget[prop]})
+        for prop in ("padx", "pady"):
+            if prop in info:
+                info.update({prop: self.clean_value(info[prop])})
         return info
 
     def get_def(self, widget):
@@ -971,7 +984,6 @@ class GridLayoutStrategy(BaseLayoutStrategy):
 
 
 class TabLayoutStrategy(BaseLayoutStrategy):
-    # TODO Extend support for side specific padding
     DEFINITION = {
         "text": {
             "display_name": "tab text",
@@ -1007,8 +1019,14 @@ class TabLayoutStrategy(BaseLayoutStrategy):
         },
         "padding": {
             "display_name": "padding",
-            "type": "dimension",
+            "type": "padding",
             "name": "padding",
+            "sides": [
+                "left | horizontal | all",
+                "top | vertical",
+                "right",
+                "bottom"
+            ],
             "default": 0,
         },
         "state": {
@@ -1089,8 +1107,8 @@ class TabLayoutStrategy(BaseLayoutStrategy):
     def info(self, widget):
         info = self.container.body.tab(widget) or {}
         if "padding" in info:
-            # use the first padding value until we can support full padding
-            info["padding"] = info["padding"][0]
+            # convert to string
+            info["padding"] = self.clean_value(info["padding"])
         info["compound"] = info.get("compound", "") or "none"
         return info
 
@@ -1120,8 +1138,16 @@ class TabLayoutStrategy(BaseLayoutStrategy):
 class PanedLayoutStrategy(BaseLayoutStrategy):
     DEFINITION = {
         **BaseLayoutStrategy.DEFINITION,  # width and height definition
-        "padx": COMMON_DEFINITION.get("padx"),
-        "pady": COMMON_DEFINITION.get("pady"),
+        "padx": {
+            "display_name": "padding x",
+            "type": "dimension",
+            "name": "padx",
+        },
+        "pady": {
+            "display_name": "padding y",
+            "type": "dimension",
+            "name": "pady",
+        },
         "sticky": {
             "display_name": "sticky",
             "type": "anchor",
