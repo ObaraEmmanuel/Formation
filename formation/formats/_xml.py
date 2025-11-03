@@ -40,6 +40,11 @@ class XMLFormat(BaseFormat):
     extensions = ("xml", )
     name = "XML"
 
+    def _clean_value(self, value):
+        if isinstance(value, (list, tuple, set)):
+            return " ".join(map(str, value))
+        return str(value)
+
     def _load_node(self, parent, x_node: element_class):
         grouped = defaultdict(dict)
         # add required fields
@@ -70,11 +75,9 @@ class XMLFormat(BaseFormat):
                 ns = node.attrib[key]
                 for attrib in ns:
                     attr = "{{{}}}{}".format(namespaces.get(key), attrib)
-                    x_node.attrib[attr] = str(ns[attrib])
-            elif isinstance(node.attrib[key], (list, tuple, set)):
-                x_node.attrib[key] = " ".join(map(str, node.attrib[key]))
+                    x_node.attrib[attr] = self._clean_value(ns[attrib])
             else:
-                x_node.attrib[key] = str(node.attrib[key])
+                x_node.attrib[key] = self._clean_value(node.attrib[key])
 
         for sub_node in node:
             self._generate_node(x_node, sub_node)
