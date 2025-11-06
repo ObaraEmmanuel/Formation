@@ -768,6 +768,7 @@ class Compose(Editor):
         super().__init__(master, style_def)
         items = style_def.get("compose", [])
         self.as_dict = style_def.get("as_dict", True)
+        self.fill_value = style_def.get("fill_value", '')
         row = 0
         self.pref = get_active_pref(self)
         height = 25 * len(items)
@@ -808,7 +809,9 @@ class Compose(Editor):
             self._on_change(self.get())
 
     def set(self, value):
-        if not value:
+        if value == '' or value is None:
+            for editor in self.editors.values():
+                editor.set('')
             return
         if self.as_dict:
             for k, v in value.items():
@@ -816,7 +819,7 @@ class Compose(Editor):
                     self.editors[k].set(v)
         else:
             if isinstance(value, str):
-                value = value.split(' ')
+                value = value.split()
             if not value:
                 value = [''] * len(self.editors)
 

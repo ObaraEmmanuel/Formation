@@ -115,6 +115,10 @@ PROPERTY_TABLE = {
         "display_name": "background",
         "type": "color",
     },
+    "bigincrement": {
+        "display_name": "big increment",
+        "type": "number",
+    },
     "bitmap": {
         "display_name": "bitmap",
         "type": "bitmap",
@@ -127,6 +131,10 @@ PROPERTY_TABLE = {
         "display_name": "relief width",
         "type": "dimension",
     },
+    "buttonbackground": {
+        "display_name": "button background",
+        "type": "color",
+    },
     "buttoncursor": {
         "display_name": "button cursor",
         "type": "cursor",
@@ -138,6 +146,14 @@ PROPERTY_TABLE = {
     "buttonuprelief": {
         "display_name": "up button relief",
         "type": "relief",
+    },
+    "closeenough": {
+        "display_name": "close enough",
+        "type": "float",
+    },
+    "columns": {
+        "display_name": "columns",
+        "type": "text",
     },
     "command": {
         "display_name": "command",
@@ -156,6 +172,15 @@ PROPERTY_TABLE = {
         "display_name": "cursor",
         "type": "cursor",
     },
+    "default": {
+        "display_name": "default state",
+        "type": "choice",
+        "options": ("normal", "active", "disabled")
+    },
+    "digits": {
+        "display_name": "digits",
+        "type": "number",
+    },
     "direction": {
         "display_name": "direction",
         "type": "choice",
@@ -168,6 +193,18 @@ PROPERTY_TABLE = {
     "disabledforeground": {
         "display_name": "disabled foreground",
         "type": "color",
+    },
+    "displaycolumns": {
+        "display_name": "display columns",
+        "type": "text",
+    },
+    "elementborderwidth": {
+        "display_name": "element border width",
+        "type": "dimension",
+    },
+    "endline": {
+        "display_name": "endline",
+        "type": "number",
     },
     "exportselection": {
         "display_name": "export selection",
@@ -301,6 +338,10 @@ PROPERTY_TABLE = {
         "display_name": "off relief",
         "type": "relief",
     },
+    "offset": {
+        "display_name": "offset",
+        "type": "text",
+    },
     "offvalue": {
         "display_name": "off value",
         "type": "text",
@@ -321,6 +362,16 @@ PROPERTY_TABLE = {
     "overrelief": {
         "display_name": "over relief",
         "type": "relief",
+    },
+    "padding": {
+        "display_name": "padding",
+        "type": "padding",
+        "sides": [
+            "left | horizontal | all",
+            "top | vertical",
+            "right",
+            "bottom"
+        ],
     },
     "padx": {
         "display_name": "horizontal padding",
@@ -368,6 +419,10 @@ PROPERTY_TABLE = {
         "display_name": "resolution",
         "type": "float",
     },
+    "sashcursor": {
+        "display_name": "sash cursor",
+        "type": "cursor",
+    },
     "sashpad": {
         "display_name": "sash padding",
         "type": "dimension",
@@ -380,6 +435,35 @@ PROPERTY_TABLE = {
         "display_name": "sash width",
         "type": "dimension",
     },
+    "scrollregion": {
+        "display_name": "scroll region",
+        "type": "compose",
+        "as_dict": False,
+        "fill_value": '0',
+        "compose": [
+            {
+                "display_name": "left",
+                "name": "left",
+                "type": "dimension",
+            },
+            {
+                "display_name": "top",
+                "name": "top",
+                "type": "dimension",
+            },
+            {
+                "display_name": "right",
+                "name": "right",
+                "type": "dimension",
+            },
+            {
+                "display_name": "bottom",
+                "name": "bottom",
+                "type": "dimension",
+            }
+
+        ]
+    },
     "selectbackground": {
         "display_name": "select background",
         "type": "color",
@@ -387,6 +471,10 @@ PROPERTY_TABLE = {
     "selectborderwidth": {
         "display_name": "select border width",
         "type": "dimension",
+    },
+    "selectcolor": {
+        "display_name": "select color",
+        "type": "color",
     },
     "selectforeground": {
         "display_name": "select foreground",
@@ -437,6 +525,10 @@ PROPERTY_TABLE = {
         "display_name": "bottom spacing",
         "type": "dimension",
     },
+    "startline": {
+        "display_name": "startline",
+        "type": "number",
+    },
     "state": {
         "display_name": "state",
         "type": "choice",
@@ -444,6 +536,10 @@ PROPERTY_TABLE = {
     },
     "style": {
         "display_name": "style",
+        "type": "text",
+    },
+    "tabs": {
+        "display_name": "tabs",
         "type": "text",
     },
     "tabstyle": {
@@ -496,6 +592,11 @@ PROPERTY_TABLE = {
         "display_name": "trough color",
         "type": "color",
     },
+    "type": {
+        "display_name": "type",
+        "type": "choice",
+        "options": ("menubar", "tearoff", "normal")
+    },
     "underline": {
         "display_name": "underline",
         "type": "number",
@@ -537,6 +638,10 @@ PROPERTY_TABLE = {
         "type": "choice",
         "options": ("determinate", "indeterminate")
     },
+    "values": {
+        "display_name": "values",
+        "type": "text",
+    },
     "xscrollcommand": {
         "display_name": "xscrollcommand",
         "type": "command",
@@ -564,36 +669,12 @@ _unimplemented = {
         "display_name": "container",
         "type": "boolean",
     },
-    "_endline": {
-        "display_name": "endline",
-        "type": "color",
-    },
     "_labelwidget": {
         "display_name": "label widget",
         "type": "color",
     },
-    "_offset": {
-        "display_name": "offset",
-        "type": "color",
-    },
-    "_startline": {
-        "display_name": "startline",
-        "type": "color",
-    },
-    "_tabs": {
-        "display_name": "tabs",
-        "type": "color",
-    },
     "_use": {
         "display_name": "use",
-        "type": "color",
-    },
-    "_type": {
-        "display_name": "type",
-        "type": "color",
-    },
-    "_values": {
-        "display_name": "values",
         "type": "color",
     },
     "_visual": {

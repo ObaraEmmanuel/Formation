@@ -14,6 +14,7 @@ class Button(PseudoWidget, ttk.Button):
     group = Groups.widget
     icon = "button"
     impl = ttk.Button
+    clean_fields = {'padding'}
 
     DEF_OVERRIDES = _dimension_override
 
@@ -31,6 +32,7 @@ class Checkbutton(PseudoWidget, ttk.Checkbutton):
     group = Groups.widget
     icon = "checkbox"
     impl = ttk.Checkbutton
+    clean_fields = {'padding'}
 
     DEF_OVERRIDES = {
         "width": {
@@ -81,6 +83,7 @@ class Entry(PseudoWidget, ttk.Entry):
     icon = "entry"
     impl = ttk.Entry
     allow_direct_move = False
+    clean_fields = {'padding'}
 
     DEF_OVERRIDES = _dimension_override
 
@@ -98,6 +101,7 @@ class Frame(Container, ttk.Frame):
     group = Groups.container
     icon = "frame"
     impl = ttk.Frame
+    clean_fields = {'padding'}
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -110,6 +114,7 @@ class Label(PseudoWidget, ttk.Label):
     group = Groups.widget
     icon = "label"
     impl = ttk.Label
+    clean_fields = {'padding'}
 
     DEF_OVERRIDES = {
         "width": {
@@ -134,6 +139,7 @@ class Labelframe(Container, ttk.Labelframe):
     group = Groups.container
     icon = "labelframe"
     impl = ttk.Labelframe
+    clean_fields = {'padding'}
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -151,6 +157,7 @@ class LabeledScale(PseudoWidget, ttk.LabeledScale):
     impl = ttk.LabeledScale
     initial_dimensions = 150, 40
     allow_direct_move = False
+    clean_fields = {'padding'}
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -165,6 +172,7 @@ class Menubutton(PseudoWidget, ttk.Menubutton):
     icon = "menubutton"
     impl = ttk.Menubutton
     allow_direct_move = False
+    clean_fields = {'padding'}
 
     DEF_OVERRIDES = _dimension_override
 
@@ -182,6 +190,7 @@ class Notebook(TabContainer, ttk.Notebook):
     group = Groups.container
     icon = "tabs"
     impl = ttk.Notebook
+    clean_fields = {'padding'}
 
     def __init__(self, master, id_):
         super().__init__(master)
@@ -265,6 +274,7 @@ class Radiobutton(PseudoWidget, ttk.Radiobutton):
     group = Groups.input
     icon = "radiobutton"
     impl = ttk.Radiobutton
+    clean_fields = {'padding'}
 
     DEF_OVERRIDES = {
         "width": {
@@ -361,6 +371,7 @@ class Treeview(PseudoWidget, ttk.Treeview):
     group = Groups.container
     icon = "treeview"
     impl = ttk.Treeview
+    clean_fields = {'padding', 'columns', 'displaycolumns', 'show'}
 
     DEF_OVERRIDES = {
         "show": {

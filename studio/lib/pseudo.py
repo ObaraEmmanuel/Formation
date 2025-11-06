@@ -131,6 +131,7 @@ class PseudoWidget:
     allow_drag_select = False
     allow_resize = False
     non_visual = False
+    clean_fields = set()
     # special handlers (intercepts) for attributes that need additional processing
     # to interface with the studio easily
     _intercepts = {
@@ -369,14 +370,19 @@ class PseudoWidget:
             },
         }
 
+    def clean_value(self, value):
+        if isinstance(value, (list, tuple, set)):
+            return ' '.join(map(str, value))
+        return value
+
     def get_prop(self, prop):
         intercept = self._intercepts.get(prop)
         if intercept:
             return intercept.get(self, prop)
-        prop = self[prop]
-        # if isinstance(prop, (tuple, list)):
-        #     prop = " ".join(map(str, prop))
-        return prop
+        val = self[prop]
+        if prop in self.clean_fields:
+            val = self.clean_value(val)
+        return val
 
     def has_init(self):
         return getattr(self, "_has_init", False)
