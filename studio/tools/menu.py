@@ -41,6 +41,8 @@ class MenuTreeView(NestedTreeView):
             )
             self.editable = True
             self.strict_mode = True
+            if self.item.item_type == tkinter.CASCADE:
+                self._is_terminal = False
 
         def color(self):
             return self.style.colors["secondary2"]
