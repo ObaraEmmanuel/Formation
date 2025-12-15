@@ -2594,8 +2594,6 @@ class Tree(abc.ABC):
             self._name = config.get("name", "unknown")
             self.strip = f = TreeView.Strip(self, **self.style.surface, takefocus=True)
             f.pack(side="top", fill="x")
-            self._spacer = Frame(f, **self.style.surface, width=0)
-            self._spacer.grid(row=0, column=0)
             self.expander = Label(f, **self.style.text, compound=tk.TOP, image=self.BLANK)
             self.expander.grid(row=0, column=1)
             self.expander.bind("<Button-1>", self.toggle)
@@ -2605,8 +2603,7 @@ class Tree(abc.ABC):
             self.name_pad.grid(row=0, column=3)
             f.columnconfigure(3, uniform=1)
             self._init_binding()
-            self.body = Frame(self, **self.style.surface)
-            self.body.pack(side="top", fill="x")
+            self._body = None
             self._visible = True
             self._expanded = False
             self._selected = False
@@ -2639,7 +2636,7 @@ class Tree(abc.ABC):
         @depth.setter
         def depth(self, value):
             self._depth = value
-            self._spacer["width"] = 14 * (value - 1) + 1  # width cannot be set to completely 0 so add 1 just in case
+            self.expander.grid_configure(padx=f"{30 * (value - 1)} 0")
             # Update depth even for the children
             for node in self.nodes:
                 node.depth = self._depth + 1
@@ -2647,6 +2644,19 @@ class Tree(abc.ABC):
         @property
         def name(self):
             return self.name_pad["text"]
+
+        @property
+        def body(self):
+            # lazy loaded body to reduce widget count
+            if not self._body:
+                self._body = Frame(self, **self.style.surface)
+                self._body.pack(side="top", fill="x")
+            return self._body
+
+        @body.setter
+        def body(self, value):
+            # ignore setter for now
+            return
 
         def bind_all(self, sequence=None, func=None, add=None):
             # The strip is pretty much the handle for the Node so better bind events here
@@ -2695,6 +2705,15 @@ class Tree(abc.ABC):
             else:
                 self.select(event)
 
+        def lift_all(self, above_this=None):
+            try:
+                self.lift(above_this)
+            except tk.TclError:
+                pass
+            if self._expanded:
+                for node in self.nodes:
+                    node.lift_all(self.body)
+
         @chain  # This just makes the method returns the object instance to allow method chaining
         def add(self, node):
             if self.is_descendant(node) or node == self:
@@ -2703,7 +2722,7 @@ class Tree(abc.ABC):
             self.nodes.append(node)
             node.parent_node = self
             node.depth = self.depth + 1
-            node.lift(self.body)
+            node.lift_all(self.body)
             if self._expanded:
                 node.pack(in_=self.body, fill="x", side="top", pady=self.PADDING)
             else:
@@ -2738,18 +2757,28 @@ class Tree(abc.ABC):
                 if self.is_descendant(node) or node == self:
                     # You cannot add a node to its descendant/ child or itself
                     continue
+                if node in self.nodes:
+                    old_index = self.nodes.index(node)
+                    index = index if old_index >= index else index - 1
                 node.remove()  # Remove node from whatever parent it belongs to
-                self.nodes.insert(index, node)
-                index += 1
                 node.parent_node = self
                 node.depth = self.depth + 1
-                node.lift(self.body)
-            if self._expanded:
-                self.collapse()
-                self.expand()
-            if len(self.nodes) > 0:
+                if self._expanded:
+                    insert_index = len(self.nodes)
+                    if len(self.nodes):
+                        insert_index = index - 1 if index > 0 else index
+                    insert_index = min(insert_index, len(self.nodes) - 1)
+                    spec = {}
+                    if self.nodes:
+                        spec = {"after": self.nodes[insert_index]} if index > 0 else {
+                            "before": self.nodes[insert_index]}
+                    node.pack(in_=self.body, **spec, fill="x", side="top", pady=self.PADDING)
+                    node.lift_all(self.body)
+                self.nodes.insert(index, node)
+                index += 1
+
+            if len(self.nodes) > 0 and not self._expanded:
                 self._set_expander(self.COLLAPSED_ICON)
-                self.expand()
 
         def add_as_node(self, **options):
             """
@@ -2779,15 +2808,10 @@ class Tree(abc.ABC):
                 self.parent_node.remove(self)
             elif node in self.nodes:
                 # We need a local copy of the expanded flag since calling collapse resets
-                was_expanded = self._expanded
-                # Collapse parent so that layout changes caused by removal of a node can be applied
-                self.collapse()
                 self.nodes.remove(node)
                 node.pack_forget()
-                if was_expanded and len(self.nodes) > 0:
-                    # If the parent was expanded when we began removal we expand it again
-                    self.expand()
                 if not self.nodes:
+                    self.collapse()
                     # remove the expansion icon
                     self._set_expander(self.BLANK)
 
@@ -2796,6 +2820,7 @@ class Tree(abc.ABC):
                 return
             self.pack_propagate(True)
             for node in filter(lambda n: n._visible, self.nodes):
+                node.lift_all(self.body)
                 node.pack(in_=self.body, fill="x", side="top", pady=self.PADDING)
             self._set_expander(self.EXPANDED_ICON)
             self._expanded = True
@@ -2901,6 +2926,15 @@ class Tree(abc.ABC):
         # We prevent anyone from altering the parent_node value
         # The parent node for a tree is always None
         return self._parent_node
+
+    def lift_all(self, above_this=None):
+        body = self.get_body()
+        try:
+            body.lift(above_this)
+        except tk.TclError:
+            pass
+        for node in self.nodes:
+            node.lift_all(body)
 
     def select(self, n, silently=False):
         """
@@ -3016,6 +3050,9 @@ class Tree(abc.ABC):
         if index is None:
             index = len(self.nodes)
         for node in nodes:
+            if node in self.nodes:
+                old_index = self.nodes.index(node)
+                index = index if old_index >= index else index - 1
             node.remove()  # Remove node from whatever parent it belongs to
             self.nodes.insert(index, node)
             index += 1
