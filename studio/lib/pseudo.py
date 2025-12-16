@@ -488,7 +488,7 @@ class PseudoWidget:
             self.add_non_visual_widget(widget)
 
     def remove_widget(self, widget):
-        if widget.non_visual:
+        if widget.non_visual and widget in self._non_visual_children:
             self._non_visual_children.remove(widget)
 
     def get_restore(self, widget):
@@ -665,6 +665,7 @@ class Container(PseudoWidget):
     #  =========================================== Rerouting methods ==================================================
 
     def restore_widget(self, widget, restore_point):
+        super().restore_widget(widget, restore_point)
         if widget.non_visual:
             return
         self.layout_strategy.restore_widget(widget, restore_point)
@@ -698,6 +699,9 @@ class Container(PseudoWidget):
         return self.layout_strategy.get_restore(widget)
 
     def remove_widget(self, widget):
+        super().remove_widget(widget)
+        if widget.non_visual:
+            return
         self.layout_strategy.remove_widget(widget)
 
     def add_new(self, widget, x, y):
