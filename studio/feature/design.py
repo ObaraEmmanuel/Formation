@@ -830,15 +830,14 @@ class Designer(DesignPad, Container):
     def delete(self, widgets, silently=False):
         if not widgets:
             return
+        action = None
         if not silently:
             restore_points = [widget.layout.get_restore(widget) for widget in widgets]
             layouts = [widget.layout for widget in widgets]
-            self.studio.new_action(Action(
+            action = Action(
                 lambda _: self.restore(widgets, restore_points, layouts),
                 lambda _: self.studio.delete(widgets, True)
-            ))
-        else:
-            self.studio.delete(widgets, self)
+            )
 
         for widget in widgets:
             widget.layout.remove_widget(widget)
@@ -852,6 +851,11 @@ class Designer(DesignPad, Container):
             self._uproot_widget(widget)
         if not self.objects:
             self._show_empty(True)
+
+        if not silently:
+            self.studio.new_action(action)
+        else:
+            self.studio.delete(widgets, self)
 
     def _uproot_widget(self, widget):
         # Recursively remove widgets and all its children
