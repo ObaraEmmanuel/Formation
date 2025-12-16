@@ -696,7 +696,8 @@ class PreferenceManager(MessageDialog):
     def render(self, window, **kw):
         w, h = kw.get("size", (700, 500))
         self.minsize(700, 500)
-        pane = PanedWindow(window, **self.style.surface, width=w, height=h)
+        self.geometry(f"{w}x{h}")
+        pane = PanedWindow(window, **self.style.surface)
         self.nav = CompoundList(pane)
         self.nav.config_all(**self.style.bright)
         self.nav.set_item_class(PreferenceManager.NavItem)
