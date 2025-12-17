@@ -34,7 +34,7 @@ from hoverset.ui.widgets import (
 from hoverset.util.execution import Action
 from hoverset.data.i18n import set_locale
 from studio.context import BaseContext
-from studio.feature import FEATURES, StylePane
+from studio.feature import FEATURES, StylePane, ComponentPane
 from studio.feature._base import BaseFeature, FeaturePane
 from studio.feature.design import DesignContext, MultiSaveDialog
 from studio.preferences import Preferences, open_preferences
@@ -989,13 +989,14 @@ class StudioApplication(Application):
         self.close_preview()
         # extract extension from path
         path = self.designer.design_path or ''
-        _, ext = os.path.splitext(path)
+        ext = os.path.splitext(path)[-1]
         ext = ext or '.json'
         path = os.path.join(self.dirs.user_cache_dir, f"temp_design{ext}")
         self.designer.to_tree().write(path)
         self.current_preview = subprocess.Popen([
             sys.executable, "-m", "formation",
-            path, os.path.dirname(self.designer.design_path or '')
+            path, os.path.dirname(self.designer.design_path or ''),
+            *pref.get(ComponentPane._custom_pref_path)
         ])
 
     def close_preview(self):
