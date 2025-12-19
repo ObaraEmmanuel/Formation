@@ -9,7 +9,7 @@ from hoverset.util.execution import import_path
 from studio.preferences import Preferences, templates
 from studio.feature._base import BaseFeature
 from studio.lib import legacy, native
-from studio.lib.pseudo import PseudoWidget, Container, WidgetMeta
+from studio.lib.pseudo import PseudoWidget, Container, WidgetMeta, Groups
 from studio.ui import geometry
 from studio.i18n import _
 
@@ -391,7 +391,7 @@ class ComponentPane(BaseFeature):
 
         if self._custom_group is None:
             self._custom_group = self.register_group(
-                "Custom",
+                Groups.custom.value,
                 widgets,
                 ComponentGroup,
             )
