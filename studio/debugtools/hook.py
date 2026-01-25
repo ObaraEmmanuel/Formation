@@ -1,6 +1,9 @@
 # ======================================================================= #
 # Copyright (C) 2024 Hoverset Group.                                      #
 # ======================================================================= #
+import argparse
+from pathlib import Path
+
 _global_freeze = dict(globals())
 
 import sys
@@ -126,11 +129,12 @@ class DebuggerAPI:
 
 class DebuggerHook:
 
-    def __init__(self, path=None):
+    def __init__(self, path=None, **options):
         pref = Preferences.acquire()
         self.path = path
         self.root = None
         self.roots = []
+        self.options = options
         self.deleted_roots = 0
         self.active_widget = None
         self.enable_hooks = True
@@ -151,9 +155,6 @@ class DebuggerHook:
         self.orig_stdout, self.orig_stderr, self.orig_stdin = (
             sys.stdout, sys.stderr, sys.stdin
         )
-        sys.stdout = self.pipes["stdout"]
-        sys.stderr = self.pipes["stderr"]
-        sys.stdin = self.pipes["stdin"]
         self.debugger_api = DebuggerAPI(self)
         self.shell = code.InteractiveConsole({"debugger": self.debugger_api})
         self._stream_clients = []
@@ -172,6 +173,11 @@ class DebuggerHook:
         self._allow_hover = value
         if not value:
             self._clear_handle()
+
+    def redirect_stdout(self):
+        sys.stdout = self.pipes["stdout"]
+        sys.stderr = self.pipes["stderr"]
+        sys.stdin = self.pipes["stdin"]
 
     def get_handle(self, widget):
         toplevel = widget.winfo_toplevel()
@@ -200,6 +206,9 @@ class DebuggerHook:
             stderr=self.orig_stderr,
             stdin=self.orig_stdin
         )
+        # since we got this far, we can now pipe output to debugger
+        if not self.options.get("no_pipe", False):
+            self.redirect_stdout()
 
     def _bind_root_events(self, root):
         tkinter.Misc.bind_all(root, "<Motion>", self.on_motion)
@@ -672,16 +681,7 @@ class DebuggerHook:
         tkinter.Misc.mainloop = _mainloop
         tkinter.mainloop = _mainloop_func
 
-    def run(self):
-        if self.path is None:
-            if len(sys.argv) > 1:
-                self.path = sys.argv[1]
-                # remove ourselves from sys args
-                # just incase the program reads sys args
-                sys.argv.pop(0)
-            else:
-                logger.error("No python file supplied")
-                return
+    def start(self):
         self.hook()
         self._hook_creation()
         self._hook_menu()
@@ -695,9 +695,51 @@ class DebuggerHook:
         _global_freeze.update({"__name__": "__main__", "__file__": self.path})
         exec(code, _global_freeze)
 
+    @classmethod
+    def run(cls):
+        args = get_cli_parser().parse_args()
+        if not args.file.exists():
+            logger.error(f"Provided script file does not exist: {args.file}")
+            return
+
+        hook = cls(
+            args.file,
+            no_pipe=args.no_pipe
+        )
+        # pass the script args down to the script
+        # while removing ourselves and our args
+        sys.argv = [str(args.file), *args.script_args]
+        hook.start()
+
+
+def get_cli_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Formation debugger"
+    )
+
+    parser.add_argument(
+        "--no-pipe",
+        action="store_true",
+        help="Disable piping behavior"
+    )
+
+    parser.add_argument(
+        "file",
+        type=Path,
+        help="Python script (entry point)"
+    )
+
+    # arguments for the python script
+    parser.add_argument(
+        "script_args",
+        nargs=argparse.REMAINDER,
+        help="Arguments passed to the Python script"
+    )
+    return parser
+
 
 def main():
-    DebuggerHook().run()
+    DebuggerHook.run()
 
 
 if __name__ == "__main__":
