@@ -21,21 +21,25 @@ class VariableItem(Label):
             "name": "String",
             "icon": "text",
             "type": "text",
+            "default": ""
         },
         tk.BooleanVar: {
             "name": "Boolean",
             "icon": "checkbox",
             "type": "boolean",
+            "default": False
         },
         tk.IntVar: {
             "name": "Integer",
             "icon": "entry",
             "type": "number",
+            "default": 0
         },
         tk.DoubleVar: {
             "name": "Double",
             "icon": "ratio",
             "type": "number",
+            "default": 0.0
         }
     }
     supported_types = {".".join([i.__module__, i.__name__]): i for i in _types}
@@ -71,7 +75,12 @@ class VariableItem(Label):
 
     @property
     def value(self):
-        return self.var.get()
+        try:
+            return self.var.get()
+        except (tk.TclError, ValueError, TypeError):
+            default = self.definition["default"]
+            self.var.set(default)
+            return default
 
     @property
     def name(self):
@@ -83,8 +92,11 @@ class VariableItem(Label):
         self._broadcast("set_name", value)
 
     def set(self, value):
-        self.var.set(value)
-        self._broadcast("set", value)
+        try:
+            self.var.set(value)
+            self._broadcast("set", value)
+        except tk.TclError:
+            pass
 
     @property
     def definition(self):
