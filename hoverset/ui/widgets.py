@@ -3407,7 +3407,7 @@ class TabView(Frame):
 
     def _get_overflow(self):
         threshold = self.tab_control.winfo_rootx() + self.tab_control.winfo_width()
-        return [t for t in self._tab_order if t.winfo_rootx() >= threshold]
+        return [t for t in self._tab_order if t.winfo_rootx() + t.winfo_width() >= threshold]
 
     def _get_overflow_menu(self):
         return [
@@ -3427,10 +3427,9 @@ class TabView(Frame):
             self._overflow.place_forget()
 
     def see(self, tab):
-        last_index = max(0, len(self._tab_order) - len(self._get_overflow()) - 2)
-        if last_index >= 0:
+        if tab in self._get_overflow():
             self._tab_order.remove(tab)
-            self._tab_order.insert(last_index, tab)
+            self._tab_order.insert(0, tab)
             self.event_generate("<<TabOrderChanged>>")
             self.render_tabs()
             self.select(tab)
@@ -3452,13 +3451,13 @@ class TabView(Frame):
     def add(self, widget, index=None, autoselect=True, **cnf):
         tab = self.Tab(self, **cnf)
         self._tabs[tab] = widget
-        if len(self._tabs) == 1 and autoselect:
-            self.select(tab)
         index = len(self._tab_order) if index is None else index
         self._tab_order.insert(index, tab)
         self.render_tabs()
         tab.allow_drag = self._malleable
         self.event_generate("<<TabAdded>>")
+        if len(self._tabs) == 1 and autoselect:
+            self.select(tab)
         return tab
 
     def remove(self, tab):

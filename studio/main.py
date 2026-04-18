@@ -738,6 +738,7 @@ class StudioApplication(Application):
                 if isinstance(context, DesignContext) and context.path == path:
                     # path is open, select
                     context.select()
+                    context.see()
                     break
             else:
                 self.create_context(DesignContext, path)
@@ -930,7 +931,7 @@ class StudioApplication(Application):
         # ignore all tab status changes as we restore tabs
         self._ignore_tab_status = True
         first_context = None
-        has_select = False
+        selected_context = None
         for context_dat in self.pref.get("studio::prev_contexts"):
             context = self.create_context(
                 context_dat["class"],
@@ -938,13 +939,19 @@ class StudioApplication(Application):
                 select=context_dat["selected"],
                 **context_dat["kwargs"]
             )
-            has_select = has_select or context_dat["selected"]
+            if context_dat["selected"]:
+                selected_context = context
             first_context = context if first_context is None else first_context
             context.deserialize(context_dat["data"])
-        if not first_context:
+        if first_context is None:
             self._show_empty(_("Open a design file"))
-        elif not has_select:
-            first_context.select()
+        elif selected_context is None:
+            selected_context = first_context
+
+        if selected_context:
+            selected_context.select()
+            selected_context.see()
+
         self._ignore_tab_status = False
 
     def save_tab_status(self):

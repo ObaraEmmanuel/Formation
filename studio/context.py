@@ -1,5 +1,5 @@
 from hoverset.util.execution import Action
-from hoverset.ui.widgets import Frame
+from hoverset.ui.widgets import Frame, TabView
 from hoverset.ui.icons import get_icon_image as icon
 from hoverset.ui.menu import EnableIf
 
@@ -10,7 +10,7 @@ class BaseContext(Frame):
 
     def __init__(self, master, studio, *args, **kwargs):
         super(BaseContext, self).__init__(master)
-        self.tab_view = master
+        self.tab_view: TabView = master
         self.studio = studio
         self.pref = studio.pref
         self._undo_stack = []
@@ -119,6 +119,10 @@ class BaseContext(Frame):
     def select(self):
         if self.tab_handle:
             self.tab_view.select(self.tab_handle)
+
+    def see(self):
+        if self.tab_handle:
+            self.tab_view.see(self.tab_handle)
 
     def serialize(self):
         return {"class": self.__class__, "args": (), "kwargs": {}, "data": {}}
