@@ -255,7 +255,8 @@ def import_path(path):
     path = pathlib.Path(path).resolve()
     spec = importlib.util.spec_from_file_location(path.stem, path)
     module = importlib.util.module_from_spec(spec)
-    if str(path.parent) not in sys.path:
-        sys.path.append(str(path.parent))
+    parent_path = str(path.parent)
+    if parent_path not in sys.path:
+        sys.path.insert(0, parent_path)
     spec.loader.exec_module(module)
     return module
