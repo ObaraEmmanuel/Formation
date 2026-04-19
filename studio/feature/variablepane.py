@@ -11,6 +11,7 @@ import tkinter as tk
 import studio.ui.editors as editors
 from hoverset.ui.icons import get_icon_image
 from hoverset.ui.widgets import ScrolledFrame, Button, MenuButton, Frame, Label
+from hoverset.util.execution import Action
 from studio.feature._base import BaseFeature
 from studio.lib.variables import VariableItem, VariableManager
 from studio.i18n import _
@@ -154,10 +155,10 @@ class VariablePane(BaseFeature):
             self._overlay.place_forget()
 
     def menu_add_var(self, var_type, **kw):
-        item = self.add_var(var_type, **kw)
+        item = self.add_var(var_type, silent=False, **kw)
         self.select(item)
 
-    def add_var(self, var_type, **kw):
+    def add_var(self, var_type, silent=True, **kw):
         var = var_type(self.studio)
         item_count = len(list(filter(lambda x: x.var_type == var_type, self.variables))) + 1
         name = kw.get('name', f"{var_type.__name__}_{item_count}")
@@ -167,27 +168,42 @@ class VariablePane(BaseFeature):
         if value is not None:
             item.set(value)
 
-        self._show(item)
+        self.restore_var(item)
+        if not silent:
+            self.studio.new_action(Action(
+                lambda _: self.delete_var(item),
+                lambda _: self.restore_var(item),
+            ))
+        return item
+
+    def delete_var(self, var, silently=True):
+        self._hide(var)
+        VariableManager.remove(var)
+        if self._selected == var:
+            if self.variables:
+                self.select(self.variables[0])
+            else:
+                self._selected = None
+                self._show_overlay(True)
+        if not silently:
+            self.studio.new_action(Action(
+                lambda _: self.restore_var(var),
+                lambda _: self.delete_var(var),
+            ))
+
+    def restore_var(self, var):
+        self._show(var)
         self._show_overlay(False)
         if self._search_query is not None:
             # reapply search if any
             self.on_search_query(self._search_query)
         elif not self.variables:
-            self.select(item)
-        VariableManager.add(item)
-        return item
-
-    def delete_var(self, var):
-        self._hide(var)
-        VariableManager.remove(var)
+            self.select(var)
+        VariableManager.add(var)
 
     def _delete(self, *_):
         if self._selected:
-            self.delete_var(self._selected)
-        if self.variables:
-            self.select(self.variables[0])
-        else:
-            self._show_overlay(True)
+            self.delete_var(self._selected, silently=False)
 
     def clear_variables(self):
         # the list is likely to change during iteration, create local copy
