@@ -3,13 +3,12 @@
 # ======================================================================= #
 
 import tkinter as tk
-from tkinter import ttk
+from copy import deepcopy
 
+from formation.meth import Meth
 from hoverset.data.images import get_tk_image
 from studio.lib.pseudo import Groups, Container, _ImageIntercept
 from studio.ui.geometry import parse_geometry
-
-from formation.meth import Meth
 
 WINDOW_DEF = {
     # geometry
@@ -230,7 +229,7 @@ class _Toplevel(tk.Frame):
         self.setup_widget()
 
     def _get_props(self):
-        props = dict(WINDOW_DEF)
+        props = deepcopy(WINDOW_DEF)
 
         for key, val in props.items():
             val["func"] = getattr(self, val["handler"])
