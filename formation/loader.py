@@ -313,7 +313,8 @@ class Builder:
         self._load_variables(root_node, self)
         node = self._load_widgets(root_node, self, self._parent)
         theme = self._meta.get("theme")
-        if theme:
+        # Only load theme if the node is the root i.e. no parent.
+        if theme and self._parent is None:
             theme, sub_theme = theme.get("theme"), theme.get("sub_theme")
             theme = get_theme(theme)
             if theme:

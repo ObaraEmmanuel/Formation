@@ -13,7 +13,7 @@ You can access the themes using the ``Theme`` dropdown in the toolbar.
 
 .. note::
 
-    The applied theme will only affect ttk widgets.
+    The theme will be applied only if the design file is loaded as the root node.
 
 The dropdown will display available themes for the operating system in use.
 The following third party themes are also supported:
