@@ -263,6 +263,7 @@ class Builder:
 
     def __init__(self, parent, **kwargs):
         self._parent = parent
+        self._has_parent = parent is not None
         self._image_cache = (
             []
         )  # Cache for images to shield them from garbage collection
@@ -313,8 +314,8 @@ class Builder:
         self._load_variables(root_node, self)
         node = self._load_widgets(root_node, self, self._parent)
         theme = self._meta.get("theme")
-        # Only load theme if the node is the root i.e. no parent.
-        if theme and self._parent is None:
+        # Only load theme if the node is the root i.e. no parent provided during init.
+        if theme and not self._has_parent:
             theme, sub_theme = theme.get("theme"), theme.get("sub_theme")
             theme = get_theme(theme)
             if theme:

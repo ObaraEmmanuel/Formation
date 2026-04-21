@@ -1,6 +1,6 @@
 import unittest
 
-from formation import AppBuilder
+from formation import AppBuilder, Builder
 from formation.formats import XMLFormat
 from formation.tests.support import tk_supported, ttk_supported, tk, ttk, get_resource
 
@@ -124,9 +124,15 @@ class WidgetCreationTestCase(unittest.TestCase):
         self.assertEqual(str(self.builder.Panedwindow_1["orient"]), tk.HORIZONTAL)
         self.assertEqual(str(self.builder.Panedwindow_2["orient"]), tk.VERTICAL)
 
-    def test_ttk_theme_loading(self):
+    def test_ttk_theme_loading_no_parent(self):
         s = ttk.Style()
         self.assertEqual(s.theme_use(), "alt")
+
+    def test_ttk_theme_loading_with_parent(self):
+        s = ttk.Style()
+        s.theme_use("default")
+        Builder(self.builder._app, path=get_resource("all_native.xml"))
+        self.assertEqual(s.theme_use(), "default")
 
     def test_creation(self):
         for widget_class in ttk_supported:
