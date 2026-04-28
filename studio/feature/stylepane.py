@@ -101,11 +101,16 @@ class StyleGroup(CollapseFrame):
     """
     handles_layout = False
     self_positioned = False
+    defaults = {
+        "collapsed": False,
+    }
 
     def __init__(self, master, pane, **cnf):
         super().__init__(master)
         self.pane_row = 0
         self.style_pane = pane
+        self._pref_path = f"groups::{self.__class__.__name__}"
+        self.style_pane.update_defaults(self._pref_path, self.defaults)
         self.configure(**{**self.style.surface, **cnf})
         self._empty_message = _("Select an item to see styles")
         self._empty = Frame(self.body, **self.style.surface)
@@ -114,6 +119,8 @@ class StyleGroup(CollapseFrame):
         self._prev_widget = None
         self._has_initialized = False  # Flag to mark whether Style Items have been created
         self.items = {}
+        if self.get_pref("collapsed") and not self.self_positioned:
+            self.collapse()
 
     @property
     def widgets(self):
@@ -261,6 +268,22 @@ class StyleGroup(CollapseFrame):
         # Calling search query with empty query ensures all items are displayed
         self.clear_children()
         self.on_search_query("")
+
+    def set_pref(self, short_path, value):
+        self.style_pane.set_pref(f"{self._pref_path}::{short_path}", value)
+
+    def get_pref(self, short_path):
+        return self.style_pane.get_pref(f"{self._pref_path}::{short_path}")
+
+    def collapse(self, *_):
+        if not self._collapsed:
+            super().collapse()
+            self.set_pref("collapsed", True)
+
+    def expand(self, *_):
+        if self._collapsed:
+            super().expand()
+            self.set_pref("collapsed", False)
 
 
 class IdentityGroup(StyleGroup):
@@ -818,14 +841,17 @@ class StylePane(StylePaneFramework, BaseFeature):
     _defaults = {
         **BaseFeature._defaults,
         "side": "right",
+        "groups": {}
     }
 
     def __init__(self, master, studio, **cnf):
         super().__init__(master, studio, **cnf)
         self.setup_style_pane()
-
         pref: Preferences = Preferences.acquire()
-        pref.add_listener("designer::descriptive_names", lambda _: [self.render_styles(), self.render_layouts()])
+        pref.add_listener(
+            "designer::descriptive_names",
+            lambda _: [self.render_styles(), self.render_layouts()]
+        )
 
         self._identity_group = self.add_group(IdentityGroup)
         self._layout_group = self.add_group(LayoutGroup)

@@ -299,6 +299,9 @@ class SharedPreferences(metaclass=_PreferenceInstanceCreator):
                 update[key] = source[key]
 
     def update_defaults(self, path, defaults):
+        if not self.exists(path):
+            self.set(path, defaults)
+            return
         self._deep_update(self.get(path), defaults)
 
 

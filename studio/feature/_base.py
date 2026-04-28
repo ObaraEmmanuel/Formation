@@ -41,18 +41,9 @@ class BaseFeature(Pane):
         }
     }
 
-    @classmethod
-    def update_defaults(cls):
-        pref = Preferences.acquire()
-        path = "features::{}".format(cls.name)
-        if not pref.exists(path):
-            pref.set(path, copy.deepcopy(cls._defaults))
-        else:
-            pref.update_defaults(path, copy.deepcopy(cls._defaults))
-
     def __init__(self, master, studio=None, **cnf):
         super().__init__(master, **cnf)
-        self.update_defaults()
+        self.update_defaults("", copy.deepcopy(self._defaults))
         self.drag_text = self.display_name
         self.__class__._instance = self
         if not self.__class__._view_mode:
@@ -108,7 +99,9 @@ class BaseFeature(Pane):
 
     @classmethod
     def get_pref_path(cls, short_path):
-        return "features::{}::{}".format(cls.name, short_path)
+        if not short_path:
+            return f"features::{cls.name}"
+        return f"features::{cls.name}::{short_path}"
 
     @classmethod
     def get_pref(cls, short_path):
@@ -117,6 +110,13 @@ class BaseFeature(Pane):
     @classmethod
     def set_pref(cls, short_path, value):
         Preferences.acquire().set(cls.get_pref_path(short_path), value)
+
+    @classmethod
+    def update_defaults(cls, short_path, defaults):
+        Preferences.acquire().update_defaults(
+            cls.get_pref_path(short_path),
+            copy.deepcopy(defaults)
+        )
 
     @classmethod
     def get_instance(cls):
