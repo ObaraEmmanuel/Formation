@@ -233,6 +233,11 @@ class PseudoWidget:
             except tkinter.TclError:
                 pass
 
+    def intercept_select(self, event):
+        # Override and return True if you want to block
+        # normal designer selection logic
+        return False
+
     def _on_press(self, event):
         if not self.allow_direct_move and not event.state & EventMask.SHIFT:
             if not self.allow_drag_select:

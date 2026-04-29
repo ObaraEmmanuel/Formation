@@ -887,8 +887,9 @@ class CanvasTool(BaseTool):
                 "<Double-Button-1>", self._draw_dispatch("on_double_press"), True)
             canvas.bind(
                 "<Motion>", self._draw_dispatch("on_motion"), True)
-            canvas.bind("<Control-Button-1>", self._enter_pointer_mode)
+            canvas.bind("<Shift-Button-1>", self._enter_pointer_mode, True)
             canvas.bind("<Button-1>", self._latch_and_focus(canvas), True)
+            canvas.intercept_select = lambda event: self.intercept_select(canvas, event)
             canvas.on_context_menu(self._show_canvas_menu(canvas))
             canvas._cv_tree = CanvasTreeView(canvas)
             canvas._cv_tree.on_structure_change(self._update_stacking, canvas)
@@ -896,6 +897,14 @@ class CanvasTool(BaseTool):
             canvas._cv_items = []
             canvas._cv_initialized = True
             canvas._cv_tool = self
+
+    def intercept_select(self, canvas, event):
+        if canvas != self.canvas:
+            return False
+        x, y = canvas.canvasx(event.x), canvas.canvasy(event.y)
+        if canvas.find_overlapping(x, y, x, y):
+            return True
+        return False
 
     @property
     def sorted_selected_items(self):
@@ -1108,6 +1117,8 @@ class CanvasTool(BaseTool):
         item._coord_latch = None
 
     def _handle_select(self, item, event):
+        if self.canvas is None:
+            return
         if self.current_draw is not None or getattr(item, '_coord_latch', None):
             # if coord_latch has a value then it means we have been dragging
             # an item and the button release means end of drag and not selection

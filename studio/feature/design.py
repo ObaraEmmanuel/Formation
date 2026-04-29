@@ -676,9 +676,11 @@ class Designer(DesignPad, Container):
     def _handle_select(self, obj, event):
         # store the click position for effective widget pasting
         self._last_click_pos = event.x_root, event.y_root
+        if obj.intercept_select(event):
+            return
         if event.state & EventMask.CONTROL:
             self.studio.selection.toggle(obj)
-        elif obj not in self.studio.selection:
+        else:
             self.studio.selection.set(obj)
 
     def load(self, obj_class, name, container, attributes, layout, bounds=None):

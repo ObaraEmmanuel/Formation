@@ -41,7 +41,7 @@ Selection, Resizing and Moving
 ==============================
 
 To switch to selection mode, you can click on the selected item in the ``Canvas`` section to deselect it. Alternatively,
-you can ``CTRL + click`` on the canvas to switch to selection mode. In selection mode, the cursor changes from a
+you can ``SHIFT + click`` on the canvas to switch to selection mode. In selection mode, the cursor changes from a
 cross-hair to a pointer allowing you to select items on the canvas by clicking on them. Once an item is selected,
 you can move it by dragging it. For multipoint items like lines and polygons, you can move individual points by
 dragging them or add new points by right-clicking on an edge/line and selecting ``add_point``. You can also delete a
