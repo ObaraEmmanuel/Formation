@@ -161,6 +161,15 @@ class StylePane(StylePaneFramework, Pane):
         else:
             self._select(None, [])
 
+    def update_defaults(self, *_):
+        pass
+
+    def set_pref(self, *_):
+        pass
+
+    def get_pref(self, *_):
+        return None
+
     def get_header(self):
         return self._header
 
