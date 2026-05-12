@@ -5,6 +5,7 @@ import pathlib
 
 from PIL import ImageTk, Image
 
+from formation.utils import as_posix_path
 
 image_props = (
     "image",
@@ -16,7 +17,7 @@ image_props = (
 
 
 def _resolve_path(path, base=None):
-    path = pathlib.Path(path)
+    path = pathlib.Path(as_posix_path(path))
     if not path.is_absolute() and base is not None:
         r_path = pathlib.Path(os.path.dirname(base), path)
         if r_path.exists():

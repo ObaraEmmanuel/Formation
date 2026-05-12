@@ -628,10 +628,11 @@ class Image(Text):
                     # use relative path
                     try:
                         # use relative path if possible
-                        path = os.path.relpath(path, current)
+                        path = pathlib.Path(os.path.relpath(path, current))
                     except ValueError:
                         pass
-                path = str(path)
+                # Always use posix path for better compatibility
+                path = str(path.as_posix())
             self._entry.set(path)
             if self._on_change:
                 self._on_change(path)

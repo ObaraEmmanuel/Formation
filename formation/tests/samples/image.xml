@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='utf-8'?>
+<tkinter.Tk xmlns:attr="http://www.hoversetformationstudio.com/styles/" xmlns:layout="http://www.hoversetformationstudio.com/layouts/" xmlns:menu="http://www.hoversetformationstudio.com/menu" name="tk_1" attr:menu="menu_1" attr:highlightbackground="#1c1c1c" attr:highlightcolor="#2f60d8" attr:layout="place" layout:width="337" layout:height="436" layout:x="30" layout:y="30">
+  <meth name="title">
+    <arg value="image test"/>
+  </meth>
+  <meth name="geometry">
+    <arg value="337x400+0+0"/>
+  </meth>
+  <meth name="iconphoto" defer="True">
+    <arg value="1" type="int"/>
+    <arg value="images/image.png" type="image"/>
+  </meth>
+  <meta major="8" minor="16" name="version"/>
+  <tkinter.Menu name="menu_1" attr:activebackground="#2f60d8" attr:activeborderwidth="1" attr:activeforeground="#ffffff" attr:borderwidth="1" attr:cursor="" attr:disabledforeground="#535353" attr:font="{Segoe UI} 9" attr:foreground="#000" attr:tearoff="0">
+    <tkinter.Menu attr:activebackground="#2f60d8" attr:activeborderwidth="1" attr:activeforeground="#ffffff" attr:borderwidth="1" attr:disabledforeground="#535353" attr:font="{Segoe UI} 9" attr:foreground="#fafafa" attr:tearoff="0" menu:compound="none" menu:foreground="#000000" menu:label="Menu" menu:state="normal">
+      <tkinter.Menu attr:activeborderwidth="1" attr:borderwidth="1" attr:font="{Segoe UI} 9" attr:tearoff="0" menu:compound="left" menu:foreground="#000000" menu:image="images/image.png" menu:label="cascade" menu:state="normal"/>
+      <command menu:compound="left" menu:foreground="#000000" menu:image="images/image.png" menu:label="command" menu:state="normal"/>
+      <separator/>
+      <checkbutton menu:selectimage="images/image.png" menu:compound="left" menu:foreground="#000000" menu:image="images/image.png" menu:label="check button" menu:state="normal"/>
+      <radiobutton menu:selectimage="images/image.png" menu:value="radio button_1" menu:variable="" menu:compound="left" menu:foreground="#000000" menu:image="images/image.png" menu:label="radio button_1" menu:state="normal"/>
+    </tkinter.Menu>
+  </tkinter.Menu>
+  <tkinter.Label name="label_1" attr:background="#d6cece" attr:image="images/okestr.png" attr:text="label_1" layout:width="133" layout:height="129" layout:x="18" layout:y="21" layout:bordermode="outside"/>
+  <tkinter.Canvas name="canvas_1" attr:background="#d6cece" attr:closeenough="1.0" layout:width="135" layout:height="208" layout:x="18" layout:y="176" layout:bordermode="outside">
+    <Image name="image_1" coords="66,65" attr:activeimage="images/image.png" attr:disabledimage="images/image.png" attr:image="images/okestr.png" attr:state="normal"/>
+    <Image name="image_2" coords="66,160" attr:activeimage="images/image.png" attr:disabledimage="images/image.png" attr:image="images/image.png"/>
+  </tkinter.Canvas>
+  <tkinter.LabelFrame name="labelframe_1" attr:text="legacy" attr:layout="place" layout:width="146" layout:height="175" layout:x="171" layout:y="207" layout:bordermode="outside">
+    <tkinter.Button name="button_1" attr:compound="left" attr:image="images/image.png" attr:text="button_1" layout:width="80" layout:height="25" layout:x="9" layout:y="25" layout:bordermode="outside"/>
+    <tkinter.Checkbutton name="checkbutton_1" attr:compound="left" attr:image="images/image.png" attr:selectimage="images/image.png" attr:text="checkbutton_1" attr:tristateimage="images/image.png" attr:variable="!checkbutton-14" layout:width="121" layout:height="25" layout:x="7" layout:y="60" layout:bordermode="outside"/>
+    <tkinter.Menubutton name="menubutton_1" attr:image="images/image.png" attr:padx="5" attr:pady="4" attr:compound="left" attr:text="menubutton_1" layout:width="118" layout:height="25" layout:x="8" layout:y="91" layout:bordermode="outside"/>
+    <tkinter.Radiobutton name="radiobutton_2" attr:compound="left" attr:image="images/image.png" attr:selectimage="images/image.png" attr:text="radiobutton_2" attr:tristateimage="images/image.png" layout:width="116" layout:height="25" layout:x="9" layout:y="122" layout:bordermode="outside"/>
+  </tkinter.LabelFrame>
+  <tkinter.ttk.Labelframe name="labelframe_2" attr:text="native" attr:layout="place" layout:width="146" layout:height="174" layout:x="172" layout:y="20" layout:bordermode="outside">
+    <tkinter.ttk.Button name="button_2" attr:text="button_2" attr:image="images/image.png" attr:compound="left" layout:width="80" layout:height="25" layout:x="7" layout:y="23" layout:bordermode="outside"/>
+    <tkinter.ttk.Checkbutton name="checkbutton_2" attr:text="checkbutton_2" attr:image="images/image.png" attr:compound="left" layout:width="121" layout:height="25" layout:x="5" layout:y="56" layout:bordermode="outside"/>
+    <tkinter.ttk.Radiobutton name="radiobutton_1" attr:text="radiobutton_1" attr:image="images/image.png" attr:compound="left" layout:width="116" layout:height="25" layout:x="7" layout:y="91" layout:bordermode="outside"/>
+    <tkinter.ttk.Label name="label_2" attr:text="label" attr:image="images/image.png" attr:compound="left" layout:width="71" layout:height="25" layout:x="11" layout:y="129" layout:bordermode="outside"/>
+  </tkinter.ttk.Labelframe>
+</tkinter.Tk>

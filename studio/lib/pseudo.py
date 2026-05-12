@@ -16,6 +16,7 @@ from studio.lib.properties import get_properties
 from studio.lib.handles import BoxHandle
 from studio.ui.tree import MalleableTree
 from studio.i18n import _
+from formation.utils import as_posix_path
 
 
 # Applied to widgets whose width is specified in characters
@@ -45,6 +46,7 @@ class _ImageIntercept:
     def set(widget, value, prop='image', **kw):
         try:
             if os.path.isfile(str(value)):
+                value = as_posix_path(str(value))
                 image = load_image(value, **kw)
                 load_image_to_widget(widget, image, prop)
             else:

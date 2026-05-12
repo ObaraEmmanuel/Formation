@@ -2,6 +2,7 @@
 # Copyright (C) 2022 Hoverset Group.                                      #
 # ======================================================================= #
 import keyword
+import pathlib
 import tkinter as tk
 import re
 
@@ -187,3 +188,17 @@ def callback_parse(command: str):
             return None
 
     return None
+
+
+def as_posix_path(path: str) -> str:
+    """
+    Takes a string path in Windows or Posix format and returns a posix path fomatted string.
+
+    :param path: A string path
+    :return: A string path in posix format
+    """
+    if "\\" in path:
+        path = pathlib.PureWindowsPath(path)
+    else:
+        path = pathlib.PurePosixPath(path)
+    return path.as_posix()
