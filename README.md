@@ -45,7 +45,7 @@ Formation Studio uses TKinter and, depending on the distribution/platform, it ma
 Install command for `tkinter` and `imagetk` on Debian Python:
 
 ```bash
-sudo apt-get install python3-tk, python3-pil.imagetk
+sudo apt-get install python3-tk python3-pil.imagetk
 ```
 
 > Note: The above instruction is only assured to work on Ubuntu. For
