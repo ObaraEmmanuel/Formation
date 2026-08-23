@@ -12,7 +12,8 @@ authors = [
 ]
 requires-python = ">=3.9"
 keywords = ["formation", "gui", "graphical-user-interface", "drag drop", "tkinter", "hoverset", "python"]
-license = {text = "MIT"}
+license = "MIT"
+license-files = ['LICEN[CS]E*']
 dynamic = ["version"]
 dependencies = [
     "pyscreenshot; sys_platform != 'win32' and sys_platform != 'darwin'",
@@ -24,7 +25,7 @@ classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Build Tools",
-    "License :: OSI Approved :: MIT License",
+
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
