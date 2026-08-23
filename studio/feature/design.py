@@ -599,7 +599,7 @@ class Designer(DesignPad, Container):
     def layout_at(self, bounds):
         candidate = None
         for container in self._sorted_containers:
-            if geometry.compute_overlap(geometry.bounds(container), bounds):
+            if geometry.is_within(geometry.bounds(container), bounds):
                 candidate = container
                 break
         if self.current_container and geometry.compute_overlap(geometry.bounds(self.current_container), bounds):
@@ -680,7 +680,7 @@ class Designer(DesignPad, Container):
             return
         if event.state & EventMask.CONTROL:
             self.studio.selection.toggle(obj)
-        else:
+        elif obj not in self.studio.selection:
             self.studio.selection.set(obj)
 
     def load(self, obj_class, name, container, attributes, layout, bounds=None):
