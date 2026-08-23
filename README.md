@@ -3,7 +3,7 @@
 ![license](https://img.shields.io/github/license/ObaraEmmanuel/Formation)
 ![tests](https://github.com/ObaraEmmanuel/Formation/workflows/build/badge.svg)
 [![pypi version](https://img.shields.io/pypi/v/formation-studio.svg)](https://pypi.org/project/formation-studio/)
-![python version](https://img.shields.io/badge/python-3.9+-blue.svg)
+![python version](https://img.shields.io/badge/python-3.10+-blue.svg)
 ![platforms](https://img.shields.io/badge/Platforms-Linux%20|%20Windows%20|%20Mac%20-purple.svg)
 [![Documentation Status](https://readthedocs.org/projects/formation-studio/badge/?version=latest)](https://formation-studio.readthedocs.io/en/latest/?badge=latest)
 ## Introduction
