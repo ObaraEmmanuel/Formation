@@ -1486,7 +1486,7 @@ class Application(Widget, CenterWindowMixin, _MouseWheelDispatcherMixin, Context
         super().__init__(*args, **kwargs)
         try:
             _require(self)
-        except tk.TclError:
+        except (tk.TclError, RuntimeError):
             pass
         self.position_ref = Screen(self)
         self.bind_all("<MouseWheel>", self._on_mousewheel, '+')
