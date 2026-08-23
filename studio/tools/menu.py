@@ -196,7 +196,7 @@ class CascadeMenuStyleGroup(AttributeGroup):
         return False
 
 
-class MenuToolX(BaseTool):
+class MenuTool(BaseTool):
     name = 'Menu'
     icon = 'menubutton'
 
@@ -387,7 +387,7 @@ class MenuToolX(BaseTool):
             configs.append(item.get_altered_options())
             menu.delete(item.index)
             menu._items.remove(item)
-            MenuToolX.refresh_menu_indices(menu)
+            MenuTool.refresh_menu_indices(menu)
             item.node.remove()
             menus.append(menu)
 
@@ -412,7 +412,7 @@ class MenuToolX(BaseTool):
             self.studio.designer.add_color_data(item.properties)
 
         for menu in unique_menus:
-            MenuToolX.refresh_menu_indices(menu)
+            MenuTool.refresh_menu_indices(menu)
 
     def on_item_add(self, component):
         nodes = [i for i in self.menu._sub_tree.get() if isinstance(i.item, Cascade)]
@@ -496,7 +496,7 @@ class MenuToolX(BaseTool):
             prev_configs[item] = item.get_altered_options()
             item.menu.delete(item.index)
             item.menu._items.remove(item)
-            MenuToolX.refresh_menu_indices(item.menu)
+            MenuTool.refresh_menu_indices(item.menu)
             if alter_tree:
                 item.node.remove()
 
@@ -504,7 +504,7 @@ class MenuToolX(BaseTool):
             prev_config = prev_configs[item]
             menu.insert(index + int(menu["tearoff"]), item.item_type, **prev_config)
             menu._items.insert(index, item)
-            MenuToolX.refresh_menu_indices(menu)
+            MenuTool.refresh_menu_indices(menu)
             item.menu = menu
             if alter_tree:
                 menu.real_node.insert(index, item.node)
