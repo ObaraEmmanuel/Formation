@@ -451,7 +451,7 @@ class Check(Component, Checkbutton):
         super().__init__(master, **extra)
         self.load(pref, path)
         self.config(text=desc, **self.style.text)
-        self._var.trace("w", lambda *_: self._change())
+        self._var.trace_add("write", lambda *_: self._change())
 
     def disable(self, flag):
         super(Check, self).disable(flag)

@@ -59,7 +59,7 @@ class BindingsTable(CompoundList):
             for widget in (self.sequence, self.handler):
                 widget.on_change(self._on_value_change)
 
-            self.add_arg._var.trace("w", lambda *_: self._on_value_change())
+            self.add_arg._var.trace_add("write", lambda *_: self._on_value_change())
 
         def hide(self):
             self.pack_forget()

@@ -112,7 +112,7 @@ class Boolean(Editor):
         super().__init__(master, style_def)
         self.config(**self.style.surface, **self.style.highlight_active)
         self._var = BooleanVar()
-        self._var.trace('w', self.check_change)
+        self._var.trace_add('write', self.check_change)
         self._check = Checkbutton(self, text='')
         self._check['variable'] = self._var
         self._check.pack(fill="x")

@@ -315,7 +315,7 @@ class EditableMixin:
         :param callback:
         :return:
         """
-        self._var.trace("w", lambda *_: callback(*args, **kwargs))
+        self._var.trace_add("write", lambda *_: callback(*args, **kwargs))
 
     def on_entry(self, callback, *args, **kwargs):
         """
@@ -1847,7 +1847,7 @@ class RadioButtonGroup(Frame):
         self._pool = []
         self._radio_buttons = []
         self._var = tk.StringVar()
-        self._var.trace("w", self._change)
+        self._var.trace_add("write", self._change)
         self._blocked = False
         self._on_change = None
         self._label = Label(self, text=label, anchor=tk.W)
@@ -1953,7 +1953,7 @@ class Scale(Widget, ttk.Scale):
         cnf = {**self.style.surface, **cnf}
         self.config_all(**cnf)
         self._on_change = None
-        self._var.trace('w', self._change)
+        self._var.trace_add('write', self._change)
 
     def _change(self, *_):
         if self._on_change:
