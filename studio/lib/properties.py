@@ -115,6 +115,10 @@ PROPERTY_TABLE = {
         "display_name": "background",
         "type": "color",
     },
+    "backgroundimage": {
+        "display_name": "background image",
+        "type": "image",
+    },
     "bigincrement": {
         "display_name": "big increment",
         "type": "number",
@@ -385,6 +389,14 @@ PROPERTY_TABLE = {
         "display_name": "postcommand",
         "type": "callback",
     },
+    "placeholder": {
+        "display_name": "placeholder",
+        "type": "text",
+    },
+    "placeholderforeground": {
+        "display_name": "placeholder foreground",
+        "type": "color",
+    },
     "proxybackground": {
         "display_name": "proxy background",
         "type": "color",
@@ -489,6 +501,11 @@ PROPERTY_TABLE = {
         "type": "choice",
         "options": ("browse", "single", "multiple", "extended")
     },
+    "selecttype": {
+        "display_name": "select type",
+        "type": "choice",
+        "options": ("item", "cell")
+    },
     "setgrid": {
         "display_name": "setgrid",
         "type": "boolean",
@@ -534,6 +551,10 @@ PROPERTY_TABLE = {
         "type": "choice",
         "options": ("normal", "disabled")
     },
+    "striped": {
+        "display_name": "striped",
+        "type": "boolean",
+    },
     "style": {
         "display_name": "style",
         "type": "text",
@@ -572,9 +593,23 @@ PROPERTY_TABLE = {
         "type": "duration",
         "units": "ms"
     },
+    "tile": {
+        "display_name": "tile",
+        "type": "boolean",
+    },
     "title": {
         "display_name": "title",
         "type": "text",
+    },
+    "titlecolumns": {
+        "display_name": "title columns",
+        "type": "number",
+        "from": 0,
+    },
+    "titleitems": {
+        "display_name": "title items",
+        "type": "number",
+        "from": 0,
     },
     "to": {
         "display_name": "to",
@@ -681,6 +716,11 @@ _unimplemented = {
         "display_name": "visual",
         "type": "color",
     },
+}
+
+_ignored_props = {
+    "bd", "bg", "colormap", "container", "height", "visual", "width",
+    "class", "use", "labelwidget", "fg", "bgimg", "vcmd",
 }
 
 WIDGET_IDENTITY = {

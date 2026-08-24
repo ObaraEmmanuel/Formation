@@ -12,7 +12,8 @@ image_props = (
     "selectimage",
     "tristateimage",
     "activeimage",
-    "disabledimage"
+    "disabledimage",
+    "backgroundimage",
 )
 
 

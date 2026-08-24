@@ -140,6 +140,7 @@ class PseudoWidget:
         "image": _ImageIntercept,
         "selectimage": _ImageIntercept,
         "tristateimage": _ImageIntercept,
+        "backgroundimage": _ImageIntercept,
         "id": _IdIntercept,
         "textvariable": _VariableIntercept,
         "variable": _VariableIntercept,
