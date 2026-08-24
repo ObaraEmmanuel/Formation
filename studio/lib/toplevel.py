@@ -201,7 +201,7 @@ class _Toplevel(tk.Frame):
         window.grid(row=1, column=0, sticky='nswe')
 
         embed_class = getattr(self, "embed_class", tk.Toplevel)
-        self._toplevel = embed_class(master, use=window.winfo_id())
+        self._toplevel = embed_class(master, use=hex(window.winfo_id()))
 
         # get system default maxsize before toplevel is modified
         maxsize = self._toplevel.maxsize()
