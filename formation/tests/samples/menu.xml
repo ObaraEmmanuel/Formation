@@ -43,7 +43,7 @@
     </tkinter.Menu>
   </tkinter.Menubutton>
   <tkinter.ttk.Menubutton name="menubutton_2" attr:menu="menu_2" attr:text="menubutton_2" layout:width="180" layout:height="25" layout:x="68" layout:y="91" layout:bordermode="outside">
-    <tkinter.Menu name="menu_2" attr:activeborderwidth="1" attr:borderwidth="1" attr:font="{Segoe UI} 9" attr:foreground="grey20" attr:postcommand="test_command" attr:tearoffcommand="test_command" attr:title="menu_2">
+    <tkinter.Menu name="menu_2" attr:activeborderwidth="1" attr:borderwidth="1" attr:font="{Segoe UI} 9" attr:foreground="grey20" attr:postcommand="test_command" attr:tearoff="1" attr:tearoffcommand="test_command" attr:title="menu_2">
       <command menu:command="test_command" menu:compound="none" menu:label="command_7" menu:state="normal"/>
       <command menu:compound="none" menu:label="command_8" menu:state="normal"/>
       <command menu:compound="none" menu:label="command_9" menu:state="normal"/>
